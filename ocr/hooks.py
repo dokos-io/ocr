@@ -4,14 +4,14 @@ app_publisher = "Dokos SAS"
 app_description = "OCR application for Dokos"
 app_email = "hello@dokos.io"
 app_license = "agpl-3.0"
-# required_apps = []
+required_apps = ["erpnext"]
 
 # Includes in <head>
 # ------------------
 
 # include js, css files in header of desk.html
 # app_include_css = "/assets/ocr/css/ocr.css"
-# app_include_js = "/assets/ocr/js/ocr.js"
+app_include_js = "ocr.bundle.js"
 
 # include js, css files in header of web template
 # web_include_css = "/assets/ocr/css/ocr.css"
@@ -28,7 +28,7 @@ app_license = "agpl-3.0"
 # page_js = {"page" : "public/js/file.js"}
 
 # include js in doctype views
-# doctype_js = {"doctype" : "public/js/doctype.js"}
+doctype_js = {"Purchase Invoice" : "public/js/purchase_invoice.js"}
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
@@ -69,6 +69,8 @@ app_license = "agpl-3.0"
 
 # before_install = "ocr.install.before_install"
 # after_install = "ocr.install.after_install"
+
+after_migrate = "ocr.migrate.after_migrate"
 
 # Uninstallation
 # ------------
