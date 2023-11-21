@@ -12,6 +12,7 @@
   "file",
   "column_break_yccb",
   "ocr_basket",
+  "transaction_type",
   "section_break_pgfr",
   "error",
   "section_break_hxzx",
@@ -84,6 +85,16 @@
    "fieldtype": "Small Text",
    "label": "Error",
    "read_only": 1
+  },
+  {
+   "fetch_from": "ocr_basket.document_type",
+   "fieldname": "transaction_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Transaction Type",
+   "options": "\nPurchase Invoice\nExpense",
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
@@ -94,7 +105,7 @@
    "link_fieldname": "ocr_request"
   }
  ],
- "modified": "2023-11-21 18:12:05.950998",
+ "modified": "2023-11-21 18:41:45.066701",
  "modified_by": "Administrator",
  "module": "OCR",
  "name": "OCR Request",
