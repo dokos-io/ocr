@@ -28,7 +28,10 @@ app_include_js = "ocr.bundle.js"
 # page_js = {"page" : "public/js/file.js"}
 
 # include js in doctype views
-doctype_js = {"Purchase Invoice" : "public/js/purchase_invoice.js"}
+doctype_js = {
+	"Communication" : "public/js/communication.js",
+	"Purchase Invoice": "public/js/purchase_invoice.js"
+}
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
@@ -68,7 +71,7 @@ doctype_js = {"Purchase Invoice" : "public/js/purchase_invoice.js"}
 # ------------
 
 # before_install = "ocr.install.before_install"
-# after_install = "ocr.install.after_install"
+after_install = "ocr.install.after_install"
 
 after_migrate = "ocr.migrate.after_migrate"
 
@@ -124,34 +127,32 @@ after_migrate = "ocr.migrate.after_migrate"
 # ---------------
 # Hook on document methods and events
 
-# doc_events = {
-#	"*": {
-#		"on_update": "method",
-#		"on_cancel": "method",
-#		"on_trash": "method"
-#	}
-# }
+doc_events = {
+	"Communication": {
+		"after_insert": "ocr.ocr.doctype.ocr_basket.ocr_basket.create_requests_from_ocr_basket",
+	}
+}
 
 # Scheduled Tasks
 # ---------------
 
-# scheduler_events = {
-#	"all": [
-#		"ocr.tasks.all"
-#	],
-#	"daily": [
-#		"ocr.tasks.daily"
-#	],
-#	"hourly": [
-#		"ocr.tasks.hourly"
-#	],
-#	"weekly": [
-#		"ocr.tasks.weekly"
-#	],
-#	"monthly": [
-#		"ocr.tasks.monthly"
-#	],
-# }
+scheduler_events = {
+	"all": [
+		"ocr.ocr.doctype.ocr_basket.ocr_basket.check_requests_completion"
+	],
+	# "daily": [
+	# 	"ocr.tasks.daily"
+	# ],
+	"hourly": [
+		"ocr.ocr.doctype.ocr_request.ocr_request.check_pending_analysis"
+	],
+	# "weekly": [
+	# 	"ocr.tasks.weekly"
+	# ],
+	# "monthly": [
+	# 	"ocr.tasks.monthly"
+	# ],
+}
 
 # Testing
 # -------
