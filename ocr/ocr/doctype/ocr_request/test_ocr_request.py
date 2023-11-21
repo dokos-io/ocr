@@ -4,5 +4,5 @@
 # import frappe
 from frappe.tests.utils import FrappeTestCase
 
-class TestAWSTextractRequest(FrappeTestCase):
+class TestOCRRequest(FrappeTestCase):
 	pass
