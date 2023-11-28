@@ -12,7 +12,18 @@ frappe.ui.form.on('Purchase Invoice', {
 		if (frm.doc.ocr_request) {
 			frappe.model.with_doc("OCR Request", frm.doc.ocr_request).then(() => {
 				const doc = frappe.get_doc("OCR Request", frm.doc.ocr_request)
-				console.log(doc)
+				let msg = ""
+
+				if (doc.grand_total != frm.doc.grand_total) {
+					msg += `<div>${__("There is a difference between the total amount based on the data extraction (")} ${format_currency(doc.grand_total, frm.doc.currency)} ${__(") and this invoice (")} ${format_currency(frm.doc.grand_total, frm.doc.currency)} )."</div>`
+				}
+
+				if (doc.tax_total != frm.doc.total_taxes_and_charges) {
+					msg += `<div>${__("There is a difference between the total taxes based on the data extraction (")} ${format_currency(doc.tax_total, frm.doc.currency)} ${__(") and this invoice (")} ${format_currency(frm.doc.total_taxes_and_charges, frm.doc.currency)} )."</div>`
+				}
+
+				frm.dashboard.clear_headline();
+				frm.dashboard.set_headline(msg, "orange")
 			});
 		}
 	},
