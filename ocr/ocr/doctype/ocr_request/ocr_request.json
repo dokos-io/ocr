@@ -95,13 +95,13 @@
    "read_only": 1
   },
   {
-   "fetch_from": "ocr_basket.document_type",
    "fieldname": "transaction_type",
    "fieldtype": "Select",
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Transaction Type",
    "options": "\nPurchase Invoice\nExpense",
+   "default": "Purchase Invoice",
    "read_only": 1
   },
   {
