@@ -6,7 +6,6 @@
  "email_append_to": 1,
  "engine": "InnoDB",
  "field_order": [
-  "document_type",
   "sender",
   "subject",
   "column_break_rvwl",
@@ -15,15 +14,6 @@
   "ocr_html"
  ],
  "fields": [
-  {
-   "default": "Purchase Invoice",
-   "fieldname": "document_type",
-   "fieldtype": "Select",
-   "in_list_view": 1,
-   "label": "Document Type",
-   "options": "Purchase Invoice\nExpense",
-   "reqd": 1
-  },
   {
    "fieldname": "ocr_html",
    "fieldtype": "HTML",
@@ -37,12 +27,13 @@
    "default": "Not Started",
    "fieldname": "status",
    "fieldtype": "Select",
+   "hidden": 1,
    "label": "Status",
    "options": "Not Started\nIn Progress\nCompleted",
    "read_only": 1
   },
   {
-   "depends_on": "eval:!doc.__islocal && doc.status == \"Not Started\" && !(doc.sender || doc.subject)",
+   "depends_on": "eval:doc.status == \"Not Started\" && !(doc.sender || doc.subject)",
    "fieldname": "section_break_hmpy",
    "fieldtype": "Section Break"
   },
@@ -68,10 +59,10 @@
    "link_fieldname": "ocr_basket"
   }
  ],
- "modified": "2023-11-21 16:35:13.497455",
+ "modified": "2023-11-28 09:21:21.345166",
  "modified_by": "Administrator",
  "module": "OCR",
- "name": "OCR Basket",
+ "name": "OCR Purchase Invoice Basket",
  "owner": "Administrator",
  "permissions": [
   {

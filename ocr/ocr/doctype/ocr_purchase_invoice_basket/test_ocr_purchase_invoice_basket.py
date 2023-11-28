@@ -4,5 +4,5 @@
 # import frappe
 from frappe.tests.utils import FrappeTestCase
 
-class TestOCRBasket(FrappeTestCase):
+class TestOCRPurchaseInvoiceBasket(FrappeTestCase):
 	pass

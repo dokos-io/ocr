@@ -30,9 +30,13 @@ app_include_js = "ocr.bundle.js"
 # include js in doctype views
 doctype_js = {
 	"Communication" : "public/js/communication.js",
-	"Purchase Invoice": "public/js/purchase_invoice.js"
+	"Purchase Invoice": "public/js/purchase_invoice.js",
 }
-# doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
+
+doctype_list_js = {
+	"Expense" : "public/js/expense_list.js"
+}
+
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
 
