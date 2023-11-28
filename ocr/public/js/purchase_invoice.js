@@ -7,6 +7,14 @@ frappe.ui.form.on('Purchase Invoice', {
 				frm.trigger("preview_file")
 			});
 		}
+
+
+		if (frm.doc.ocr_request) {
+			frappe.model.with_doc("OCR Request", frm.doc.ocr_request).then(() => {
+				const doc = frappe.get_doc("OCR Request", frm.doc.ocr_request)
+				console.log(doc)
+			});
+		}
 	},
 
 	preview_file(frm) {

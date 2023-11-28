@@ -27,7 +27,6 @@
    "in_list_view": 1,
    "label": "Value",
    "read_only": 1,
-   "reqd": 1,
    "search_index": 1
   },
   {
@@ -46,7 +45,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2023-11-28 11:45:13.030853",
+ "modified": "2023-11-28 14:01:33.298055",
  "modified_by": "Administrator",
  "module": "OCR",
  "name": "OCR Header Mapping",
