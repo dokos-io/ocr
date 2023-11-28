@@ -21,11 +21,10 @@ ocr.DocumentAnalyzer = class DocumentAnalyzer {
 				allowed_file_types: ["image/*", "application/pdf"],
 			},
 			on_success: (file_doc, response) => {
-				// new TextractAnalysisGetter(this.frm, r.message)
-
-				this.add_to_attachments(file_doc)
-				this.frm.sidebar.reload_docinfo();
-				
+				if (!this.frm.is_new()) {
+					this.add_to_attachments(file_doc)
+					this.frm.sidebar.reload_docinfo();
+				}
 			},
 		});
 	}
