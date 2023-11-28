@@ -4,14 +4,16 @@
 import re
 import difflib
 import time
+import datetime
 from dateutil.parser import parse
 
 import frappe
-from frappe.utils import time_diff_in_minutes, now_datetime, time_diff
+from frappe.utils import time_diff_in_minutes, now_datetime, time_diff, flt
 from frappe.model.document import Document
 
 
 from ocr.ocr.doctype.ocr_request.aws_textract import AWSTextract
+from ocr.ocr.doctype.ocr_request.taggun import Taggun
 
 # https://docs.python.org/3/library/re.html#simulating-scanf
 FLOAT_PATTERN = re.compile(r"[-+]?(\d+([.,]\d*)?|[.,]\d+)([eE][-+]?\d+)?")
@@ -21,6 +23,9 @@ PURCHASE_INVOICE_MAPPING = {
 	"INVOICE_RECEIPT_DATE": "bill_date",
 	"VENDOR_NAME": "supplier"
 }
+
+GRAND_TOTAL_KEY = "TOTAL"
+TAX_TOTAL_KEY = "TAX"
 
 class OCRRequest(Document):
 	def after_insert(self):
@@ -37,18 +42,27 @@ class OCRRequest(Document):
 		self.get_analysis()
 
 	def start_analysis(self):
-		textract = AWSTextract(self)
-		jobid = textract.start_analysis()
-		self.db_set("job", jobid)
+		service = frappe.db.get_single_value("OCR Settings", "selected_ocr_service")
+		if service == "AWS Textract":
+			textract = AWSTextract(self)
+			jobid = textract.start_analysis()
+			self.db_set("job", jobid)
 
 	def get_analysis(self):
+		service = frappe.db.get_single_value("OCR Settings", "selected_ocr_service")
+		if service == "AWS Textract":
+			return self.get_textract_analysis()
+		elif service == "Taggun":
+			self.get_taggun_analysis()
+
+	def get_textract_analysis(self):
 		if self.analysis and frappe.parse_json(self.analysis).get("JobStatus") == "SUCCEEDED":
 			return frappe.parse_json(self.analysis)
 
 		textract = AWSTextract(self)
 		if analysis := textract.get_analysis():
 			if analysis["JobStatus"] == "SUCCEEDED":
-				self.register_parsed_data(analysis)
+				self.register_parsed_data(analysis.get("ParsedData", {}))
 				self.find_header_correspondence()
 				self.find_line_items_correspondence()
 				self.analysis = frappe.as_json(analysis)
@@ -72,24 +86,36 @@ class OCRRequest(Document):
 
 		return analysis
 
+	def get_taggun_analysis(self):
+		taggun = Taggun(self)
+		return taggun.start_analysis()
+
 	def on_trash(self):
-		textract = AWSTextract(self)
-		textract.delete_file()
+		service = frappe.db.get_single_value("OCR Settings", "selected_ocr_service")
+		if service == "AWS Textract":
+			textract = AWSTextract(self)
+			textract.delete_file()
 
 	@frappe.whitelist()
 	def create_purchase_invoice(self):
 		purchase_invoice = frappe.new_doc("Purchase Invoice")
 		purchase_invoice.ocr_request = self.name
 
+		generic_item = frappe.db.get_single_value("OCR Settings", "generic_item")
+
 		for key, value in self.get_header_parsed_dict().items():
 			purchase_invoice.update({key: value})
 
 		for child in self.line_items_mapping:
+			if not child.get("item"):
+				continue
+
 			purchase_invoice.append("items", {
-				"item_code": child.get("item_code"),
+				"item_code": child.get("item_code") or generic_item,
 				"item_name": str(child.get("item"))[:140],
 				"description": child.get("expense_row") or child.get("item"),
-				"qty": child.get("quantity") or 1,
+				"qty": self.get_purchase_invoice_qty(child),
+				"uom": self.get_purchase_invoice_uom(child),
 				"rate": child.get("unit_price") or (child.get("quantity") == 1 and child.get("price")),
 				"description": child.get("expense_row") or child.get("item")
 			})
@@ -98,16 +124,17 @@ class OCRRequest(Document):
 		purchase_invoice.flags.ignore_validate = True
 
 		try:
+			purchase_invoice.run_method("set_missing_values")
+			purchase_invoice.run_method("calculate_taxes_and_totals")
 			purchase_invoice.insert()
 			self.db_set("status", "Transaction Created")
 		except Exception as e:
 			self.db_set("status", "Error")
-			self.db_set("error", e)
+			self.db_set("error", str(e))
 
-	def register_parsed_data(self, analysis):
+	def register_parsed_data(self, parsed_data):
 		self.header_mapping = []
 		self.line_items_mapping = []
-		parsed_data = analysis.get("ParsedData", {})
 		for key, value in parsed_data.items():
 			if key == "_children":
 				for child in parsed_data["_children"]:
@@ -124,11 +151,25 @@ class OCRRequest(Document):
 					"value": value
 				})
 
+			if key == GRAND_TOTAL_KEY:
+				self.grand_total = self.get_first_floats(value)
+
+			if key == TAX_TOTAL_KEY:
+				self.tax_total = self.get_first_floats(value)
+
 	def get_header_dict(self):
 		return {line.key: line.value for line in self.header_mapping}
 
 	def get_header_parsed_dict(self):
-		return {line.field: line.field_value or line.value for line in self.header_mapping if line.field}
+		parsed_dict = {}
+		for line in self.header_mapping:
+			if line.field:
+				value = line.field_value or line.value
+				if "date" in line.field and not (isinstance(value, datetime.datetime) or isinstance(value, datetime.date)):
+					continue
+
+				parsed_dict[line.field] = line.field_value or line.value
+		return parsed_dict
 
 	def find_header_correspondence(self):
 		pi_fields = [f.fieldname for f in frappe.get_meta("Purchase Invoice").fields]
@@ -223,6 +264,25 @@ class OCRRequest(Document):
 			),
 			"parent"
 		)
+
+	def get_purchase_invoice_qty(self, row):
+		if row.get("unit_price") and row.get("price") and row.get("price") != row.get("unit_price"):
+			return flt(row.get("price") ) / flt(row.get("unit_price"))
+
+		elif row.get("quantity"):
+			return row.get("quantity")
+
+		return 1
+
+	def get_purchase_invoice_uom(self, row):
+		expense_row = row.get("EXPENSE_ROW")
+
+		if expense_row and (before_unit_price := re.match(r".+?(?=" + re.escape(row.get("unit_price")) + r")", expense_row, re.IGNORECASE)):
+			for section in reversed(before_unit_price[0].strip().split()):
+				if not section.isnumeric() and frappe.db.get_value("UOM", section):
+					return section
+
+		return frappe.db.get_single_value("OCR Settings", "default_uom")
 
 def check_pending_analysis():
 	for req in frappe.get_all("OCR Request", filters={"status": "Pending"}):

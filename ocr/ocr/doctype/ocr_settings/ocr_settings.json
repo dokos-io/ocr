@@ -7,9 +7,11 @@
  "field_order": [
   "general_settings_tab",
   "selected_ocr_service",
+  "taggun_api_key",
   "purchase_invoices_tab",
   "default_uom",
-  "expenses_tab"
+  "column_break_pzoo",
+  "generic_item"
  ],
  "fields": [
   {
@@ -21,17 +23,13 @@
    "fieldname": "selected_ocr_service",
    "fieldtype": "Select",
    "label": "Selected OCR Service",
-   "options": "AWS Textract"
+   "options": "AWS Textract\nTaggun",
+   "read_only": 1
   },
   {
    "fieldname": "purchase_invoices_tab",
    "fieldtype": "Tab Break",
    "label": "Purchase Invoices"
-  },
-  {
-   "fieldname": "expenses_tab",
-   "fieldtype": "Tab Break",
-   "label": "Expenses"
   },
   {
    "fieldname": "default_uom",
@@ -40,12 +38,28 @@
    "label": "Default UOM",
    "options": "UOM",
    "reqd": 1
+  },
+  {
+   "depends_on": "eval:doc.selected_ocr_service==\"Taggun\"",
+   "fieldname": "taggun_api_key",
+   "fieldtype": "Password",
+   "label": "Taggun API Key"
+  },
+  {
+   "fieldname": "generic_item",
+   "fieldtype": "Link",
+   "label": "Generic Item",
+   "options": "Item"
+  },
+  {
+   "fieldname": "column_break_pzoo",
+   "fieldtype": "Column Break"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2023-11-15 10:43:01.266233",
+ "modified": "2023-11-28 16:34:53.842423",
  "modified_by": "Administrator",
  "module": "OCR",
  "name": "OCR Settings",

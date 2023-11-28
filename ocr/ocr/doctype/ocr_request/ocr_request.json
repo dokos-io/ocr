@@ -18,6 +18,8 @@
   "mapping_section",
   "header_mapping",
   "line_items_mapping",
+  "tax_total",
+  "grand_total",
   "section_break_hxzx",
   "job",
   "analysis",
@@ -128,6 +130,18 @@
    "fieldname": "document_html",
    "fieldtype": "HTML",
    "label": "Document HTML"
+  },
+  {
+   "fieldname": "tax_total",
+   "fieldtype": "Float",
+   "label": "Tax Total",
+   "read_only": 1
+  },
+  {
+   "fieldname": "grand_total",
+   "fieldtype": "Float",
+   "label": "Grand Total",
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
@@ -138,7 +152,7 @@
    "link_fieldname": "ocr_request"
   }
  ],
- "modified": "2023-11-28 12:15:17.451982",
+ "modified": "2023-11-28 16:41:40.033036",
  "modified_by": "Administrator",
  "module": "OCR",
  "name": "OCR Request",
