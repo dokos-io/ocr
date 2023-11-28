@@ -7,10 +7,11 @@ import frappe
 
 class AWSTextract:
 	def __init__(self, doc):
+		self.settings = frappe.get_single("OCR Settings")
 		self.textract_client = boto3.client(
 			'textract',
-			aws_access_key_id=frappe.conf.aws_textract_key,
-			aws_secret_access_key=frappe.conf.aws_textract_secret,
+			aws_access_key_id=self.settings.aws_textract_key or frappe.conf.aws_textract_key,
+			aws_secret_access_key=self.settings.aws_textract_secret or frappe.conf.aws_textract_secret,
 			region_name="eu-west-3"
 		)
 

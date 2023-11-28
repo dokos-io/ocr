@@ -7,7 +7,10 @@
  "field_order": [
   "general_settings_tab",
   "selected_ocr_service",
+  "column_break_qhyq",
   "taggun_api_key",
+  "aws_textract_key",
+  "aws_textract_secret",
   "purchase_invoices_tab",
   "default_uom",
   "column_break_pzoo",
@@ -54,12 +57,28 @@
   {
    "fieldname": "column_break_pzoo",
    "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_qhyq",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval:doc.selected_ocr_service==\"AWS Textract\"",
+   "fieldname": "aws_textract_key",
+   "fieldtype": "Data",
+   "label": "AWS Textract Key"
+  },
+  {
+   "depends_on": "eval:doc.selected_ocr_service==\"AWS Textract\"",
+   "fieldname": "aws_textract_secret",
+   "fieldtype": "Password",
+   "label": "AWS Textract Secret"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2023-11-28 16:34:53.842423",
+ "modified": "2023-11-28 18:39:06.531281",
  "modified_by": "Administrator",
  "module": "OCR",
  "name": "OCR Settings",
