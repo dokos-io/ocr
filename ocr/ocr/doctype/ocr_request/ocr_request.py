@@ -1,13 +1,26 @@
 # Copyright (c) 2023, Dokos SAS and contributors
 # For license information, please see license.txt
 
+import re
+import difflib
 import time
+from dateutil.parser import parse
 
 import frappe
 from frappe.utils import time_diff_in_minutes, now_datetime, time_diff
 from frappe.model.document import Document
 
+
 from ocr.ocr.doctype.ocr_request.aws_textract import AWSTextract
+
+# https://docs.python.org/3/library/re.html#simulating-scanf
+FLOAT_PATTERN = re.compile(r"[-+]?(\d+([.,]\d*)?|[.,]\d+)([eE][-+]?\d+)?")
+
+PURCHASE_INVOICE_MAPPING = {
+	"INVOICE_RECEIPT_ID": "bill_no",
+	"INVOICE_RECEIPT_DATE": "bill_date",
+	"VENDOR_NAME": "supplier"
+}
 
 class OCRRequest(Document):
 	def after_insert(self):
@@ -35,8 +48,12 @@ class OCRRequest(Document):
 		textract = AWSTextract(self)
 		if analysis := textract.get_analysis():
 			if analysis["JobStatus"] == "SUCCEEDED":
-				self.db_set("analysis", frappe.as_json(analysis))
-				self.db_set("status", "Analysis Completed")
+				self.register_parsed_data(analysis)
+				self.find_header_correspondence()
+				self.find_line_items_correspondence()
+				self.analysis = frappe.as_json(analysis)
+				self.status = "Analysis Completed"
+				self.save()
 
 			elif time_diff_in_minutes(now_datetime(), self.creation) < 60:
 				time.sleep(25)
@@ -62,18 +79,21 @@ class OCRRequest(Document):
 	@frappe.whitelist()
 	def create_purchase_invoice(self):
 		purchase_invoice = frappe.new_doc("Purchase Invoice")
-
-		analysis = self.get_analysis()
-		parsed_data = analysis.get("ParsedDokosData")
-
-		for d in parsed_data:
-			if d == "items":
-				for item in parsed_data[d]:
-					purchase_invoice.append("items", item)
-			else:
-				purchase_invoice.set(d, parsed_data[d])
-
 		purchase_invoice.ocr_request = self.name
+
+		for key, value in self.get_header_parsed_dict().items():
+			purchase_invoice.update({key: value})
+
+		for child in self.line_items_mapping:
+			purchase_invoice.append("items", {
+				"item_code": child.get("item_code"),
+				"item_name": str(child.get("item"))[:140],
+				"description": child.get("expense_row") or child.get("item"),
+				"qty": child.get("quantity") or 1,
+				"rate": child.get("unit_price") or (child.get("quantity") == 1 and child.get("price")),
+				"description": child.get("expense_row") or child.get("item")
+			})
+
 		purchase_invoice.flags.ignore_mandatory = True
 		purchase_invoice.flags.ignore_validate = True
 
@@ -83,6 +103,126 @@ class OCRRequest(Document):
 		except Exception as e:
 			self.db_set("status", "Error")
 			self.db_set("error", e)
+
+	def register_parsed_data(self, analysis):
+		self.header_mapping = []
+		self.line_items_mapping = []
+		parsed_data = analysis.get("ParsedData", {})
+		for key, value in parsed_data.items():
+			if key == "_children":
+				for child in parsed_data["_children"]:
+					row = {}
+					for row_key, row_value in child.items():
+						if row_key in ["QUANTITY", "UNIT_PRICE", "PRICE"]:
+							row[row_key.lower()] = self.get_first_floats(row_value)
+						else:
+							row[row_key.lower()] = row_value
+					self.append("line_items_mapping", row)
+			else:
+				self.append("header_mapping", {
+					"key": key,
+					"value": value
+				})
+
+	def get_header_dict(self):
+		return {line.key: line.value for line in self.header_mapping}
+
+	def get_header_parsed_dict(self):
+		return {line.field: line.field_value or line.value for line in self.header_mapping if line.field}
+
+	def find_header_correspondence(self):
+		pi_fields = [f.fieldname for f in frappe.get_meta("Purchase Invoice").fields]
+
+		for line in self.header_mapping:
+			if line.key.lower() in pi_fields:
+				line.field = line.key.lower()
+			elif PURCHASE_INVOICE_MAPPING.get(line.key):
+				line.field = PURCHASE_INVOICE_MAPPING.get(line.key)
+
+			if line.key == "VENDOR_NAME":
+				line.field_value = self.get_supplier_name()
+
+			if "DATE" in line.key:
+				try:
+					line.field_value = parse(line.value)
+				except Exception:
+					pass
+
+	def find_line_items_correspondence(self):
+		header = self.get_header_parsed_dict()
+		for line in self.line_items_mapping:
+			if "supplier" in header and header.get("supplier"):
+				line.item_code = self.get_supplier_item(header["supplier"], line.get("item"))
+
+	def get_first_floats(self, data):
+		data = data.replace(" ", "")
+		if data and (matching_floats := FLOAT_PATTERN.findall(data)):
+			for matching_float in matching_floats[0]:
+				try:
+					if matching_float:
+						value = matching_float.replace(" ", "").replace(",", ".") # Temporary hack to parse floats in french invoices. To be enhanced with different number formats.
+						return float(value) 
+				except Exception:
+					continue
+
+		return data
+
+	def get_supplier_name(self):
+		header = self.get_header_dict()
+		supplier = None
+		if header.get("VENDOR_VAT_NUMBER"):
+			supplier = frappe.db.get_value("Supplier", dict(tax_id=header.get("VENDOR_VAT_NUMBER")))
+
+		if not supplier and header.get("VENDOR_NAME"):
+			supplier = frappe.db.get_value("Supplier", header.get("VENDOR_NAME"))
+
+			if not supplier:
+				self.get_value_from_mapping("VENDOR_NAME", header.get("VENDOR_NAME"), "supplier")
+
+		if not supplier and header.get("VENDOR_NAME") and len(header.get("VENDOR_NAME").split(" ")) > 1:
+			for substring in header.get("VENDOR_NAME").split(" "):
+				supplier = frappe.db.get_value("Supplier", substring)
+				if supplier:
+					break
+
+		if not supplier and header.get("VENDOR_NAME"):
+			existing_supplier_list = frappe.get_all("Supplier", filters=dict(disabled=0), pluck="supplier_name")
+			sorted_suppliers = sorted(
+				existing_supplier_list,
+				key=lambda doc: difflib.SequenceMatcher(
+					lambda doc: doc == " ", doc, header.get("VENDOR_NAME")
+				).ratio(),
+				reverse=True,
+			)
+
+			best_match = sorted_suppliers[0]
+
+			if difflib.SequenceMatcher(lambda doc: doc == " ", best_match, header.get("VENDOR_NAME")).ratio() > 0.4:
+				supplier = sorted_suppliers[0]
+
+		return supplier
+
+	def get_value_from_mapping(self, key, value, field):
+		return frappe.db.get_value(
+			"OCR Header Mapping",
+			dict(
+				key=key,
+				value=value,
+				field=field
+			),
+			"field_value"
+		)
+
+
+	def get_supplier_item(self, supplier, item):
+		return frappe.db.get_value(
+			"Item Supplier",
+			dict(
+				supplier=supplier,
+				supplier_part_no=item
+			),
+			"parent"
+		)
 
 def check_pending_analysis():
 	for req in frappe.get_all("OCR Request", filters={"status": "Pending"}):

@@ -133,7 +133,7 @@ after_migrate = "ocr.migrate.after_migrate"
 
 doc_events = {
 	"Communication": {
-		"after_insert": "ocr.ocr.doctype.ocr_basket.ocr_basket.create_requests_from_ocr_basket",
+		"after_insert": "ocr.ocr.doctype.ocr_purchase_invoice_basket.ocr_purchase_invoice_basket.create_requests_from_ocr_basket",
 	}
 }
 
@@ -142,7 +142,7 @@ doc_events = {
 
 scheduler_events = {
 	"all": [
-		"ocr.ocr.doctype.ocr_basket.ocr_basket.check_requests_completion"
+		"ocr.ocr.doctype.ocr_purchase_invoice_basket.ocr_purchase_invoice_basket.check_requests_completion"
 	],
 	# "daily": [
 	# 	"ocr.tasks.daily"
