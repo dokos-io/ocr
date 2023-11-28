@@ -4,5 +4,5 @@
 # import frappe
 from frappe.tests.utils import FrappeTestCase
 
-class TestOCRMapping(FrappeTestCase):
+class TestOCRHeaderMapping(FrappeTestCase):
 	pass

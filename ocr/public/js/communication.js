@@ -42,7 +42,7 @@ frappe.ui.form.on("Communication", {
 
 	create_basket: (frm, basket_type) => {
 		return frappe.call({
-			method: "ocr.ocr.doctype.ocr_basket.ocr_basket.make_basket_from_communication",
+			method: "ocr.ocr.doctype.ocr_purchase_invoice_basket.ocr_purchase_invoice_basket.make_basket_from_communication",
 			args: {
 				communication: frm.doc.name,
 				basket_type: basket_type

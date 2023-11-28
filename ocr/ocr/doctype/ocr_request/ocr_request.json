@@ -15,9 +15,14 @@
   "transaction_type",
   "section_break_pgfr",
   "error",
+  "mapping_section",
+  "header_mapping",
+  "line_items_mapping",
   "section_break_hxzx",
   "job",
-  "analysis"
+  "analysis",
+  "document_tab",
+  "document_html"
  ],
  "fields": [
   {
@@ -73,7 +78,8 @@
   },
   {
    "fieldname": "section_break_hxzx",
-   "fieldtype": "Section Break"
+   "fieldtype": "Section Break",
+   "hidden": 1
   },
   {
    "depends_on": "eval:doc.error",
@@ -95,6 +101,33 @@
    "label": "Transaction Type",
    "options": "\nPurchase Invoice\nExpense",
    "read_only": 1
+  },
+  {
+   "fieldname": "mapping_section",
+   "fieldtype": "Section Break",
+   "label": "Mapping"
+  },
+  {
+   "fieldname": "header_mapping",
+   "fieldtype": "Table",
+   "label": "Header Data",
+   "options": "OCR Header Mapping"
+  },
+  {
+   "fieldname": "line_items_mapping",
+   "fieldtype": "Table",
+   "label": "Line Items Data",
+   "options": "OCR Line Items Mapping"
+  },
+  {
+   "fieldname": "document_tab",
+   "fieldtype": "Tab Break",
+   "label": "Document"
+  },
+  {
+   "fieldname": "document_html",
+   "fieldtype": "HTML",
+   "label": "Document HTML"
   }
  ],
  "index_web_pages_for_search": 1,
@@ -105,7 +138,7 @@
    "link_fieldname": "ocr_request"
   }
  ],
- "modified": "2023-11-27 18:29:55.590878",
+ "modified": "2023-11-28 12:15:17.451982",
  "modified_by": "Administrator",
  "module": "OCR",
  "name": "OCR Request",
