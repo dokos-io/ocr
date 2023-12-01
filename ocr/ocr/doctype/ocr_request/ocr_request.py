@@ -8,6 +8,7 @@ import datetime
 from dateutil.parser import parse
 
 import frappe
+from frappe import _
 from frappe.utils import time_diff_in_minutes, now_datetime, time_diff, flt
 from frappe.model.document import Document
 
@@ -98,8 +99,12 @@ class OCRRequest(Document):
 
 	@frappe.whitelist()
 	def create_purchase_invoice(self):
+		if not self.supplier:
+			frappe.throw(_("Please select a supplier in order to generate a purchase invoice"))
+
 		purchase_invoice = frappe.new_doc("Purchase Invoice")
 		purchase_invoice.ocr_request = self.name
+		purchase_invoice.supplier = self.supplier
 
 		generic_item = frappe.db.get_single_value("OCR Settings", "generic_item")
 
@@ -165,7 +170,10 @@ class OCRRequest(Document):
 		for line in self.header_mapping:
 			if line.field:
 				value = line.field_value or line.value
-				if "date" in line.field and not (isinstance(value, datetime.datetime) or isinstance(value, datetime.date)):
+				if (
+					"date" in line.field and not (isinstance(value, datetime.datetime) or isinstance(value, datetime.date))
+					or line.field == "supplier"
+				):
 					continue
 
 				parsed_dict[line.field] = line.field_value or line.value
@@ -227,6 +235,8 @@ class OCRRequest(Document):
 
 			if difflib.SequenceMatcher(lambda doc: doc == " ", best_match, header.get("VENDOR_NAME")).ratio() > 0.4:
 				supplier = sorted_suppliers[0]
+
+		self.supplier = supplier
 
 		return supplier
 
