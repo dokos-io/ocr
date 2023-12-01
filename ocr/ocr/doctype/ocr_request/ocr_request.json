@@ -15,16 +15,19 @@
   "transaction_type",
   "section_break_pgfr",
   "error",
-  "mapping_section",
-  "header_mapping",
-  "line_items_mapping",
-  "tax_total",
-  "grand_total",
   "section_break_hxzx",
   "job",
   "analysis",
   "document_tab",
-  "document_html"
+  "document_html",
+  "data_tab",
+  "supplier",
+  "column_break_lomt",
+  "grand_total",
+  "tax_total",
+  "mapping_section",
+  "header_mapping",
+  "line_items_mapping"
  ],
  "fields": [
   {
@@ -95,13 +98,13 @@
    "read_only": 1
   },
   {
+   "default": "Purchase Invoice",
    "fieldname": "transaction_type",
    "fieldtype": "Select",
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Transaction Type",
    "options": "\nPurchase Invoice\nExpense",
-   "default": "Purchase Invoice",
    "read_only": 1
   },
   {
@@ -142,6 +145,21 @@
    "fieldtype": "Float",
    "label": "Grand Total",
    "read_only": 1
+  },
+  {
+   "fieldname": "data_tab",
+   "fieldtype": "Tab Break",
+   "label": "Data"
+  },
+  {
+   "fieldname": "supplier",
+   "fieldtype": "Link",
+   "label": "Supplier",
+   "options": "Supplier"
+  },
+  {
+   "fieldname": "column_break_lomt",
+   "fieldtype": "Column Break"
   }
  ],
  "index_web_pages_for_search": 1,
@@ -152,7 +170,7 @@
    "link_fieldname": "ocr_request"
   }
  ],
- "modified": "2023-11-28 16:41:40.033036",
+ "modified": "2023-12-01 14:25:01.010001",
  "modified_by": "Administrator",
  "module": "OCR",
  "name": "OCR Request",
