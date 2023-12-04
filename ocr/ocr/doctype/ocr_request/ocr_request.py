@@ -99,43 +99,74 @@ class OCRRequest(Document):
 
 	@frappe.whitelist()
 	def create_purchase_invoice(self):
-		if not self.supplier:
-			frappe.throw(_("Please select a supplier in order to generate a purchase invoice"))
+		if frappe.db.get_single_value("OCR Settings", "fetch_items_from_sales_order"):
+			self.make_purchase_invoice_from_purchase_order()
 
-		purchase_invoice = frappe.new_doc("Purchase Invoice")
-		purchase_invoice.ocr_request = self.name
-		purchase_invoice.supplier = self.supplier
+		else:
+			if not self.supplier:
+				frappe.throw(_("Please select a supplier in order to generate a purchase invoice"))
 
-		generic_item = frappe.db.get_single_value("OCR Settings", "generic_item")
+			purchase_invoice = frappe.new_doc("Purchase Invoice")
+			purchase_invoice.ocr_request = self.name
+			purchase_invoice.supplier = self.supplier
 
-		for key, value in self.get_header_parsed_dict().items():
-			purchase_invoice.update({key: value})
+			generic_item = frappe.db.get_single_value("OCR Settings", "generic_item")
+
+			for key, value in self.get_header_parsed_dict().items():
+				purchase_invoice.update({key: value})
+
+			for child in self.line_items_mapping:
+				if not child.get("item"):
+					continue
+
+				purchase_invoice.append("items", {
+					"item_code": child.get("item_code") or generic_item,
+					"item_name": str(child.get("item"))[:140],
+					"description": child.get("expense_row") or child.get("item"),
+					"qty": self.get_purchase_invoice_qty(child),
+					"uom": self.get_purchase_invoice_uom(child),
+					"rate": child.get("unit_price") or (child.get("quantity") == 1 and child.get("price")),
+					"description": child.get("expense_row") or child.get("item")
+				})
+
+			purchase_invoice.flags.ignore_mandatory = True
+			purchase_invoice.flags.ignore_validate = True
+
+			try:
+				purchase_invoice.run_method("set_missing_values")
+				purchase_invoice.run_method("calculate_taxes_and_totals")
+				purchase_invoice.insert()
+				self.db_set("status", "Transaction Created")
+			except Exception as e:
+				self.db_set("status", "Error")
+				self.db_set("error", str(e))
+
+	def make_purchase_invoice_from_purchase_order(self):
+		from erpnext.buying.doctype.purchase_order.purchase_order import make_purchase_invoice
+		order_filters = {"docstatus": 1, "per_billed": ("<", 100)}
+
+		if self.supplier:
+			order_filters["supplier"] = self.supplier
+
+		open_orders = frappe.get_all("Purchase Order", filters=order_filters, pluck="name")
+		matched_orders = set()
 
 		for child in self.line_items_mapping:
-			if not child.get("item"):
-				continue
+			for order in open_orders:
+				if re.search(r"(?<![\w\d])" + re.escape(order) + r"(?![\w\d])", child.get("expense_row") or "", re.IGNORECASE):
+					matched_orders.add(order)
 
-			purchase_invoice.append("items", {
-				"item_code": child.get("item_code") or generic_item,
-				"item_name": str(child.get("item"))[:140],
-				"description": child.get("expense_row") or child.get("item"),
-				"qty": self.get_purchase_invoice_qty(child),
-				"uom": self.get_purchase_invoice_uom(child),
-				"rate": child.get("unit_price") or (child.get("quantity") == 1 and child.get("price")),
-				"description": child.get("expense_row") or child.get("item")
-			})
+		purchase_invoice = None
+		for matched_order in matched_orders:
+			if purchase_invoice:
+				for item in make_purchase_invoice(matched_order).get("items"):
+					purchase_invoice.append("items", item)
+			else:
+				purchase_invoice = make_purchase_invoice(matched_order)
 
 		purchase_invoice.flags.ignore_mandatory = True
 		purchase_invoice.flags.ignore_validate = True
-
-		try:
-			purchase_invoice.run_method("set_missing_values")
-			purchase_invoice.run_method("calculate_taxes_and_totals")
-			purchase_invoice.insert()
-			self.db_set("status", "Transaction Created")
-		except Exception as e:
-			self.db_set("status", "Error")
-			self.db_set("error", str(e))
+		purchase_invoice.insert()
 
 	def register_parsed_data(self, parsed_data):
 		self.header_mapping = []
@@ -274,12 +305,12 @@ class OCRRequest(Document):
 	def get_purchase_invoice_uom(self, row):
 		expense_row = row.get("EXPENSE_ROW")
 
-		if expense_row and (before_unit_price := re.match(r".+?(?=" + re.escape(row.get("unit_price")) + r")", expense_row, re.IGNORECASE)):
+		if expense_row and (before_unit_price := re.search(r".+?(?=" + re.escape(row.get("unit_price")) + r")", expense_row, re.IGNORECASE)):
 			for section in reversed(before_unit_price[0].strip().split()):
 				if not section.isnumeric() and frappe.db.get_value("UOM", section):
 					return section
 
-		return frappe.db.get_single_value("Stock Settings", "default_uom")
+		return frappe.db.get_single_value("Stock Settings", "stock_uom")
 
 def check_pending_analysis():
 	for req in frappe.get_all("OCR Request", filters={"status": "Pending"}):
