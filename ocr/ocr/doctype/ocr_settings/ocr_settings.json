@@ -13,7 +13,8 @@
   "aws_textract_secret",
   "purchase_invoices_tab",
   "generic_item",
-  "column_break_pzoo"
+  "column_break_pzoo",
+  "fetch_items_from_sales_order"
  ],
  "fields": [
   {
@@ -64,12 +65,18 @@
    "fieldname": "aws_textract_secret",
    "fieldtype": "Password",
    "label": "AWS Textract Secret"
+  },
+  {
+   "default": "0",
+   "fieldname": "fetch_items_from_sales_order",
+   "fieldtype": "Check",
+   "label": "Fetch items from sales order"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2023-12-04 18:03:40.029341",
+ "modified": "2023-12-04 18:05:04.192774",
  "modified_by": "Administrator",
  "module": "OCR",
  "name": "OCR Settings",
