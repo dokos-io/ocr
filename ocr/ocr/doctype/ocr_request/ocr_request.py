@@ -279,7 +279,7 @@ class OCRRequest(Document):
 				if not section.isnumeric() and frappe.db.get_value("UOM", section):
 					return section
 
-		return frappe.db.get_single_value("OCR Settings", "default_uom")
+		return frappe.db.get_single_value("Stock Settings", "default_uom")
 
 def check_pending_analysis():
 	for req in frappe.get_all("OCR Request", filters={"status": "Pending"}):
