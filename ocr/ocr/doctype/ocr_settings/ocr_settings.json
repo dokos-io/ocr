@@ -14,7 +14,7 @@
   "purchase_invoices_tab",
   "generic_item",
   "column_break_pzoo",
-  "fetch_items_from_sales_order"
+  "fetch_items_from_purchase_order"
  ],
  "fields": [
   {
@@ -68,15 +68,15 @@
   },
   {
    "default": "0",
-   "fieldname": "fetch_items_from_sales_order",
+   "fieldname": "fetch_items_from_purchase_order",
    "fieldtype": "Check",
-   "label": "Fetch items from sales order"
+   "label": "Fetch items from purchase order"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2023-12-04 18:05:04.192774",
+ "modified": "2023-12-04 20:05:04.192774",
  "modified_by": "Administrator",
  "module": "OCR",
  "name": "OCR Settings",
