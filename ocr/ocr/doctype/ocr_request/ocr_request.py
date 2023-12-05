@@ -99,7 +99,7 @@ class OCRRequest(Document):
 
 	@frappe.whitelist()
 	def create_purchase_invoice(self):
-		if frappe.db.get_single_value("OCR Settings", "fetch_items_from_sales_order"):
+		if frappe.db.get_single_value("OCR Settings", "fetch_items_from_purchase_order"):
 			self.make_purchase_invoice_from_purchase_order()
 
 		else:
