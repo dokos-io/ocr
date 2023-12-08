@@ -99,8 +99,11 @@ class OCRRequest(Document):
 
 	@frappe.whitelist()
 	def create_purchase_invoice(self):
-		if frappe.db.get_single_value("OCR Settings", "fetch_items_from_purchase_order"):
-			self.make_purchase_invoice_from_purchase_order()
+		if not self.company:
+			frappe.throw(_("Please select a company in order to generate a purchase invoice"))
+
+		if self.get_creation_mode() != "Get items from the OCR analysis":
+			return self.make_purchase_invoice_from_purchase_order()
 
 		else:
 			if not self.supplier:
@@ -148,13 +151,17 @@ class OCRRequest(Document):
 		if self.supplier:
 			order_filters["supplier"] = self.supplier
 
-		open_orders = frappe.get_all("Purchase Order", filters=order_filters, pluck="name")
+		open_orders = frappe.get_all("Purchase Order", filters=order_filters, fields=["name", "net_total"])
 		matched_orders = set()
 
-		for child in self.line_items_mapping:
-			for order in open_orders:
-				if re.search(r"(?<![\w\d])" + re.escape(order) + r"(?![\w\d])", child.get("expense_row") or "", re.IGNORECASE):
-					matched_orders.add(order)
+		if self.get_creation_mode() == "Get items from purchase orders recognized by the OCR":
+			for child in self.line_items_mapping:
+				for order in open_orders:
+					if re.search(r"(?<![\w\d])" + re.escape(order.name) + r"(?![\w\d])", child.get("expense_row") or "", re.IGNORECASE):
+						matched_orders.add(order.name)
+		else:
+			if closest_order := min(open_orders, key=lambda x:abs(x.net_total - self.net_total)):
+				matched_orders.add(closest_order.name)
 
 		purchase_invoice = None
 		for matched_order in matched_orders:
@@ -164,9 +171,24 @@ class OCRRequest(Document):
 			else:
 				purchase_invoice = make_purchase_invoice(matched_order)
 
+		purchase_invoice.ocr_request = self.name
 		purchase_invoice.flags.ignore_mandatory = True
 		purchase_invoice.flags.ignore_validate = True
 		purchase_invoice.insert()
+
+	def get_creation_mode(self):
+		if self.get("pi_creation_mode"):
+			return self.pi_creation_mode
+
+		self.pi_creation_mode = None
+		if self.supplier:
+			pi_creation_mode = frappe.db.get_value("Supplier", self.supplier, "ocr_pi_creation_mode")
+
+		if not pi_creation_mode:
+			pi_creation_mode = frappe.db.get_single_value("OCR Settings", "pi_creation_mode")
+
+		self.pi_creation_mode = pi_creation_mode
+		return self.pi_creation_mode
 
 	def register_parsed_data(self, parsed_data):
 		self.header_mapping = []
@@ -192,6 +214,8 @@ class OCRRequest(Document):
 
 			if key == TAX_TOTAL_KEY:
 				self.tax_total = parse_number(value)
+
+		self.net_total = flt(self.grand_total) - flt(self.tax_total)
 
 	def get_header_dict(self):
 		return {line.key: line.value for line in self.header_mapping}
@@ -221,6 +245,9 @@ class OCRRequest(Document):
 
 			if line.key == "VENDOR_NAME":
 				line.field_value = self.get_supplier_name()
+
+			if line.key == "RECEIVER_NAME":
+				line.field_value = self.get_company()
 
 			if "DATE" in line.key:
 				try:
@@ -270,6 +297,17 @@ class OCRRequest(Document):
 		self.supplier = supplier
 
 		return supplier
+
+	def get_company(self):
+		header = self.get_header_dict()
+		company = None
+
+		companies = [x.lower() for x in frappe.get_all("Company", pluck="name")]
+		if company_match := difflib.get_close_matches(header.get("RECEIVER_NAME").lower(), companies):
+			company = company_match[0]
+
+		self.company = company
+		return company
 
 	def get_value_from_mapping(self, key, value, field):
 		return frappe.db.get_value(
