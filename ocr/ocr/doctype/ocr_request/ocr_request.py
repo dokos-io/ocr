@@ -22,7 +22,8 @@ FLOAT_PATTERN = re.compile(r"[-+]?(\d+([.,]\d*)?|[.,]\d+)([eE][-+]?\d+)?")
 PURCHASE_INVOICE_MAPPING = {
 	"INVOICE_RECEIPT_ID": "bill_no",
 	"INVOICE_RECEIPT_DATE": "bill_date",
-	"VENDOR_NAME": "supplier"
+	"VENDOR_NAME": "supplier",
+	"RECEIVER_NAME": "company"
 }
 
 GRAND_TOTAL_KEY = "TOTAL"
@@ -37,6 +38,23 @@ class OCRRequest(Document):
 			queue="long",
 			now=frappe.flags.in_test,
 		)
+
+	def validate(self):
+		# TODO: Improve the logic
+		for item in self.header_mapping:
+			if item.key == "VENDOR_NAME":
+				if self.supplier and item.field_value != self.supplier:
+					item.field = "supplier"
+					item.field_value = self.supplier
+				elif not self.supplier and item.field_value:
+					self.supplier = item.field_value
+
+			elif item.key == "RECEIVER_NAME":
+				if self.company and item.field_value != self.company:
+					item.field = "company"
+					item.field_value = self.company
+				elif not self.company and item.field_value:
+					self.company = item.field_value
 
 	def make_analysis(self):
 		self.start_analysis()
@@ -271,7 +289,7 @@ class OCRRequest(Document):
 			supplier = frappe.db.get_value("Supplier", header.get("VENDOR_NAME"))
 
 			if not supplier:
-				self.get_value_from_mapping("VENDOR_NAME", header.get("VENDOR_NAME"), "supplier")
+				supplier = self.get_value_from_mapping("VENDOR_NAME", header.get("VENDOR_NAME"), "supplier")
 
 		if not supplier and header.get("VENDOR_NAME") and len(header.get("VENDOR_NAME").split(" ")) > 1:
 			for substring in header.get("VENDOR_NAME").split(" "):
@@ -302,6 +320,8 @@ class OCRRequest(Document):
 		header = self.get_header_dict()
 		company = None
 
+		company = self.get_value_from_mapping("RECEIVER_NAME", header.get("RECEIVER_NAME"), "company")
+
 		companies = [x.lower() for x in frappe.get_all("Company", pluck="name")]
 		if company_match := difflib.get_close_matches(header.get("RECEIVER_NAME").lower(), companies):
 			company = company_match[0]
@@ -315,9 +335,10 @@ class OCRRequest(Document):
 			dict(
 				key=key,
 				value=value,
-				field=field
+				field=field,
+				parent=("!=", self.name)
 			),
-			"field_value"
+			"field_value",
 		)
 
 
