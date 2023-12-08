@@ -49,4 +49,21 @@ def get_custom_fields():
 				"fetch_from": "ocr_request.file"
 			},
 		],
+		"Supplier": [
+			{
+				"fieldname": "ocr_section",
+				"fieldtype": "Section Break",
+				"label": "Invoice Extraction",
+				"insert_after": "release_date"
+			},
+			{
+				"fieldname": "ocr_pi_creation_mode",
+				"fieldtype": "Select",
+				"options": "\nGet items from the OCR analysis\nGet items from purchase orders recognized by the OCR\nGet items from any open purchase order linked to the recognized supplier",
+				"label": "Creation Mode",
+				"insert_after": "ocr_section",
+				"description": "If not set, the creation mode defined in the OCR settings will prevail.",
+				"translatable": 0,
+			},
+		]
 	}

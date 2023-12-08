@@ -21,8 +21,10 @@
   "document_tab",
   "document_html",
   "data_tab",
+  "company",
   "supplier",
   "column_break_lomt",
+  "net_total",
   "grand_total",
   "tax_total",
   "mapping_section",
@@ -160,6 +162,18 @@
   {
    "fieldname": "column_break_lomt",
    "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "fieldname": "net_total",
+   "fieldtype": "Float",
+   "label": "Net Total",
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
@@ -170,7 +184,7 @@
    "link_fieldname": "ocr_request"
   }
  ],
- "modified": "2023-12-01 14:25:01.010001",
+ "modified": "2023-12-08 17:36:19.741507",
  "modified_by": "Administrator",
  "module": "OCR",
  "name": "OCR Request",

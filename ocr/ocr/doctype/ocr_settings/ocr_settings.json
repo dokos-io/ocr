@@ -12,9 +12,10 @@
   "aws_textract_key",
   "aws_textract_secret",
   "purchase_invoices_tab",
-  "generic_item",
-  "column_break_pzoo",
-  "fetch_items_from_purchase_order"
+  "purchase_invoice_creation_mode_section",
+  "pi_creation_mode",
+  "items_section",
+  "generic_item"
  ],
  "fields": [
   {
@@ -47,10 +48,6 @@
    "options": "Item"
   },
   {
-   "fieldname": "column_break_pzoo",
-   "fieldtype": "Column Break"
-  },
-  {
    "fieldname": "column_break_qhyq",
    "fieldtype": "Column Break"
   },
@@ -67,16 +64,30 @@
    "label": "AWS Textract Secret"
   },
   {
-   "default": "0",
-   "fieldname": "fetch_items_from_purchase_order",
-   "fieldtype": "Check",
-   "label": "Fetch items from purchase order"
+   "fieldname": "purchase_invoice_creation_mode_section",
+   "fieldtype": "Section Break",
+   "label": "Purchase Invoice Creation Mode"
+  },
+  {
+   "depends_on": "eval:doc.pi_creation_mode==\"Get items from the OCR analysis\"",
+   "fieldname": "items_section",
+   "fieldtype": "Section Break",
+   "label": "Items"
+  },
+  {
+   "default": "Get items from the OCR analysis",
+   "fieldname": "pi_creation_mode",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Creation Mode",
+   "options": "Get items from the OCR analysis\nGet items from purchase orders recognized by the OCR\nGet items from any open purchase order linked to the recognized supplier",
+   "reqd": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2023-12-04 20:05:04.192774",
+ "modified": "2023-12-08 14:48:42.296006",
  "modified_by": "Administrator",
  "module": "OCR",
  "name": "OCR Settings",
