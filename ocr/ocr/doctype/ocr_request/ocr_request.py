@@ -181,6 +181,12 @@ class OCRRequest(Document):
 			if closest_order := min(open_orders, key=lambda x:abs(x.net_total - self.net_total)):
 				matched_orders.add(closest_order.name)
 
+		if not matched_orders:
+			return {
+				"status": "error",
+				"message": _("No matching order found")
+			}
+
 		purchase_invoice = None
 		for matched_order in matched_orders:
 			if purchase_invoice:
