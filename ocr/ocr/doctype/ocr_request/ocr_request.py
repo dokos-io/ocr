@@ -3,6 +3,8 @@
 
 import re
 import time
+import difflib
+import datetime
 from dateutil.parser import parse
 
 import frappe
@@ -577,7 +579,7 @@ def parse_number(text):
 			rightSymbolIndex = max(n.rfind(','), n.rfind(' '), n.rfind('.'))
 			rightSymbol = n[rightSymbolIndex:rightSymbolIndex+1]
 			if rightSymbol == " ":
-				return parseNumber(n.replace(" ", "_"))
+				return parse_number(n.replace(" ", "_"))
 			n = n.replace(rightSymbol, "R")
 			leftSymbolIndex = max(n.rfind(','), n.rfind(' '), n.rfind('.'))
 			leftSymbol = n[leftSymbolIndex:leftSymbolIndex+1]
