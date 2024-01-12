@@ -23,6 +23,7 @@ def get_custom_fields():
 				"fieldname": "ocr_tab",
 				"fieldtype": "Tab Break",
 				"label": "Original Invoice",
+				"depends_on": "eval:doc.ocr_original_file",
 				"insert_after": "connections_tab"
 			},
 			{
