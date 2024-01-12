@@ -116,16 +116,18 @@ class OCRRequest(Document):
 			textract = AWSTextract(self)
 			textract.delete_file()
 
+	def set_and_return_error(self, msg):
+		self.db_set("status", "Error")
+		self.db_set("error", msg)
+		return {
+			"status": "Error",
+			"message": msg
+		}
+
 	@frappe.whitelist()
 	def create_purchase_invoice(self):
 		if not self.company:
-			error_msg = _("Please select a company in order to generate a purchase invoice")
-			self.db_set("status", "Error")
-			self.db_set("error", error_msg)
-			return {
-				"status": "error",
-				"message": error_msg
-			}
+			return self.set_and_return_error(_("Please select a company in order to generate a purchase invoice"))
 
 		purchase_invoice = None
 		try:
@@ -133,18 +135,10 @@ class OCRRequest(Document):
 				purchase_invoice = self.make_purchase_invoice_from_purchase_order()
 				frappe.log_error("err", purchase_invoice)
 				if purchase_invoice.get("status") == "Error":
-					self.db_set("status", "Error")
-					self.db_set("error", purchase_invoice.get("message"))
-					return purchase_invoice
+					return self.set_and_return_error(purchase_invoice.get("message"))
 
 			elif not self.supplier:
-				error_msg = _("Please select a supplier in order to generate a purchase invoice")
-				self.db_set("status", "Error")
-				self.db_set("error", error_msg)
-				return {
-					"status": "Error",
-					"message": error_msg
-				}
+				return self.set_and_return_error(_("Please select a supplier in order to generate a purchase invoice"))
 
 			else:
 				purchase_invoice = frappe.new_doc("Purchase Invoice")
@@ -181,8 +175,7 @@ class OCRRequest(Document):
 				self.db_set("status", "Transaction Matched")
 
 		except Exception as e:
-			self.db_set("status", "Error")
-			self.db_set("error", str(e))
+			return self.set_and_return_error(str(e))
 
 	def make_purchase_invoice_from_purchase_order(self):
 		from erpnext.buying.doctype.purchase_order.purchase_order import make_purchase_invoice
