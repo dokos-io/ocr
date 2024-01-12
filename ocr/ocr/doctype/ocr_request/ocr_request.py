@@ -2,15 +2,14 @@
 # For license information, please see license.txt
 
 import re
-import difflib
 import time
-import datetime
 from dateutil.parser import parse
 
 import frappe
 from frappe import _
 from frappe.utils import time_diff_in_minutes, now_datetime, time_diff, flt
 from frappe.model.document import Document
+from pypika.terms import ExistsCriterion
 
 
 from ocr.ocr.doctype.ocr_request.aws_textract import AWSTextract
@@ -118,58 +117,96 @@ class OCRRequest(Document):
 	@frappe.whitelist()
 	def create_purchase_invoice(self):
 		if not self.company:
-			frappe.throw(_("Please select a company in order to generate a purchase invoice"))
+			error_msg = _("Please select a company in order to generate a purchase invoice")
+			self.db_set("status", "Error")
+			self.db_set("error", error_msg)
+			return {
+				"status": "error",
+				"message": error_msg
+			}
 
-		if self.get_creation_mode() != "Get items from the OCR analysis":
-			return self.make_purchase_invoice_from_purchase_order()
+		purchase_invoice = None
+		try:
+			if self.get_creation_mode() != "Get items from the OCR analysis":
+				purchase_invoice = self.make_purchase_invoice_from_purchase_order()
+				frappe.log_error("err", purchase_invoice)
+				if purchase_invoice.get("status") == "Error":
+					self.db_set("status", "Error")
+					self.db_set("error", purchase_invoice.get("message"))
+					return purchase_invoice
 
-		else:
-			if not self.supplier:
-				frappe.throw(_("Please select a supplier in order to generate a purchase invoice"))
+			elif not self.supplier:
+				error_msg = _("Please select a supplier in order to generate a purchase invoice")
+				self.db_set("status", "Error")
+				self.db_set("error", error_msg)
+				return {
+					"status": "Error",
+					"message": error_msg
+				}
 
-			purchase_invoice = frappe.new_doc("Purchase Invoice")
-			purchase_invoice.ocr_request = self.name
-			purchase_invoice.supplier = self.supplier
+			else:
+				purchase_invoice = frappe.new_doc("Purchase Invoice")
+				purchase_invoice.ocr_request = self.name
+				purchase_invoice.supplier = self.supplier
 
-			generic_item = frappe.db.get_single_value("OCR Settings", "generic_item")
+				generic_item = frappe.db.get_single_value("OCR Settings", "generic_item")
 
-			for key, value in self.get_header_parsed_dict().items():
-				purchase_invoice.update({key: value})
+				for child in self.line_items_mapping:
+					if not child.get("item"):
+						continue
 
-			for child in self.line_items_mapping:
-				if not child.get("item"):
-					continue
+					purchase_invoice.append("items", {
+						"item_code": child.get("item_code") or generic_item,
+						"item_name": str(child.get("item"))[:140],
+						"description": child.get("expense_row") or child.get("item"),
+						"qty": self.get_purchase_invoice_qty(child),
+						"uom": self.get_purchase_invoice_uom(child),
+						"rate": child.get("unit_price") or (child.get("quantity") == 1 and child.get("price")),
+						"description": child.get("expense_row") or child.get("item")
+					})
 
-				purchase_invoice.append("items", {
-					"item_code": child.get("item_code") or generic_item,
-					"item_name": str(child.get("item"))[:140],
-					"description": child.get("expense_row") or child.get("item"),
-					"qty": self.get_purchase_invoice_qty(child),
-					"uom": self.get_purchase_invoice_uom(child),
-					"rate": child.get("unit_price") or (child.get("quantity") == 1 and child.get("price")),
-					"description": child.get("expense_row") or child.get("item")
-				})
+			if purchase_invoice and isinstance(purchase_invoice, Document):
 
-			purchase_invoice.flags.ignore_mandatory = True
-			purchase_invoice.flags.ignore_validate = True
+				for key, value in self.get_header_parsed_dict().items():
+					purchase_invoice.update({key: value})
 
-			try:
+				purchase_invoice.flags.ignore_mandatory = True
+				purchase_invoice.flags.ignore_validate = True
+
 				purchase_invoice.run_method("set_missing_values")
 				purchase_invoice.run_method("calculate_taxes_and_totals")
 				purchase_invoice.insert()
-				self.db_set("status", "Transaction Created")
-			except Exception as e:
-				self.db_set("status", "Error")
-				self.db_set("error", str(e))
+				self.db_set("status", "Transaction Matched")
+
+		except Exception as e:
+			self.db_set("status", "Error")
+			self.db_set("error", str(e))
 
 	def make_purchase_invoice_from_purchase_order(self):
 		from erpnext.buying.doctype.purchase_order.purchase_order import make_purchase_invoice
-		order_filters = {"docstatus": 1, "per_billed": ("<", 100)}
+
+		purchase_order_dt = frappe.qb.DocType("Purchase Order")
+		purchase_invoice_item_dt = frappe.qb.DocType("Purchase Invoice Item")
+
+		subquery = (
+			frappe.qb.from_(purchase_invoice_item_dt)
+			.select(purchase_invoice_item_dt.name)
+			.where(purchase_invoice_item_dt.docstatus.lt(2))
+			.where(purchase_invoice_item_dt.purchase_order == purchase_order_dt.name)
+		)
+
+		query = (
+			frappe.qb.from_(purchase_order_dt)
+			.select(purchase_order_dt.name, purchase_order_dt.net_total)
+			.where((purchase_order_dt.docstatus == 1) & (purchase_order_dt.per_billed.lt(100)))
+			.where(ExistsCriterion(subquery).negate())
+		)
 
 		if self.supplier:
-			order_filters["supplier"] = self.supplier
+			query = query.where(purchase_order_dt.supplier == self.supplier)
 
-		open_orders = frappe.get_all("Purchase Order", filters=order_filters, fields=["name", "net_total"])
+		open_orders = query.run(as_dict=True)
+
 		matched_orders = set()
 
 		if self.get_creation_mode() == "Get items from purchase orders recognized by the OCR":
@@ -177,13 +214,13 @@ class OCRRequest(Document):
 				for order in open_orders:
 					if re.search(r"(?<![\w\d])" + re.escape(order.name) + r"(?![\w\d])", child.get("expense_row") or "", re.IGNORECASE):
 						matched_orders.add(order.name)
-		else:
+		elif open_orders:
 			if closest_order := min(open_orders, key=lambda x:abs(x.net_total - self.net_total)):
 				matched_orders.add(closest_order.name)
 
 		if not matched_orders:
 			return {
-				"status": "error",
+				"status": "Error",
 				"message": _("No matching order found")
 			}
 
@@ -198,7 +235,7 @@ class OCRRequest(Document):
 		purchase_invoice.ocr_request = self.name
 		purchase_invoice.flags.ignore_mandatory = True
 		purchase_invoice.flags.ignore_validate = True
-		purchase_invoice.insert()
+		return purchase_invoice.insert()
 
 	def get_creation_mode(self):
 		if self.get("pi_creation_mode"):

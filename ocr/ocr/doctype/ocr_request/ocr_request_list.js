@@ -1,7 +1,7 @@
 frappe.listview_settings["OCR Request"] = {
 	button: {
 		show(doc) {
-			return (doc.transaction_type && doc.status == "Transaction Created");
+			return (doc.transaction_type && doc.status == "Transaction Matched");
 		},
 		get_label() {
 			return frappe.utils.icon("link-url", "sm");
