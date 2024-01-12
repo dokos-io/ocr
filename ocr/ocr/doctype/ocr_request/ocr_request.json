@@ -39,7 +39,7 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Status",
-   "options": "Pending\nAnalysis Completed\nTransaction Created\nError",
+   "options": "Pending\nAnalysis Completed\nTransaction Matched\nError",
    "read_only": 1
   },
   {
@@ -184,7 +184,7 @@
    "link_fieldname": "ocr_request"
   }
  ],
- "modified": "2023-12-08 17:36:19.741507",
+ "modified": "2024-01-08 17:36:19.741507",
  "modified_by": "Administrator",
  "module": "OCR",
  "name": "OCR Request",
@@ -217,7 +217,7 @@
   },
   {
    "color": "Green",
-   "title": "Transaction Created"
+   "title": "Transaction Matched"
   },
   {
    "color": "Red",
