@@ -9,7 +9,7 @@ from dateutil.parser import parse
 
 import frappe
 from frappe import _
-from frappe.utils import time_diff_in_minutes, now_datetime, time_diff, flt
+from frappe.utils import time_diff_in_minutes, now_datetime, time_diff, flt, getdate
 from frappe.model.document import Document
 from pypika.terms import ExistsCriterion
 
@@ -302,14 +302,17 @@ class OCRRequest(Document):
 			if line.key == "VENDOR_NAME":
 				line.field_value = self.get_supplier_name()
 
-			if line.key == "RECEIVER_NAME":
+			elif line.key == "RECEIVER_NAME":
 				line.field_value = self.get_company()
 
-			if "DATE" in line.key:
+			elif "DATE" in line.key:
 				try:
-					line.field_value = parse(line.value)
+					line.field_value = getdate(parse(line.value))
 				except Exception:
 					pass
+
+			elif line.field:
+				line.field_value = line.value
 
 	def find_line_items_correspondence(self):
 		header = self.get_header_parsed_dict()
@@ -340,14 +343,14 @@ class OCRRequest(Document):
 			sorted_suppliers = sorted(
 				existing_supplier_list,
 				key=lambda doc: difflib.SequenceMatcher(
-					lambda doc: doc == " ", doc, header.get("VENDOR_NAME")
+					lambda doc: doc == " ", doc.lower(), header.get("VENDOR_NAME").lower()
 				).ratio(),
 				reverse=True,
 			)
 
 			best_match = sorted_suppliers[0]
 
-			if difflib.SequenceMatcher(lambda doc: doc == " ", best_match, header.get("VENDOR_NAME")).ratio() > 0.4:
+			if difflib.SequenceMatcher(lambda doc: doc == " ", best_match.lower(), header.get("VENDOR_NAME").lower()).ratio() > 0.4:
 				supplier = sorted_suppliers[0]
 
 		self.supplier = supplier
@@ -355,6 +358,7 @@ class OCRRequest(Document):
 		return supplier
 
 	def get_company(self):
+		# TODO: Improve this logic
 		header = self.get_header_dict()
 		company = None
 
@@ -363,6 +367,17 @@ class OCRRequest(Document):
 		companies = [x.lower() for x in frappe.get_all("Company", pluck="name")]
 		if company_match := difflib.get_close_matches(header.get("RECEIVER_NAME").lower(), companies):
 			company = company_match[0]
+
+		if not company and (company_match := difflib.get_close_matches(header.get("RECEIVER_ADDRESS").lower(), companies)):
+			company = company_match[0]
+
+		if not company:
+			for company_name in companies:
+				if company_name in header.get("RECEIVER_NAME").lower() or company_name in header.get("RECEIVER_ADDRESS").lower():
+					company = company_name
+
+		if not company and len(companies) == 1:
+			company = companies[0]
 
 		self.company = company
 		return company
