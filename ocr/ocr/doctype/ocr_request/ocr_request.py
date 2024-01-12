@@ -9,7 +9,7 @@ from dateutil.parser import parse
 
 import frappe
 from frappe import _
-from frappe.utils import time_diff_in_minutes, now_datetime, time_diff, flt
+from frappe.utils import time_diff_in_minutes, now_datetime, time_diff, flt, getdate
 from frappe.model.document import Document
 from pypika.terms import ExistsCriterion
 
@@ -116,16 +116,18 @@ class OCRRequest(Document):
 			textract = AWSTextract(self)
 			textract.delete_file()
 
+	def set_and_return_error(self, msg):
+		self.db_set("status", "Error")
+		self.db_set("error", msg)
+		return {
+			"status": "Error",
+			"message": msg
+		}
+
 	@frappe.whitelist()
 	def create_purchase_invoice(self):
 		if not self.company:
-			error_msg = _("Please select a company in order to generate a purchase invoice")
-			self.db_set("status", "Error")
-			self.db_set("error", error_msg)
-			return {
-				"status": "error",
-				"message": error_msg
-			}
+			return self.set_and_return_error(_("Please select a company in order to generate a purchase invoice"))
 
 		purchase_invoice = None
 		try:
@@ -133,18 +135,10 @@ class OCRRequest(Document):
 				purchase_invoice = self.make_purchase_invoice_from_purchase_order()
 				frappe.log_error("err", purchase_invoice)
 				if purchase_invoice.get("status") == "Error":
-					self.db_set("status", "Error")
-					self.db_set("error", purchase_invoice.get("message"))
-					return purchase_invoice
+					return self.set_and_return_error(purchase_invoice.get("message"))
 
 			elif not self.supplier:
-				error_msg = _("Please select a supplier in order to generate a purchase invoice")
-				self.db_set("status", "Error")
-				self.db_set("error", error_msg)
-				return {
-					"status": "Error",
-					"message": error_msg
-				}
+				return self.set_and_return_error(_("Please select a supplier in order to generate a purchase invoice"))
 
 			else:
 				purchase_invoice = frappe.new_doc("Purchase Invoice")
@@ -181,8 +175,7 @@ class OCRRequest(Document):
 				self.db_set("status", "Transaction Matched")
 
 		except Exception as e:
-			self.db_set("status", "Error")
-			self.db_set("error", str(e))
+			return self.set_and_return_error(str(e))
 
 	def make_purchase_invoice_from_purchase_order(self):
 		from erpnext.buying.doctype.purchase_order.purchase_order import make_purchase_invoice
@@ -309,14 +302,17 @@ class OCRRequest(Document):
 			if line.key == "VENDOR_NAME":
 				line.field_value = self.get_supplier_name()
 
-			if line.key == "RECEIVER_NAME":
+			elif line.key == "RECEIVER_NAME":
 				line.field_value = self.get_company()
 
-			if "DATE" in line.key:
+			elif "DATE" in line.key:
 				try:
-					line.field_value = parse(line.value)
+					line.field_value = getdate(parse(line.value))
 				except Exception:
 					pass
+
+			elif line.field:
+				line.field_value = line.value
 
 	def find_line_items_correspondence(self):
 		header = self.get_header_parsed_dict()
@@ -347,14 +343,14 @@ class OCRRequest(Document):
 			sorted_suppliers = sorted(
 				existing_supplier_list,
 				key=lambda doc: difflib.SequenceMatcher(
-					lambda doc: doc == " ", doc, header.get("VENDOR_NAME")
+					lambda doc: doc == " ", doc.lower(), header.get("VENDOR_NAME").lower()
 				).ratio(),
 				reverse=True,
 			)
 
 			best_match = sorted_suppliers[0]
 
-			if difflib.SequenceMatcher(lambda doc: doc == " ", best_match, header.get("VENDOR_NAME")).ratio() > 0.4:
+			if difflib.SequenceMatcher(lambda doc: doc == " ", best_match.lower(), header.get("VENDOR_NAME").lower()).ratio() > 0.4:
 				supplier = sorted_suppliers[0]
 
 		self.supplier = supplier
@@ -362,6 +358,7 @@ class OCRRequest(Document):
 		return supplier
 
 	def get_company(self):
+		# TODO: Improve this logic
 		header = self.get_header_dict()
 		company = None
 
@@ -370,6 +367,17 @@ class OCRRequest(Document):
 		companies = [x.lower() for x in frappe.get_all("Company", pluck="name")]
 		if company_match := difflib.get_close_matches(header.get("RECEIVER_NAME").lower(), companies):
 			company = company_match[0]
+
+		if not company and (company_match := difflib.get_close_matches(header.get("RECEIVER_ADDRESS").lower(), companies)):
+			company = company_match[0]
+
+		if not company:
+			for company_name in companies:
+				if company_name in header.get("RECEIVER_NAME").lower() or company_name in header.get("RECEIVER_ADDRESS").lower():
+					company = company_name
+
+		if not company and len(companies) == 1:
+			company = companies[0]
 
 		self.company = company
 		return company
