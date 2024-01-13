@@ -135,13 +135,14 @@ class OCRRequest(Document):
 				purchase_invoice = self.make_purchase_invoice_from_purchase_order()
 				if purchase_invoice.get("status") == "Error":
 					return self.set_and_return_error(purchase_invoice.get("message"))
+				elif purchase_invoice.get("status") == "Analysis Completed":
+					return purchase_invoice
 
 			elif not self.supplier:
 				return self.set_and_return_error(_("Please select a supplier in order to generate a purchase invoice"))
 
 			else:
 				purchase_invoice = frappe.new_doc("Purchase Invoice")
-				purchase_invoice.ocr_request = self.name
 				purchase_invoice.supplier = self.supplier
 
 				generic_item = frappe.db.get_single_value("OCR Settings", "generic_item")
@@ -165,6 +166,7 @@ class OCRRequest(Document):
 				for key, value in self.get_header_parsed_dict().items():
 					purchase_invoice.update({key: value})
 
+				purchase_invoice.ocr_request = self.name
 				purchase_invoice.flags.ignore_mandatory = True
 				purchase_invoice.flags.ignore_validate = True
 
@@ -214,7 +216,7 @@ class OCRRequest(Document):
 
 		if not matched_orders:
 			return {
-				"status": "Error",
+				"status": "Analysis Completed",
 				"message": _("No matching order found")
 			}
 
@@ -226,10 +228,7 @@ class OCRRequest(Document):
 			else:
 				purchase_invoice = make_purchase_invoice(matched_order)
 
-		purchase_invoice.ocr_request = self.name
-		purchase_invoice.flags.ignore_mandatory = True
-		purchase_invoice.flags.ignore_validate = True
-		return purchase_invoice.insert()
+		return purchase_invoice
 
 	def get_creation_mode(self):
 		if self.get("pi_creation_mode"):
