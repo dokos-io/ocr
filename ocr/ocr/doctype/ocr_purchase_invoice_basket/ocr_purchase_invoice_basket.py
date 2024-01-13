@@ -63,7 +63,7 @@ def check_requests_completion():
 
 		if not associated_requests:
 			doc = frappe.get_doc("OCR Purchase Invoice Basket", basket.name)
-			doc.status = "Not Started"
+			doc.db_set("status", "Not Started")
 			return doc.run_method("create_requests")
 
 		for req in [a for a in associated_requests if a.status == "Analysis Completed"]:
