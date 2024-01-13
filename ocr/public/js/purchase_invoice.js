@@ -15,11 +15,11 @@ frappe.ui.form.on('Purchase Invoice', {
 				let msg = ""
 
 				if (doc.grand_total != frm.doc.grand_total) {
-					msg += `<div>${__("There is a difference between the total amount based on the data extraction (")} ${format_currency(doc.grand_total, frm.doc.currency)} ${__(") and this invoice (")} ${format_currency(frm.doc.grand_total, frm.doc.currency)} )."</div>`
+					msg += `<div>${__("There is a difference between the total amount based on the data extraction (")} ${format_currency(doc.grand_total, frm.doc.currency)} ${__(") and this invoice (")} ${format_currency(frm.doc.grand_total, frm.doc.currency)} ).</div>`
 				}
 
 				if (doc.tax_total != frm.doc.total_taxes_and_charges) {
-					msg += `<div>${__("There is a difference between the total taxes based on the data extraction (")} ${format_currency(doc.tax_total, frm.doc.currency)} ${__(") and this invoice (")} ${format_currency(frm.doc.total_taxes_and_charges, frm.doc.currency)} )."</div>`
+					msg += `<div>${__("There is a difference between the total taxes based on the data extraction (")} ${format_currency(doc.tax_total, frm.doc.currency)} ${__(") and this invoice (")} ${format_currency(frm.doc.total_taxes_and_charges, frm.doc.currency)} ).</div>`
 				}
 
 				frm.dashboard.clear_headline();
