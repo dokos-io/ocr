@@ -133,7 +133,6 @@ class OCRRequest(Document):
 		try:
 			if self.get_creation_mode() != "Get items from the OCR analysis":
 				purchase_invoice = self.make_purchase_invoice_from_purchase_order()
-				frappe.log_error("err", purchase_invoice)
 				if purchase_invoice.get("status") == "Error":
 					return self.set_and_return_error(purchase_invoice.get("message"))
 
@@ -343,14 +342,14 @@ class OCRRequest(Document):
 			sorted_suppliers = sorted(
 				existing_supplier_list,
 				key=lambda doc: difflib.SequenceMatcher(
-					lambda doc: doc == " ", doc.lower(), header.get("VENDOR_NAME").lower()
+					lambda doc: doc == " ", doc.lower(), header.get("VENDOR_NAME", "").lower()
 				).ratio(),
 				reverse=True,
 			)
 
 			best_match = sorted_suppliers[0]
 
-			if difflib.SequenceMatcher(lambda doc: doc == " ", best_match.lower(), header.get("VENDOR_NAME").lower()).ratio() > 0.4:
+			if difflib.SequenceMatcher(lambda doc: doc == " ", best_match.lower(), header.get("VENDOR_NAME", "").lower()).ratio() > 0.4:
 				supplier = sorted_suppliers[0]
 
 		self.supplier = supplier
@@ -365,15 +364,15 @@ class OCRRequest(Document):
 		company = self.get_value_from_mapping("RECEIVER_NAME", header.get("RECEIVER_NAME"), "company")
 
 		companies = [x.lower() for x in frappe.get_all("Company", pluck="name")]
-		if company_match := difflib.get_close_matches(header.get("RECEIVER_NAME").lower(), companies):
+		if company_match := difflib.get_close_matches(header.get("RECEIVER_NAME","").lower(), companies):
 			company = company_match[0]
 
-		if not company and (company_match := difflib.get_close_matches(header.get("RECEIVER_ADDRESS").lower(), companies)):
+		if not company and (company_match := difflib.get_close_matches(header.get("RECEIVER_ADDRESS", "").lower(), companies)):
 			company = company_match[0]
 
 		if not company:
 			for company_name in companies:
-				if company_name in header.get("RECEIVER_NAME").lower() or company_name in header.get("RECEIVER_ADDRESS").lower():
+				if company_name in header.get("RECEIVER_NAME", "").lower() or company_name in header.get("RECEIVER_ADDRESS", "").lower():
 					company = company_name
 
 		if not company and len(companies) == 1:
