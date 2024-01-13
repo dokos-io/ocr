@@ -38,13 +38,15 @@ class OCRPurchaseInvoiceBasket(Document):
 
 	@frappe.whitelist()
 	def create_requests(self):
-		self.db_set("status", "In Progress")
-		for file in self.get_all_files():
-			request = frappe.new_doc("OCR Request")
-			request.ocr_basket = self.name
-			request.filename = file.get("file_name")
-			request.file = file.get("name")
-			request.save()
+		if linked_files := self.get_all_files():
+			for file in linked_files:
+				request = frappe.new_doc("OCR Request")
+				request.ocr_basket = self.name
+				request.filename = file.get("file_name")
+				request.file = file.get("name")
+				request.insert()
+
+			self.db_set("status", "In Progress")
 
 	def relink_files_after_insert(self):
 		if self.get("__temporary_name"):
@@ -58,6 +60,11 @@ class OCRPurchaseInvoiceBasket(Document):
 def check_requests_completion():
 	for basket in frappe.get_all("OCR Purchase Invoice Basket", filters={"status": "In Progress"}, fields=["name"]):
 		associated_requests = frappe.get_all("OCR Request", filters={"ocr_basket": basket.name}, fields=["name", "status"])
+
+		if not associated_requests:
+			doc = frappe.get_doc("OCR Purchase Invoice Basket", basket.name)
+			doc.status = "Not Started"
+			return doc.run_method("create_requests")
 
 		for req in [a for a in associated_requests if a.status == "Analysis Completed"]:
 			try:
