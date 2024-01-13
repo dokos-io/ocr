@@ -133,7 +133,6 @@ class OCRRequest(Document):
 		try:
 			if self.get_creation_mode() != "Get items from the OCR analysis":
 				purchase_invoice = self.make_purchase_invoice_from_purchase_order()
-				frappe.log_error("err", purchase_invoice)
 				if purchase_invoice.get("status") == "Error":
 					return self.set_and_return_error(purchase_invoice.get("message"))
 
