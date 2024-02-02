@@ -234,7 +234,7 @@ class OCRRequest(Document):
 		if self.get("pi_creation_mode"):
 			return self.pi_creation_mode
 
-		self.pi_creation_mode = None
+		pi_creation_mode = None
 		if self.supplier:
 			pi_creation_mode = frappe.db.get_value("Supplier", self.supplier, "ocr_pi_creation_mode")
 
