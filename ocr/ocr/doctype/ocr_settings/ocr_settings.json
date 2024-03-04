@@ -27,8 +27,7 @@
    "fieldname": "selected_ocr_service",
    "fieldtype": "Select",
    "label": "Selected OCR Service",
-   "options": "AWS Textract\nTaggun",
-   "read_only": 1
+   "options": "AWS Textract\nTaggun"
   },
   {
    "fieldname": "purchase_invoices_tab",

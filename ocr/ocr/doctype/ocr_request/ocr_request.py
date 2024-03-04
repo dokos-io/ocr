@@ -14,7 +14,7 @@ from frappe.model.document import Document
 from pypika.terms import ExistsCriterion
 
 
-from ocr.ocr.doctype.ocr_request.aws_textract import AWSTextract
+from ocr.ocr.doctype.ocr_request.aws_textract import AWSTextractExpense
 from ocr.ocr.doctype.ocr_request.taggun import Taggun
 
 # https://docs.python.org/3/library/re.html#simulating-scanf
@@ -57,6 +57,7 @@ class OCRRequest(Document):
 				elif not self.company and item.field_value:
 					self.company = item.field_value
 
+	@frappe.whitelist()
 	def make_analysis(self):
 		self.start_analysis()
 		self.get_analysis()
@@ -64,8 +65,8 @@ class OCRRequest(Document):
 	def start_analysis(self):
 		service = frappe.db.get_single_value("OCR Settings", "selected_ocr_service")
 		if service == "AWS Textract":
-			textract = AWSTextract(self)
-			jobid = textract.start_analysis()
+			textract = AWSTextractExpense(self)
+			jobid = textract.task.start()
 			self.db_set("job", jobid)
 
 	def get_analysis(self):
@@ -79,8 +80,8 @@ class OCRRequest(Document):
 		if self.analysis and frappe.parse_json(self.analysis).get("JobStatus") == "SUCCEEDED":
 			return frappe.parse_json(self.analysis)
 
-		textract = AWSTextract(self)
-		if analysis := textract.get_analysis():
+		textract = AWSTextractExpense(self)
+		if analysis := textract.task.get_result():
 			if analysis["JobStatus"] == "SUCCEEDED":
 				self.register_parsed_data(analysis.get("ParsedData", {}))
 				self.find_header_correspondence()
@@ -99,10 +100,10 @@ class OCRRequest(Document):
 				)
 
 			elif time_diff(now_datetime(), self.creation) > 7:
-				self.db_set("status", "Error")
+				self.set_and_return_error("stale")
 
 		elif self.status != "Error":
-			self.db_set("status", "Error")
+			self.set_and_return_error("no result")
 
 		return analysis
 
@@ -113,8 +114,8 @@ class OCRRequest(Document):
 	def on_trash(self):
 		service = frappe.db.get_single_value("OCR Settings", "selected_ocr_service")
 		if service == "AWS Textract":
-			textract = AWSTextract(self)
-			textract.delete_file()
+			textract = AWSTextractExpense(self)
+			textract.task.delete()
 
 	def set_and_return_error(self, msg):
 		self.db_set("status", "Error")
@@ -158,7 +159,6 @@ class OCRRequest(Document):
 						"qty": self.get_purchase_invoice_qty(child),
 						"uom": self.get_purchase_invoice_uom(child),
 						"rate": child.get("unit_price") or (child.get("quantity") == 1 and child.get("price")),
-						"description": child.get("expense_row") or child.get("item")
 					})
 
 			if purchase_invoice and isinstance(purchase_invoice, Document):
@@ -338,18 +338,18 @@ class OCRRequest(Document):
 
 		if not supplier and header.get("VENDOR_NAME"):
 			existing_supplier_list = frappe.get_all("Supplier", filters=dict(disabled=0), pluck="supplier_name")
-			sorted_suppliers = sorted(
-				existing_supplier_list,
-				key=lambda doc: difflib.SequenceMatcher(
-					lambda doc: doc == " ", doc.lower(), header.get("VENDOR_NAME", "").lower()
-				).ratio(),
-				reverse=True,
-			)
+			if existing_supplier_list:
+				sorted_suppliers = sorted(
+					existing_supplier_list,
+					key=lambda doc: difflib.SequenceMatcher(
+						lambda doc: doc == " ", doc.lower(), header.get("VENDOR_NAME", "").lower()
+					).ratio(),
+					reverse=True,
+				)
+				best_match = sorted_suppliers[0]
 
-			best_match = sorted_suppliers[0]
-
-			if difflib.SequenceMatcher(lambda doc: doc == " ", best_match.lower(), header.get("VENDOR_NAME", "").lower()).ratio() > 0.4:
-				supplier = sorted_suppliers[0]
+				if difflib.SequenceMatcher(lambda doc: doc == " ", best_match.lower(), header.get("VENDOR_NAME", "").lower()).ratio() > 0.4:
+					supplier = sorted_suppliers[0]
 
 		self.supplier = supplier
 
