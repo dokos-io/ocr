@@ -3,6 +3,10 @@
 
 frappe.ui.form.on("OCR Request", {
 	refresh(frm) {
+		frm.add_custom_button(__('Run'), function() {
+			frm.call("make_analysis");
+		});
+
 		if (["Analysis Completed", "Error"].includes(frm.doc.status)) {
 			frm.page.set_primary_action(__('Create/match purchase invoice'), function() {
 				frappe.call({
