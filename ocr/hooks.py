@@ -225,3 +225,5 @@ scheduler_events = {
 # auth_hooks = [
 #	"ocr.auth.validate"
 # ]
+
+export_python_type_annotations = True
