@@ -31,6 +31,33 @@ GRAND_TOTAL_KEY = "TOTAL"
 TAX_TOTAL_KEY = "TAX"
 
 class OCRRequest(Document):
+	# begin: auto-generated types
+	# This code is auto-generated. Do not modify anything in this block.
+
+	from typing import TYPE_CHECKING
+
+	if TYPE_CHECKING:
+		from frappe.types import DF
+		from ocr.ocr.doctype.ocr_header_mapping.ocr_header_mapping import OCRHeaderMapping
+		from ocr.ocr.doctype.ocr_line_items_mapping.ocr_line_items_mapping import OCRLineItemsMapping
+
+		analysis: DF.Code | None
+		company: DF.Link | None
+		error: DF.SmallText | None
+		file: DF.Link | None
+		filename: DF.Data | None
+		grand_total: DF.Float
+		header_mapping: DF.Table[OCRHeaderMapping]
+		job: DF.SmallText | None
+		line_items_mapping: DF.Table[OCRLineItemsMapping]
+		net_total: DF.Float
+		ocr_basket: DF.Link | None
+		status: DF.Literal["Pending", "Analysis Completed", "Transaction Matched", "Error"]
+		supplier: DF.Link | None
+		tax_total: DF.Float
+		transaction_type: DF.Literal["", "Purchase Invoice", "Expense"]
+	# end: auto-generated types
+
 	def after_insert(self):
 		frappe.enqueue_doc(
 			self.doctype,
@@ -117,6 +144,10 @@ class OCRRequest(Document):
 			textract = AWSTextractExpense(self)
 			textract.task.delete()
 
+	def reset_status_and_error(self, status=None):
+		self.db_set("status", status or "Pending")
+		self.db_set("error", "")
+
 	def set_and_return_error(self, msg):
 		self.db_set("status", "Error")
 		self.db_set("error", msg)
@@ -127,6 +158,8 @@ class OCRRequest(Document):
 
 	@frappe.whitelist()
 	def create_purchase_invoice(self):
+		self.reset_status_and_error("Analysis Completed")
+
 		if not self.company:
 			return self.set_and_return_error(_("Please select a company in order to generate a purchase invoice"))
 
@@ -215,10 +248,7 @@ class OCRRequest(Document):
 				matched_orders.add(closest_order.name)
 
 		if not matched_orders:
-			return {
-				"status": "Analysis Completed",
-				"message": _("No matching order found")
-			}
+			return self.set_and_return_error(_("No matching order found"))
 
 		purchase_invoice = None
 		for matched_order in matched_orders:

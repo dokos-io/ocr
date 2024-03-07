@@ -96,6 +96,7 @@
   {
    "fieldname": "error",
    "fieldtype": "Small Text",
+   "in_list_view": 1,
    "label": "Error",
    "read_only": 1
   },
@@ -184,7 +185,7 @@
    "link_fieldname": "ocr_request"
   }
  ],
- "modified": "2024-01-08 17:36:19.741507",
+ "modified": "2024-03-07 11:31:27.496534",
  "modified_by": "Administrator",
  "module": "OCR",
  "name": "OCR Request",
@@ -223,5 +224,6 @@
    "color": "Red",
    "title": "Error"
   }
- ]
+ ],
+ "title_field": "filename"
 }
