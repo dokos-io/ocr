@@ -3,7 +3,7 @@
 
 frappe.ui.form.on("OCR Request", {
 	refresh(frm) {
-		frm.add_custom_button(__('Run'), function() {
+		frm.add_custom_button(__('Trigger an analysis'), function() {
 			frm.call("make_analysis");
 		}, __("Actions"));
 
@@ -11,7 +11,7 @@ frappe.ui.form.on("OCR Request", {
 			frm.call("close_request").then(() => { frm.reload_doc() });
 		}, __("Actions"));
 
-		if (["Analysis Completed", "Error"].includes(frm.doc.status)) {
+		if (["Analysis Completed", "Error"].includes(frm.doc.status) && frm.doc.transaction_type == "Purchase Invoice") {
 			frm.page.set_primary_action(__('Create/match purchase invoice'), function() {
 				frappe.call({
 					method: "create_purchase_invoice",
@@ -31,6 +31,26 @@ frappe.ui.form.on("OCR Request", {
 					}
 				})
 			})
+
+			if (!frm.doc.supplier) {
+				frm.add_custom_button(__('Create supplier'), () => {
+					const supplier_name_list = frm.doc.header_mapping.filter(f => f.key == "VENDOR_NAME")
+					const vat_number_list = frm.doc.header_mapping.filter(f => f.key == "VENDOR_VAT_NUMBER")
+
+					const supplier = frappe.model.get_new_doc("Supplier");
+					supplier["supplier_name"] = supplier_name_list.length ? supplier_name_list[0]["value"] : "";
+					supplier["company_search"] = supplier_name_list.length ? supplier_name_list[0]["value"] : "";
+					supplier["tax_id"] = vat_number_list.length > 0 ? vat_number_list[0]["value"]: "";
+
+					frappe.ui.form.make_quick_entry(
+						"Supplier",
+						null,
+						null,
+						supplier,
+						null
+					)
+				});
+			}
 		}
 
 		if (frm.doc.file) {
