@@ -165,7 +165,7 @@ class OCRRequest(Document):
 
 		purchase_invoice = None
 		try:
-			if self.get_creation_mode() != "Get items from the OCR analysis":
+			if self.get_creation_mode() not in ("Get items from the OCR analysis", "Consolidate all rows in a single invoicing line"):
 				purchase_invoice = self.make_purchase_invoice_from_purchase_order()
 				if purchase_invoice.get("status") == "Error":
 					return self.set_and_return_error(purchase_invoice.get("message"))
@@ -181,17 +181,25 @@ class OCRRequest(Document):
 
 				generic_item = frappe.db.get_single_value("OCR Settings", "generic_item")
 
-				for child in self.line_items_mapping:
-					if not child.get("item"):
-						continue
+				if self.get_creation_mode() == "Get items from the OCR analysis":
+					for child in self.line_items_mapping:
+						if not child.get("item"):
+							continue
 
+						purchase_invoice.append("items", {
+							"item_code": child.get("item_code") or generic_item,
+							"item_name": str(child.get("item"))[:140],
+							"description": child.get("expense_row") or child.get("item"),
+							"qty": self.get_purchase_invoice_qty(child),
+							"uom": self.get_purchase_invoice_uom(child),
+							"rate": child.get("unit_price") or (child.get("quantity") == 1 and child.get("price")),
+						})
+				elif self.get_creation_mode() == "Consolidate all rows in a single invoicing line":
 					purchase_invoice.append("items", {
-						"item_code": child.get("item_code") or generic_item,
-						"item_name": str(child.get("item"))[:140],
-						"description": child.get("expense_row") or child.get("item"),
-						"qty": self.get_purchase_invoice_qty(child),
-						"uom": self.get_purchase_invoice_uom(child),
-						"rate": child.get("unit_price") or (child.get("quantity") == 1 and child.get("price")),
+						"item_code": generic_item,
+						"description": _("Invoice Net Total"),
+						"qty": 1,
+						"rate": self.net_total,
 					})
 
 			if purchase_invoice and isinstance(purchase_invoice, Document):
@@ -205,6 +213,13 @@ class OCRRequest(Document):
 
 				purchase_invoice.run_method("set_missing_values")
 				purchase_invoice.run_method("calculate_taxes_and_totals")
+
+				if self.get_creation_mode() == "Consolidate all rows in a single invoicing line":
+					if purchase_invoice.taxes:
+						purchase_invoice.taxes[0].charge_type = "Actual"
+						purchase_invoice.taxes[0].tax_amount = self.tax_total
+						purchase_invoice.run_method("calculate_taxes_and_totals")
+
 				purchase_invoice.insert()
 				self.db_set("status", "Transaction Matched")
 

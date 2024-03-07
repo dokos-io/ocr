@@ -68,7 +68,7 @@
    "label": "Purchase Invoice Creation Mode"
   },
   {
-   "depends_on": "eval:doc.pi_creation_mode==\"Get items from the OCR analysis\"",
+   "depends_on": "eval:[\"Get items from the OCR analysis\", \"Consolidate all rows in a single invoicing line\"].includes(doc.pi_creation_mode)",
    "fieldname": "items_section",
    "fieldtype": "Section Break",
    "label": "Items"
@@ -79,14 +79,14 @@
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Creation Mode",
-   "options": "Get items from the OCR analysis\nGet items from purchase orders recognized by the OCR\nGet items from any open purchase order linked to the recognized supplier",
+   "options": "Get items from the OCR analysis\nGet items from purchase orders recognized by the OCR\nGet items from any open purchase order linked to the recognized supplier\nConsolidate all rows in a single invoicing line",
    "reqd": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2023-12-08 14:48:42.296006",
+ "modified": "2024-03-07 14:13:18.164430",
  "modified_by": "Administrator",
  "module": "OCR",
  "name": "OCR Settings",
