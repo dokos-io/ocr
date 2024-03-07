@@ -52,7 +52,7 @@ class OCRRequest(Document):
 		line_items_mapping: DF.Table[OCRLineItemsMapping]
 		net_total: DF.Float
 		ocr_basket: DF.Link | None
-		status: DF.Literal["Pending", "Analysis Completed", "Transaction Matched", "Error"]
+		status: DF.Literal["Pending", "Analysis Completed", "Transaction Matched", "Error", "Closed"]
 		supplier: DF.Link | None
 		tax_total: DF.Float
 		transaction_type: DF.Literal["", "Purchase Invoice", "Expense"]
@@ -367,8 +367,10 @@ class OCRRequest(Document):
 					break
 
 		if not supplier and header.get("VENDOR_NAME"):
-			existing_supplier_list = frappe.get_all("Supplier", filters=dict(disabled=0), pluck="supplier_name")
-			if existing_supplier_list:
+			existing_suppliers = frappe.get_all("Supplier", filters=dict(disabled=0), fields=["name", "supplier_name"])
+			existing_supplier_dict = {supplier.supplier_name: supplier.name for supplier in existing_suppliers}
+
+			if existing_supplier_list := [supplier.supplier_name for supplier in existing_suppliers]:
 				sorted_suppliers = sorted(
 					existing_supplier_list,
 					key=lambda doc: difflib.SequenceMatcher(
@@ -379,7 +381,7 @@ class OCRRequest(Document):
 				best_match = sorted_suppliers[0]
 
 				if difflib.SequenceMatcher(lambda doc: doc == " ", best_match.lower(), header.get("VENDOR_NAME", "").lower()).ratio() > 0.4:
-					supplier = sorted_suppliers[0]
+					supplier = existing_supplier_dict.get(sorted_suppliers[0])
 
 		self.supplier = supplier
 
@@ -451,6 +453,10 @@ class OCRRequest(Document):
 					return section
 
 		return frappe.db.get_single_value("Stock Settings", "stock_uom")
+
+	@frappe.whitelist()
+	def close_request(self):
+		self.db_set("status", "Closed")
 
 def check_pending_analysis():
 	for req in frappe.get_all("OCR Request", filters={"status": "Pending"}):

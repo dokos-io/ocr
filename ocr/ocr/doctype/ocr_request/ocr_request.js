@@ -5,7 +5,11 @@ frappe.ui.form.on("OCR Request", {
 	refresh(frm) {
 		frm.add_custom_button(__('Run'), function() {
 			frm.call("make_analysis");
-		});
+		}, __("Actions"));
+
+		frm.add_custom_button(__('Close'), function() {
+			frm.call("close_request").then(() => { frm.reload_doc() });
+		}, __("Actions"));
 
 		if (["Analysis Completed", "Error"].includes(frm.doc.status)) {
 			frm.page.set_primary_action(__('Create/match purchase invoice'), function() {

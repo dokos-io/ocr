@@ -85,12 +85,13 @@ class OCRPurchaseInvoiceBasket(Document):
 
 
 def check_requests_completion():
-	for basket in frappe.get_all("OCR Purchase Invoice Basket", filters={"status": "In Progress"}, fields=["name"]):
+	for basket in frappe.get_all("OCR Purchase Invoice Basket", filters={"status": ["In Progress", "Not Started"]}, fields=["name"]):
 		associated_requests = frappe.get_all("OCR Request", filters={"ocr_basket": basket.name}, fields=["name", "status"])
 
 		if not associated_requests:
 			doc = frappe.get_doc("OCR Purchase Invoice Basket", basket.name)
-			doc.db_set("status", "Not Started")
+			if doc.status != "Not Started":
+				doc.db_set("status", "Not Started")
 			return doc.run_method("create_requests")
 
 		for req in [a for a in associated_requests if a.status == "Analysis Completed"]:
@@ -103,6 +104,9 @@ def check_requests_completion():
 		associated_requests = frappe.get_all("OCR Request", filters={"ocr_basket": basket.name}, fields=["name", "status"])
 		if all([a.status == "Transaction Matched" for a in associated_requests]):
 			frappe.db.set_value("OCR Purchase Invoice Basket", basket.name, "status", "Completed")
+
+		elif all([a.status == "Closed" for a in associated_requests]):
+			frappe.db.set_value("OCR Purchase Invoice Basket", basket.name, "status", "Closed")
 
 
 @frappe.whitelist()
