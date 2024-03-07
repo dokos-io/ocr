@@ -1,4 +1,5 @@
 frappe.listview_settings["OCR Request"] = {
+	hide_name_column: 1,
 	button: {
 		show(doc) {
 			return (doc.transaction_type && doc.status == "Transaction Matched");

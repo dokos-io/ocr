@@ -6,10 +6,12 @@
  "email_append_to": 1,
  "engine": "InnoDB",
  "field_order": [
+  "title",
   "sender",
   "subject",
   "column_break_rvwl",
   "status",
+  "error",
   "section_break_hmpy",
   "ocr_html"
  ],
@@ -29,7 +31,7 @@
    "fieldtype": "Select",
    "hidden": 1,
    "label": "Status",
-   "options": "Not Started\nIn Progress\nCompleted",
+   "options": "Not Started\nIn Progress\nCompleted\nClosed",
    "read_only": 1
   },
   {
@@ -40,6 +42,7 @@
   {
    "fieldname": "sender",
    "fieldtype": "Data",
+   "in_list_view": 1,
    "label": "Sender",
    "options": "Email",
    "read_only": 1
@@ -47,7 +50,20 @@
   {
    "fieldname": "subject",
    "fieldtype": "Small Text",
+   "in_list_view": 1,
    "label": "Subject",
+   "read_only": 1
+  },
+  {
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "label": "Title"
+  },
+  {
+   "fieldname": "error",
+   "fieldtype": "Small Text",
+   "in_list_view": 1,
+   "label": "Error",
    "read_only": 1
   }
  ],
@@ -59,7 +75,7 @@
    "link_fieldname": "ocr_basket"
   }
  ],
- "modified": "2023-11-28 09:21:21.345166",
+ "modified": "2024-03-07 11:42:31.084145",
  "modified_by": "Administrator",
  "module": "OCR",
  "name": "OCR Purchase Invoice Basket",
@@ -80,6 +96,7 @@
   }
  ],
  "sender_field": "sender",
+ "show_title_field_in_link": 1,
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": [
@@ -94,7 +111,12 @@
   {
    "color": "Green",
    "title": "Completed"
+  },
+  {
+   "color": "Gray",
+   "title": "Closed"
   }
  ],
- "subject_field": "subject"
+ "subject_field": "subject",
+ "title_field": "title"
 }
