@@ -85,7 +85,7 @@ class OCRPurchaseInvoiceBasket(Document):
 
 
 def check_requests_completion():
-	for basket in frappe.get_all("OCR Purchase Invoice Basket", filters={"status": ["In Progress", "Not Started"]}, fields=["name"]):
+	for basket in frappe.get_all("OCR Purchase Invoice Basket", filters={"status": ["in", ["In Progress", "Not Started"]]}, fields=["name"]):
 		associated_requests = frappe.get_all("OCR Request", filters={"ocr_basket": basket.name}, fields=["name", "status"])
 
 		if not associated_requests:
