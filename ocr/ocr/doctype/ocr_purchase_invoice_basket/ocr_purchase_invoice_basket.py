@@ -72,7 +72,7 @@ class OCRPurchaseInvoiceBasket(Document):
 
 			self.db_set("status", "In Progress")
 		else:
-			self.db_set(_("No PDF file found in this basket"))
+			self.db_set("error", _("No PDF file found in this basket"))
 			self.db_set("status", "Closed")
 
 	def relink_files_after_insert(self):
