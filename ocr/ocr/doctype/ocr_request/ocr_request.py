@@ -11,6 +11,7 @@ import frappe
 from frappe import _
 from frappe.utils import time_diff_in_minutes, now_datetime, time_diff, flt, getdate
 from frappe.model.document import Document
+from frappe.model.mapper import get_mapped_doc
 from pypika.terms import ExistsCriterion
 
 
@@ -473,6 +474,18 @@ class OCRRequest(Document):
 	def close_request(self):
 		self.db_set("status", "Closed")
 
+	@frappe.whitelist()
+	def register_mapping(self, data):
+		data = frappe.parse_json(data)
+
+		if data.get("supplier"):
+			self.db_set("supplier", data.get("supplier"))
+
+		for row in data.get("items", []):
+			for mapping_row in self.line_items_mapping:
+				if row.get("item_code") and mapping_row.item == row.get("item_name"):
+					frappe.db.set_value(mapping_row.doctype, mapping_row.name, "item_code", row.get("item_code"))
+
 def check_pending_analysis():
 	for req in frappe.get_all("OCR Request", filters={"status": "Pending"}):
 		doc = frappe.get_doc("OCR Request", req.name)
@@ -484,48 +497,30 @@ def get_analysis(request_id):
 	return doc.get_analysis()
 
 @frappe.whitelist()
-def register_supplier_mapping(validated_data, service="AWS Textract"):
-	data = frappe.parse_json(validated_data)
+def make_purchase_order(source_name, target_doc=None):
+	def set_missing_values(source, target):
+		# ocr_request: "OCR Request" = frappe.get_doc("OCR Request", source_name)
+		# quotation: "Quotation" = frappe.get_doc(target)
+		# for item in quotation.items:
+		# 	for row in ocr_request.line_items_mapping:
+		# 		if item.
+		pass
 
-	for d in data:
-		if d not in ["supplier", "items"]:
-			continue
+	doclist = get_mapped_doc(
+		"OCR Request",
+		source_name,
+		{
+			"OCR Request": {
+				"doctype": "Purchase Order",
+				"field_map": {"line_items_mapping": "items"},
+				"field_no_map": ["status"],
+			}
+		},
+		target_doc,
+		set_missing_values,
+	)
 
-		if d == "supplier":
-			if data.get("vendor_name") == data[d]:
-				continue
-
-			if existing_mapping := frappe.db.get_value("OCR Mapping",
-				dict(
-					ocr_service=service,
-					key="VENDOR_NAME",
-					value=data.get("vendor_name"),
-					reference_doctype="Supplier"
-				),
-				["reference_name", "name"],
-				as_dict=True
-			):
-				if existing_mapping.reference_name != data[d]:
-					frappe.db.set_value("OCR Mapping", existing_mapping.name, "reference_name", data[d])
-
-
-		if d == "items":
-			for it in data[d]:
-				if not frappe.db.get_value(
-					"Item Supplier",
-					dict(
-						supplier=data["supplier"],
-						supplier_part_no=it.get("item_name")
-					),
-				):
-					item = frappe.get_doc("Item", it.get("item_code"))
-					item.append("supplier_items", {
-						"supplier": data["supplier"],
-						"supplier_part_no": it.get("item_name")
-					})
-					item.flags.ignore_permissions = True
-					item.save()
-
+	return doclist
 
 
 def parse_number(text):

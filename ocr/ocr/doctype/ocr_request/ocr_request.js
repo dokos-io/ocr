@@ -3,9 +3,11 @@
 
 frappe.ui.form.on("OCR Request", {
 	refresh(frm) {
-		frm.add_custom_button(__('Trigger an analysis'), function() {
-			frm.call("make_analysis");
-		}, __("Actions"));
+		if (frm.doc.transaction_type != "Purchase Invoice") {
+			frm.add_custom_button(__('Trigger an analysis'), function() {
+				frm.call("make_analysis");
+			}, __("Actions"));
+		}
 
 		frm.add_custom_button(__('Close'), function() {
 			frm.call("close_request").then(() => { frm.reload_doc() });
@@ -51,6 +53,10 @@ frappe.ui.form.on("OCR Request", {
 					)
 				});
 			}
+
+			frm.add_custom_button(__('Create a sales order'), () => {
+				new SalesOrderCreator(frm)
+			}, __("Actions"));
 		}
 
 		if (frm.doc.file) {
@@ -106,3 +112,112 @@ frappe.ui.form.on("OCR Request", {
 		}
 	},
 });
+
+
+
+class SalesOrderCreator {
+	constructor(frm) {
+		this.frm = frm
+
+		this.make_dialog()
+	}
+
+	make_dialog() {
+		const dialog = new frappe.ui.Dialog({
+			title: __("Create a new sales order"),
+			size: "extra-large",
+			fields: [
+				{
+					label: "Supplier",
+					fieldname: "supplier",
+					fieldtype: "Link",
+					options: "Supplier",
+					reqd: 1,
+					default: this.frm.doc.supplier
+				},
+				{
+					fieldname: "items",
+					fieldtype: "Table",
+					label: __("Items"),
+					cannot_add_rows: true,
+					cannot_delete_rows: true,
+					in_place_edit: true,
+					data: this.get_items(),
+					get_data: () => {
+						return this.frm.doc.line_items_mapping;
+					},
+					fields: [
+						{
+							fieldtype: "Link",
+							options: "Item",
+							fieldname: "item_code",
+							label: __("Item Code"),
+							in_list_view: 1,
+						},
+						{
+							fieldtype: "Small Text",
+							fieldname: "item_name",
+							label: __("Item Name"),
+							read_only: 1,
+							in_list_view: 1,
+						},
+						{
+							fieldtype: "Small Text",
+							fieldname: "description",
+							label: __("Description"),
+							read_only: 1,
+							in_list_view: 1,
+						}
+					],
+				},
+			],
+			primary_action: () => {
+				const dialog_values = dialog.get_values();
+				this.update_mapping(dialog_values)
+
+				dialog.hide();
+			},
+			primary_action_label: __("Create a sales order"),
+		});
+		dialog.show();
+	}
+
+	get_items() {
+		return this.frm.doc.line_items_mapping.map(item => {
+			return {
+				item_code: item.item_code,
+				item_name: item.item.substring(0, 140),
+				description: item.item
+			}
+		})
+	}
+
+	update_mapping(values) {
+		return frappe.call({
+			method: "register_mapping",
+			doc: this.frm.doc,
+			args: {
+				data: values,
+			}
+		}).then(res => {
+			if (!res.exc) {
+				this.frm.reload_doc()
+				this.create_sales_order()
+			} else {
+				frappe.show_alert(
+					{
+						indicator: "red",
+						message: __("An error prevented the creation of the sales order")
+					}
+				)
+			}
+		})
+	}
+
+	create_sales_order() {
+		frappe.model.open_mapped_doc({
+			method: "ocr.ocr.doctype.ocr_request.ocr_request.make_purchase_order",
+			frm: this.frm
+		});
+	}
+}
