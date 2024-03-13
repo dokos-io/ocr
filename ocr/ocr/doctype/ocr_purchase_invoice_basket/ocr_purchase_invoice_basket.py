@@ -93,7 +93,7 @@ def check_requests_completion():
 				doc = frappe.get_doc("OCR Purchase Invoice Basket", basket.name)
 				if doc.status != "Not Started":
 					doc.db_set("status", "Not Started")
-				return doc.run_method("create_requests")
+					doc.run_method("create_requests")
 			except Exception:
 				doc.log_error()
 
