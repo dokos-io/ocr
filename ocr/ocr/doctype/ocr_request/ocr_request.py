@@ -342,15 +342,15 @@ class OCRRequest(Document):
 
 		for line in self.header_mapping:
 			if line.key.lower() in pi_fields:
-				line.field = line.key.lower()[:140]
+				line.field = str(line.key.lower())[:140]
 			elif PURCHASE_INVOICE_MAPPING.get(line.key):
-				line.field = PURCHASE_INVOICE_MAPPING.get(line.key)[:140]
+				line.field = str(PURCHASE_INVOICE_MAPPING.get(line.key))[:140]
 
 			if line.key == "VENDOR_NAME":
-				line.field_value = self.get_supplier_name()[:140]
+				line.field_value = str(self.get_supplier_name())[:140]
 
 			elif line.key == "RECEIVER_NAME":
-				line.field_value = self.get_company()[:140]
+				line.field_value = str(self.get_company())[:140]
 
 			elif "DATE" in line.key:
 				try:
