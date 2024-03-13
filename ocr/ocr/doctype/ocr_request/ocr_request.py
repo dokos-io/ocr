@@ -98,11 +98,14 @@ class OCRRequest(Document):
 			self.db_set("job", jobid)
 
 	def get_analysis(self):
-		service = frappe.db.get_single_value("OCR Settings", "selected_ocr_service")
-		if service == "AWS Textract":
-			return self.get_textract_analysis()
-		elif service == "Taggun":
-			self.get_taggun_analysis()
+		try:
+			service = frappe.db.get_single_value("OCR Settings", "selected_ocr_service")
+			if service == "AWS Textract":
+				return self.get_textract_analysis()
+			elif service == "Taggun":
+				self.get_taggun_analysis()
+		except Exception:
+			self.log_error(_("OCR Analysis Error"))
 
 	def get_textract_analysis(self):
 		if self.analysis and frappe.parse_json(self.analysis).get("JobStatus") == "SUCCEEDED":
@@ -339,15 +342,15 @@ class OCRRequest(Document):
 
 		for line in self.header_mapping:
 			if line.key.lower() in pi_fields:
-				line.field = line.key.lower()
+				line.field = line.key.lower()[:140]
 			elif PURCHASE_INVOICE_MAPPING.get(line.key):
-				line.field = PURCHASE_INVOICE_MAPPING.get(line.key)
+				line.field = PURCHASE_INVOICE_MAPPING.get(line.key)[:140]
 
 			if line.key == "VENDOR_NAME":
-				line.field_value = self.get_supplier_name()
+				line.field_value = self.get_supplier_name()[:140]
 
 			elif line.key == "RECEIVER_NAME":
-				line.field_value = self.get_company()
+				line.field_value = self.get_company()[:140]
 
 			elif "DATE" in line.key:
 				try:
