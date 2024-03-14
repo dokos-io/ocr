@@ -224,6 +224,7 @@ class OCRRequest(Document):
 						purchase_invoice.taxes[0].tax_amount = self.tax_total
 						purchase_invoice.run_method("calculate_taxes_and_totals")
 
+				purchase_invoice.title = purchase_invoice.supplier_name or frappe.db.get_value("Supplier", purchase_invoice.supplier, "supplier_name")
 				purchase_invoice.insert()
 				self.db_set("status", "Transaction Matched")
 
