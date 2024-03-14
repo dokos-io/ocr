@@ -404,7 +404,7 @@ class OCRRequest(Document):
 
 		self.supplier = supplier
 
-		return supplier
+		return supplier or ""
 
 	def get_company(self):
 		# TODO: Improve this logic
@@ -429,7 +429,7 @@ class OCRRequest(Document):
 			company = companies[0]
 
 		self.company = company
-		return company
+		return company or ""
 
 	def get_value_from_mapping(self, key, value, field):
 		return frappe.db.get_value(
