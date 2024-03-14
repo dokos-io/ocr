@@ -347,10 +347,10 @@ class OCRRequest(Document):
 				line.field = (PURCHASE_INVOICE_MAPPING.get(line.key) or "")[:140]
 
 			if line.key == "VENDOR_NAME":
-				line.field_value = (self.get_supplier_name() or "")[:140]
+				line.field_value = self.get_supplier_name()
 
 			elif line.key == "RECEIVER_NAME":
-				line.field_value = (self.get_company() or "")[:140]
+				line.field_value = self.get_company()
 
 			elif "DATE" in line.key:
 				try:
@@ -490,7 +490,7 @@ class OCRRequest(Document):
 					frappe.db.set_value(mapping_row.doctype, mapping_row.name, "item_code", row.get("item_code"))
 
 def check_pending_analysis():
-	for req in frappe.get_all("OCR Request", filters={"status": "Pending"}):
+	for req in frappe.get_all("OCR Request", filters={"status": "Pending"}, limit=500):
 		doc = frappe.get_doc("OCR Request", req.name)
 		doc.run_method("get_analysis")
 
