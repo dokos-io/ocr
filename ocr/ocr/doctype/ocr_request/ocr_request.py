@@ -403,7 +403,7 @@ class OCRRequest(Document):
 				)
 				best_match = sorted_suppliers[0]
 
-				if difflib.SequenceMatcher(lambda doc: doc == " ", best_match.lower(), header.get("VENDOR_NAME", "").lower()).ratio() > 0.4:
+				if difflib.SequenceMatcher(lambda doc: doc == " ", best_match.lower(), header.get("VENDOR_NAME", "").lower()).ratio() > 0.9:
 					supplier = existing_supplier_dict.get(sorted_suppliers[0])
 
 		self.supplier = supplier
