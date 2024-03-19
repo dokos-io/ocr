@@ -9,7 +9,7 @@ from dateutil.parser import parse
 
 import frappe
 from frappe import _
-from frappe.utils import time_diff_in_minutes, now_datetime, time_diff, flt, getdate
+from frappe.utils import now_datetime, time_diff, flt, getdate
 from frappe.model.document import Document
 from frappe.model.mapper import get_mapped_doc
 from pypika.terms import ExistsCriterion
@@ -17,6 +17,9 @@ from pypika.terms import ExistsCriterion
 
 from ocr.ocr.doctype.ocr_request.aws_textract import AWSTextractExpense
 from ocr.ocr.doctype.ocr_request.taggun import Taggun
+
+
+DateTimeLikeObject = str | datetime.date | datetime.datetime
 
 # https://docs.python.org/3/library/re.html#simulating-scanf
 FLOAT_PATTERN = re.compile(r"[-+]?(\d+([.,]\d*)?|[.,]\d+)([eE][-+]?\d+)?")
@@ -650,3 +653,12 @@ def parse_number(text):
 			return n
 	except: pass
 	return None
+
+
+
+# Don't use Dokos standard function for compatibility with Frappe
+def time_diff_in_minutes(
+	string_ed_date: DateTimeLikeObject, string_st_date: DateTimeLikeObject
+) -> float:
+	"""Returns the difference between given two dates in minutes."""
+	return round(float(time_diff(string_ed_date, string_st_date).total_seconds()) / 60, 2)
