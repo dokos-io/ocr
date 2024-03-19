@@ -39,7 +39,7 @@ class OCRGenericTextTranscription(Document):
 		self.db_set("status", status, update_modified=False, commit=True, notify=True)
 
 	def queue_tick(self):
-		frappe.enqueue(self.tick, queue="short")
+		frappe.enqueue_doc(self.doctype, self.name, "tick", queue="short")
 
 	def tick(self):
 		try:
@@ -105,3 +105,5 @@ def tick(doc: str):
 		frappe.parse_json(doc).name,  # type: ignore
 	)  # type: ignore
 	ocr_doc.queue_tick()
+
+	return ocr_doc
