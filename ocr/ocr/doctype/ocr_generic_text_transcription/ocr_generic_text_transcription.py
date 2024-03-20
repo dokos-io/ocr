@@ -39,7 +39,7 @@ class OCRGenericTextTranscription(Document):
 		self.db_set("status", status, update_modified=False, commit=True, notify=True)
 
 	def queue_tick(self):
-		frappe.enqueue_doc(self.doctype, self.name, "tick", queue="short")
+		frappe.enqueue_doc(self.doctype, self.name, "tick", queue="short", enqueue_after_commit=True)
 
 	def tick(self):
 		try:
