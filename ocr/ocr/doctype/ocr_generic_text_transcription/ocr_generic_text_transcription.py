@@ -32,7 +32,7 @@ class OCRGenericTextTranscription(Document):
 		if not self.status or self.status in ("Draft", "Error"):
 			self.status = "Pending"
 
-	def on_update(self):
+	def after_insert(self):
 		self.queue_tick()
 
 	def ocr_set_status(self, status: str):
