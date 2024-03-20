@@ -403,7 +403,7 @@ class OCRRequest(Document):
 				)
 				best_match = sorted_suppliers[0]
 
-				if difflib.SequenceMatcher(lambda doc: doc == " ", best_match.lower(), header.get("VENDOR_NAME", "").lower()).ratio() > 0.9:
+				if difflib.SequenceMatcher(lambda doc: doc == " ", best_match.lower(), header.get("VENDOR_NAME", "").lower()).ratio() > 0.8:
 					supplier = existing_supplier_dict.get(sorted_suppliers[0])
 
 		self.supplier = supplier
@@ -418,10 +418,10 @@ class OCRRequest(Document):
 		company = self.get_value_from_mapping("RECEIVER_NAME", header.get("RECEIVER_NAME"), "company")
 
 		companies = [x.lower() for x in frappe.get_all("Company", pluck="name")]
-		if company_match := difflib.get_close_matches(header.get("RECEIVER_NAME","").lower(), companies):
+		if company_match := difflib.get_close_matches(header.get("RECEIVER_NAME","").lower(), companies, cutoff=0.9):
 			company = company_match[0]
 
-		if not company and (company_match := difflib.get_close_matches(header.get("RECEIVER_ADDRESS", "").lower(), companies)):
+		if not company and (company_match := difflib.get_close_matches(header.get("RECEIVER_ADDRESS", "").lower(), companies, cutoff=0.9)):
 			company = company_match[0]
 
 		if not company:
