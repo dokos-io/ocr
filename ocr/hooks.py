@@ -131,11 +131,11 @@ after_migrate = "ocr.migrate.after_migrate"
 # ---------------
 # Hook on document methods and events
 
-doc_events = {
-	"Communication": {
-		"after_insert": "ocr.ocr.doctype.ocr_purchase_invoice_basket.ocr_purchase_invoice_basket.create_requests_from_ocr_purchase_invoice_basket",
-	}
-}
+# doc_events = {
+# 	"Communication": {
+# 		"after_insert": "ocr.ocr.doctype.ocr_purchase_invoice_basket.ocr_purchase_invoice_basket.create_requests_from_ocr_purchase_invoice_basket",
+# 	}
+# }
 
 # Scheduled Tasks
 # ---------------
