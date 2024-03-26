@@ -131,9 +131,3 @@ def make_basket_from_communication(communication, basket_type, ignore_communicat
 
 	return basket
 
-
-def create_requests_from_ocr_purchase_invoice_basket(doc, method):
-	if doc.reference_doctype == "OCR Purchase Invoice Basket" and frappe.db.exists("OCR Purchase Invoice Basket", doc.reference_name):
-		basket = frappe.get_doc("OCR Purchase Invoice Basket", doc.reference_name)
-		if basket.status == "Not Started":
-			basket.run_method("create_requests")

@@ -62,6 +62,11 @@ class OCRRequest(Document):
 		transaction_type: DF.Literal["", "Purchase Invoice", "Expense"]
 	# end: auto-generated types
 
+	def before_insert(self):
+		# Keep to avoid auto fill from default values
+		self.company = None
+		self.supplier = None
+
 	def after_insert(self):
 		frappe.enqueue_doc(
 			self.doctype,
