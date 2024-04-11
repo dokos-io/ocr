@@ -20,15 +20,15 @@ frappe.ui.form.on("Communication", {
 				__("Create")
 			);
 
-			frm.add_custom_button(
-				__("Expense"),
-				() => {
-					frappe.confirm(__(confirm_msg, [__("Expense")]), () => {
-						frm.trigger("create_basket_for_expense");
-					})
-				},
-				__("Create")
-			);
+			// frm.add_custom_button(
+			// 	__("Expense"),
+			// 	() => {
+			// 		frappe.confirm(__(confirm_msg, [__("Expense")]), () => {
+			// 			frm.trigger("create_basket_for_expense");
+			// 		})
+			// 	},
+			// 	__("Create")
+			// );
 		}
 	},
 
