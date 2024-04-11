@@ -9,7 +9,7 @@ from dateutil.parser import parse
 
 import frappe
 from frappe import _
-from frappe.utils import now_datetime, time_diff, flt, getdate
+from frappe.utils import now_datetime, time_diff, flt, getdate, get_datetime
 from frappe.model.document import Document
 from frappe.model.mapper import get_mapped_doc
 from pypika.terms import ExistsCriterion
@@ -95,7 +95,6 @@ class OCRRequest(Document):
 
 	@frappe.whitelist()
 	def make_analysis(self):
-		self.start_analysis()
 		self.get_analysis()
 
 	def start_analysis(self):
@@ -103,9 +102,13 @@ class OCRRequest(Document):
 		if service == "AWS Textract":
 			textract = AWSTextractExpense(self)
 			jobid = textract.task.start()
+			self.job = jobid
 			self.db_set("job", jobid)
 
 	def get_analysis(self):
+		if not self.job:
+			self.start_analysis()
+
 		try:
 			service = frappe.db.get_single_value("OCR Settings", "selected_ocr_service")
 			if service == "AWS Textract":
@@ -129,7 +132,7 @@ class OCRRequest(Document):
 				self.status = "Analysis Completed"
 				self.save()
 
-			elif time_diff_in_minutes(now_datetime(), self.creation) < 60:
+			elif time_diff_in_minutes(now_datetime(), get_datetime(self.creation)) < 60:
 				time.sleep(25)
 				frappe.enqueue_doc(
 					self.doctype,
@@ -138,7 +141,7 @@ class OCRRequest(Document):
 					queue="short"
 				)
 
-			elif time_diff(now_datetime(), self.creation) > 7:
+			elif time_diff(now_datetime(), get_datetime(self.creation)) > 7:
 				self.set_and_return_error("stale")
 
 		elif self.status != "Error":
@@ -411,7 +414,7 @@ class OCRRequest(Document):
 				if difflib.SequenceMatcher(lambda doc: doc == " ", best_match.lower(), header.get("VENDOR_NAME", "").lower()).ratio() > 0.8:
 					supplier = existing_supplier_dict.get(sorted_suppliers[0])
 
-		self.supplier = supplier
+		self.supplier = supplier if (supplier and frappe.db.exists("Supplier", supplier)) else None
 
 		return supplier or ""
 
