@@ -193,6 +193,7 @@ class OCRRequest(Document):
 			else:
 				purchase_invoice = frappe.new_doc("Purchase Invoice")
 				purchase_invoice.supplier = self.supplier
+				purchase_invoice.company = self.company
 
 				generic_item = frappe.db.get_single_value("OCR Settings", "generic_item")
 
