@@ -515,12 +515,9 @@ def get_analysis(request_id):
 @frappe.whitelist()
 def make_purchase_order(source_name, target_doc=None):
 	def set_missing_values(source, target):
-		# ocr_request: "OCR Request" = frappe.get_doc("OCR Request", source_name)
-		# quotation: "Quotation" = frappe.get_doc(target)
-		# for item in quotation.items:
-		# 	for row in ocr_request.line_items_mapping:
-		# 		if item.
-		pass
+		target.run_method("set_missing_values")
+		target.run_method("get_schedule_dates")
+		target.run_method("calculate_taxes_and_totals")
 
 	doclist = get_mapped_doc(
 		"OCR Request",
@@ -528,9 +525,11 @@ def make_purchase_order(source_name, target_doc=None):
 		{
 			"OCR Request": {
 				"doctype": "Purchase Order",
-				"field_map": {"line_items_mapping": "items"},
 				"field_no_map": ["status"],
-			}
+			},
+			"OCR Line Items Mapping": {
+				"doctype": "Purchase Order Item",
+			},
 		},
 		target_doc,
 		set_missing_values,
