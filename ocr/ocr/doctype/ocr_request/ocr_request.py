@@ -339,13 +339,13 @@ class OCRRequest(Document):
 	def get_header_parsed_dict(self):
 		parsed_dict = {}
 		for line in self.header_mapping:
-			if line.field:
+			if line.field and line.field != "supplier":
 				value = line.field_value or line.value
-				if (
-					"date" in line.field and not (isinstance(value, datetime.datetime) or isinstance(value, datetime.date))
-					or line.field == "supplier"
-				):
-					continue
+				if "date" in line.field and not (isinstance(value, datetime.datetime) or isinstance(value, datetime.date)):
+					try:
+						parsed_dict[line.field] = getdate(line.field_value)
+					except Exception:
+						pass
 
 				parsed_dict[line.field] = line.field_value or line.value
 		return parsed_dict
@@ -515,9 +515,20 @@ def get_analysis(request_id):
 @frappe.whitelist()
 def make_purchase_order(source_name, target_doc=None):
 	def set_missing_values(source, target):
+		header = source.get_header_parsed_dict()
+		if header.get("bill_date"):
+			target.transaction_date = header.get("bill_date")
+			target.schedule_date = header.get("bill_date")
+
 		target.run_method("set_missing_values")
 		target.run_method("get_schedule_dates")
 		target.run_method("calculate_taxes_and_totals")
+
+	def update_item(source, target, source_parent):
+		target.qty = source.quantity
+		target.rate = source.unit_price
+		target.item_name = source.item
+		target.description = source.expense_row
 
 	doclist = get_mapped_doc(
 		"OCR Request",
@@ -529,6 +540,13 @@ def make_purchase_order(source_name, target_doc=None):
 			},
 			"OCR Line Items Mapping": {
 				"doctype": "Purchase Order Item",
+				"field_map": [
+					["quantity", "qty"],
+					["unit_price", "rate"],
+					["item", "item_name"],
+					["expense_row", "description"],
+				],
+				"postprocess": update_item,
 			},
 		},
 		target_doc,
