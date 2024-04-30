@@ -54,8 +54,8 @@ frappe.ui.form.on("OCR Request", {
 				});
 			}
 
-			frm.add_custom_button(__('Create a sales order'), () => {
-				new SalesOrderCreator(frm)
+			frm.add_custom_button(__('Create a purchase order'), () => {
+				new PurchaseOrderCreator(frm)
 			}, __("Actions"));
 		}
 
@@ -124,7 +124,7 @@ class SalesOrderCreator {
 
 	make_dialog() {
 		const dialog = new frappe.ui.Dialog({
-			title: __("Create a new sales order"),
+			title: __("Create a new purchase order"),
 			size: "extra-large",
 			fields: [
 				{
@@ -177,7 +177,7 @@ class SalesOrderCreator {
 
 				dialog.hide();
 			},
-			primary_action_label: __("Create a sales order"),
+			primary_action_label: __("Create a purchase order"),
 		});
 		dialog.show();
 	}
@@ -202,19 +202,19 @@ class SalesOrderCreator {
 		}).then(res => {
 			if (!res.exc) {
 				this.frm.reload_doc()
-				this.create_sales_order()
+				this.create_purchase_order()
 			} else {
 				frappe.show_alert(
 					{
 						indicator: "red",
-						message: __("An error prevented the creation of the sales order")
+						message: __("An error prevented the creation of the purchase order")
 					}
 				)
 			}
 		})
 	}
 
-	create_sales_order() {
+	create_purchase_order() {
 		frappe.model.open_mapped_doc({
 			method: "ocr.ocr.doctype.ocr_request.ocr_request.make_purchase_order",
 			frm: this.frm
