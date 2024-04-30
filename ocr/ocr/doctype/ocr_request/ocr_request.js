@@ -115,7 +115,7 @@ frappe.ui.form.on("OCR Request", {
 
 
 
-class SalesOrderCreator {
+class PurchaseOrderCreator {
 	constructor(frm) {
 		this.frm = frm
 
