@@ -17,7 +17,7 @@ class OCRSettings(Document):
 		aws_textract_secret: DF.Password | None
 		generic_item: DF.Link | None
 		pi_creation_mode: DF.Literal["Get items from the OCR analysis", "Get items from purchase orders recognized by the OCR", "Get items from any open purchase order linked to the recognized supplier", "Consolidate all rows in a single invoicing line"]
-		selected_ocr_service: DF.Literal["AWS Textract", "Taggun"]
+		selected_ocr_service: DF.Literal["AWS Textract"]
 		taggun_api_key: DF.Password | None
 	# end: auto-generated types
 
