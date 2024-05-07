@@ -17,7 +17,8 @@ def add_custom_fields():
 
 
 def get_custom_fields():
-	# Keep for translations: _("Original Invoice") _("Drop a file") _("OCR Request") _("Original File") _("Invoice Extraction") _("Creation Mode")
+	# Keep for translations: _("Original Invoice") _("Drop a file") _("OCR Request") _("Original File")
+ 	# _("Invoice Extraction") _("Creation Mode") _("OCR Request Line Item")
 
 	transactions_fields = [
 		{
@@ -55,6 +56,16 @@ def get_custom_fields():
 	return {
 		"Purchase Order": transactions_fields,
 		"Purchase Invoice": transactions_fields,
+		"Purchase Order Item": [
+			{
+				"fieldname": "ocr_request_line_item",
+				"fieldtype": "Link",
+				"options": "OCR Line Items Mapping",
+				"label": "OCR Request Line Item",
+				"insert_after": "supplier_quotation_item",
+				"read_only": 1
+			},
+		],
 		"Supplier": [
 			{
 				"fieldname": "ocr_section",
