@@ -13,8 +13,8 @@ frappe.ui.form.on("OCR Request", {
 			frm.call("close_request").then(() => { frm.reload_doc() });
 		}, __("Actions"));
 
-		if (["Analysis Completed", "Error"].includes(frm.doc.status) && frm.doc.transaction_type == "Purchase Invoice") {
-			frm.page.set_primary_action(__('Create/match purchase invoice'), function() {
+		if (["Analysis Completed", "Error", "Sales Order Created"].includes(frm.doc.status) && frm.doc.transaction_type == "Purchase Invoice") {
+			frm.page.set_primary_action(__('Create/match transactions'), function() {
 				frappe.call({
 					method: "create_purchase_invoice",
 					doc: frm.doc
