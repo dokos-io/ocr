@@ -31,6 +31,7 @@ app_include_js = "ocr.bundle.js"
 doctype_js = {
 	"Communication" : "public/js/communication.js",
 	"Purchase Invoice": "public/js/purchase_invoice.js",
+	"Purchase Order": "public/js/purchase_order.js",
 }
 
 doctype_list_js = {
@@ -131,11 +132,12 @@ after_migrate = "ocr.migrate.after_migrate"
 # ---------------
 # Hook on document methods and events
 
-# doc_events = {
-# 	"Communication": {
-# 		"after_insert": "ocr.ocr.doctype.ocr_purchase_invoice_basket.ocr_purchase_invoice_basket.create_requests_from_ocr_purchase_invoice_basket",
-# 	}
-# }
+doc_events = {
+	"Purchase Order": {
+		"on_update": "ocr.ocr.doctype.ocr_request.ocr_request.on_purchase_order_update",
+		"on_submit": "ocr.ocr.doctype.ocr_request.ocr_request.after_purchase_order_submit",
+	}
+}
 
 # Scheduled Tasks
 # ---------------
@@ -166,9 +168,9 @@ scheduler_events = {
 # Overriding Methods
 # ------------------------------
 #
-# override_whitelisted_methods = {
-#	"frappe.desk.doctype.event.event.get_events": "ocr.event.get_events"
-# }
+override_whitelisted_methods = {
+	"erpnext.stock.get_item_details.get_item_details": "ocr.overrides.get_item_details"
+}
 #
 # each overriding function accepts a `data` argument;
 # generated from the base implementation of the doctype dashboard,

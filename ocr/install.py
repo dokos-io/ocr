@@ -17,37 +17,53 @@ def add_custom_fields():
 
 
 def get_custom_fields():
+	# Keep for translations: _("Original Invoice") _("Drop a file") _("OCR Request") _("Original File")
+ 	# _("Invoice Extraction") _("Creation Mode") _("OCR Request Line Item")
+
+	transactions_fields = [
+		{
+			"fieldname": "ocr_tab",
+			"fieldtype": "Tab Break",
+			"label": "Original Invoice",
+			"depends_on": "eval:doc.ocr_original_file",
+			"insert_after": "connections_tab"
+		},
+		{
+			"fieldname": "ocr_html",
+			"fieldtype": "HTML",
+			"label": "Drop a file",
+			"insert_after": "ocr_tab",
+		},
+		{
+			"fieldname": "ocr_request",
+			"fieldtype": "Link",
+			"options": "OCR Request",
+			"label": "OCR Request",
+			"insert_after": "ocr_html",
+			"read_only": 1
+		},
+		{
+			"fieldname": "ocr_original_file",
+			"fieldtype": "Link",
+			"options": "File",
+			"label": "Original File",
+			"insert_after": "ocr_request",
+			"read_only": 1,
+			"fetch_from": "ocr_request.file"
+		},
+	]
+
 	return {
-		"Purchase Invoice": [
+		"Purchase Order": transactions_fields,
+		"Purchase Invoice": transactions_fields,
+		"Purchase Order Item": [
 			{
-				"fieldname": "ocr_tab",
-				"fieldtype": "Tab Break",
-				"label": "Original Invoice",
-				"depends_on": "eval:doc.ocr_original_file",
-				"insert_after": "connections_tab"
-			},
-			{
-				"fieldname": "ocr_html",
-				"fieldtype": "HTML",
-				"label": "Drop a file",
-				"insert_after": "ocr_tab",
-			},
-			{
-				"fieldname": "ocr_request",
+				"fieldname": "ocr_request_line_item",
 				"fieldtype": "Link",
-				"options": "OCR Request",
-				"label": "OCR Request",
-				"insert_after": "ocr_html",
+				"options": "OCR Line Items Mapping",
+				"label": "OCR Request Line Item",
+				"insert_after": "supplier_quotation_item",
 				"read_only": 1
-			},
-			{
-				"fieldname": "ocr_original_file",
-				"fieldtype": "Link",
-				"options": "File",
-				"label": "Original File",
-				"insert_after": "ocr_request",
-				"read_only": 1,
-				"fetch_from": "ocr_request.file"
 			},
 		],
 		"Supplier": [
@@ -60,7 +76,7 @@ def get_custom_fields():
 			{
 				"fieldname": "ocr_pi_creation_mode",
 				"fieldtype": "Select",
-				"options": "\nGet items from the OCR analysis\nGet items from purchase orders recognized by the OCR\nGet items from any open purchase order linked to the recognized supplier\nConsolidate all rows in a single invoicing line",
+				"options": "\nGet items from purchase orders recognized by the OCR\nGet items from any open purchase order linked to the recognized supplier\nConsolidate all rows in a single invoicing line",
 				"label": "Creation Mode",
 				"insert_after": "ocr_section",
 				"description": "If not set, the creation mode defined in the OCR settings will prevail.",
