@@ -24,10 +24,12 @@
    "label": "General Settings"
   },
   {
+   "default": "AWS Textract",
    "fieldname": "selected_ocr_service",
    "fieldtype": "Select",
    "label": "Selected OCR Service",
-   "options": "AWS Textract\nTaggun"
+   "options": "AWS Textract",
+   "reqd": 1
   },
   {
    "fieldname": "purchase_invoices_tab",
@@ -86,7 +88,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2024-03-07 14:13:18.164430",
+ "modified": "2024-05-07 10:45:13.670632",
  "modified_by": "Administrator",
  "module": "OCR",
  "name": "OCR Settings",
