@@ -557,7 +557,7 @@ def make_purchase_order(source_name, target_doc=None):
 
 	def update_item(source, target, source_parent):
 		target.qty = source.quantity or 1
-		target.rate = source.unit_price
+		target.rate = source.unit_price if target.qty > 1 and source.unit_price else source.price
 		target.item_name = source.item
 		target.description = source.expense_row
 
@@ -576,6 +576,7 @@ def make_purchase_order(source_name, target_doc=None):
 					["unit_price", "rate"],
 					["item", "item_name"],
 					["expense_row", "description"],
+					["name", "ocr_request_line_item"]
 				],
 				"postprocess": update_item,
 			},
@@ -586,6 +587,18 @@ def make_purchase_order(source_name, target_doc=None):
 
 	return doclist
 
+
+def on_purchase_order_update(doc, method):
+	if doc.ocr_request:
+		for item in doc.items:
+			if item.item_code and item.ocr_request_line_item:
+				frappe.db.set_value("OCR Line Items Mapping", item.ocr_request_line_item, "item_code", item.item_code)
+
+	frappe.msgprint(
+		msg=_("Some item lines mapping could not be updated in the OCR document. Please update them manually for more accuracy."),
+		title=_("OCR mapping incomplete"),
+		alert="orange"
+	)
 
 
 def after_purchase_order_submit(doc, method):
