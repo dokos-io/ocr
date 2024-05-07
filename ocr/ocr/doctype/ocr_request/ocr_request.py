@@ -14,12 +14,11 @@ from frappe.model.document import Document
 from frappe.model.mapper import get_mapped_doc
 from pypika.terms import ExistsCriterion
 
+from erpnext.accounts.doctype.purchase_invoice.purchase_invoice import PurchaseInvoice
 
 from ocr.ocr.doctype.ocr_request.aws_textract import AWSTextractExpense
 from ocr.ocr.doctype.ocr_request.taggun import Taggun
-
-
-DateTimeLikeObject = str | datetime.date | datetime.datetime
+from ocr.utils import parse_number, time_diff_in_minutes
 
 # https://docs.python.org/3/library/re.html#simulating-scanf
 FLOAT_PATTERN = re.compile(r"[-+]?(\d+([.,]\d*)?|[.,]\d+)([eE][-+]?\d+)?")
@@ -56,7 +55,7 @@ class OCRRequest(Document):
 		line_items_mapping: DF.Table[OCRLineItemsMapping]
 		net_total: DF.Float
 		ocr_basket: DF.Link | None
-		status: DF.Literal["Pending", "Analysis Completed", "Transaction Matched", "Error", "Closed"]
+		status: DF.Literal["Pending", "Analysis Completed", "Purchase Order Created", "Purchase Invoice Created", "Error", "Closed"]
 		supplier: DF.Link | None
 		tax_total: DF.Float
 		transaction_type: DF.Literal["", "Purchase Invoice", "Expense"]
@@ -164,6 +163,7 @@ class OCRRequest(Document):
 		self.db_set("error", "")
 
 	def set_and_return_error(self, msg):
+		frappe.db.rollback()
 		self.db_set("status", "Error")
 		self.db_set("error", msg)
 		return {
@@ -171,21 +171,26 @@ class OCRRequest(Document):
 			"message": msg
 		}
 
-	@frappe.whitelist()
-	def create_purchase_invoice(self):
+	def init_transaction_creation(self):
 		self.reset_status_and_error("Analysis Completed")
 
 		if not self.company:
 			return self.set_and_return_error(_("Please select a company in order to generate a purchase invoice"))
 
+	@frappe.whitelist()
+	def create_purchase_invoice(self):
+		self.init_transaction_creation()
+
 		purchase_invoice = None
 		try:
-			if self.get_creation_mode() not in ("Consolidate all rows in a single invoicing line"):
-				purchase_invoice = self.make_purchase_invoice_from_purchase_order()
-				if purchase_invoice.get("status") == "Error":
-					return self.set_and_return_error(purchase_invoice.get("message"))
-				elif purchase_invoice.get("status") == "Analysis Completed":
-					return purchase_invoice
+			if self.get_creation_mode() != "Consolidate all rows in a single invoicing line":
+				transaction = self.make_purchase_invoice_from_purchase_order()
+				if transaction.get("status") == "Error":
+					return self.set_and_return_error(transaction.get("message"))
+				elif transaction.get("status") == "Analysis Completed":
+					return transaction
+				elif isinstance(transaction, PurchaseInvoice):
+					purchase_invoice = transaction
 
 			elif not self.supplier:
 				return self.set_and_return_error(_("Please select a supplier in order to generate a purchase invoice"))
@@ -223,7 +228,29 @@ class OCRRequest(Document):
 
 				purchase_invoice.title = purchase_invoice.supplier_name or frappe.db.get_value("Supplier", purchase_invoice.supplier, "supplier_name")
 				purchase_invoice.insert()
-				self.db_set("status", "Transaction Matched")
+
+				if frappe.db.get_single_value("OCR Settings", "auto_submit_purchase_invoices"):
+					purchase_invoice.submit()
+
+				self.db_set("status", "Purchase Invoice Created")
+
+		except Exception as e:
+			return self.set_and_return_error(str(e))
+
+	def create_purchase_order(self):
+		self.init_transaction_creation()
+		if not self.supplier:
+			return self.set_and_return_error(_("Please select a supplier in order to generate a purchase order"))
+
+		try:
+			purchase_order = make_purchase_order(self.name)
+			purchase_order.flags.ignore_mandatory = True
+			purchase_order.flags.ignore_validate = True
+			purchase_order.title = purchase_order.supplier_name or frappe.db.get_value("Supplier", purchase_order.supplier, "supplier_name")
+			purchase_order.insert()
+			self.db_set("status", "Purchase Order Created")
+
+			return purchase_order
 
 		except Exception as e:
 			return self.set_and_return_error(str(e))
@@ -265,7 +292,10 @@ class OCRRequest(Document):
 				matched_orders.add(closest_order.name)
 
 		if not matched_orders:
-			return self.set_and_return_error(_("No matching order found"))
+			if frappe.db.get_single_value("OCR Settings", "auto_create_purchase_orders"):
+				return self.create_purchase_order()
+			else:
+				return self.set_and_return_error(_("No matching order found"))
 
 		purchase_invoice = None
 		for matched_order in matched_orders:
@@ -505,12 +535,28 @@ def make_purchase_order(source_name, target_doc=None):
 			target.transaction_date = header.get("bill_date")
 			target.schedule_date = header.get("bill_date")
 
+		generic_item = frappe.db.get_single_value("OCR Settings", "generic_item")
+		if source.get_creation_mode() == "Consolidate all rows in a single invoicing line":
+			target.items = []
+			target.append("items", {
+				"item_code": generic_item,
+				"description": _("Invoice Net Total"),
+				"qty": 1,
+				"rate": source.net_total,
+			})
+
+			if target.taxes:
+				target.taxes[0].charge_type = "Actual"
+				target.taxes[0].tax_amount = source.tax_total
+
+		target.ocr_request = source.name
+
 		target.run_method("set_missing_values")
 		target.run_method("get_schedule_dates")
 		target.run_method("calculate_taxes_and_totals")
 
 	def update_item(source, target, source_parent):
-		target.qty = source.quantity
+		target.qty = source.quantity or 1
 		target.rate = source.unit_price
 		target.item_name = source.item
 		target.description = source.expense_row
@@ -541,135 +587,8 @@ def make_purchase_order(source_name, target_doc=None):
 	return doclist
 
 
-def parse_number(text):
-	# Borrowed from https://github.com/hayj/SystemTools/blob/master/systemtools/number.py
-	"""
-		Return the first number in the given text for any locale.
-		TODO we actually don't take into account spaces for only
-		3-digited numbers (like "1 000") so, for now, "1 0" is 10.
-		TODO parse cases like "125,000.1,0.2" (125000.1).
 
-		:example:
-		>>> parseNumber("a 125,00 €")
-		125
-		>>> parseNumber("100.000,000")
-		100000
-		>>> parseNumber("100 000,000")
-		100000
-		>>> parseNumber("100,000,000")
-		100000000
-		>>> parseNumber("100 000 000")
-		100000000
-		>>> parseNumber("100.001 001")
-		100.001
-		>>> parseNumber("$.3")
-		0.3
-		>>> parseNumber(".003")
-		0.003
-		>>> parseNumber(".003 55")
-		0.003
-		>>> parseNumber("3 005")
-		3005
-		>>> parseNumber("1.190,00 €")
-		1190
-		>>> parseNumber("1190,00 €")
-		1190
-		>>> parseNumber("1,190.00 €")
-		1190
-		>>> parseNumber("$1190.00")
-		1190
-		>>> parseNumber("$1 190.99")
-		1190.99
-		>>> parseNumber("$-1 190.99")
-		-1190.99
-		>>> parseNumber("1 000 000.3")
-		1000000.3
-		>>> parseNumber('-151.744122')
-		-151.744122
-		>>> parseNumber('-1')
-		-1
-		>>> parseNumber("1 0002,1.2")
-		10002.1
-		>>> parseNumber("")
-
-		>>> parseNumber(None)
-
-		>>> parseNumber(1)
-		1
-		>>> parseNumber(1.1)
-		1.1
-		>>> parseNumber("rrr1,.2o")
-		1
-		>>> parseNumber("rrr1rrr")
-		1
-		>>> parseNumber("rrr ,.o")
-
-	"""
-	try:
-		# First we return None if we don't have something in the text:
-		if text is None:
-			return None
-		if isinstance(text, int) or isinstance(text, float):
-			return text
-		text = text.strip()
-		if text == "":
-			return None
-		# Next we get the first "[0-9,. ]+":
-		n = re.search("-?[0-9]*([,. ]?[0-9]+)+", text).group(0)
-		n = n.strip()
-		if not re.match(".*[0-9]+.*", text):
-			return None
-		# Then we cut to keep only 2 symbols:
-		while " " in n and "," in n and "." in n:
-			index = max(n.rfind(','), n.rfind(' '), n.rfind('.'))
-			n = n[0:index]
-		n = n.strip()
-		# We count the number of symbols:
-		symbolsCount = 0
-		for current in [" ", ",", "."]:
-			if current in n:
-				symbolsCount += 1
-		# If we don't have any symbol, we do nothing:
-		if symbolsCount == 0:
-			pass
-		# With one symbol:
-		elif symbolsCount == 1:
-			# If this is a space, we just remove all:
-			if " " in n:
-				n = n.replace(" ", "")
-			# Else we set it as a "." if one occurence, or remove it:
-			else:
-				theSymbol = "," if "," in n else "."
-				if n.count(theSymbol) > 1:
-					n = n.replace(theSymbol, "")
-				else:
-					n = n.replace(theSymbol, ".")
-		else:
-			# Now replace symbols so the right symbol is "." and all left are "":
-			rightSymbolIndex = max(n.rfind(','), n.rfind(' '), n.rfind('.'))
-			rightSymbol = n[rightSymbolIndex:rightSymbolIndex+1]
-			if rightSymbol == " ":
-				return parse_number(n.replace(" ", "_"))
-			n = n.replace(rightSymbol, "R")
-			leftSymbolIndex = max(n.rfind(','), n.rfind(' '), n.rfind('.'))
-			leftSymbol = n[leftSymbolIndex:leftSymbolIndex+1]
-			n = n.replace(leftSymbol, "L")
-			n = n.replace("L", "")
-			n = n.replace("R", ".")
-		# And we cast the text to float or int:
-		n = float(n)
-		if n.is_integer():
-			return int(n)
-		else:
-			return n
-	except: pass
-	return None
-
-
-
-# Don't use Dokos standard function for compatibility with Frappe
-def time_diff_in_minutes(
-	string_ed_date: DateTimeLikeObject, string_st_date: DateTimeLikeObject
-) -> float:
-	"""Returns the difference between given two dates in minutes."""
-	return round(float(time_diff(string_ed_date, string_st_date).total_seconds()) / 60, 2)
+def after_purchase_order_submit(doc, method):
+	if doc.ocr_request:
+		ocr_request = frappe.get_doc("OCR Request", doc.ocr_request)
+		ocr_request.create_purchase_invoice()

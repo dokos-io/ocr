@@ -17,39 +17,44 @@ def add_custom_fields():
 
 
 def get_custom_fields():
+	# Keep for translations: _("Original Invoice") _("Drop a file") _("OCR Request") _("Original File") _("Invoice Extraction") _("Creation Mode")
+
+	transactions_fields = [
+		{
+			"fieldname": "ocr_tab",
+			"fieldtype": "Tab Break",
+			"label": "Original Invoice",
+			"depends_on": "eval:doc.ocr_original_file",
+			"insert_after": "connections_tab"
+		},
+		{
+			"fieldname": "ocr_html",
+			"fieldtype": "HTML",
+			"label": "Drop a file",
+			"insert_after": "ocr_tab",
+		},
+		{
+			"fieldname": "ocr_request",
+			"fieldtype": "Link",
+			"options": "OCR Request",
+			"label": "OCR Request",
+			"insert_after": "ocr_html",
+			"read_only": 1
+		},
+		{
+			"fieldname": "ocr_original_file",
+			"fieldtype": "Link",
+			"options": "File",
+			"label": "Original File",
+			"insert_after": "ocr_request",
+			"read_only": 1,
+			"fetch_from": "ocr_request.file"
+		},
+	]
+
 	return {
-		"Purchase Invoice": [
-			{
-				"fieldname": "ocr_tab",
-				"fieldtype": "Tab Break",
-				"label": "Original Invoice",
-				"depends_on": "eval:doc.ocr_original_file",
-				"insert_after": "connections_tab"
-			},
-			{
-				"fieldname": "ocr_html",
-				"fieldtype": "HTML",
-				"label": "Drop a file",
-				"insert_after": "ocr_tab",
-			},
-			{
-				"fieldname": "ocr_request",
-				"fieldtype": "Link",
-				"options": "OCR Request",
-				"label": "OCR Request",
-				"insert_after": "ocr_html",
-				"read_only": 1
-			},
-			{
-				"fieldname": "ocr_original_file",
-				"fieldtype": "Link",
-				"options": "File",
-				"label": "Original File",
-				"insert_after": "ocr_request",
-				"read_only": 1,
-				"fetch_from": "ocr_request.file"
-			},
-		],
+		"Purchase Order": transactions_fields,
+		"Purchase Invoice": transactions_fields,
 		"Supplier": [
 			{
 				"fieldname": "ocr_section",
