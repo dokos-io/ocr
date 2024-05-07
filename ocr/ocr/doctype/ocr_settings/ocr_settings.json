@@ -14,7 +14,9 @@
   "purchase_invoices_tab",
   "purchase_invoice_creation_mode_section",
   "pi_creation_mode",
+  "column_break_gput",
   "auto_create_purchase_orders",
+  "auto_submit_purchase_invoices",
   "items_section",
   "generic_item"
  ],
@@ -91,12 +93,22 @@
    "fieldname": "auto_create_purchase_orders",
    "fieldtype": "Check",
    "label": "Automatically create purchase orders if no match is found"
+  },
+  {
+   "default": "0",
+   "fieldname": "auto_submit_purchase_invoices",
+   "fieldtype": "Check",
+   "label": "Automatically submit purchase invoices"
+  },
+  {
+   "fieldname": "column_break_gput",
+   "fieldtype": "Column Break"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2024-05-07 10:49:23.377810",
+ "modified": "2024-05-07 12:10:36.284851",
  "modified_by": "Administrator",
  "module": "OCR",
  "name": "OCR Settings",
