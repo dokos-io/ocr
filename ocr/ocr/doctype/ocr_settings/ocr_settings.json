@@ -14,6 +14,9 @@
   "purchase_invoices_tab",
   "purchase_invoice_creation_mode_section",
   "pi_creation_mode",
+  "column_break_gput",
+  "auto_create_purchase_orders",
+  "auto_submit_purchase_invoices",
   "items_section",
   "generic_item"
  ],
@@ -24,10 +27,12 @@
    "label": "General Settings"
   },
   {
+   "default": "AWS Textract",
    "fieldname": "selected_ocr_service",
    "fieldtype": "Select",
    "label": "Selected OCR Service",
-   "options": "AWS Textract\nTaggun"
+   "options": "AWS Textract",
+   "reqd": 1
   },
   {
    "fieldname": "purchase_invoices_tab",
@@ -68,25 +73,42 @@
    "label": "Purchase Invoice Creation Mode"
   },
   {
-   "depends_on": "eval:[\"Get items from the OCR analysis\", \"Consolidate all rows in a single invoicing line\"].includes(doc.pi_creation_mode)",
+   "depends_on": "eval:[\"Consolidate all rows in a single invoicing line\"].includes(doc.pi_creation_mode)",
    "fieldname": "items_section",
    "fieldtype": "Section Break",
    "label": "Items"
   },
   {
-   "default": "Get items from the OCR analysis",
+   "default": "Get items from purchase orders recognized by the OCR",
    "fieldname": "pi_creation_mode",
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Creation Mode",
-   "options": "Get items from the OCR analysis\nGet items from purchase orders recognized by the OCR\nGet items from any open purchase order linked to the recognized supplier\nConsolidate all rows in a single invoicing line",
+   "options": "Get items from purchase orders recognized by the OCR\nGet items from any open purchase order linked to the recognized supplier\nConsolidate all rows in a single invoicing line",
    "reqd": 1
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:[\"Get items from purchase orders recognized by the OCR\", \"Get items from any open purchase order linked to the recognized supplier\"].includes(doc.pi_creation_mode)",
+   "fieldname": "auto_create_purchase_orders",
+   "fieldtype": "Check",
+   "label": "Automatically create purchase orders if no match is found"
+  },
+  {
+   "default": "0",
+   "fieldname": "auto_submit_purchase_invoices",
+   "fieldtype": "Check",
+   "label": "Automatically submit purchase invoices"
+  },
+  {
+   "fieldname": "column_break_gput",
+   "fieldtype": "Column Break"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2024-03-07 14:13:18.164430",
+ "modified": "2024-05-07 12:10:36.284851",
  "modified_by": "Administrator",
  "module": "OCR",
  "name": "OCR Settings",

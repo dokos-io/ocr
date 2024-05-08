@@ -39,7 +39,7 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Status",
-   "options": "Pending\nAnalysis Completed\nTransaction Matched\nError\nClosed",
+   "options": "Pending\nAnalysis Completed\nPurchase Order Created\nPurchase Invoice Created\nError\nClosed",
    "read_only": 1
   },
   {
@@ -180,12 +180,17 @@
  "index_web_pages_for_search": 1,
  "links": [
   {
+   "group": "Purchase Orders",
+   "link_doctype": "Purchase Order",
+   "link_fieldname": "ocr_request"
+  },
+  {
    "group": "Purchase Invoice",
    "link_doctype": "Purchase Invoice",
    "link_fieldname": "ocr_request"
   }
  ],
- "modified": "2024-03-07 14:01:17.354615",
+ "modified": "2024-05-07 11:10:36.290883",
  "modified_by": "Administrator",
  "module": "OCR",
  "name": "OCR Request",
@@ -217,8 +222,12 @@
    "title": "Analysis Completed"
   },
   {
+   "color": "Cyan",
+   "title": "Purchase Order Created"
+  },
+  {
    "color": "Green",
-   "title": "Transaction Matched"
+   "title": "Purchase Invoice Created"
   },
   {
    "color": "Red",
