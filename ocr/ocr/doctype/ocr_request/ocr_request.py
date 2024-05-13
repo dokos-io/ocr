@@ -408,8 +408,7 @@ class OCRRequest(Document):
 
 		if not supplier and header.get("VENDOR_NAME") and len(header.get("VENDOR_NAME").split(" ")) > 1:
 			for substring in header.get("VENDOR_NAME").split(" "):
-				supplier = frappe.db.get_value("Supplier", substring)
-				if supplier:
+				if supplier := frappe.db.get_value("Supplier", substring):
 					break
 
 		if not supplier and header.get("VENDOR_NAME"):
@@ -417,17 +416,16 @@ class OCRRequest(Document):
 			existing_supplier_dict = {supplier.supplier_name: supplier.name for supplier in existing_suppliers}
 
 			if existing_supplier_list := [supplier.supplier_name for supplier in existing_suppliers]:
-				sorted_suppliers = sorted(
+				best_match = next(sorted(
 					existing_supplier_list,
 					key=lambda doc: difflib.SequenceMatcher(
 						lambda doc: doc == " ", doc.lower(), header.get("VENDOR_NAME", "").lower()
 					).ratio(),
 					reverse=True,
-				)
-				best_match = sorted_suppliers[0]
+				))
 
-				if difflib.SequenceMatcher(lambda doc: doc == " ", best_match.lower(), header.get("VENDOR_NAME", "").lower()).ratio() > 0.8:
-					supplier = existing_supplier_dict.get(sorted_suppliers[0])
+				if difflib.SequenceMatcher(lambda doc: doc == " ", best_match.lower(), header.get("VENDOR_NAME", "").lower()).ratio() > 0.9:
+					supplier = existing_supplier_dict.get(best_match)
 
 		self.supplier = supplier if (supplier and frappe.db.exists("Supplier", supplier)) else None
 
