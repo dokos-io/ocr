@@ -576,6 +576,7 @@ def make_purchase_order(source_name, target_doc=None):
 					["name", "ocr_request_line_item"]
 				],
 				"postprocess": update_item,
+				"condition": lambda doc: doc.quantity or doc.unit_price or doc.price,
 			},
 		},
 		target_doc,
