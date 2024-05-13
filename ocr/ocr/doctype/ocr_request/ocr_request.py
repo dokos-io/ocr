@@ -214,6 +214,7 @@ class OCRRequest(Document):
 					purchase_invoice.update({key: value})
 
 				purchase_invoice.ocr_request = self.name
+				purchase_invoice.set_posting_time = True
 				purchase_invoice.flags.ignore_mandatory = True
 				purchase_invoice.flags.ignore_validate = True
 
