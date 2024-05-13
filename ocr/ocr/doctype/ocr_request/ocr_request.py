@@ -175,25 +175,25 @@ class OCRRequest(Document):
 		self.reset_status_and_error("Analysis Completed")
 
 		if not self.company:
-			return self.set_and_return_error(_("Please select a company in order to generate a purchase invoice"))
+			return self.set_and_return_error(_("Please select a company"))
+
+		if not self.supplier:
+			return self.set_and_return_error(_("Please select a supplier"))
 
 	@frappe.whitelist()
-	def create_purchase_invoice(self):
+	def create_purchase_invoice(self, order=None):
 		self.init_transaction_creation()
 
 		purchase_invoice = None
 		try:
 			if self.get_creation_mode() != "Consolidate all rows in a single invoicing line":
-				transaction = self.make_purchase_invoice_from_purchase_order()
+				transaction = self.make_purchase_invoice_from_purchase_order(order)
 				if transaction.get("status") == "Error":
 					return self.set_and_return_error(transaction.get("message"))
 				elif transaction.get("status") == "Analysis Completed":
 					return transaction
 				elif isinstance(transaction, PurchaseInvoice):
 					purchase_invoice = transaction
-
-			elif not self.supplier:
-				return self.set_and_return_error(_("Please select a supplier in order to generate a purchase invoice"))
 
 			else:
 				purchase_invoice = frappe.new_doc("Purchase Invoice")
@@ -214,6 +214,7 @@ class OCRRequest(Document):
 					purchase_invoice.update({key: value})
 
 				purchase_invoice.ocr_request = self.name
+				purchase_invoice.set_posting_time = True
 				purchase_invoice.flags.ignore_mandatory = True
 				purchase_invoice.flags.ignore_validate = True
 
@@ -239,8 +240,6 @@ class OCRRequest(Document):
 
 	def create_purchase_order(self):
 		self.init_transaction_creation()
-		if not self.supplier:
-			return self.set_and_return_error(_("Please select a supplier in order to generate a purchase order"))
 
 		try:
 			purchase_order = make_purchase_order(self.name)
@@ -255,7 +254,7 @@ class OCRRequest(Document):
 		except Exception as e:
 			return self.set_and_return_error(str(e))
 
-	def make_purchase_invoice_from_purchase_order(self):
+	def make_purchase_invoice_from_purchase_order(self, order=None):
 		from erpnext.buying.doctype.purchase_order.purchase_order import make_purchase_invoice
 
 		purchase_order_dt = frappe.qb.DocType("Purchase Order")
@@ -273,10 +272,11 @@ class OCRRequest(Document):
 			.select(purchase_order_dt.name, purchase_order_dt.net_total)
 			.where((purchase_order_dt.docstatus == 1) & (purchase_order_dt.per_billed.lt(100)))
 			.where(ExistsCriterion(subquery).negate())
+			.where(purchase_order_dt.supplier == self.supplier)
 		)
 
-		if self.supplier:
-			query = query.where(purchase_order_dt.supplier == self.supplier)
+		if order:
+			query = query.where(purchase_order_dt.name == order)
 
 		open_orders = query.run(as_dict=True)
 
@@ -409,8 +409,7 @@ class OCRRequest(Document):
 
 		if not supplier and header.get("VENDOR_NAME") and len(header.get("VENDOR_NAME").split(" ")) > 1:
 			for substring in header.get("VENDOR_NAME").split(" "):
-				supplier = frappe.db.get_value("Supplier", substring)
-				if supplier:
+				if supplier := frappe.db.get_value("Supplier", substring):
 					break
 
 		if not supplier and header.get("VENDOR_NAME"):
@@ -418,17 +417,16 @@ class OCRRequest(Document):
 			existing_supplier_dict = {supplier.supplier_name: supplier.name for supplier in existing_suppliers}
 
 			if existing_supplier_list := [supplier.supplier_name for supplier in existing_suppliers]:
-				sorted_suppliers = sorted(
+				best_match = next(sorted(
 					existing_supplier_list,
 					key=lambda doc: difflib.SequenceMatcher(
 						lambda doc: doc == " ", doc.lower(), header.get("VENDOR_NAME", "").lower()
 					).ratio(),
 					reverse=True,
-				)
-				best_match = sorted_suppliers[0]
+				))
 
-				if difflib.SequenceMatcher(lambda doc: doc == " ", best_match.lower(), header.get("VENDOR_NAME", "").lower()).ratio() > 0.8:
-					supplier = existing_supplier_dict.get(sorted_suppliers[0])
+				if difflib.SequenceMatcher(lambda doc: doc == " ", best_match.lower(), header.get("VENDOR_NAME", "").lower()).ratio() > 0.9:
+					supplier = existing_supplier_dict.get(best_match)
 
 		self.supplier = supplier if (supplier and frappe.db.exists("Supplier", supplier)) else None
 
@@ -579,6 +577,7 @@ def make_purchase_order(source_name, target_doc=None):
 					["name", "ocr_request_line_item"]
 				],
 				"postprocess": update_item,
+				"condition": lambda doc: doc.quantity or doc.unit_price or doc.price,
 			},
 		},
 		target_doc,
@@ -592,16 +591,24 @@ def on_purchase_order_update(doc, method):
 	if doc.ocr_request:
 		for item in doc.items:
 			if item.item_code and item.ocr_request_line_item:
-				frappe.db.set_value("OCR Line Items Mapping", item.ocr_request_line_item, "item_code", item.item_code)
+				if frappe.db.get_value("OCR Line Items Mapping", item.ocr_request_line_item, "item_code") != item.item_code:
+					frappe.db.set_value("OCR Line Items Mapping", item.ocr_request_line_item, "item_code", item.item_code, update_modified=False)
+
+		company, supplier = frappe.db.get_value("OCR Request", doc.ocr_request, ["company", "supplier"])
+		if company:
+			frappe.db.set_value("OCR Request", doc.ocr_request, "company", doc.company, update_modified=False)
+		if supplier:
+			frappe.db.set_value("OCR Request", doc.ocr_request, "supplier", doc.supplier, update_modified=False)
 
 	frappe.msgprint(
 		msg=_("Some item lines mapping could not be updated in the OCR document. Please update them manually for more accuracy."),
 		title=_("OCR mapping incomplete"),
-		alert="orange"
+		indicator="orange",
+		alert=True
 	)
 
 
 def after_purchase_order_submit(doc, method):
 	if doc.ocr_request:
 		ocr_request = frappe.get_doc("OCR Request", doc.ocr_request)
-		ocr_request.create_purchase_invoice()
+		ocr_request.create_purchase_invoice(doc.name)
