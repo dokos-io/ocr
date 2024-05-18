@@ -106,7 +106,7 @@ def check_requests_completion():
 				request_doc.log_error()
 
 		associated_requests = frappe.get_all("OCR Request", filters={"ocr_basket": basket.name}, fields=["name", "status"])
-		if all([a.status == "Transaction Matched" for a in associated_requests]):
+		if all([a.status in ("Purchase Order Created", "Purchase Invoice Created") for a in associated_requests]):
 			frappe.db.set_value("OCR Purchase Invoice Basket", basket.name, "status", "Completed")
 
 		elif all([a.status == "Closed" for a in associated_requests]):
