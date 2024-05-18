@@ -364,7 +364,7 @@ class OCRRequest(Document):
 					try:
 						parsed_dict[line.field] = getdate(line.field_value)
 					except Exception:
-						pass
+						parsed_dict[line.field] = None
 
 				parsed_dict[line.field] = line.field_value or line.value
 		return parsed_dict
