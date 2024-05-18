@@ -560,7 +560,8 @@ def make_purchase_order(source_name, target_doc=None):
 	def update_item(source, target, source_parent):
 		target.qty = source.quantity or 1
 		target.rate = source.unit_price if target.qty > 1 and source.unit_price else source.price
-		target.item_name = source.item
+		if source.item:
+			target.item_name = source.item[:140]
 		target.description = source.expense_row
 
 	doclist = get_mapped_doc(
