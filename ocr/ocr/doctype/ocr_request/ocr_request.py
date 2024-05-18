@@ -15,6 +15,7 @@ from frappe.model.mapper import get_mapped_doc
 from pypika.terms import ExistsCriterion
 
 from erpnext.accounts.doctype.purchase_invoice.purchase_invoice import PurchaseInvoice
+from erpnext import get_default_company
 
 from ocr.ocr.doctype.ocr_request.aws_textract import AWSTextractExpense
 from ocr.ocr.doctype.ocr_request.taggun import Taggun
@@ -91,6 +92,9 @@ class OCRRequest(Document):
 					item.field_value = self.company
 				elif not self.company and item.field_value:
 					self.company = item.field_value
+
+		if not self.company and len(frappe.get_all("Company")) == 1:
+			self.company = get_default_company()
 
 	@frappe.whitelist()
 	def make_analysis(self):
@@ -280,14 +284,14 @@ class OCRRequest(Document):
 
 		open_orders = query.run(as_dict=True)
 
-		matched_orders = set()
+		matched_orders = open_orders if order else set()
 
-		if self.get_creation_mode() == "Get items from purchase orders recognized by the OCR":
+		if not matched_orders and self.get_creation_mode() == "Get items from purchase orders recognized by the OCR":
 			for child in self.line_items_mapping:
 				for order in open_orders:
 					if re.search(r"(?<![\w\d])" + re.escape(order.name) + r"(?![\w\d])", child.get("expense_row") or "", re.IGNORECASE):
 						matched_orders.add(order.name)
-		elif open_orders:
+		elif not matched_orders and open_orders:
 			if closest_order := min(open_orders, key=lambda x:abs(x.net_total - self.net_total)):
 				matched_orders.add(closest_order.name)
 
@@ -417,13 +421,13 @@ class OCRRequest(Document):
 			existing_supplier_dict = {supplier.supplier_name: supplier.name for supplier in existing_suppliers}
 
 			if existing_supplier_list := [supplier.supplier_name for supplier in existing_suppliers]:
-				best_match = next(sorted(
+				best_match = next(iter(sorted(
 					existing_supplier_list,
 					key=lambda doc: difflib.SequenceMatcher(
 						lambda doc: doc == " ", doc.lower(), header.get("VENDOR_NAME", "").lower()
 					).ratio(),
 					reverse=True,
-				))
+				)))
 
 				if difflib.SequenceMatcher(lambda doc: doc == " ", best_match.lower(), header.get("VENDOR_NAME", "").lower()).ratio() > 0.9:
 					supplier = existing_supplier_dict.get(best_match)
