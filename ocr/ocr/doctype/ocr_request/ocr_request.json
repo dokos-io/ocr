@@ -59,8 +59,6 @@
   {
    "fieldname": "file",
    "fieldtype": "Link",
-   "in_list_view": 1,
-   "in_standard_filter": 1,
    "label": "File",
    "options": "File",
    "read_only": 1
@@ -104,8 +102,6 @@
    "default": "Purchase Invoice",
    "fieldname": "transaction_type",
    "fieldtype": "Select",
-   "in_list_view": 1,
-   "in_standard_filter": 1,
    "label": "Transaction Type",
    "options": "\nPurchase Invoice\nExpense",
    "read_only": 1
@@ -157,6 +153,8 @@
   {
    "fieldname": "supplier",
    "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
    "label": "Supplier",
    "options": "Supplier"
   },
@@ -167,6 +165,8 @@
   {
    "fieldname": "company",
    "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
    "label": "Company",
    "options": "Company"
   },
@@ -190,7 +190,7 @@
    "link_fieldname": "ocr_request"
   }
  ],
- "modified": "2024-05-07 11:10:36.290883",
+ "modified": "2024-05-18 14:22:27.751390",
  "modified_by": "Administrator",
  "module": "OCR",
  "name": "OCR Request",
