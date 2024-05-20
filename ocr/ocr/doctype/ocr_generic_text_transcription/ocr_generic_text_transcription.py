@@ -82,7 +82,9 @@ class OCRGenericTextTranscription(Document):
 				return
 
 			job_data = textract.get_result()
-			if job_data and job_data.get("JobStatus") == "IN_PROGRESS":
+			if job_data and job_data.get("JobStatus") == "FAILED":
+				return self.ocr_set_status("Error")
+			elif job_data and job_data.get("JobStatus") == "IN_PROGRESS":
 				if self.status != "Transcribing":
 					return self.ocr_set_status("Transcribing")
 			elif job_data and job_data.get("JobStatus") == "SUCCEEDED":
