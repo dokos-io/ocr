@@ -9,29 +9,15 @@ frappe.ui.form.on("OCR Request", {
 			}, __("Actions"));
 		}
 
-		frm.add_custom_button(__('Close'), function() {
-			frm.call("close_request").then(() => { frm.reload_doc() });
-		}, __("Actions"));
+		if (frm.doc.status != "Close") {
+			frm.add_custom_button(__('Close'), function() {
+				frm.call("close_request").then(() => { frm.reload_doc() });
+			}, __("Actions"));
+		}
 
 		if (["Analysis Completed", "Error", "Sales Order Created"].includes(frm.doc.status) && frm.doc.transaction_type == "Purchase Invoice") {
 			frm.page.set_primary_action(__('Create/match transactions'), function() {
-				frappe.call({
-					method: "create_purchase_invoice",
-					doc: frm.doc
-				}).then((r) => {
-					frm.reload_doc()
-					if (r.message && r.message.status == "Error") {
-						frappe.show_alert({
-							indicator: "red",
-							message: r.message.message
-						})
-					} else {
-						frappe.show_alert({
-							indicator: "green",
-							message: __("Purchase invoice created")
-						})
-					}
-				})
+				frm.events.trigger_purchase_invoice_creation(frm)
 			})
 
 			if (!frm.doc.supplier) {
@@ -57,6 +43,10 @@ frappe.ui.form.on("OCR Request", {
 			frm.add_custom_button(__('Create a purchase order'), () => {
 				new PurchaseOrderCreator(frm)
 			}, __("Actions"));
+
+			frm.add_custom_button(__('Link with a purchase order'), () => {
+				new PurchaseOrderLink(frm)
+			}, __("Actions"));
 		}
 
 		if (frm.doc.file) {
@@ -64,6 +54,30 @@ frappe.ui.form.on("OCR Request", {
 				frm.trigger("preview_file")
 			});
 		}
+	},
+
+	trigger_purchase_invoice_creation(frm, purchase_order) {
+		return frappe.call({
+			method: "create_purchase_invoice",
+			doc: frm.doc,
+			args: {
+				order: purchase_order
+			}
+		}).then((r) => {
+			console.log("r",)
+			frm.reload_doc()
+			if (r.message && r.message.status == "Error") {
+				frappe.show_alert({
+					indicator: "red",
+					message: r.message.message
+				})
+			} else {
+				frappe.show_alert({
+					indicator: "green",
+					message: __("Purchase invoice created")
+				})
+			}
+		})
 	},
 
 	preview_file(frm) {
@@ -112,7 +126,6 @@ frappe.ui.form.on("OCR Request", {
 		}
 	},
 });
-
 
 
 class PurchaseOrderCreator {
@@ -219,5 +232,45 @@ class PurchaseOrderCreator {
 			method: "ocr.ocr.doctype.ocr_request.ocr_request.make_purchase_order",
 			frm: this.frm
 		});
+	}
+}
+
+class PurchaseOrderLink {
+	constructor(frm) {
+		this.frm = frm;
+		this.make_dialog()
+	}
+
+	make_dialog() {
+		const dialog = new frappe.ui.Dialog({
+			title: __("Select a purchase order"),
+			size: "extra-large",
+			fields: [
+				{
+					label: "Purchase Order",
+					fieldname: "purchase_order",
+					fieldtype: "Link",
+					options: "Purchase Order",
+					reqd: 1,
+					get_query: () => {
+						return {
+							filters: {
+								company: this.frm.doc.company,
+								supplier: this.frm.doc.supplier,
+								docstatus: 1
+							},
+						};
+					}
+				},
+			],
+			primary_action: () => {
+				const dialog_values = dialog.get_values();
+				this.frm.events.trigger_purchase_invoice_creation(this.frm, dialog_values.purchase_order)
+
+				dialog.hide();
+			},
+			primary_action_label: __("Validate"),
+		});
+		dialog.show();
 	}
 }
