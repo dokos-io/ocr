@@ -273,11 +273,13 @@ class OCRRequest(Document):
 
 		query = (
 			frappe.qb.from_(purchase_order_dt)
-			.select(purchase_order_dt.name, purchase_order_dt.net_total)
+			.select(purchase_order_dt.name, purchase_order_dt.net_total, purchase_order_dt.order_confirmation_no)
 			.where((purchase_order_dt.docstatus == 1) & (purchase_order_dt.per_billed.lt(100)))
 			.where(ExistsCriterion(subquery).negate())
-			.where(purchase_order_dt.supplier == self.supplier)
 		)
+
+		if not order and self.supplier:
+			query = query.where(purchase_order_dt.supplier == self.supplier)
 
 		if order:
 			query = query.where(purchase_order_dt.name == order)
@@ -288,9 +290,11 @@ class OCRRequest(Document):
 
 		if not matched_orders and self.get_creation_mode() == "Get items from purchase orders recognized by the OCR":
 			for child in self.line_items_mapping:
-				for order in open_orders:
+				for open_order in open_orders:
 					if re.search(r"(?<![\w\d])" + re.escape(order.name) + r"(?![\w\d])", child.get("expense_row") or "", re.IGNORECASE):
-						matched_orders.add(order.name)
+						matched_orders.add(open_order.name)
+					elif re.search(r"(?<![\w\d])" + re.escape(order.order_confirmation_no) + r"(?![\w\d])", child.get("expense_row") or "", re.IGNORECASE):
+						matched_orders.add(open_order.name)
 		elif not matched_orders and open_orders:
 			if closest_order := min(open_orders, key=lambda x:abs(x.net_total - self.net_total)):
 				matched_orders.add(closest_order.name)
