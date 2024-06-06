@@ -64,7 +64,6 @@ frappe.ui.form.on("OCR Request", {
 				order: purchase_order
 			}
 		}).then((r) => {
-			console.log("r",)
 			frm.reload_doc()
 			if (r.message && r.message.status == "Error") {
 				frappe.show_alert({
