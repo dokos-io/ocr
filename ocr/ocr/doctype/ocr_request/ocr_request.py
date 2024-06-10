@@ -597,24 +597,30 @@ def make_purchase_order(source_name, target_doc=None):
 
 
 def on_purchase_order_update(doc, method):
-	if doc.ocr_request:
-		for item in doc.items:
-			if item.item_code and item.ocr_request_line_item:
-				if frappe.db.get_value("OCR Line Items Mapping", item.ocr_request_line_item, "item_code") != item.item_code:
-					frappe.db.set_value("OCR Line Items Mapping", item.ocr_request_line_item, "item_code", item.item_code, update_modified=False)
+	if not doc.ocr_request:
+		return
 
-		company, supplier = frappe.db.get_value("OCR Request", doc.ocr_request, ["company", "supplier"])
-		if company:
-			frappe.db.set_value("OCR Request", doc.ocr_request, "company", doc.company, update_modified=False)
-		if supplier:
-			frappe.db.set_value("OCR Request", doc.ocr_request, "supplier", doc.supplier, update_modified=False)
+	all_updated = True
+	for item in doc.items:
+		if item.item_code and item.ocr_request_line_item:
+			if frappe.db.get_value("OCR Line Items Mapping", item.ocr_request_line_item, "item_code") != item.item_code:
+				frappe.db.set_value("OCR Line Items Mapping", item.ocr_request_line_item, "item_code", item.item_code, update_modified=False)
+			else:
+				all_updated = False
 
-	frappe.msgprint(
-		msg=_("Some item lines mapping could not be updated in the OCR document. Please update them manually for more accuracy."),
-		title=_("OCR mapping incomplete"),
-		indicator="orange",
-		alert=True
-	)
+	company, supplier = frappe.db.get_value("OCR Request", doc.ocr_request, ["company", "supplier"])
+	if company:
+		frappe.db.set_value("OCR Request", doc.ocr_request, "company", doc.company, update_modified=False)
+	if supplier:
+		frappe.db.set_value("OCR Request", doc.ocr_request, "supplier", doc.supplier, update_modified=False)
+
+	if not all_updated:
+		frappe.msgprint(
+			msg=_("Some item lines mapping could not be updated in the OCR document. Please update them manually for more accuracy."),
+			title=_("OCR mapping incomplete"),
+			indicator="orange",
+			alert=True
+		)
 
 
 def after_purchase_order_submit(doc, method):
