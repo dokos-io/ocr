@@ -198,8 +198,8 @@ class PurchaseOrderCreator {
 		return this.frm.doc.line_items_mapping.map(item => {
 			return {
 				item_code: item.item_code,
-				item_name: item.item.substring(0, 140),
-				description: item.item
+				item_name: item?.item?.substring(0, 140) || item?.product_code,
+				description: item?.item || item?.product_code
 			}
 		})
 	}
