@@ -1,7 +1,10 @@
 import click
 
 import frappe
+from frappe import _
+
 from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
+
 
 def after_install():
 	add_custom_fields()
@@ -17,8 +20,14 @@ def add_custom_fields():
 
 
 def get_custom_fields():
-	# Keep for translations: _("Original Invoice") _("Drop a file") _("OCR Request") _("Original File")
- 	# _("Invoice Extraction") _("Creation Mode") _("OCR Request Line Item")
+	# Keep for translations
+	_("Original Invoice")
+	_("Drop a file")
+	_("OCR Request")
+	_("Original File")
+	_("Invoice Extraction")
+	_("Creation Mode")
+	_("OCR Request Line Item")
 
 	transactions_fields = [
 		{
