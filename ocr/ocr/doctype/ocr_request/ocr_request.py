@@ -187,11 +187,12 @@ class OCRRequest(Document):
 	@frappe.whitelist()
 	def create_purchase_invoice(self, order=None):
 		self.init_transaction_creation()
+		do_not_create_purchase_invoice = frappe.db.get_single_value("OCR Settings", "do_not_create_purchase_invoices")
 
 		purchase_invoice = None
 		try:
 			if self.get_creation_mode() != "Consolidate all rows in a single invoicing line":
-				transaction = self.make_purchase_invoice_from_purchase_order(order)
+				transaction = self.make_purchase_invoice_from_purchase_order(order, do_not_create_purchase_invoice)
 				if transaction.get("status") == "Error":
 					return self.set_and_return_error(transaction.get("message"))
 				elif transaction.get("status") == "Analysis Completed":
@@ -199,7 +200,7 @@ class OCRRequest(Document):
 				elif isinstance(transaction, PurchaseInvoice):
 					purchase_invoice = transaction
 
-			else:
+			elif not do_not_create_purchase_invoice:
 				purchase_invoice = frappe.new_doc("Purchase Invoice")
 				purchase_invoice.supplier = self.supplier
 				purchase_invoice.company = self.company
@@ -212,6 +213,9 @@ class OCRRequest(Document):
 						"qty": 1,
 						"rate": self.net_total,
 					})
+
+			if do_not_create_purchase_invoice:
+				return
 
 			if purchase_invoice and isinstance(purchase_invoice, Document):
 				for key, value in self.get_header_parsed_dict().items():
@@ -258,9 +262,25 @@ class OCRRequest(Document):
 		except Exception as e:
 			return self.set_and_return_error(str(e))
 
-	def make_purchase_invoice_from_purchase_order(self, order=None):
+	def make_purchase_invoice_from_purchase_order(self, order=None, do_not_create_purchase_invoice=False):
 		from erpnext.buying.doctype.purchase_order.purchase_order import make_purchase_invoice
 
+		matched_orders = self.get_matched_orders(order)
+
+		if do_not_create_purchase_invoice:
+			return {}
+
+		purchase_invoice = None
+		for matched_order in matched_orders:
+			if purchase_invoice:
+				for item in make_purchase_invoice(matched_order).get("items"):
+					purchase_invoice.append("items", item)
+			else:
+				purchase_invoice = make_purchase_invoice(matched_order)
+
+		return purchase_invoice
+
+	def get_matched_orders(self, order=None):
 		purchase_order_dt = frappe.qb.DocType("Purchase Order")
 		purchase_invoice_item_dt = frappe.qb.DocType("Purchase Invoice Item")
 
@@ -305,15 +325,7 @@ class OCRRequest(Document):
 			else:
 				return self.set_and_return_error(_("No matching order found"))
 
-		purchase_invoice = None
-		for matched_order in matched_orders:
-			if purchase_invoice:
-				for item in make_purchase_invoice(matched_order).get("items"):
-					purchase_invoice.append("items", item)
-			else:
-				purchase_invoice = make_purchase_invoice(matched_order)
-
-		return purchase_invoice
+		return matched_orders
 
 	def get_creation_mode(self):
 		if self.get("pi_creation_mode"):

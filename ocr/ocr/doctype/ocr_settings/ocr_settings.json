@@ -16,6 +16,7 @@
   "pi_creation_mode",
   "column_break_gput",
   "auto_create_purchase_orders",
+  "do_not_create_purchase_invoices",
   "auto_submit_purchase_invoices",
   "items_section",
   "generic_item"
@@ -96,6 +97,7 @@
   },
   {
    "default": "0",
+   "depends_on": "eval:!doc.do_not_create_purchase_invoices",
    "fieldname": "auto_submit_purchase_invoices",
    "fieldtype": "Check",
    "label": "Automatically submit purchase invoices"
@@ -103,12 +105,19 @@
   {
    "fieldname": "column_break_gput",
    "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:[\"Get items from purchase orders recognized by the OCR\", \"Get items from any open purchase order linked to the recognized supplier\"].includes(doc.pi_creation_mode)",
+   "fieldname": "do_not_create_purchase_invoices",
+   "fieldtype": "Check",
+   "label": "Do not create purchase invoices"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2024-05-07 12:10:36.284851",
+ "modified": "2024-06-17 10:10:47.041832",
  "modified_by": "Administrator",
  "module": "OCR",
  "name": "OCR Settings",
