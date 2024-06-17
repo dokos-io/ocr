@@ -6,3 +6,7 @@ tags
 node_modules
 __pycache__
 ocr/public/dist
+
+# Translations
+*.mo
+*.pot
