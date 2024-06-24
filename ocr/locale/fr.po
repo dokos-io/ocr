@@ -97,8 +97,9 @@ msgid "Basket n°"
 msgstr "Banette n°"
 
 #: ocr/doctype/ocr_request/ocr_request.js:13
+msgctxt "OCR Request"
 msgid "Close"
-msgstr "Fermée"
+msgstr "Fermer"
 
 #. Option for the 'Status' (Select) field in DocType 'OCR Purchase Invoice
 #. Basket'
