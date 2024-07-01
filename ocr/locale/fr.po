@@ -200,7 +200,7 @@ msgstr "Description"
 #: ocr/doctype/ocr_settings/ocr_settings.json
 msgctxt "OCR Settings"
 msgid "Do not create purchase invoices"
-msgstr "Ne pas créer de factures de vente"
+msgstr "Ne pas créer de factures d'achats"
 
 #. Label of a Tab Break field in DocType 'OCR Request'
 #: ocr/doctype/ocr_request/ocr_request.json
