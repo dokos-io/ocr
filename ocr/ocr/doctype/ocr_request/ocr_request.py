@@ -175,8 +175,16 @@ class OCRRequest(Document):
 			"message": msg
 		}
 
-	def init_transaction_creation(self):
+	def init_transaction_creation(self, order=None):
 		self.reset_status_and_error("Analysis Completed")
+
+		if not self.company or not self.supplier:
+			order_values = frappe.get_value("Purchase Order", order, ["company", "supplier"], as_dict=True)
+			if not self.company:
+				self.db_set("company", order_values.get("company"))
+			if not self.supplier:
+				self.db_set("supplier", order_values.get("supplier"))
+			self.reload()
 
 		if not self.company:
 			return self.set_and_return_error(_("Please select a company"))
@@ -186,7 +194,7 @@ class OCRRequest(Document):
 
 	@frappe.whitelist()
 	def create_purchase_invoice(self, order=None):
-		self.init_transaction_creation()
+		self.init_transaction_creation(order)
 		do_not_create_purchase_invoice = frappe.db.get_single_value("OCR Settings", "do_not_create_purchase_invoices")
 
 		purchase_invoice = None
@@ -268,6 +276,9 @@ class OCRRequest(Document):
 		matched_orders = self.get_matched_orders(order)
 
 		if do_not_create_purchase_invoice:
+			for matched_order in matched_orders:
+				frappe.db.set_value("Purchase Order", matched_order.get("name"), "ocr_request", self.name)
+				frappe.db.set_value("Purchase Order", matched_order.get("name"), "ocr_original_file", self.file)
 			return {}
 
 		purchase_invoice = None
@@ -293,7 +304,7 @@ class OCRRequest(Document):
 
 		query = (
 			frappe.qb.from_(purchase_order_dt)
-			.select(purchase_order_dt.name, purchase_order_dt.net_total, purchase_order_dt.order_confirmation_no)
+			.select(purchase_order_dt.name, purchase_order_dt.net_total, purchase_order_dt.order_confirmation_no, purchase_order_dt.company)
 			.where((purchase_order_dt.docstatus == 1) & (purchase_order_dt.per_billed.lt(100)))
 			.where(ExistsCriterion(subquery).negate())
 		)
@@ -311,9 +322,9 @@ class OCRRequest(Document):
 		if not matched_orders and self.get_creation_mode() == "Get items from purchase orders recognized by the OCR":
 			for child in self.line_items_mapping:
 				for open_order in open_orders:
-					if re.search(r"(?<![\w\d])" + re.escape(order.name) + r"(?![\w\d])", child.get("expense_row") or "", re.IGNORECASE):
+					if re.search(r"(?<![\w\d])" + re.escape(open_order.name) + r"(?![\w\d])", child.get("expense_row") or "", re.IGNORECASE):
 						matched_orders.add(open_order.name)
-					elif re.search(r"(?<![\w\d])" + re.escape(order.order_confirmation_no) + r"(?![\w\d])", child.get("expense_row") or "", re.IGNORECASE):
+					elif re.search(r"(?<![\w\d])" + re.escape(open_order.order_confirmation_no or "") + r"(?![\w\d])", child.get("expense_row") or "", re.IGNORECASE):
 						matched_orders.add(open_order.name)
 		elif not matched_orders and open_orders:
 			if closest_order := min(open_orders, key=lambda x:abs(x.net_total - self.net_total)):
