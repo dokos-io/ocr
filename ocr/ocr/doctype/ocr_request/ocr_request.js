@@ -73,7 +73,7 @@ frappe.ui.form.on("OCR Request", {
 			} else {
 				frappe.show_alert({
 					indicator: "green",
-					message: __("Purchase invoice created")
+					message: __("Action completed with success")
 				})
 			}
 		})
