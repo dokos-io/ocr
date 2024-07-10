@@ -39,7 +39,7 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Status",
-   "options": "Pending\nAnalysis Completed\nPurchase Order Created\nPurchase Invoice Created\nError\nClosed",
+   "options": "Pending\nAnalysis Completed\nPurchase Order Created\nPurchase Invoice Created\nError\nClosed\nCompleted",
    "read_only": 1
   },
   {
@@ -190,7 +190,7 @@
    "link_fieldname": "ocr_request"
   }
  ],
- "modified": "2024-05-18 14:22:27.751390",
+ "modified": "2024-07-10 16:14:21.997442",
  "modified_by": "Administrator",
  "module": "OCR",
  "name": "OCR Request",
@@ -226,7 +226,7 @@
    "title": "Purchase Order Created"
   },
   {
-   "color": "Green",
+   "color": "Light Blue",
    "title": "Purchase Invoice Created"
   },
   {
@@ -236,6 +236,10 @@
   {
    "color": "Gray",
    "title": "Closed"
+  },
+  {
+   "color": "Green",
+   "title": "Completed"
   }
  ],
  "title_field": "filename"
