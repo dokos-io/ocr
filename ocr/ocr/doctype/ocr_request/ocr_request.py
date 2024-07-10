@@ -18,7 +18,6 @@ from erpnext.accounts.doctype.purchase_invoice.purchase_invoice import PurchaseI
 from erpnext import get_default_company
 
 from ocr.ocr.doctype.ocr_request.aws_textract import AWSTextractExpense
-from ocr.ocr.doctype.ocr_request.taggun import Taggun
 from ocr.utils import parse_number, time_diff_in_minutes
 
 # https://docs.python.org/3/library/re.html#simulating-scanf
@@ -101,23 +100,17 @@ class OCRRequest(Document):
 		self.get_analysis()
 
 	def start_analysis(self):
-		service = frappe.db.get_single_value("OCR Settings", "selected_ocr_service")
-		if service == "AWS Textract":
-			textract = AWSTextractExpense(self)
-			jobid = textract.task.start()
-			self.job = jobid
-			self.db_set("job", jobid)
+		textract = AWSTextractExpense(self)
+		jobid = textract.task.start()
+		self.job = jobid
+		self.db_set("job", jobid)
 
 	def get_analysis(self):
 		if not self.job:
 			self.start_analysis()
 
 		try:
-			service = frappe.db.get_single_value("OCR Settings", "selected_ocr_service")
-			if service == "AWS Textract":
-				return self.get_textract_analysis()
-			elif service == "Taggun":
-				self.get_taggun_analysis()
+			return self.get_textract_analysis()
 		except Exception:
 			self.log_error(_("OCR Analysis Error"))
 
@@ -152,15 +145,9 @@ class OCRRequest(Document):
 
 		return analysis
 
-	def get_taggun_analysis(self):
-		taggun = Taggun(self)
-		return taggun.start_analysis()
-
 	def on_trash(self):
-		service = frappe.db.get_single_value("OCR Settings", "selected_ocr_service")
-		if service == "AWS Textract":
-			textract = AWSTextractExpense(self)
-			textract.task.delete()
+		textract = AWSTextractExpense(self)
+		textract.task.delete()
 
 	def reset_status_and_error(self, status=None):
 		self.db_set("status", status or "Pending")

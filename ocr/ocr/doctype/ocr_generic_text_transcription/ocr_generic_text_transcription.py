@@ -75,11 +75,7 @@ class OCRGenericTextTranscription(Document):
 			if self.status == "Transcribed":
 				return
 
-			service = frappe.db.get_single_value("OCR Settings", "selected_ocr_service")
-			if service == "AWS Textract":
-				textract = AWSTextractText(self)
-			else:
-				return
+			textract = AWSTextractText(self)
 
 			job_data = textract.get_result()
 			if job_data and job_data.get("JobStatus") == "FAILED":

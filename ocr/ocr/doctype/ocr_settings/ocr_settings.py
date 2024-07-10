@@ -20,8 +20,6 @@ class OCRSettings(Document):
 		do_not_create_purchase_invoices: DF.Check
 		generic_item: DF.Link | None
 		pi_creation_mode: DF.Literal["Get items from purchase orders recognized by the OCR", "Get items from any open purchase order linked to the recognized supplier", "Consolidate all rows in a single invoicing line"]
-		selected_ocr_service: DF.Literal["AWS Textract"]
-		taggun_api_key: DF.Password | None
 	# end: auto-generated types
 
 	pass
