@@ -10,14 +10,14 @@
   "aws_textract_key",
   "aws_textract_secret",
   "purchase_invoices_tab",
-  "purchase_invoice_creation_mode_section",
+  "purchase_orders_section",
   "pi_creation_mode",
-  "column_break_gput",
   "auto_create_purchase_orders",
-  "do_not_create_purchase_invoices",
-  "auto_submit_purchase_invoices",
   "items_section",
-  "generic_item"
+  "generic_item",
+  "purchase_invoices_section",
+  "do_not_create_purchase_invoices",
+  "auto_submit_purchase_invoices"
  ],
  "fields": [
   {
@@ -28,7 +28,7 @@
   {
    "fieldname": "purchase_invoices_tab",
    "fieldtype": "Tab Break",
-   "label": "Purchase Invoices"
+   "label": "Purchases"
   },
   {
    "fieldname": "generic_item",
@@ -49,11 +49,6 @@
    "fieldname": "aws_textract_secret",
    "fieldtype": "Password",
    "label": "AWS Textract Secret"
-  },
-  {
-   "fieldname": "purchase_invoice_creation_mode_section",
-   "fieldtype": "Section Break",
-   "label": "Purchase Invoice Creation Mode"
   },
   {
    "depends_on": "eval:[\"Consolidate all rows in a single invoicing line\"].includes(doc.pi_creation_mode)",
@@ -85,21 +80,27 @@
    "label": "Automatically submit purchase invoices"
   },
   {
-   "fieldname": "column_break_gput",
-   "fieldtype": "Column Break"
-  },
-  {
    "default": "0",
    "depends_on": "eval:[\"Get items from purchase orders recognized by the OCR\", \"Get items from any open purchase order linked to the recognized supplier\"].includes(doc.pi_creation_mode)",
    "fieldname": "do_not_create_purchase_invoices",
    "fieldtype": "Check",
    "label": "Do not create purchase invoices"
+  },
+  {
+   "fieldname": "purchase_orders_section",
+   "fieldtype": "Section Break",
+   "label": "Purchase Orders"
+  },
+  {
+   "fieldname": "purchase_invoices_section",
+   "fieldtype": "Section Break",
+   "label": "Purchase Invoices"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2024-07-10 14:33:45.915136",
+ "modified": "2024-07-10 15:29:44.107609",
  "modified_by": "Administrator",
  "module": "OCR",
  "name": "OCR Settings",
