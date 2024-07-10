@@ -6,9 +6,7 @@
  "engine": "InnoDB",
  "field_order": [
   "general_settings_tab",
-  "selected_ocr_service",
   "column_break_qhyq",
-  "taggun_api_key",
   "aws_textract_key",
   "aws_textract_secret",
   "purchase_invoices_tab",
@@ -28,23 +26,9 @@
    "label": "General Settings"
   },
   {
-   "default": "AWS Textract",
-   "fieldname": "selected_ocr_service",
-   "fieldtype": "Select",
-   "label": "Selected OCR Service",
-   "options": "AWS Textract",
-   "reqd": 1
-  },
-  {
    "fieldname": "purchase_invoices_tab",
    "fieldtype": "Tab Break",
    "label": "Purchase Invoices"
-  },
-  {
-   "depends_on": "eval:doc.selected_ocr_service==\"Taggun\"",
-   "fieldname": "taggun_api_key",
-   "fieldtype": "Password",
-   "label": "Taggun API Key"
   },
   {
    "fieldname": "generic_item",
@@ -57,13 +41,11 @@
    "fieldtype": "Column Break"
   },
   {
-   "depends_on": "eval:doc.selected_ocr_service==\"AWS Textract\"",
    "fieldname": "aws_textract_key",
    "fieldtype": "Data",
    "label": "AWS Textract Key"
   },
   {
-   "depends_on": "eval:doc.selected_ocr_service==\"AWS Textract\"",
    "fieldname": "aws_textract_secret",
    "fieldtype": "Password",
    "label": "AWS Textract Secret"
@@ -117,7 +99,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2024-06-17 10:10:47.041832",
+ "modified": "2024-07-10 14:33:45.915136",
  "modified_by": "Administrator",
  "module": "OCR",
  "name": "OCR Settings",
