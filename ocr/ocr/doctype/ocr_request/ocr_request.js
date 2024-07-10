@@ -9,14 +9,18 @@ frappe.ui.form.on("OCR Request", {
 			}, __("Actions"));
 		}
 
-		if (frm.doc.status != "Close") {
+		if (frm.doc.status != "Closed") {
 			frm.add_custom_button(__('Close'), function() {
 				frm.call("close_request").then(() => { frm.reload_doc() });
 			}, __("Actions"));
+		} else {
+			frm.add_custom_button(__('Reopen'), function() {
+				frm.call("open_request").then(() => { frm.reload_doc() });
+			}, __("Actions"));
 		}
 
-		if (["Analysis Completed", "Error", "Sales Order Created"].includes(frm.doc.status) && frm.doc.transaction_type == "Purchase Invoice") {
-			frm.page.set_primary_action(__('Create/match transactions'), function() {
+		if (["Analysis Completed", "Error", "Sales Order Created"].includes(frm.doc.status)) {
+			frm.page.set_primary_action(__('Process Request'), function() {
 				frm.events.trigger_purchase_invoice_creation(frm)
 			})
 
@@ -58,7 +62,7 @@ frappe.ui.form.on("OCR Request", {
 
 	trigger_purchase_invoice_creation(frm, purchase_order) {
 		return frappe.call({
-			method: "create_purchase_invoice",
+			method: "create_purchase_documents",
 			doc: frm.doc,
 			args: {
 				order: purchase_order

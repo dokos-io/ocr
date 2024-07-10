@@ -101,7 +101,7 @@ def check_requests_completion():
 		for req in [a for a in associated_requests if a.status == "Analysis Completed"]:
 			try:
 				request_doc = frappe.get_doc("OCR Request", req.name)
-				request_doc.run_method("create_purchase_invoice")
+				request_doc.run_method("create_purchase_documents")
 			except Exception:
 				request_doc.log_error()
 
