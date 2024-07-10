@@ -13,6 +13,7 @@ from frappe.utils import now_datetime, time_diff, flt, getdate, get_datetime
 from frappe.model.document import Document
 from frappe.model.mapper import get_mapped_doc
 from pypika.terms import ExistsCriterion
+from frappe.query_builder import Order
 
 from erpnext.accounts.doctype.purchase_invoice.purchase_invoice import PurchaseInvoice
 from erpnext import get_default_company
@@ -95,6 +96,12 @@ class OCRRequest(Document):
 		if not self.company and len(frappe.get_all("Company")) == 1:
 			self.company = get_default_company()
 
+		if self.analysis:
+			self.find_header_correspondence()
+			self.find_line_items_correspondence()
+
+		self.set_status()
+
 	@frappe.whitelist()
 	def make_analysis(self):
 		self.get_analysis()
@@ -122,10 +129,7 @@ class OCRRequest(Document):
 		if analysis := textract.task.get_result():
 			if analysis["JobStatus"] == "SUCCEEDED":
 				self.register_parsed_data(analysis.get("ParsedData", {}))
-				self.find_header_correspondence()
-				self.find_line_items_correspondence()
 				self.analysis = frappe.as_json(analysis)
-				self.set_status()
 				self.save()
 
 			elif time_diff_in_minutes(now_datetime(), get_datetime(self.creation)) < 60:
@@ -390,10 +394,11 @@ class OCRRequest(Document):
 				line.field_value = line.value
 
 	def find_line_items_correspondence(self):
-		header = self.get_header_parsed_dict()
 		for line in self.line_items_mapping:
-			if "supplier" in header and header.get("supplier"):
-				line.item_code = self.get_supplier_item(header["supplier"], line.get("item"))
+			if line.item_code:
+				continue
+
+			line.item_code = self.get_supplier_item(line.get("item")) or self.get_previous_correspondance(line.get("item"))
 
 	def get_supplier_name(self):
 		header = self.get_header_dict()
@@ -469,8 +474,10 @@ class OCRRequest(Document):
 			"field_value",
 		)
 
+	def get_supplier_item(self, item):
+		if not self.supplier:
+			return
 
-	def get_supplier_item(self, supplier, item):
 		return frappe.db.get_value(
 			"Item Supplier",
 			dict(
@@ -479,6 +486,27 @@ class OCRRequest(Document):
 			),
 			"parent"
 		)
+
+	def get_previous_correspondance(self, item):
+		if not self.company or self.supplier:
+			return
+
+		ocr_request = frappe.qb.DocType("OCR Request")
+		ocr_request_line_mapping = frappe.qb.DocType("OCR Line Items Mapping")
+
+		query = (
+			frappe.qb.from_(ocr_request)
+			.left_join(ocr_request_line_mapping)
+			.on(ocr_request.name == ocr_request_line_mapping.parent)
+			.select(ocr_request_line_mapping.item_code, ocr_request.name)
+			.where(ocr_request.company == self.company)
+			.where(ocr_request.supplier == self.supplier)
+			.where(ocr_request_line_mapping.item == item)
+			.where(ocr_request_line_mapping.item_code.isnotnull())
+			.orderby(ocr_request.modified, order=Order.desc)
+		)
+		if result := query.run(as_dict=True):
+			return result[0].item_code
 
 	def get_purchase_invoice_qty(self, row):
 		if row.get("unit_price") and row.get("price") and row.get("price") != row.get("unit_price"):
@@ -596,27 +624,16 @@ def on_purchase_order_update(doc, method):
 	if not doc.ocr_request:
 		return
 
-	all_updated = True
 	for item in doc.items:
 		if item.item_code and item.ocr_request_line_item:
 			if frappe.db.get_value("OCR Line Items Mapping", item.ocr_request_line_item, "item_code") != item.item_code:
 				frappe.db.set_value("OCR Line Items Mapping", item.ocr_request_line_item, "item_code", item.item_code, update_modified=False)
-			else:
-				all_updated = False
 
 	company, supplier = frappe.db.get_value("OCR Request", doc.ocr_request, ["company", "supplier"])
 	if company != doc.company:
 		frappe.db.set_value("OCR Request", doc.ocr_request, "company", doc.company, update_modified=False)
 	if supplier != doc.supplier:
 		frappe.db.set_value("OCR Request", doc.ocr_request, "supplier", doc.supplier, update_modified=False)
-
-	# if not all_updated:
-	# 	frappe.msgprint(
-	# 		msg=_("Some item lines mapping could not be updated in the OCR document. Please update them manually for more accuracy."),
-	# 		title=_("OCR mapping incomplete"),
-	# 		indicator="orange",
-	# 		alert=True
-	# 	)
 
 
 def after_purchase_order_submit(doc, method):
