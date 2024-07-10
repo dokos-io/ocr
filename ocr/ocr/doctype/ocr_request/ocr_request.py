@@ -13,12 +13,12 @@ from frappe.utils import now_datetime, time_diff, flt, getdate, get_datetime
 from frappe.model.document import Document
 from frappe.model.mapper import get_mapped_doc
 from pypika.terms import ExistsCriterion
+from frappe.query_builder import Order
 
 from erpnext.accounts.doctype.purchase_invoice.purchase_invoice import PurchaseInvoice
 from erpnext import get_default_company
 
 from ocr.ocr.doctype.ocr_request.aws_textract import AWSTextractExpense
-from ocr.ocr.doctype.ocr_request.taggun import Taggun
 from ocr.utils import parse_number, time_diff_in_minutes
 
 # https://docs.python.org/3/library/re.html#simulating-scanf
@@ -56,7 +56,7 @@ class OCRRequest(Document):
 		line_items_mapping: DF.Table[OCRLineItemsMapping]
 		net_total: DF.Float
 		ocr_basket: DF.Link | None
-		status: DF.Literal["Pending", "Analysis Completed", "Purchase Order Created", "Purchase Invoice Created", "Error", "Closed"]
+		status: DF.Literal["Pending", "Analysis Completed", "Purchase Order Created", "Purchase Invoice Created", "Error", "Closed", "Completed"]
 		supplier: DF.Link | None
 		tax_total: DF.Float
 		transaction_type: DF.Literal["", "Purchase Invoice", "Expense"]
@@ -96,28 +96,28 @@ class OCRRequest(Document):
 		if not self.company and len(frappe.get_all("Company")) == 1:
 			self.company = get_default_company()
 
+		if self.analysis:
+			self.find_header_correspondence()
+			self.find_line_items_correspondence()
+
+		self.set_status()
+
 	@frappe.whitelist()
 	def make_analysis(self):
 		self.get_analysis()
 
 	def start_analysis(self):
-		service = frappe.db.get_single_value("OCR Settings", "selected_ocr_service")
-		if service == "AWS Textract":
-			textract = AWSTextractExpense(self)
-			jobid = textract.task.start()
-			self.job = jobid
-			self.db_set("job", jobid)
+		textract = AWSTextractExpense(self)
+		jobid = textract.task.start()
+		self.job = jobid
+		self.db_set("job", jobid)
 
 	def get_analysis(self):
 		if not self.job:
 			self.start_analysis()
 
 		try:
-			service = frappe.db.get_single_value("OCR Settings", "selected_ocr_service")
-			if service == "AWS Textract":
-				return self.get_textract_analysis()
-			elif service == "Taggun":
-				self.get_taggun_analysis()
+			return self.get_textract_analysis()
 		except Exception:
 			self.log_error(_("OCR Analysis Error"))
 
@@ -129,10 +129,7 @@ class OCRRequest(Document):
 		if analysis := textract.task.get_result():
 			if analysis["JobStatus"] == "SUCCEEDED":
 				self.register_parsed_data(analysis.get("ParsedData", {}))
-				self.find_header_correspondence()
-				self.find_line_items_correspondence()
 				self.analysis = frappe.as_json(analysis)
-				self.status = "Analysis Completed"
 				self.save()
 
 			elif time_diff_in_minutes(now_datetime(), get_datetime(self.creation)) < 60:
@@ -152,19 +149,29 @@ class OCRRequest(Document):
 
 		return analysis
 
-	def get_taggun_analysis(self):
-		taggun = Taggun(self)
-		return taggun.start_analysis()
-
 	def on_trash(self):
-		service = frappe.db.get_single_value("OCR Settings", "selected_ocr_service")
-		if service == "AWS Textract":
-			textract = AWSTextractExpense(self)
-			textract.task.delete()
+		textract = AWSTextractExpense(self)
+		textract.task.delete()
 
-	def reset_status_and_error(self, status=None):
-		self.db_set("status", status or "Pending")
+	def set_status(self, commit=False):
+		if self.job:
+			status = "Analysis Completed"
+		if frappe.db.exists("Purchase Order", dict(ocr_request=self.name)):
+			status = "Purchase Order Created"
+		if frappe.db.exists("Purchase Invoice", dict(ocr_request=self.name)):
+			status = "Purchase Invoice Created"
+		if frappe.db.exists("Purchase Invoice", dict(ocr_request=self.name, docstatus=1)):
+			status = "Completed"
+		if self.error:
+			status = "Error"
+
+		self.status = status
+		if commit:
+			self.db_set("status", status)
+
+	def reset_status_and_error(self):
 		self.db_set("error", "")
+		self.set_status(True)
 
 	def set_and_return_error(self, msg):
 		frappe.db.rollback()
@@ -175,87 +182,53 @@ class OCRRequest(Document):
 			"message": msg
 		}
 
-	def init_transaction_creation(self, order=None):
-		self.reset_status_and_error("Analysis Completed")
+	@frappe.whitelist()
+	def create_purchase_documents(self, order=None):
+		self.reset_status_and_error()
 
-		if not self.company or not self.supplier:
-			order_values = frappe.get_value("Purchase Order", order, ["company", "supplier"], as_dict=True)
-			if not self.company:
-				self.db_set("company", order_values.get("company"))
-			if not self.supplier:
-				self.db_set("supplier", order_values.get("supplier"))
-			self.reload()
+		filters = dict(ocr_request=self.name, docstatus=1) if not order else dict(name=order)
+		self.purchase_orders = frappe.get_all("Purchase Order", filters=filters)
+		settings = frappe.get_single("OCR Settings")
 
+		self.link_to_company()
+		self.link_to_supplier()
+
+		if not self.purchase_orders:
+			self.purchase_orders = self.get_matched_orders()
+
+		if not self.purchase_orders:
+			if settings.auto_create_purchase_orders:
+				self.create_purchase_order()
+			else:
+				return self.set_and_return_error(_("No matching order found"))
+
+		if self.purchase_orders and not settings.do_not_create_purchase_invoices:
+			if purchase_invoice := self.create_purchase_invoice():
+				self.insert_purchase_invoice(purchase_invoice, settings.auto_submit_purchase_invoices)
+
+		self.set_status(True)
+
+	def link_to_company(self):
+		if self.company:
+			return
+
+		self.company = self.get_company()
+
+	def link_to_supplier(self):
+		if self.supplier:
+			return
+
+		self.supplier = self.get_supplier_name()
+
+	def check_transaction_master_data(self):
 		if not self.company:
 			return self.set_and_return_error(_("Please select a company"))
 
 		if not self.supplier:
 			return self.set_and_return_error(_("Please select a supplier"))
 
-	@frappe.whitelist()
-	def create_purchase_invoice(self, order=None):
-		self.init_transaction_creation(order)
-		do_not_create_purchase_invoice = frappe.db.get_single_value("OCR Settings", "do_not_create_purchase_invoices")
-
-		purchase_invoice = None
-		try:
-			if self.get_creation_mode() != "Consolidate all rows in a single invoicing line":
-				transaction = self.make_purchase_invoice_from_purchase_order(order, do_not_create_purchase_invoice)
-				if transaction.get("status") == "Error":
-					return self.set_and_return_error(transaction.get("message"))
-				elif transaction.get("status") == "Analysis Completed":
-					return transaction
-				elif isinstance(transaction, PurchaseInvoice):
-					purchase_invoice = transaction
-
-			elif not do_not_create_purchase_invoice:
-				purchase_invoice = frappe.new_doc("Purchase Invoice")
-				purchase_invoice.supplier = self.supplier
-				purchase_invoice.company = self.company
-
-				generic_item = frappe.db.get_single_value("OCR Settings", "generic_item")
-				if self.get_creation_mode() == "Consolidate all rows in a single invoicing line":
-					purchase_invoice.append("items", {
-						"item_code": generic_item,
-						"description": _("Invoice Net Total"),
-						"qty": 1,
-						"rate": self.net_total,
-					})
-
-			if do_not_create_purchase_invoice:
-				return
-
-			if purchase_invoice and isinstance(purchase_invoice, Document):
-				for key, value in self.get_header_parsed_dict().items():
-					purchase_invoice.update({key: value})
-
-				purchase_invoice.ocr_request = self.name
-				purchase_invoice.set_posting_time = True
-				purchase_invoice.flags.ignore_mandatory = True
-				purchase_invoice.flags.ignore_validate = True
-
-				purchase_invoice.run_method("set_missing_values")
-				purchase_invoice.run_method("calculate_taxes_and_totals")
-
-				if self.get_creation_mode() == "Consolidate all rows in a single invoicing line":
-					if purchase_invoice.taxes:
-						purchase_invoice.taxes[0].charge_type = "Actual"
-						purchase_invoice.taxes[0].tax_amount = self.tax_total
-						purchase_invoice.run_method("calculate_taxes_and_totals")
-
-				purchase_invoice.title = purchase_invoice.supplier_name or frappe.db.get_value("Supplier", purchase_invoice.supplier, "supplier_name")
-				purchase_invoice.insert()
-
-				if frappe.db.get_single_value("OCR Settings", "auto_submit_purchase_invoices"):
-					purchase_invoice.submit()
-
-				self.db_set("status", "Purchase Invoice Created")
-
-		except Exception as e:
-			return self.set_and_return_error(str(e))
-
 	def create_purchase_order(self):
-		self.init_transaction_creation()
+		self.check_transaction_master_data()
 
 		try:
 			purchase_order = make_purchase_order(self.name)
@@ -263,35 +236,14 @@ class OCRRequest(Document):
 			purchase_order.flags.ignore_validate = True
 			purchase_order.title = purchase_order.supplier_name or frappe.db.get_value("Supplier", purchase_order.supplier, "supplier_name")
 			purchase_order.insert()
-			self.db_set("status", "Purchase Order Created")
+			self.set_status()
 
 			return purchase_order
 
 		except Exception as e:
 			return self.set_and_return_error(str(e))
 
-	def make_purchase_invoice_from_purchase_order(self, order=None, do_not_create_purchase_invoice=False):
-		from erpnext.buying.doctype.purchase_order.purchase_order import make_purchase_invoice
-
-		matched_orders = self.get_matched_orders(order)
-
-		if do_not_create_purchase_invoice:
-			for matched_order in matched_orders:
-				frappe.db.set_value("Purchase Order", matched_order.get("name"), "ocr_request", self.name)
-				frappe.db.set_value("Purchase Order", matched_order.get("name"), "ocr_original_file", self.file)
-			return {}
-
-		purchase_invoice = None
-		for matched_order in matched_orders:
-			if purchase_invoice:
-				for item in make_purchase_invoice(matched_order).get("items"):
-					purchase_invoice.append("items", item)
-			else:
-				purchase_invoice = make_purchase_invoice(matched_order)
-
-		return purchase_invoice
-
-	def get_matched_orders(self, order=None):
+	def get_matched_orders(self):
 		purchase_order_dt = frappe.qb.DocType("Purchase Order")
 		purchase_invoice_item_dt = frappe.qb.DocType("Purchase Invoice Item")
 
@@ -309,34 +261,55 @@ class OCRRequest(Document):
 			.where(ExistsCriterion(subquery).negate())
 		)
 
-		if not order and self.supplier:
+		if self.supplier:
 			query = query.where(purchase_order_dt.supplier == self.supplier)
-
-		if order:
-			query = query.where(purchase_order_dt.name == order)
 
 		open_orders = query.run(as_dict=True)
 
-		matched_orders = open_orders if order else set()
-
-		if not matched_orders and self.get_creation_mode() == "Get items from purchase orders recognized by the OCR":
+		matched_orders = set()
+		if self.get_creation_mode() == "Get items from purchase orders recognized by the OCR":
 			for child in self.line_items_mapping:
 				for open_order in open_orders:
 					if re.search(r"(?<![\w\d])" + re.escape(open_order.name) + r"(?![\w\d])", child.get("expense_row") or "", re.IGNORECASE):
 						matched_orders.add(open_order.name)
 					elif re.search(r"(?<![\w\d])" + re.escape(open_order.order_confirmation_no or "") + r"(?![\w\d])", child.get("expense_row") or "", re.IGNORECASE):
 						matched_orders.add(open_order.name)
-		elif not matched_orders and open_orders:
+		elif open_orders:
 			if closest_order := min(open_orders, key=lambda x:abs(x.net_total - self.net_total)):
 				matched_orders.add(closest_order.name)
 
-		if not matched_orders:
-			if frappe.db.get_single_value("OCR Settings", "auto_create_purchase_orders"):
-				return self.create_purchase_order()
-			else:
-				return self.set_and_return_error(_("No matching order found"))
-
 		return matched_orders
+
+	def create_purchase_invoice(self):
+		from erpnext.buying.doctype.purchase_order.purchase_order import make_purchase_invoice
+
+		purchase_invoice = None
+		for matched_order in self.purchase_orders:
+			if purchase_invoice:
+				for item in make_purchase_invoice(matched_order).get("items"):
+					purchase_invoice.append("items", item)
+			else:
+				purchase_invoice = make_purchase_invoice(matched_order)
+
+		return purchase_invoice
+
+	def insert_purchase_invoice(self, purchase_invoice, submit=True):
+		if purchase_invoice and isinstance(purchase_invoice, Document):
+			for key, value in self.get_header_parsed_dict().items():
+				purchase_invoice.update({key: value})
+
+			purchase_invoice.ocr_request = self.name
+			purchase_invoice.set_posting_time = True
+			purchase_invoice.flags.ignore_mandatory = True
+			purchase_invoice.flags.ignore_validate = True
+
+			purchase_invoice.run_method("set_missing_values")
+			purchase_invoice.run_method("calculate_taxes_and_totals")
+			purchase_invoice.title = purchase_invoice.supplier_name or frappe.db.get_value("Supplier", purchase_invoice.supplier, "supplier_name")
+			purchase_invoice.insert()
+
+			if submit:
+				purchase_invoice.submit()
 
 	def get_creation_mode(self):
 		if self.get("pi_creation_mode"):
@@ -392,8 +365,8 @@ class OCRRequest(Document):
 						parsed_dict[line.field] = getdate(line.field_value)
 					except Exception:
 						parsed_dict[line.field] = None
-
-				parsed_dict[line.field] = line.field_value or line.value
+				else:
+					parsed_dict[line.field] = line.field_value or line.value
 		return parsed_dict
 
 	def find_header_correspondence(self):
@@ -421,10 +394,11 @@ class OCRRequest(Document):
 				line.field_value = line.value
 
 	def find_line_items_correspondence(self):
-		header = self.get_header_parsed_dict()
 		for line in self.line_items_mapping:
-			if "supplier" in header and header.get("supplier"):
-				line.item_code = self.get_supplier_item(header["supplier"], line.get("item"))
+			if line.item_code:
+				continue
+
+			line.item_code = self.get_supplier_item(line.get("item")) or self.get_previous_correspondance(line.get("item"))
 
 	def get_supplier_name(self):
 		header = self.get_header_dict()
@@ -500,8 +474,10 @@ class OCRRequest(Document):
 			"field_value",
 		)
 
+	def get_supplier_item(self, item):
+		if not self.supplier:
+			return
 
-	def get_supplier_item(self, supplier, item):
 		return frappe.db.get_value(
 			"Item Supplier",
 			dict(
@@ -510,6 +486,27 @@ class OCRRequest(Document):
 			),
 			"parent"
 		)
+
+	def get_previous_correspondance(self, item):
+		if not self.company or self.supplier:
+			return
+
+		ocr_request = frappe.qb.DocType("OCR Request")
+		ocr_request_line_mapping = frappe.qb.DocType("OCR Line Items Mapping")
+
+		query = (
+			frappe.qb.from_(ocr_request)
+			.left_join(ocr_request_line_mapping)
+			.on(ocr_request.name == ocr_request_line_mapping.parent)
+			.select(ocr_request_line_mapping.item_code, ocr_request.name)
+			.where(ocr_request.company == self.company)
+			.where(ocr_request.supplier == self.supplier)
+			.where(ocr_request_line_mapping.item == item)
+			.where(ocr_request_line_mapping.item_code.isnotnull())
+			.orderby(ocr_request.modified, order=Order.desc)
+		)
+		if result := query.run(as_dict=True):
+			return result[0].item_code
 
 	def get_purchase_invoice_qty(self, row):
 		if row.get("unit_price") and row.get("price") and row.get("price") != row.get("unit_price"):
@@ -533,6 +530,10 @@ class OCRRequest(Document):
 	@frappe.whitelist()
 	def close_request(self):
 		self.db_set("status", "Closed")
+
+	@frappe.whitelist()
+	def open_request(self):
+		self.set_status(True)
 
 	@frappe.whitelist()
 	def register_mapping(self, data):
@@ -623,30 +624,19 @@ def on_purchase_order_update(doc, method):
 	if not doc.ocr_request:
 		return
 
-	all_updated = True
 	for item in doc.items:
 		if item.item_code and item.ocr_request_line_item:
 			if frappe.db.get_value("OCR Line Items Mapping", item.ocr_request_line_item, "item_code") != item.item_code:
 				frappe.db.set_value("OCR Line Items Mapping", item.ocr_request_line_item, "item_code", item.item_code, update_modified=False)
-			else:
-				all_updated = False
 
 	company, supplier = frappe.db.get_value("OCR Request", doc.ocr_request, ["company", "supplier"])
-	if company:
+	if company != doc.company:
 		frappe.db.set_value("OCR Request", doc.ocr_request, "company", doc.company, update_modified=False)
-	if supplier:
+	if supplier != doc.supplier:
 		frappe.db.set_value("OCR Request", doc.ocr_request, "supplier", doc.supplier, update_modified=False)
-
-	if not all_updated:
-		frappe.msgprint(
-			msg=_("Some item lines mapping could not be updated in the OCR document. Please update them manually for more accuracy."),
-			title=_("OCR mapping incomplete"),
-			indicator="orange",
-			alert=True
-		)
 
 
 def after_purchase_order_submit(doc, method):
 	if doc.ocr_request:
 		ocr_request = frappe.get_doc("OCR Request", doc.ocr_request)
-		ocr_request.create_purchase_invoice(doc.name)
+		ocr_request.create_purchase_documents(doc.name)
