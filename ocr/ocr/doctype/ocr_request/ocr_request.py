@@ -205,22 +205,16 @@ class OCRRequest(Document):
 		self.set_status(True)
 
 	def link_to_company(self):
-		if not self.company:
+		if self.company:
 			return
 
-		if self.get("purchase_order"):
-			self.company = frappe.db.get_value("Purchase Order", self.purchase_order, "company")
-		else:
-			self.company = self.get_company()
+		self.company = self.get_company()
 
 	def link_to_supplier(self):
-		if not self.supplier:
+		if self.supplier:
 			return
 
-		if self.get("purchase_order"):
-			self.supplier = frappe.db.get_value("Purchase Order", self.purchase_order, "supplier")
-		else:
-			self.supplier = self.get_supplier_name()
+		self.supplier = self.get_supplier_name()
 
 	def check_transaction_master_data(self):
 		if not self.company:
