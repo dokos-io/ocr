@@ -207,9 +207,7 @@ class OCRRequest(Document):
 
 		if self.purchase_orders and not settings.do_not_create_purchase_invoices:
 			if purchase_invoice := self.create_purchase_invoice():
-				self.insert_purchase_invoice(purchase_invoice, settings.auto_submit_purchase_invoices)
-
-		self.set_status(True)
+				return self.insert_purchase_invoice(purchase_invoice, settings.auto_submit_purchase_invoices)
 
 	def link_to_company(self):
 		if self.company:
@@ -299,7 +297,8 @@ class OCRRequest(Document):
 	def insert_purchase_invoice(self, purchase_invoice, submit=True):
 		if purchase_invoice and isinstance(purchase_invoice, Document):
 			for key, value in self.get_header_parsed_dict().items():
-				purchase_invoice.update({key: value})
+				if value:
+					purchase_invoice.update({key: value})
 
 			purchase_invoice.ocr_request = self.name
 			purchase_invoice.set_posting_time = True
@@ -313,6 +312,8 @@ class OCRRequest(Document):
 
 			if submit:
 				purchase_invoice.submit()
+
+			return purchase_invoice.name
 
 	def get_creation_mode(self):
 		if self.get("pi_creation_mode"):
@@ -632,14 +633,20 @@ def on_purchase_order_update(doc, method):
 			if frappe.db.get_value("OCR Line Items Mapping", item.ocr_request_line_item, "item_code") != item.item_code:
 				frappe.db.set_value("OCR Line Items Mapping", item.ocr_request_line_item, "item_code", item.item_code, update_modified=False)
 
-	company, supplier = frappe.db.get_value("OCR Request", doc.ocr_request, ["company", "supplier"])
-	if company != doc.company:
+	ocr_request = frappe.db.get_value("OCR Request", doc.ocr_request, ["company", "supplier"], as_dict=True)
+	if ocr_request.company != doc.company:
 		frappe.db.set_value("OCR Request", doc.ocr_request, "company", doc.company, update_modified=False)
-	if supplier != doc.supplier:
+	if ocr_request.supplier != doc.supplier:
 		frappe.db.set_value("OCR Request", doc.ocr_request, "supplier", doc.supplier, update_modified=False)
 
 
-def after_purchase_order_submit(doc, method):
+def on_purchase_order_submission(doc, method):
 	if doc.ocr_request:
 		ocr_request = frappe.get_doc("OCR Request", doc.ocr_request)
 		ocr_request.create_purchase_documents(doc.name)
+
+
+def update_ocr_request_status(doc):
+	if doc.ocr_request:
+		ocr_request = frappe.get_doc("OCR Request", doc.ocr_request)
+		ocr_request.set_status(True)
