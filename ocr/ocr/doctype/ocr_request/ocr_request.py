@@ -481,7 +481,7 @@ class OCRRequest(Document):
 		return frappe.db.get_value(
 			"Item Supplier",
 			dict(
-				supplier=supplier,
+				supplier=self.supplier,
 				supplier_part_no=item
 			),
 			"parent"
