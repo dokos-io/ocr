@@ -19,7 +19,7 @@ frappe.ui.form.on("OCR Request", {
 			}, __("Actions"));
 		}
 
-		if (["Analysis Completed", "Error", "Sales Order Created"].includes(frm.doc.status)) {
+		if (["Analysis Completed", "Error", "Purchase Order Created"].includes(frm.doc.status)) {
 			frm.page.set_primary_action(__('Process Request'), function() {
 				frm.events.trigger_purchase_invoice_creation(frm)
 			})
