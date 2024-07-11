@@ -646,7 +646,7 @@ def on_purchase_order_submission(doc, method):
 		ocr_request.create_purchase_documents(doc.name)
 
 
-def update_ocr_request_status(doc):
+def update_ocr_request_status(doc, method):
 	if doc.ocr_request:
 		ocr_request = frappe.get_doc("OCR Request", doc.ocr_request)
 		ocr_request.set_status(True)
