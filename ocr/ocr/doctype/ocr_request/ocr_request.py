@@ -154,6 +154,9 @@ class OCRRequest(Document):
 		textract.task.delete()
 
 	def set_status(self, commit=False):
+		if self.status == "Closed":
+			return
+
 		if self.job:
 			status = "Analysis Completed"
 		if frappe.db.exists("Purchase Order", dict(ocr_request=self.name)):
