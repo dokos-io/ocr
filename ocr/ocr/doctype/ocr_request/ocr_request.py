@@ -157,6 +157,7 @@ class OCRRequest(Document):
 		if self.status == "Closed":
 			return
 
+		status = "Pending"
 		if self.job:
 			status = "Analysis Completed"
 		if frappe.db.exists("Purchase Order", dict(ocr_request=self.name)):
