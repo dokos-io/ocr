@@ -135,7 +135,12 @@ after_migrate = "ocr.migrate.after_migrate"
 doc_events = {
 	"Purchase Order": {
 		"on_update": "ocr.ocr.doctype.ocr_request.ocr_request.on_purchase_order_update",
-		"on_submit": "ocr.ocr.doctype.ocr_request.ocr_request.after_purchase_order_submit",
+		"on_submit": "ocr.ocr.doctype.ocr_request.ocr_request.on_purchase_order_submission",
+		"on_cancel": "ocr.ocr.doctype.ocr_request.ocr_request.update_ocr_request_status",
+	},
+	"Purchase Invoice": {
+		"on_submit": "ocr.ocr.doctype.ocr_request.ocr_request.update_ocr_request_status",
+		"on_cancel": "ocr.ocr.doctype.ocr_request.ocr_request.update_ocr_request_status",
 	}
 }
 
