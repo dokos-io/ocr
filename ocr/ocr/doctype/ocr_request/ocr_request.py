@@ -201,7 +201,7 @@ class OCRRequest(Document):
 			self.purchase_orders = self.get_matched_orders()
 
 		if not self.purchase_orders:
-			if settings.auto_create_purchase_orders:
+			if settings.auto_create_purchase_orders and not frappe.db.exists("Purchase Order", {"ocr_request": self.name, "docstatus": 0}):
 				self.create_purchase_order()
 			else:
 				return self.set_and_return_error(_("No matching order found"))
