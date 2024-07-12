@@ -565,6 +565,12 @@ def get_analysis(request_id):
 @frappe.whitelist()
 def make_purchase_order(source_name, target_doc=None):
 	def set_missing_values(source, target):
+		if target.supplier:
+			target.currency = (
+				frappe.db.get_value("Supplier", target.supplier, "default_currency") or
+				frappe.get_cached_value("Company", target.company, "default_currency")
+			)
+
 		header = source.get_header_parsed_dict()
 		if header.get("bill_date"):
 			target.transaction_date = header.get("bill_date")
