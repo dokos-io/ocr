@@ -378,6 +378,9 @@ class OCRRequest(Document):
 		pi_fields = [f.fieldname for f in frappe.get_meta("Purchase Invoice").fields]
 
 		for line in self.header_mapping:
+			if line.field_value:
+				continue
+
 			if line.key.lower() in pi_fields:
 				line.field = (line.key.lower() or "")[:140]
 			elif PURCHASE_INVOICE_MAPPING.get(line.key):
