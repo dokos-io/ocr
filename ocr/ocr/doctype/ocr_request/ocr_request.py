@@ -259,7 +259,7 @@ class OCRRequest(Document):
 		query = (
 			frappe.qb.from_(purchase_order_dt)
 			.select(purchase_order_dt.name, purchase_order_dt.net_total, purchase_order_dt.order_confirmation_no, purchase_order_dt.company)
-			.where((purchase_order_dt.docstatus == 1) & (purchase_order_dt.per_billed.lt(100)))
+			.where((purchase_order_dt.docstatus == 1) & (purchase_order_dt.per_billed.lt(100)) & (purchase_order_dt.status.notin(["Closed", "Completed"])))
 			.where(ExistsCriterion(subquery).negate())
 		)
 
