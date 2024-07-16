@@ -501,7 +501,7 @@ class OCRRequest(Document):
 		)
 
 	def get_previous_correspondance(self, item):
-		if not self.company or self.supplier:
+		if not self.company or not self.supplier:
 			return
 
 		ocr_request = frappe.qb.DocType("OCR Request")
