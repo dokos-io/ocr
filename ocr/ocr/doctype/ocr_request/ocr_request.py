@@ -197,14 +197,15 @@ class OCRRequest(Document):
 		self.link_to_company()
 		self.link_to_supplier()
 
-		if not self.purchase_orders:
-			self.purchase_orders = self.get_matched_orders()
+		if self.status not in ["Purchase Invoice Created", "Completed"]:
+			if not self.purchase_orders:
+				self.purchase_orders = self.get_matched_orders()
 
-		if not self.purchase_orders:
-			if settings.auto_create_purchase_orders and not frappe.db.exists("Purchase Order", {"ocr_request": self.name, "docstatus": 0}):
-				self.create_purchase_order()
-			else:
-				return self.set_and_return_error(_("No matching order found"))
+			if not self.purchase_orders:
+				if settings.auto_create_purchase_orders and not frappe.db.exists("Purchase Order", {"ocr_request": self.name, "docstatus": 0}):
+					self.create_purchase_order()
+				else:
+					return self.set_and_return_error(_("No matching order found"))
 
 		if self.purchase_orders and not settings.do_not_create_purchase_invoices:
 			if purchase_invoice := self.create_purchase_invoice():
@@ -230,7 +231,8 @@ class OCRRequest(Document):
 			return self.set_and_return_error(_("Please select a supplier"))
 
 	def create_purchase_order(self):
-		self.check_transaction_master_data()
+		if self.check_transaction_master_data():
+			return
 
 		try:
 			purchase_order = make_purchase_order(self.name)
@@ -284,6 +286,9 @@ class OCRRequest(Document):
 
 	def create_purchase_invoice(self):
 		from erpnext.buying.doctype.purchase_order.purchase_order import make_purchase_invoice
+
+		if self.check_transaction_master_data():
+			return
 
 		purchase_invoice = None
 		for matched_order in self.purchase_orders:
@@ -541,6 +546,7 @@ class OCRRequest(Document):
 
 	@frappe.whitelist()
 	def open_request(self):
+		self.status = "Pending"
 		self.set_status(True)
 
 	@frappe.whitelist()
