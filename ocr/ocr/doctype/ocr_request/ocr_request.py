@@ -187,6 +187,13 @@ class OCRRequest(Document):
 		}
 
 	@frappe.whitelist()
+	def link_to_sales_order(self, order):
+		if frappe.db.exists("Purchase Order", order):
+			frappe.db.set_value("Purchase Order", order, "ocr_request", self.name)
+			frappe.db.set_value("Purchase Order", order, "ocr_original_file", self.file)
+
+
+	@frappe.whitelist()
 	def create_purchase_documents(self, order=None):
 		self.reset_status_and_error()
 
