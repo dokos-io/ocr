@@ -268,7 +268,15 @@ class PurchaseOrderLink {
 			],
 			primary_action: () => {
 				const dialog_values = dialog.get_values();
-				this.frm.events.trigger_purchase_invoice_creation(this.frm, dialog_values.purchase_order)
+				frappe.call({
+					method: "link_to_sales_order",
+					doc: this.frm.doc,
+					args: {
+						order: dialog_values.purchase_order
+					}
+				}).then(() => {
+					this.frm.events.trigger_purchase_invoice_creation(this.frm, dialog_values.purchase_order)
+				})
 
 				dialog.hide();
 			},
