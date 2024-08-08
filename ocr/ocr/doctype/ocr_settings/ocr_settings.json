@@ -100,7 +100,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2024-07-10 15:29:44.107609",
+ "modified": "2024-08-08 11:09:54.916847",
  "modified_by": "Administrator",
  "module": "OCR",
  "name": "OCR Settings",
@@ -116,6 +116,11 @@
    "select": 1,
    "share": 1,
    "write": 1
+  },
+  {
+   "read": 1,
+   "role": "Desk User",
+   "select": 1
   }
  ],
  "sort_field": "modified",
