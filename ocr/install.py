@@ -26,7 +26,6 @@ def get_custom_fields():
 	_("OCR Request")
 	_("Original File")
 	_("Invoice Extraction")
-	_("Creation Mode")
 	_("OCR Request Line Item")
 
 	transactions_fields = [
