@@ -25,6 +25,7 @@
   "supplier",
   "bill_no",
   "bill_date",
+  "due_date",
   "column_break_lomt",
   "net_total",
   "grand_total",
@@ -187,6 +188,11 @@
    "fieldname": "bill_date",
    "fieldtype": "Date",
    "label": "Supplier Invoice Date"
+  },
+  {
+   "fieldname": "due_date",
+   "fieldtype": "Date",
+   "label": "Due Date"
   }
  ],
  "index_web_pages_for_search": 1,
@@ -202,7 +208,7 @@
    "link_fieldname": "ocr_request"
   }
  ],
- "modified": "2024-09-13 10:53:30.202426",
+ "modified": "2024-09-13 11:43:27.217648",
  "modified_by": "Administrator",
  "module": "OCR",
  "name": "OCR Request",
