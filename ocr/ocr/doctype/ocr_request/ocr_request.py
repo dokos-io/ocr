@@ -679,6 +679,18 @@ def make_purchase_order(source_name, target_doc=None):
 
 	return doclist
 
+@frappe.whitelist()
+@frappe.validate_and_sanitize_search_inputs
+def get_purchase_orders(doctype, txt, searchfield, start, page_len, filters):
+	if filters.get("ocr_request"):
+		filters["ocr_request"] = ["is", "set"]
+	else:
+		filters["ocr_request"] = ["is", "not set"]
+
+
+	fields = ["name", "supplier", "grand_total", "transaction_date", "ocr_request"]
+	return frappe.get_list(doctype, filters=filters, fields=fields)
+
 
 def on_purchase_order_update(doc, method=None):
 	if not doc.ocr_request:
