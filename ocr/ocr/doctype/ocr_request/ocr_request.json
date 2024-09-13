@@ -23,6 +23,8 @@
   "data_tab",
   "company",
   "supplier",
+  "bill_no",
+  "bill_date",
   "column_break_lomt",
   "net_total",
   "grand_total",
@@ -175,6 +177,16 @@
    "fieldtype": "Float",
    "label": "Net Total",
    "read_only": 1
+  },
+  {
+   "fieldname": "bill_no",
+   "fieldtype": "Data",
+   "label": "Supplier Invoice No"
+  },
+  {
+   "fieldname": "bill_date",
+   "fieldtype": "Date",
+   "label": "Supplier Invoice Date"
   }
  ],
  "index_web_pages_for_search": 1,
@@ -190,7 +202,7 @@
    "link_fieldname": "ocr_request"
   }
  ],
- "modified": "2024-07-10 16:14:21.997442",
+ "modified": "2024-09-13 10:53:30.202426",
  "modified_by": "Administrator",
  "module": "OCR",
  "name": "OCR Request",
