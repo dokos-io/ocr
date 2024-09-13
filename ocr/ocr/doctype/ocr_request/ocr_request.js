@@ -60,12 +60,12 @@ frappe.ui.form.on("OCR Request", {
 		}
 	},
 
-	trigger_purchase_invoice_creation(frm, purchase_order) {
+	trigger_purchase_invoice_creation(frm, purchase_orders) {
 		return frappe.call({
 			method: "create_purchase_documents",
 			doc: frm.doc,
 			args: {
-				order: purchase_order
+				orders: purchase_orders
 			}
 		}).then((r) => {
 			frm.reload_doc()
@@ -245,46 +245,71 @@ class PurchaseOrderLink {
 	}
 
 	make_dialog() {
-		const dialog = new frappe.ui.Dialog({
-			title: __("Select a purchase order"),
+		const d = new frappe.ui.form.MultiSelectDialog({
+			doctype: "Purchase Order",
+			target: "Purchase Order",
+			date_field: "transaction_date",
 			size: "extra-large",
-			fields: [
+			setters: [
 				{
-					label: "Purchase Order",
-					fieldname: "purchase_order",
 					fieldtype: "Link",
-					options: "Purchase Order",
-					reqd: 1,
-					get_query: () => {
-						return {
-							filters: {
-								company: this.frm.doc.company,
-								supplier: this.frm.doc.supplier,
-								docstatus: 1,
-								ocr_request: ["is", "not set"],
-								per_billed: ["<", 100.0],
-								status: ["!=", "Closed"]
-							},
-						};
-					}
+					options: "Supplier",
+					label: __("Supplier"),
+					fieldname: "supplier",
+				},
+				{
+					fieldtype: "Date",
+					label: __("Transaction Date"),
+					fieldname: "transaction_date",
+				},
+				{
+					fieldtype: "Currency",
+					label: __("Grand Total"),
+					fieldname: "grand_total",
 				},
 			],
-			primary_action: () => {
-				const dialog_values = dialog.get_values();
+			primary_action_label: __("Select one or more sales orders"),
+			get_query: () => {
+				return {
+					filters: {
+						company: this.frm.doc.company,
+						supplier: this.frm.doc.supplier,
+						docstatus: 1,
+						ocr_request: ["is", "not set"],
+						per_billed: ["<", 100.0],
+						status: ["!=", "Closed"]
+					}
+				}
+			},
+			action: (purchase_orders) => {
+				if (purchase_orders.length === 0) {
+					frappe.msgprint(__("Please select at least one sales order"));
+					return;
+				}
+
+				const rows = d.get_checked_items();
+				if (!rows.every(row => row.supplier === rows[0].supplier)) {
+					frappe.msgprint(__("Please select orders linked to the same supplier"));
+					return;
+				}
+
 				frappe.call({
-					method: "link_to_sales_order",
+					method: "link_to_purchase_order",
 					doc: this.frm.doc,
 					args: {
-						order: dialog_values.purchase_order
+						orders: purchase_orders
 					}
 				}).then(() => {
-					this.frm.events.trigger_purchase_invoice_creation(this.frm, dialog_values.purchase_order)
+					this.frm.events.trigger_purchase_invoice_creation(this.frm, purchase_orders)
 				})
 
-				dialog.hide();
+				d.dialog.hide();
 			},
-			primary_action_label: __("Validate"),
+			make_new_document: (e) => {
+				if (e) {
+					new PurchaseOrderCreator(this.frm)
+				}
+			}
 		});
-		dialog.show();
 	}
 }
