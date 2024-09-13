@@ -12,6 +12,7 @@ from frappe import _
 from frappe.utils import now_datetime, time_diff, flt, getdate, get_datetime, nowdate
 from frappe.model.document import Document
 from frappe.model.mapper import get_mapped_doc
+from frappe.model import data_fieldtypes
 from pypika.terms import ExistsCriterion
 from frappe.query_builder import Order
 
@@ -699,3 +700,16 @@ def update_ocr_request_status(doc, method):
 	if doc.ocr_request:
 		ocr_request = frappe.get_doc("OCR Request", doc.ocr_request)
 		ocr_request.set_status(True)
+
+def map_ocr_data(doc, method=None, source_doc=None):
+	if doc.ocr_request:
+		for field in ["company", "supplier", "bill_no", "bill_date", "due_date"] + get_custom_fields():
+			if not doc.get(field):
+				doc.set(
+					field,
+					frappe.db.get_value("OCR Request", doc.ocr_request, field)
+				)
+
+
+def get_custom_fields():
+	return frappe.get_all("Custom Field", filters={"dt": "OCR Request", "fieldtype": ("in", data_fieldtypes)}, pluck="fieldname")
