@@ -9,13 +9,14 @@ from dateutil.parser import parse
 
 import frappe
 from frappe import _
-from frappe.utils import now_datetime, time_diff, flt, getdate, get_datetime
+from frappe.utils import now_datetime, time_diff, flt, getdate, get_datetime, nowdate
 from frappe.model.document import Document
 from frappe.model.mapper import get_mapped_doc
 from pypika.terms import ExistsCriterion
 from frappe.query_builder import Order
 
 from erpnext.accounts.doctype.purchase_invoice.purchase_invoice import PurchaseInvoice
+from erpnext.accounts.party import get_due_date
 from erpnext import get_default_company
 
 from ocr.ocr.doctype.ocr_request.aws_textract import AWSTextractExpense
@@ -28,7 +29,9 @@ PURCHASE_INVOICE_MAPPING = {
 	"INVOICE_RECEIPT_ID": "bill_no",
 	"INVOICE_RECEIPT_DATE": "bill_date",
 	"VENDOR_NAME": "supplier",
-	"RECEIVER_NAME": "company"
+	"RECEIVER_NAME": "company",
+	"TAX_PAYER_ID": "tax_id",
+	"DUE_DATE": "due_date"
 }
 
 GRAND_TOTAL_KEY = "TOTAL"
@@ -49,6 +52,7 @@ class OCRRequest(Document):
 		bill_date: DF.Date | None
 		bill_no: DF.Data | None
 		company: DF.Link | None
+		due_date: DF.Date | None
 		error: DF.SmallText | None
 		file: DF.Link | None
 		filename: DF.Data | None
@@ -103,6 +107,7 @@ class OCRRequest(Document):
 			self.find_header_correspondence()
 			self.find_line_items_correspondence()
 
+		self.calculate_due_date()
 		self.set_status()
 
 	@frappe.whitelist()
@@ -575,6 +580,19 @@ class OCRRequest(Document):
 			for mapping_row in self.line_items_mapping:
 				if row.get("item_code") and mapping_row.item == row.get("item_name"):
 					frappe.db.set_value(mapping_row.doctype, mapping_row.name, "item_code", row.get("item_code"))
+
+	def calculate_due_date(self):
+		if not self.due_date and self.supplier:
+			try:
+				self.due_date = get_due_date(
+					posting_date=self.bill_date or nowdate(),
+					party_type="Supplier",
+					party=self.supplier,
+					company=self.company,
+					bill_date=self.bill_date
+				)
+			except Exception:
+				pass
 
 def check_pending_analysis():
 	for req in frappe.get_all("OCR Request", filters={"status": "Pending"}, limit=500):
