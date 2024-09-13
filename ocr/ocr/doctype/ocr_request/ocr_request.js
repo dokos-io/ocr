@@ -267,19 +267,24 @@ class PurchaseOrderLink {
 					label: __("Grand Total"),
 					fieldname: "grand_total",
 				},
+				{
+					fieldname: "ocr_request",
+					fieldtype: "Check",
+					label: __("Already linked to an OCR request"),
+				}
 			],
 			primary_action_label: __("Select one or more sales orders"),
 			get_query: () => {
 				return {
+					query: "ocr.ocr.doctype.ocr_request.ocr_request.get_purchase_orders",
 					filters: {
 						company: this.frm.doc.company,
 						supplier: this.frm.doc.supplier,
 						docstatus: 1,
-						ocr_request: ["is", "not set"],
 						per_billed: ["<", 100.0],
 						status: ["!=", "Closed"]
-					}
-				}
+					},
+				};
 			},
 			action: (purchase_orders) => {
 				if (purchase_orders.length === 0) {
