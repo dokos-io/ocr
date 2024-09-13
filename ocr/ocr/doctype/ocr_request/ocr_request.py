@@ -46,6 +46,8 @@ class OCRRequest(Document):
 		from ocr.ocr.doctype.ocr_line_items_mapping.ocr_line_items_mapping import OCRLineItemsMapping
 
 		analysis: DF.Code | None
+		bill_date: DF.Date | None
+		bill_no: DF.Data | None
 		company: DF.Link | None
 		error: DF.SmallText | None
 		file: DF.Link | None
@@ -73,6 +75,7 @@ class OCRRequest(Document):
 			self.name,
 			"make_analysis",
 			queue="long",
+			enqueue_after_commit=True,
 			now=frappe.flags.in_test,
 		)
 
@@ -138,7 +141,7 @@ class OCRRequest(Document):
 					self.doctype,
 					self.name,
 					"get_analysis",
-					queue="short"
+					queue="short",
 				)
 
 			elif time_diff(now_datetime(), get_datetime(self.creation)) > 7:
@@ -391,13 +394,19 @@ class OCRRequest(Document):
 		pi_fields = [f.fieldname for f in frappe.get_meta("Purchase Invoice").fields]
 
 		for line in self.header_mapping:
+			predefined_mapping = PURCHASE_INVOICE_MAPPING.get(line.key)
+
 			if line.field_value:
+				if predefined_mapping and hasattr(self, predefined_mapping):
+					if not self.get(predefined_mapping):
+						self.set(predefined_mapping, line.field_value)
+
 				continue
 
 			if line.key.lower() in pi_fields:
 				line.field = (line.key.lower() or "")[:140]
-			elif PURCHASE_INVOICE_MAPPING.get(line.key):
-				line.field = (PURCHASE_INVOICE_MAPPING.get(line.key) or "")[:140]
+			elif predefined_mapping:
+				line.field = (predefined_mapping or "")[:140]
 
 			if line.key == "VENDOR_NAME":
 				line.field_value = self.get_supplier_name()
@@ -459,7 +468,6 @@ class OCRRequest(Document):
 		return supplier or ""
 
 	def get_company(self):
-		# TODO: Improve this logic
 		header = self.get_header_dict()
 		company = None
 
