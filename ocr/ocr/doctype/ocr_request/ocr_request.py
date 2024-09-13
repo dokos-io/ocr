@@ -196,17 +196,23 @@ class OCRRequest(Document):
 		}
 
 	@frappe.whitelist()
-	def link_to_sales_order(self, order):
-		if frappe.db.exists("Purchase Order", order):
+	def link_to_purchase_order(self, orders):
+		pos = frappe.get_all("Purchase Order", filters={"name": ("in", orders)}, fields=["name", "supplier"])
+		if len(set(po.supplier for po in pos)) > 1:
+			frappe.throw(_("Please link purchase order associated with the same supplier"))
+
+		for order in pos:
 			frappe.db.set_value("Purchase Order", order, "ocr_request", self.name)
 			frappe.db.set_value("Purchase Order", order, "ocr_original_file", self.file)
+			doc = frappe.get_doc("Purchase Order", order)
+			on_purchase_order_update(doc)
 
 
 	@frappe.whitelist()
-	def create_purchase_documents(self, order=None):
+	def create_purchase_documents(self, orders=None):
 		self.reset_status_and_error()
 
-		filters = dict(ocr_request=self.name, docstatus=1) if not order else dict(name=order)
+		filters = dict(ocr_request=self.name, docstatus=1) if not orders else dict(name=("in", orders))
 		self.purchase_orders = frappe.get_all("Purchase Order", filters=filters)
 		settings = frappe.get_single("OCR Settings")
 
@@ -674,7 +680,7 @@ def make_purchase_order(source_name, target_doc=None):
 	return doclist
 
 
-def on_purchase_order_update(doc, method):
+def on_purchase_order_update(doc, method=None):
 	if not doc.ocr_request:
 		return
 
