@@ -260,7 +260,10 @@ class PurchaseOrderLink {
 							filters: {
 								company: this.frm.doc.company,
 								supplier: this.frm.doc.supplier,
-								docstatus: 1
+								docstatus: 1,
+								ocr_request: ["is", "not set"],
+								per_billed: ["<", 100.0],
+								status: ["!=", "Closed"]
 							},
 						};
 					}

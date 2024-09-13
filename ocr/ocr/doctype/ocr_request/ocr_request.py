@@ -400,7 +400,6 @@ class OCRRequest(Document):
 				if predefined_mapping and hasattr(self, predefined_mapping):
 					if not self.get(predefined_mapping):
 						self.set(predefined_mapping, line.field_value)
-
 				continue
 
 			if line.key.lower() in pi_fields:
