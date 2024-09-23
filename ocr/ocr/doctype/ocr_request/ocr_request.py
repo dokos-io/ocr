@@ -9,13 +9,15 @@ from dateutil.parser import parse
 
 import frappe
 from frappe import _
-from frappe.utils import now_datetime, time_diff, flt, getdate, get_datetime
+from frappe.utils import now_datetime, time_diff, flt, getdate, get_datetime, nowdate
 from frappe.model.document import Document
 from frappe.model.mapper import get_mapped_doc
+from frappe.model import data_fieldtypes
 from pypika.terms import ExistsCriterion
 from frappe.query_builder import Order
 
 from erpnext.accounts.doctype.purchase_invoice.purchase_invoice import PurchaseInvoice
+from erpnext.accounts.party import get_due_date
 from erpnext import get_default_company
 
 from ocr.ocr.doctype.ocr_request.aws_textract import AWSTextractExpense
@@ -28,7 +30,9 @@ PURCHASE_INVOICE_MAPPING = {
 	"INVOICE_RECEIPT_ID": "bill_no",
 	"INVOICE_RECEIPT_DATE": "bill_date",
 	"VENDOR_NAME": "supplier",
-	"RECEIVER_NAME": "company"
+	"RECEIVER_NAME": "company",
+	"TAX_PAYER_ID": "tax_id",
+	"DUE_DATE": "due_date"
 }
 
 GRAND_TOTAL_KEY = "TOTAL"
@@ -46,7 +50,10 @@ class OCRRequest(Document):
 		from ocr.ocr.doctype.ocr_line_items_mapping.ocr_line_items_mapping import OCRLineItemsMapping
 
 		analysis: DF.Code | None
+		bill_date: DF.Date | None
+		bill_no: DF.Data | None
 		company: DF.Link | None
+		due_date: DF.Date | None
 		error: DF.SmallText | None
 		file: DF.Link | None
 		filename: DF.Data | None
@@ -73,6 +80,7 @@ class OCRRequest(Document):
 			self.name,
 			"make_analysis",
 			queue="long",
+			enqueue_after_commit=True,
 			now=frappe.flags.in_test,
 		)
 
@@ -100,6 +108,7 @@ class OCRRequest(Document):
 			self.find_header_correspondence()
 			self.find_line_items_correspondence()
 
+		self.calculate_due_date()
 		self.set_status()
 
 	@frappe.whitelist()
@@ -138,7 +147,7 @@ class OCRRequest(Document):
 					self.doctype,
 					self.name,
 					"get_analysis",
-					queue="short"
+					queue="short",
 				)
 
 			elif time_diff(now_datetime(), get_datetime(self.creation)) > 7:
@@ -187,17 +196,23 @@ class OCRRequest(Document):
 		}
 
 	@frappe.whitelist()
-	def link_to_sales_order(self, order):
-		if frappe.db.exists("Purchase Order", order):
+	def link_to_purchase_order(self, orders):
+		pos = frappe.get_all("Purchase Order", filters={"name": ("in", orders)}, fields=["name", "supplier"])
+		if len(set(po.supplier for po in pos)) > 1:
+			frappe.throw(_("Please link purchase order associated with the same supplier"))
+
+		for order in pos:
 			frappe.db.set_value("Purchase Order", order, "ocr_request", self.name)
 			frappe.db.set_value("Purchase Order", order, "ocr_original_file", self.file)
+			doc = frappe.get_doc("Purchase Order", order)
+			on_purchase_order_update(doc)
 
 
 	@frappe.whitelist()
-	def create_purchase_documents(self, order=None):
+	def create_purchase_documents(self, orders=None):
 		self.reset_status_and_error()
 
-		filters = dict(ocr_request=self.name, docstatus=1) if not order else dict(name=order)
+		filters = dict(ocr_request=self.name, docstatus=1) if not orders else dict(name=("in", orders))
 		self.purchase_orders = frappe.get_all("Purchase Order", filters=filters)
 		settings = frappe.get_single("OCR Settings")
 
@@ -391,13 +406,18 @@ class OCRRequest(Document):
 		pi_fields = [f.fieldname for f in frappe.get_meta("Purchase Invoice").fields]
 
 		for line in self.header_mapping:
+			predefined_mapping = PURCHASE_INVOICE_MAPPING.get(line.key)
+
 			if line.field_value:
+				if predefined_mapping and hasattr(self, predefined_mapping):
+					if not self.get(predefined_mapping):
+						self.set(predefined_mapping, line.field_value)
 				continue
 
 			if line.key.lower() in pi_fields:
 				line.field = (line.key.lower() or "")[:140]
-			elif PURCHASE_INVOICE_MAPPING.get(line.key):
-				line.field = (PURCHASE_INVOICE_MAPPING.get(line.key) or "")[:140]
+			elif predefined_mapping:
+				line.field = (predefined_mapping or "")[:140]
 
 			if line.key == "VENDOR_NAME":
 				line.field_value = self.get_supplier_name()
@@ -459,7 +479,6 @@ class OCRRequest(Document):
 		return supplier or ""
 
 	def get_company(self):
-		# TODO: Improve this logic
 		header = self.get_header_dict()
 		company = None
 
@@ -569,6 +588,19 @@ class OCRRequest(Document):
 				if row.get("item_code") and mapping_row.item == row.get("item_name"):
 					frappe.db.set_value(mapping_row.doctype, mapping_row.name, "item_code", row.get("item_code"))
 
+	def calculate_due_date(self):
+		if not self.due_date and self.supplier:
+			try:
+				self.due_date = get_due_date(
+					posting_date=self.bill_date or nowdate(),
+					party_type="Supplier",
+					party=self.supplier,
+					company=self.company,
+					bill_date=self.bill_date
+				)
+			except Exception:
+				pass
+
 def check_pending_analysis():
 	for req in frappe.get_all("OCR Request", filters={"status": "Pending"}, limit=500):
 		doc = frappe.get_doc("OCR Request", req.name)
@@ -647,8 +679,20 @@ def make_purchase_order(source_name, target_doc=None):
 
 	return doclist
 
+@frappe.whitelist()
+@frappe.validate_and_sanitize_search_inputs
+def get_purchase_orders(doctype, txt, searchfield, start, page_len, filters):
+	if filters.get("ocr_request"):
+		filters["ocr_request"] = ["is", "set"]
+	else:
+		filters["ocr_request"] = ["is", "not set"]
 
-def on_purchase_order_update(doc, method):
+
+	fields = ["name", "supplier", "grand_total", "transaction_date", "ocr_request"]
+	return frappe.get_list(doctype, filters=filters, fields=fields)
+
+
+def on_purchase_order_update(doc, method=None):
 	if not doc.ocr_request:
 		return
 
@@ -674,3 +718,16 @@ def update_ocr_request_status(doc, method):
 	if doc.ocr_request:
 		ocr_request = frappe.get_doc("OCR Request", doc.ocr_request)
 		ocr_request.set_status(True)
+
+def map_ocr_data(doc, method=None, source_doc=None):
+	if doc.ocr_request:
+		for field in ["company", "supplier", "bill_no", "bill_date", "due_date"] + get_custom_fields():
+			if not doc.get(field):
+				doc.set(
+					field,
+					frappe.db.get_value("OCR Request", doc.ocr_request, field)
+				)
+
+
+def get_custom_fields():
+	return frappe.get_all("Custom Field", filters={"dt": "OCR Request", "fieldtype": ("in", data_fieldtypes)}, pluck="fieldname")

@@ -139,6 +139,7 @@ doc_events = {
 		"on_cancel": "ocr.ocr.doctype.ocr_request.ocr_request.update_ocr_request_status",
 	},
 	"Purchase Invoice": {
+		"after_mapping": "ocr.ocr.doctype.ocr_request.ocr_request.map_ocr_data",
 		"on_submit": "ocr.ocr.doctype.ocr_request.ocr_request.update_ocr_request_status",
 		"on_cancel": "ocr.ocr.doctype.ocr_request.ocr_request.update_ocr_request_status",
 	}
