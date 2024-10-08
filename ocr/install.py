@@ -48,7 +48,8 @@ def get_custom_fields():
 			"options": "OCR Request",
 			"label": "OCR Request",
 			"insert_after": "ocr_html",
-			"read_only": 1
+			"read_only": 1,
+			"no_copy": 1
 		},
 		{
 			"fieldname": "ocr_original_file",
@@ -57,7 +58,8 @@ def get_custom_fields():
 			"label": "Original File",
 			"insert_after": "ocr_request",
 			"read_only": 1,
-			"fetch_from": "ocr_request.file"
+			"fetch_from": "ocr_request.file",
+			"no_copy": 1
 		},
 	]
 
