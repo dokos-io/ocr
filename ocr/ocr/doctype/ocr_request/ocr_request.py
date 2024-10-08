@@ -720,7 +720,11 @@ def update_ocr_request_status(doc, method):
 		ocr_request.set_status(True)
 
 def map_ocr_data(doc, method=None, source_doc=None):
-	if doc.ocr_request:
+	if source_doc.ocr_request or doc.ocr_request:
+
+		if not doc.ocr_request:
+			doc.ocr_request = source_doc.ocr_request
+
 		for field in ["company", "supplier", "bill_no", "bill_date", "due_date"] + get_custom_fields():
 			if not doc.get(field):
 				doc.set(
