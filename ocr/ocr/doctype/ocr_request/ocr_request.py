@@ -9,7 +9,7 @@ from dateutil.parser import parse
 
 import frappe
 from frappe import _
-from frappe.utils import now_datetime, time_diff, flt, getdate, get_datetime, nowdate
+from frappe.utils import now_datetime, time_diff_in_hours, flt, getdate, get_datetime, nowdate
 from frappe.model.document import Document
 from frappe.model.mapper import get_mapped_doc
 from frappe.model import data_fieldtypes
@@ -141,7 +141,7 @@ class OCRRequest(Document):
 				self.analysis = frappe.as_json(analysis)
 				self.save()
 
-			elif time_diff_in_minutes(now_datetime(), get_datetime(self.creation)) < 60:
+			elif time_diff_in_hours(now_datetime(), get_datetime(self.creation)) < (7 * 24) : # Check for 7 days
 				time.sleep(25)
 				frappe.enqueue_doc(
 					self.doctype,
@@ -150,7 +150,7 @@ class OCRRequest(Document):
 					queue="short",
 				)
 
-			elif time_diff(now_datetime(), get_datetime(self.creation)) > 7:
+			elif time_diff_in_hours(now_datetime(), get_datetime(self.creation)) > (7 * 24):
 				self.set_and_return_error("stale")
 
 		elif self.status != "Error":
