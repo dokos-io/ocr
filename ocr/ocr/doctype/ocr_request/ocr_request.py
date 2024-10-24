@@ -141,7 +141,7 @@ class OCRRequest(Document):
 				self.analysis = frappe.as_json(analysis)
 				self.save()
 
-			elif time_diff_in_minutes(now_datetime(), get_datetime(self.creation)) < 60:
+			elif time_diff_in_hours(now_datetime(), get_datetime(self.creation)) < (7 * 24) : # Check for 7 days
 				time.sleep(25)
 				frappe.enqueue_doc(
 					self.doctype,
