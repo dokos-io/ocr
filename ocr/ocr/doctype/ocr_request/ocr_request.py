@@ -159,8 +159,11 @@ class OCRRequest(Document):
 		return analysis
 
 	def on_trash(self):
-		textract = AWSTextractExpense(self)
-		textract.task.delete()
+		try:
+			textract = AWSTextractExpense(self)
+			textract.task.delete()
+		except Exception:
+			frappe.log_error(_("OCR File Deletion Error"))
 
 	def set_status(self, commit=False):
 		if self.status == "Closed":
