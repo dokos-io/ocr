@@ -21,7 +21,7 @@ from erpnext.accounts.party import get_due_date
 from erpnext import get_default_company
 
 from ocr.ocr.doctype.ocr_request.aws_textract import AWSTextractExpense
-from ocr.utils import parse_number, time_diff_in_minutes
+from ocr.utils import parse_number
 
 # https://docs.python.org/3/library/re.html#simulating-scanf
 FLOAT_PATTERN = re.compile(r"[-+]?(\d+([.,]\d*)?|[.,]\d+)([eE][-+]?\d+)?")
