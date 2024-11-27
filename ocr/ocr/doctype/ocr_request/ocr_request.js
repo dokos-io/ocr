@@ -3,7 +3,7 @@
 
 frappe.ui.form.on("OCR Request", {
 	refresh(frm) {
-		if (frm.doc.transaction_type != "Purchase Invoice") {
+		if (frm.doc.transaction_type != "Purchase Invoice" || frm.doc.status == "Pending") {
 			frm.add_custom_button(__('Trigger an analysis'), function() {
 				frm.call("make_analysis");
 			}, __("Actions"));
