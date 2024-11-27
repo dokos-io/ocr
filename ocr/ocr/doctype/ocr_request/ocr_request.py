@@ -6,17 +6,17 @@ import time
 import difflib
 import datetime
 from dateutil.parser import parse
+from babel.dates import parse_date
 
 import frappe
 from frappe import _
-from frappe.utils import now_datetime, time_diff_in_hours, flt, getdate, get_datetime, nowdate
+from frappe.utils import now_datetime, time_diff_in_hours, flt, get_datetime, nowdate, getdate
 from frappe.model.document import Document
 from frappe.model.mapper import get_mapped_doc
 from frappe.model import data_fieldtypes
 from pypika.terms import ExistsCriterion
 from frappe.query_builder import Order
 
-from erpnext.accounts.doctype.purchase_invoice.purchase_invoice import PurchaseInvoice
 from erpnext.accounts.party import get_due_date
 from erpnext import get_default_company
 
@@ -394,10 +394,7 @@ class OCRRequest(Document):
 			if line.field and line.field != "supplier":
 				value = line.field_value or line.value
 				if "date" in line.field and not (isinstance(value, datetime.datetime) or isinstance(value, datetime.date)):
-					try:
-						parsed_dict[line.field] = getdate(line.field_value)
-					except Exception:
-						parsed_dict[line.field] = None
+					parsed_dict[line.field] = date_parser(line.field_value)
 				else:
 					parsed_dict[line.field] = line.field_value or line.value
 		return parsed_dict
@@ -427,7 +424,7 @@ class OCRRequest(Document):
 
 			elif "DATE" in line.key:
 				try:
-					line.field_value = getdate(parse(line.value))
+					line.field_value = date_parser(line.value)
 				except Exception:
 					pass
 
@@ -735,3 +732,15 @@ def map_ocr_data(doc, method=None, source_doc=None):
 
 def get_custom_fields():
 	return frappe.get_all("Custom Field", filters={"dt": "OCR Request", "fieldtype": ("in", data_fieldtypes)}, pluck="fieldname")
+
+
+def date_parser(date) -> datetime.date:
+	try:
+		return parse_date(date)
+	except Exception:
+		pass
+
+	try:
+		return getdate(parse(date))
+	except Exception:
+		return getdate()
