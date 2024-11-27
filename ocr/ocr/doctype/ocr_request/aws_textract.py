@@ -95,7 +95,8 @@ class AwsFileHandler(AwsFileHandlerBase):
 				file = frappe.get_doc("File", {"file_url": self.key})
 			else:
 				file = frappe.get_doc("File", self.key)
-			content: bytes = file.get_content()  # type: ignore
+			# Never try to decode the content
+			content: bytes = file.get_content(encodings=[])  # type: ignore
 		else:
 			content = self.content
 
