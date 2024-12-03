@@ -8,7 +8,7 @@ ocr.ocr_dashboard.MatchTab = class MatchTab {
 
 	async make() {
 		this.panel_manager.actions_tab = "match_voucher-tab";
-		console.log(this.actions_panel.$tab_content)
+
 		this.match_field_group = new frappe.ui.FieldGroup({
 			fields: this.get_match_tab_fields(),
 			body: this.actions_panel.$tab_content,
@@ -37,7 +37,7 @@ ocr.ocr_dashboard.MatchTab = class MatchTab {
 		this.update_filters_in_state(document_types);
 
 		let vouchers = await this.get_matching_vouchers(document_types);
-		console.log(vouchers)
+
 		this.set_table_data(vouchers);
 		this.actions_table.unfreeze();
 	}
@@ -50,7 +50,6 @@ ocr.ocr_dashboard.MatchTab = class MatchTab {
 	}
 
 	async get_matching_vouchers(document_types) {
-		console.log(this)
 		let vouchers = await frappe.call({
 			method:
 				"ocr.ocr.doctype.ocr_reconciliation_dashboard.ocr_reconciliation_dashboard.get_matching_documents",
@@ -82,18 +81,19 @@ ocr.ocr_dashboard.MatchTab = class MatchTab {
 			datatable_options
 		);
 
-		// Highlight first row
-		this.actions_table.style.setStyle(
-			".dt-cell[data-row-index='0']", { backgroundColor: '#F4FAEE' }
-		);
-
-		// this.bind_row_check_event();
+		this.bind_row_check_event();
 	}
 
 	set_table_data(vouchers) {
 		this.summary_data = {};
 		let table_data = vouchers.map((row) => {
 			return [
+				{
+					content: row.doctype,
+					format: (value) => {
+						return __(value);
+					}
+				},
 				{
 					content: row.name || '',
 					format: (value) => {
@@ -134,8 +134,7 @@ ocr.ocr_dashboard.MatchTab = class MatchTab {
 				{
 					content: row.per_billed,
 					format: (value) => {
-						console.log(value)
-						return value;
+						return value + " %";
 					},
 				},
 			];
@@ -157,22 +156,25 @@ ocr.ocr_dashboard.MatchTab = class MatchTab {
 	check_data_table_row(row) {
 		if (!row) return;
 
-		let id = row[5].content;  // Voucher name
-		let value = this.get_amount_from_row(row);
+		const reference_doctype = row.filter(r => r.column.id == "reference_doctype")[0].content;
+		const document_name = row.filter(r => r.column.id == "document_name")[0].content;
+		frappe.model.with_doctype(`${reference_doctype} Item`).then(() => {
+			const meta = frappe.get_meta(`${reference_doctype} Item`);
+			this.match_field_group.fields_dict.items.grid.df.fields =  meta.fields;
 
-		// If `id` in summary_data, remove it (row was unchecked), else add it
-		if (id in this.summary_data) {
-			delete this.summary_data[id];
-		} else {
-			this.summary_data[id] = value;
-		}
-
-		// Total of selected row amounts in summary_data
-		// Cap total_allocated to unallocated amount
-		let total_allocated = Object.values(this.summary_data).reduce(
-			(a, b) => a + b, 0
-		);
-		let max_allocated = Math.min(total_allocated, this.transaction.unallocated_amount);
+			frappe.model.with_doc(reference_doctype, document_name).then(() => {
+				const doc = frappe.get_doc(reference_doctype, document_name);
+				this.match_field_group.fields_dict.items.grid.df.get_data = () => {
+					return doc.items.map(i => {
+						return {...i, parent: null, parenttype: null, name: null, __islocal: true}
+					});
+				};
+				this.match_field_group.fields_dict.vouchers_section.hide();
+				this.match_field_group.fields_dict.items.toggle(true);
+				this.match_field_group.refresh();
+				this.match_field_group.fields_dict.items.grid.refresh();
+			})
+		});
 	}
 
 
@@ -201,11 +203,21 @@ ocr.ocr_dashboard.MatchTab = class MatchTab {
 			// 	}
 			// },
 			{
-				fieldtype: "Section Break"
+				fieldtype: "Section Break",
+				fieldname: "vouchers_section"
 			},
 			{
 				fieldname: "vouchers",
 				fieldtype: "HTML",
+			},
+			{
+				fieldtype: "Section Break"
+			},
+			{
+				fieldname: "items",
+				fieldtype: "Table",
+				fields: [],
+				hidden: 1
 			},
 			// {
 			// 	label: __("Reconcile"),
@@ -222,33 +234,41 @@ ocr.ocr_dashboard.MatchTab = class MatchTab {
 	get_data_table_columns() {
 		return [
 			{
-				name: __("ID"),
+				name: __("Reference DocType"),
+				id: "reference_doctype",
+				editable: false,
+				hidden: true
+			},
+			{
+				name: __("Document Name"),
+				id: "document_name",
 				editable: false,
 			},
 			{
 				name: __("Supplier"),
+				id: "supplier",
 				editable: false,
 			},
 			{
 				name: __("Date"),
+				id: "date",
 				editable: false,
 			},
 			{
 				name: __("Net Total"),
+				id: "net_total",
 				editable: false,
 			},
 			{
 				name: __("Grand Total"),
+				id: "grand_total",
 				editable: false,
 			},
 			{
 				name: __("Billed %"),
+				id: "per_billed",
 				editable: false,
 			},
 		];
-	}
-
-	get_amount_from_row(row) {
-		return row[2].content;  // Amount
 	}
 }

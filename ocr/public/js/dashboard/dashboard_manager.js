@@ -125,29 +125,35 @@ ocr.ocr_dashboard.DashboardManager = class DashboardManager {
 		this.pending_invoices.map(invoice => {
 			let $row = this.$list_container.append(`
 				<div id="${invoice.name}" class="transaction-row p-10">
-					<!-- Date & Amount -->
 					<div class="d-flex">
-						<div class="w-50">
-							<span title="${__("Date")}">${frappe.format(invoice.bill_date || invoice.creation, {fieldtype: "Date"})}</span>
-						</div>
-
-						<div class="w-50 bt-amount-contianer">
-							<span
-								title="${__("Amount")}"
-								class="bt-amount"
+						<div class="w-50 text-left">
+							<div
+								title="${__("Supplier")}"
+								class="account-holder ${invoice.supplier ? '' : 'hide'}"
 							>
-								<b>${format_currency(invoice.grand_total, invoice.currency)}</b>
-							</span>
+								<span class="account-holder-value">${invoice.supplier}</span>
+							</div>
+
+							<div class="bt-amount-container mt-2">
+								<span
+									title="${__("Amount")}"
+									class="bt-amount"
+								>
+									<b>${format_currency(invoice.grand_total, invoice.currency)}</b>
+								</span>
+							</div>
 						</div>
-					</div>
 
+						<div class="w-50 text-right">
+							<div>
+								<span class="indicator-pill blue">${__(invoice.status)}</span>
+							</div>
+							<div class="mt-2">
+								<span title="${__("Date")}">${frappe.format(invoice.bill_date || invoice.creation, { fieldtype: "Date" })}</span>
+							</div>
 
-					<!-- Description, Reference, Party -->
-					<div
-						title="${__("Supplier")}"
-						class="account-holder ${invoice.supplier ? '' : 'hide'}"
-					>
-						<span class="account-holder-value">${invoice.supplier}</span>
+						</div>
+
 					</div>
 				</div>
 			`).find("#" + invoice.name);
