@@ -1,3 +1,6 @@
+import { createApp } from 'vue';
+import MatchTab from "./MatchTab.vue";
+
 frappe.provide("ocr.ocr_dashboard");
 
 ocr.ocr_dashboard.ActionsPanelManager = class ActionsPanelManager {
@@ -56,12 +59,15 @@ ocr.ocr_dashboard.ActionsPanelManager = class ActionsPanelManager {
 						panel_manager: this.panel_manager,
 					});
 				} else if (tab == "Match Voucher") {
-					new ocr.ocr_dashboard.MatchTab({
-						actions_panel: this,
-						transaction: this.transaction,
+					this.actions_tab = "match_voucher-tab";
+
+					let app = createApp(MatchTab, {
 						panel_manager: this.panel_manager,
+						transaction: this.transaction,
 						doc: this.doc,
-					});
+					})
+					SetVueGlobals(app);
+					app.mount(this.$tab_content[0])
 				} else {
 					// new ocr.ocr_dashboard.CreateTab({
 					// 	actions_panel: this,
