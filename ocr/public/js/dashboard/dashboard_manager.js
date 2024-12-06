@@ -125,6 +125,9 @@ ocr.ocr_dashboard.DashboardManager = class DashboardManager {
 		this.pending_invoices.map(invoice => {
 			let $row = this.$list_container.append(`
 				<div id="${invoice.name}" class="transaction-row p-10">
+					<div>
+						<span class="indicator-pill blue">${__(invoice.status)}</span>
+					</div>
 					<div class="d-flex">
 						<div class="w-50 text-left">
 							<div
@@ -145,9 +148,6 @@ ocr.ocr_dashboard.DashboardManager = class DashboardManager {
 						</div>
 
 						<div class="w-50 text-right">
-							<div>
-								<span class="indicator-pill blue">${__(invoice.status)}</span>
-							</div>
 							<div class="mt-2">
 								<span title="${__("Date")}">${frappe.format(invoice.bill_date || invoice.creation, { fieldtype: "Date" })}</span>
 							</div>
