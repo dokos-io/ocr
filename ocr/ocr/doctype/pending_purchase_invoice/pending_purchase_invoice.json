@@ -1,0 +1,154 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2024-12-09 09:29:54.884756",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "status",
+  "company",
+  "supplier",
+  "bill_no",
+  "bill_date",
+  "due_date",
+  "net_amount",
+  "tax_amount",
+  "grand_total",
+  "file",
+  "file_url",
+  "preview_column",
+  "invoice_preview",
+  "section_break_cesy",
+  "items",
+  "match_tab",
+  "matching_section"
+ ],
+ "fields": [
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Status",
+   "options": "Pending\nCompleted"
+  },
+  {
+   "fieldname": "supplier",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Supplier",
+   "options": "Supplier"
+  },
+  {
+   "fieldname": "bill_no",
+   "fieldtype": "Data",
+   "label": "Supplier Invoice No"
+  },
+  {
+   "fieldname": "bill_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Supplier Invoice Date"
+  },
+  {
+   "fieldname": "due_date",
+   "fieldtype": "Date",
+   "label": "Due Date"
+  },
+  {
+   "fieldname": "match_tab",
+   "fieldtype": "Tab Break",
+   "label": "Match"
+  },
+  {
+   "fieldname": "matching_section",
+   "fieldtype": "HTML",
+   "label": "Matching Section"
+  },
+  {
+   "fieldname": "net_amount",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Net Amount"
+  },
+  {
+   "fieldname": "tax_amount",
+   "fieldtype": "Currency",
+   "label": "Tax Amount"
+  },
+  {
+   "fieldname": "grand_total",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Grand Total"
+  },
+  {
+   "fieldname": "invoice_preview",
+   "fieldtype": "HTML",
+   "label": "Invoice Preview"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "fieldname": "file",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "File",
+   "options": "File"
+  },
+  {
+   "fetch_from": "file.file_url",
+   "fieldname": "file_url",
+   "fieldtype": "Small Text",
+   "hidden": 1,
+   "label": "File URL"
+  },
+  {
+   "fieldname": "preview_column",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_cesy",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "items",
+   "fieldtype": "Table",
+   "label": "Items",
+   "options": "Pending Purchase Invoice Item"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2024-12-09 11:06:39.884283",
+ "modified_by": "Administrator",
+ "module": "OCR",
+ "name": "Pending Purchase Invoice",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

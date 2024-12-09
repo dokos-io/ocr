@@ -75,6 +75,9 @@ class OCRRequest(Document):
 		self.supplier = None
 
 	def after_insert(self):
+		if self.flags.no_analysis:
+			return
+
 		frappe.enqueue_doc(
 			self.doctype,
 			self.name,
