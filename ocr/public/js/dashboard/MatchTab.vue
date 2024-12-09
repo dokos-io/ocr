@@ -26,7 +26,7 @@ import Field from "./Field.vue";
 import { computed } from 'vue';
 
 const props = defineProps({
-	panel_manager: {
+	filters: {
 		type: Object,
 		default: {},
 	},
@@ -35,21 +35,14 @@ const props = defineProps({
 		default: {},
 		reqd: true
 	},
-	doc: {
-		type: Object,
-		default: {},
-		reqd: true
-	},
 })
-
-const filters_state = props.panel_manager.actions_filters;
 
 const vouchers = ref([]);
 const items = ref([]);
 const items_fields = ref([]);
 const hide_items_table = ref(true);
-const purchase_order = ref(filters_state.purchase_order);
-const purchase_receipt = ref(filters_state.purchase_receipt);
+const purchase_order = ref(props.filters.purchase_order);
+const purchase_receipt = ref(props.filters.purchase_receipt);
 const selected_rows = ref([]);
 
 const document_types = computed(() => {
@@ -123,13 +116,13 @@ get_matching_vouchers();
 async function get_matching_vouchers() {
 	let matching_vouchers = await frappe.call({
 		method:
-			"ocr.ocr.doctype.ocr_reconciliation_dashboard.ocr_reconciliation_dashboard.get_matching_documents",
+			"ocr.ocr.doctype.pending_purchase_invoice.pending_purchase_invoice.get_matching_documents",
 		args: {
-			ocr_request: props.transaction.name,
+			purchase_invoice: props.transaction.name,
 			document_types: document_types.value,
-			filter_by_reference_date: props.doc.filter_by_reference_date,
-			from_reference_date: props.doc.from_reference_date,
-			to_reference_date: props.doc.to_reference_date
+			filter_by_reference_date: props.filters.filter_by_reference_date,
+			from_reference_date: props.filters.from_reference_date,
+			to_reference_date: props.filters.to_reference_date
 		},
 	}).then(result => result.message);
 	vouchers.value = matching_vouchers || [];
