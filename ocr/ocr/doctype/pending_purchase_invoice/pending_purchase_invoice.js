@@ -2,14 +2,50 @@
 // For license information, please see license.txt
 
 frappe.provide("ocr.pending_invoice");
+frappe.provide("ocr.ui")
 
 frappe.ui.form.on("Pending Purchase Invoice", {
-	refresh(frm) {
+	setup(frm) {
+		frm.page.sidebar.toggle(false);
 
-		$('[data-fieldname="__column_1"]').removeClass("col-sm-6").addClass("col-sm-4")
-		$('[data-fieldname="preview_column"]').removeClass("col-sm-6").addClass("col-sm-8")
-		frm.trigger("show_preview")
-		frm.trigger("build_match_section")
+		frm.set_query("expense_account", "items", function(doc) {
+			return {
+				filters: {
+					"company": doc.company,
+					"report_type": "Profit and Loss",
+					"is_group": 0
+				}
+			};
+		});
+
+		$(frm.wrapper).on("dirty", function () {
+			frm.trigger("set_bottom_button_label");
+		})
+	},
+
+	set_bottom_button_label(frm) {
+		let label = __("Save")
+		if (!frm.is_dirty()) {
+			label = items_are_not_linked_to_purchase_document(frm) ? __("Create Purchase Order") : __("Create Purchase Invoice")
+		}
+		frm.get_field("create_purchase_invoice").set_label(label);
+	},
+
+	refresh(frm) {
+		frm.trigger("show_preview");
+		frm.trigger("set_bottom_button_label");
+		frm.trigger("compare_totals");
+
+		try { 
+			$('[data-fieldname="__column_1"]').removeClass("col-sm-6").addClass("col-sm-4")
+			$('[data-fieldname="preview_column"]').removeClass("col-sm-6").addClass("col-sm-8")
+			frm.get_field("create_purchase_invoice").$wrapper.addClass("text-right")
+			frm.get_field("create_purchase_invoice").$wrapper.parent().parent().addClass("mt-auto")
+			$('[data-fieldname="create_purchase_invoice"] button').addClass("btn-primary")
+		} catch(err) {
+			console.warn(e)
+		}
+
 	},
 
 	async show_preview(frm) {
@@ -24,7 +60,6 @@ frappe.ui.form.on("Pending Purchase Invoice", {
 				<img
 					class="img-responsive"
 					src="${frappe.utils.escape_html(file_doc.file_url)}"
-					onerror="${file_preview_field.toggle(false)}"
 				/>
 			</div>`);
 		} else if (frappe.utils.is_video_file(file_doc.file_url)) {
@@ -54,16 +89,355 @@ frappe.ui.form.on("Pending Purchase Invoice", {
 			</div>`);
 		}
 
-		if ($preview) {
-			file_preview_field.toggle(true);
+		if ($preview && file_preview_field.$wrapper.html() != $preview[0].outerHTML) {
 			file_preview_field.$wrapper.html($preview);
 		}
 	},
 
-	build_match_section(frm) {
-		const matching_section = frm.get_field("matching_section");
-		frappe.require("ocr_dashboard.bundle.js", () => {
-			new ocr.pending_invoice.match_tab(matching_section.$wrapper[0], frm.doc, {purchase_order: 1})
+	select_purchase_orders(frm) {
+		new PurchaseDocumentSelector(frm, "Purchase Order")
+	},
+
+	select_purchase_receipts(frm) {
+		new PurchaseDocumentSelector(frm, "Purchase Receipt")
+	},
+
+	create_purchase_invoice(frm) {
+		if (frm.is_dirty()) {
+			frm.scroll_set = true;
+			frm.save();
+			frm.get_field("create_purchase_invoice").set_label(__("Create Purchase Invoice"));
+		} else {
+			if (items_are_not_linked_to_purchase_document(frm)) {
+				confirm(__("Create a new purchase order with all item lines without purchase order ?"),
+					() => { create_purchase_order(frm, true) },
+					() => { create_purchase_order(frm, false) },
+					__("Create and submit"),
+					__("Create and keep in draft"),
+				)
+			} else {
+				confirm(__("Create and submit a new purchase invoice ?"),
+					() => { create_purchase_invoice(frm, true) },
+					() => { create_purchase_invoice(frm, false) },
+					__("Create and submit"),
+					__("Create and keep in draft"),
+				)
+			}
+		}
+	},
+
+	net_total(frm) {
+		frm.trigger("calculate_grand_total");
+	},
+
+	calculate_grand_total(frm) {
+		frm.set_value("grand_total", (frm.doc.net_total || 0.0) + (frm.doc.tax_total || 0.0))
+	},
+
+	grand_total(frm) {
+		frm.trigger("compare_totals");
+	},
+
+	compare_totals(frm) {
+		[["net_total", "supplier_net_amount"], ["tax_total", "supplier_tax_amount"], ["grand_total", "supplier_grand_total"]].map(field => {
+			const ocr_value = frm.doc[field[1]] || 0.0;
+			const user_value = frm.doc[field[0]] || 0.0;
+			if (user_value != ocr_value) {
+				const diff = Math.abs(user_value - ocr_value);
+				frm.get_field(field[0]).set_description(`<span class='text-danger'>${__('Difference:')} ${format_currency(diff, 'EUR')}</span>`);
+			}
 		})
+	},
+
+	supplier(frm) {
+		erpnext.utils.get_party_details(frm);
+	},
+
+	tax_category(frm) {
+		erpnext.utils.set_taxes(frm, "tax_category")
 	}
 });
+
+const items_are_not_linked_to_purchase_document = (frm) => {
+	return !!frm.doc.items.filter(i => !i.reference_doctype).length
+}
+
+const create_purchase_invoice = (frm, submit=false) => {
+	frappe.show_alert("Purchase Invoice creation in progress")
+	frappe.call({
+		method: "create_purchase_invoice",
+		doc: frm.doc,
+		args: {
+			submit: submit
+		}
+	}).then((res) => {
+		frm.reload_doc();
+		const success_action = new ocr.ui.SuccessAction(frm, __("Purchase invoice created"), "Purchase Invoice", res.message.name)
+		success_action.show();
+	})
+}
+
+
+const create_purchase_order = (frm, submit=false) => {
+	frappe.show_alert("Purchase Order creation in progress")
+	frappe.call({
+		method: "create_purchase_order",
+		doc: frm.doc,
+		args: {
+			submit: submit
+		}
+	}).then((res) => {
+		frm.reload_doc();
+		const success_action = new ocr.ui.SuccessAction(frm, __("Purchase order created"), "Purchase Order", res.message.name)
+		success_action.show();
+	})
+}
+
+const confirm = (message, confirm_action, reject_action, confirm_title, reject_title) => {
+	var d = new frappe.ui.Dialog({
+		title: __("Confirm", null, "Title of confirmation dialog"),
+		primary_action_label: confirm_title || __("Yes", null, "Approve confirmation dialog"),
+		primary_action: () => {
+			confirm_action && confirm_action();
+			d.hide();
+		},
+		secondary_action_label: reject_title || __("No", null, "Dismiss confirmation dialog"),
+		secondary_action: () => {
+			reject_action && reject_action();
+			d.hide();
+		}
+	});
+
+	d.$body.append(`<p class="frappe-confirm-message">${message}</p>`);
+	d.show();
+
+	// flag, used to bind "okay" on enter
+	d.confirm_dialog = true;
+	return d;
+};
+
+
+frappe.ui.form.on("Pending Purchase Invoice Item", {
+	qty(frm, cdt, cdn) {
+		const row = locals[cdt][cdn];
+		frappe.model.set_value(cdt, cdn, "amount", row.qty * row.rate);
+		calculate_totals(frm);
+	},
+
+	rate(frm, cdt, cdn) {
+		const row = locals[cdt][cdn];
+		frappe.model.set_value(cdt, cdn, "amount", row.qty * row.rate);
+		calculate_totals(frm);
+	},
+})
+
+const calculate_totals = (frm) => {
+	const net_total = frm.doc.items.reduce(
+		(sum, item) => (sum + item.amount),
+		0
+	);
+	frm.set_value("net_total", net_total);
+}
+
+class PurchaseDocumentSelector {
+	constructor(frm, doctype) {
+		this.frm = frm;
+		this.doctype = doctype
+		this.date_field = this.doctype == "Purchase Order" ? "transaction_date" : "posting_date"
+
+		this.make_dialog()
+	}
+
+	make_dialog() {
+		const multiselect_dialog = new frappe.ui.form.MultiSelectDialog({
+			doctype: this.doctype,
+			target: this.doctype,
+			date_field: this.date_field,
+			size: "extra-large",
+			setters: [
+				{
+					fieldtype: "Link",
+					options: "Supplier",
+					label: __("Supplier"),
+					fieldname: "supplier",
+					default: this.frm.doc.supplier
+				},
+			],
+			columns: ["name", "supplier", this.date_field, "grand_total"],
+			allow_child_item_selection: true,
+			child_fieldname: "items",
+			child_columns: ["supplier", this.date_field, "item_code", "qty", "net_amount", "cost_center"],
+			add_filters_group: true,
+			primary_action_label: __("Select one or more sales orders"),
+			get_query: () => {
+				return {
+					query: "ocr.ocr.doctype.pending_purchase_invoice.pending_purchase_invoice.get_purchase_documents",
+					filters: {
+						company: this.frm.doc.company,
+						supplier: this.frm.doc.supplier,
+						docstatus: 1,
+						per_billed: ["<", 100.0],
+						status: ["!=", "Closed"]
+					},
+				};
+			},
+			action: (selected_docs, args) => {
+				if (selected_docs.length === 0) {
+					frappe.msgprint(this.doctype == "Purchase Order" ? __("Please select at least one purchase order"): __("Please select at least one purchase receipt"));
+					return;
+				}
+
+				const rows = multiselect_dialog.get_checked_items();
+				if (!rows.every(row => row.supplier === rows[0].supplier)) {
+					frappe.msgprint(this.doctype == "Purchase Order" ? __("Please select orders linked to the same supplier"): __("Please select receipts linked to the same supplier"));
+					return;
+				}
+
+				frappe.call({
+					method: "get_document_item_lines",
+					doc: this.frm.doc,
+					args: {
+						doctype: this.doctype,
+						selected_documents: selected_docs,
+						allow_child_item_selection: args.allow_child_item_selection,
+						filtered_line_items: args.filtered_children
+					}
+				}).then((res) => {
+					if (res.message.company && !this.frm.doc.company) {
+						this.frm.set_value("company", res.message.company)
+					}
+
+					if (res.message.supplier && !this.frm.doc.supplier) {
+						this.frm.set_value("supplier", res.message.supplier)
+					}
+
+					res.message.items.map(r => {
+						this.frm.add_child("items",
+							{
+								reference_doctype: "Purchase Order",
+								reference_docname: r.parent,
+								row: r.name,
+								project: r.project,
+								cost_center: r.cost_center,
+								price: r.price,
+								item_code: r.item_code,
+								rate: r.rate,
+								qty: r.qty,
+								amount: r.amount,
+								expense_account: r.expense_account
+							}
+						)
+						this.frm.refresh_field("items")
+					})
+
+					multiselect_dialog.dialog.hide();
+				})
+			}
+		});
+
+		multiselect_dialog.get_child_result = async () => {
+			let filters = [["parentfield", "=", multiselect_dialog.child_fieldname]];
+
+			await multiselect_dialog.add_parent_filters(filters);
+			multiselect_dialog.add_custom_child_filters(filters);
+
+			return frappe.call({
+				method: "ocr.ocr.doctype.pending_purchase_invoice.pending_purchase_invoice.get_documents_child_items",
+				args: {
+					doctype: this.doctype,
+					filters: filters,
+					limit_page_length: multiselect_dialog.child_page_length + 5,
+				},
+			});
+		}
+	}
+}
+
+
+ocr.ui.SuccessAction = class SuccessAction {
+	constructor(form, message, target_doctype, target_docname) {
+		this.form = form;
+		this.target_doctype = target_doctype;
+		this.target_docname = target_docname;
+		this.message = message || "";
+		this.load_setting();
+	}
+
+	load_setting() {
+		this.setting = {
+			"message": this.message,
+		}
+	}
+
+	show() {
+		if (!this.setting) return;
+
+		this.prepare_dom();
+		this.show_alert();
+	}
+
+	prepare_dom() {
+		this.container = $(document.body).find(".success-container");
+		if (!this.container.length) {
+			this.container = $('<div class="success-container">').appendTo(document.body);
+		}
+	}
+
+	show_alert() {
+		const $buttons = this.get_actions().map((action) => {
+			const $btn = $(
+				`<button class="next-action"><span>${__(action.label)}</span></button>`
+			);
+			$btn.click(() => action.action(this.form));
+			return $btn;
+		});
+
+		const next_action_container = $(`<div class="next-action-container"></div>`);
+		next_action_container.append($buttons);
+		const html = next_action_container;
+
+		frappe.show_alert(
+			{
+				message: this.setting.message,
+				body: html,
+				indicator: "green",
+			},
+			7
+		);
+	}
+
+	get_actions() {
+		const actions = [];
+		const checked_actions = ["email", "view", "next", "list"];
+		checked_actions.forEach((action) => {
+			actions.push(this.default_actions[action]);
+		});
+
+		return actions;
+	}
+
+	get default_actions() {
+		return {
+			view: {
+				label: __("View {}", [__(this.target_doctype)]),
+				action: (frm) => {
+					frappe.set_route("Form", this.target_doctype, this.target_docname);
+				},
+			},
+			next: {
+				label: __("Next"),
+				action: (frm) => frm.navigate_records(0),
+			},
+			email: {
+				label: __("Email"),
+				action: (frm) => frm.email_doc(),
+			},
+			list: {
+				label: __("Back to list"),
+				action: (frm) => {
+					frappe.set_route("List", this.target_doctype);
+				},
+			},
+		};
+	}
+};
