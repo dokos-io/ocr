@@ -1,7 +1,9 @@
 import re
 import datetime
+from dateutil.parser import parse
+from babel.dates import parse_date
 
-from frappe.utils import time_diff
+from frappe.utils import time_diff, getdate
 
 DateTimeLikeObject = str | datetime.date | datetime.datetime
 
@@ -126,7 +128,8 @@ def parse_number(text):
 			return int(n)
 		else:
 			return n
-	except: pass
+	except Exception:
+		pass
 	return None
 
 
@@ -137,3 +140,16 @@ def time_diff_in_minutes(
 ) -> float:
 	"""Returns the difference between given two dates in minutes."""
 	return round(float(time_diff(string_ed_date, string_st_date).total_seconds()) / 60, 2)
+
+
+
+def date_parser(date) -> datetime.date:
+	try:
+		return parse_date(date)
+	except Exception:
+		pass
+
+	try:
+		return getdate(parse(date))
+	except Exception:
+		return getdate()

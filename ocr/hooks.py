@@ -136,12 +136,10 @@ after_migrate = "ocr.migrate.after_migrate"
 doc_events = {
 	"Purchase Order": {
 		"on_update": [
-			"ocr.ocr.doctype.ocr_request.ocr_request.on_purchase_order_update",
 			"ocr.ocr.doctype.pending_purchase_invoice.pending_purchase_invoice.register_purchase_order_items",
 			"ocr.ocr.doctype.pending_purchase_invoice.pending_purchase_invoice.set_pending_purchase_order_status"
 		],
 		"on_submit": [
-			"ocr.ocr.doctype.ocr_request.ocr_request.on_purchase_order_submission",
 			"ocr.ocr.doctype.pending_purchase_invoice.pending_purchase_invoice.set_pending_purchase_order_status"
 		],
 		"on_cancel": [
@@ -150,7 +148,6 @@ doc_events = {
 		]
 	},
 	"Purchase Invoice": {
-		"after_mapping": "ocr.ocr.doctype.ocr_request.ocr_request.map_ocr_data",
 		"on_submit": [
 			"ocr.ocr.doctype.ocr_request.ocr_request.update_ocr_request_status",
 			"ocr.ocr.doctype.pending_purchase_invoice.pending_purchase_invoice.set_pending_purchase_order_status"
