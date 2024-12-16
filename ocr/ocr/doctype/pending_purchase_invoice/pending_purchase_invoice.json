@@ -19,6 +19,7 @@
   "file",
   "file_url",
   "title",
+  "ocr_request",
   "preview_column",
   "invoice_preview",
   "section_break_cesy",
@@ -188,10 +189,10 @@
    "options": "Purchase Taxes and Charges Template"
   },
   {
+   "default": "Today",
    "fieldname": "posting_date",
    "fieldtype": "Date",
    "label": "Posting Date",
-   "options": "Today",
    "reqd": 1
   },
   {
@@ -199,19 +200,22 @@
    "fieldtype": "Currency",
    "in_list_view": 1,
    "in_standard_filter": 1,
-   "label": "Net Amount"
+   "label": "Net Amount",
+   "read_only": 1
   },
   {
    "fieldname": "supplier_tax_amount",
    "fieldtype": "Currency",
-   "label": "Tax Amount"
+   "label": "Tax Amount",
+   "read_only": 1
   },
   {
    "fieldname": "supplier_grand_total",
    "fieldtype": "Currency",
    "in_list_view": 1,
    "in_standard_filter": 1,
-   "label": "Grand Total"
+   "label": "Grand Total",
+   "read_only": 1
   },
   {
    "fieldname": "net_total",
@@ -239,6 +243,13 @@
    "label": "Currency",
    "options": "Currency",
    "reqd": 1
+  },
+  {
+   "fieldname": "ocr_request",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "OCR Request",
+   "options": "OCR Request"
   }
  ],
  "index_web_pages_for_search": 1,
@@ -254,7 +265,7 @@
    "link_fieldname": "pending_purchase_invoice"
   }
  ],
- "modified": "2024-12-16 16:37:54.615137",
+ "modified": "2024-12-16 22:08:24.084923",
  "modified_by": "Administrator",
  "module": "OCR",
  "name": "Pending Purchase Invoice",
