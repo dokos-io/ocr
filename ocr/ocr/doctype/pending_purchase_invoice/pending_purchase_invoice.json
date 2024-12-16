@@ -8,20 +8,37 @@
   "status",
   "company",
   "supplier",
+  "currency",
   "bill_no",
   "bill_date",
+  "posting_date",
   "due_date",
-  "net_amount",
-  "tax_amount",
-  "grand_total",
+  "supplier_net_amount",
+  "supplier_tax_amount",
+  "supplier_grand_total",
   "file",
   "file_url",
+  "title",
   "preview_column",
   "invoice_preview",
   "section_break_cesy",
+  "select_purchase_orders",
+  "select_purchase_receipts",
+  "column_break_pnjn",
+  "section_break_qhrl",
   "items",
-  "match_tab",
-  "matching_section"
+  "section_break_leyk",
+  "tax_category",
+  "taxes_and_charges",
+  "section_break_qitx",
+  "column_break_rfqg",
+  "net_total",
+  "column_break_lutf",
+  "tax_total",
+  "column_break_wvsw",
+  "grand_total",
+  "column_break_ltet",
+  "create_purchase_invoice"
  ],
  "fields": [
   {
@@ -31,7 +48,8 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Status",
-   "options": "Pending\nCompleted"
+   "no_copy": 1,
+   "options": "Pending\nIn Progress\nCompleted"
   },
   {
    "fieldname": "supplier",
@@ -39,7 +57,8 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Supplier",
-   "options": "Supplier"
+   "options": "Supplier",
+   "reqd": 1
   },
   {
    "fieldname": "bill_no",
@@ -59,35 +78,6 @@
    "label": "Due Date"
   },
   {
-   "fieldname": "match_tab",
-   "fieldtype": "Tab Break",
-   "label": "Match"
-  },
-  {
-   "fieldname": "matching_section",
-   "fieldtype": "HTML",
-   "label": "Matching Section"
-  },
-  {
-   "fieldname": "net_amount",
-   "fieldtype": "Currency",
-   "in_list_view": 1,
-   "in_standard_filter": 1,
-   "label": "Net Amount"
-  },
-  {
-   "fieldname": "tax_amount",
-   "fieldtype": "Currency",
-   "label": "Tax Amount"
-  },
-  {
-   "fieldname": "grand_total",
-   "fieldtype": "Currency",
-   "in_list_view": 1,
-   "in_standard_filter": 1,
-   "label": "Grand Total"
-  },
-  {
    "fieldname": "invoice_preview",
    "fieldtype": "HTML",
    "label": "Invoice Preview"
@@ -96,7 +86,8 @@
    "fieldname": "company",
    "fieldtype": "Link",
    "label": "Company",
-   "options": "Company"
+   "options": "Company",
+   "reqd": 1
   },
   {
    "fieldname": "file",
@@ -118,18 +109,152 @@
   },
   {
    "fieldname": "section_break_cesy",
-   "fieldtype": "Section Break"
+   "fieldtype": "Section Break",
+   "hide_border": 1
   },
   {
    "fieldname": "items",
    "fieldtype": "Table",
    "label": "Items",
    "options": "Pending Purchase Invoice Item"
+  },
+  {
+   "fieldname": "select_purchase_orders",
+   "fieldtype": "Button",
+   "label": "Select Purchase Orders"
+  },
+  {
+   "fieldname": "column_break_pnjn",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "select_purchase_receipts",
+   "fieldtype": "Button",
+   "label": "Select Purchase Receipts"
+  },
+  {
+   "fieldname": "section_break_qhrl",
+   "fieldtype": "Section Break",
+   "hide_border": 1
+  },
+  {
+   "fieldname": "section_break_qitx",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_rfqg",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_ltet",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval:doc.status!=\"Completed\"",
+   "fieldname": "create_purchase_invoice",
+   "fieldtype": "Button",
+   "label": "Create Purchase Invoice"
+  },
+  {
+   "fieldname": "column_break_wvsw",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Title"
+  },
+  {
+   "fieldname": "column_break_lutf",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval:doc.calculate_taxes_globally",
+   "fieldname": "section_break_leyk",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "tax_category",
+   "fieldtype": "Link",
+   "label": "Tax Category",
+   "options": "Tax Category",
+   "read_only": 1
+  },
+  {
+   "fieldname": "taxes_and_charges",
+   "fieldtype": "Link",
+   "label": "Purchase Taxes Template",
+   "options": "Purchase Taxes and Charges Template"
+  },
+  {
+   "fieldname": "posting_date",
+   "fieldtype": "Date",
+   "label": "Posting Date",
+   "options": "Today",
+   "reqd": 1
+  },
+  {
+   "fieldname": "supplier_net_amount",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Net Amount"
+  },
+  {
+   "fieldname": "supplier_tax_amount",
+   "fieldtype": "Currency",
+   "label": "Tax Amount"
+  },
+  {
+   "fieldname": "supplier_grand_total",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Grand Total"
+  },
+  {
+   "fieldname": "net_total",
+   "fieldtype": "Currency",
+   "label": "Net Total",
+   "read_only": 1
+  },
+  {
+   "fieldname": "tax_total",
+   "fieldtype": "Currency",
+   "label": "Tax Total",
+   "read_only": 1
+  },
+  {
+   "fieldname": "grand_total",
+   "fieldtype": "Currency",
+   "label": "Grand Total",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "company.default_currency",
+   "fetch_if_empty": 1,
+   "fieldname": "currency",
+   "fieldtype": "Link",
+   "label": "Currency",
+   "options": "Currency",
+   "reqd": 1
   }
  ],
  "index_web_pages_for_search": 1,
- "links": [],
- "modified": "2024-12-09 11:06:39.884283",
+ "links": [
+  {
+   "group": "Purchase Orders",
+   "link_doctype": "Purchase Order",
+   "link_fieldname": "pending_purchase_invoice"
+  },
+  {
+   "group": "Purchase Invoices",
+   "link_doctype": "Purchase Invoice",
+   "link_fieldname": "pending_purchase_invoice"
+  }
+ ],
+ "modified": "2024-12-16 16:37:54.615137",
  "modified_by": "Administrator",
  "module": "OCR",
  "name": "Pending Purchase Invoice",
@@ -148,7 +273,9 @@
    "write": 1
   }
  ],
+ "show_title_field_in_link": 1,
  "sort_field": "modified",
  "sort_order": "DESC",
- "states": []
+ "states": [],
+ "title_field": "title"
 }

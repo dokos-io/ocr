@@ -14,16 +14,20 @@ class PendingPurchaseInvoiceItem(Document):
 	if TYPE_CHECKING:
 		from frappe.types import DF
 
+		amount: DF.Float
 		cost_center: DF.Link | None
-		item: DF.Link | None
+		expense_account: DF.Link | None
+		item_code: DF.Link | None
 		parent: DF.Data
 		parentfield: DF.Data
 		parenttype: DF.Data
-		price: DF.Float
 		project: DF.Link | None
-		quantity: DF.Float
+		qty: DF.Float
+		rate: DF.Float
+		reference_docname: DF.DynamicLink | None
+		reference_doctype: DF.Link | None
+		row: DF.Data | None
 		supplier_description: DF.SmallText | None
 		supplier_item_code: DF.SmallText | None
-		unit_price: DF.Float
 	# end: auto-generated types
 	pass
