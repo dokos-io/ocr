@@ -13,26 +13,13 @@
   "column_break_yccb",
   "ocr_basket",
   "transaction_type",
+  "section_break_igml",
+  "document_html",
   "section_break_pgfr",
   "error",
   "section_break_hxzx",
   "job",
-  "analysis",
-  "document_tab",
-  "document_html",
-  "data_tab",
-  "company",
-  "supplier",
-  "bill_no",
-  "bill_date",
-  "due_date",
-  "column_break_lomt",
-  "net_total",
-  "grand_total",
-  "tax_total",
-  "mapping_section",
-  "header_mapping",
-  "line_items_mapping"
+  "analysis"
  ],
  "fields": [
   {
@@ -42,7 +29,7 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Status",
-   "options": "Pending\nAnalysis Completed\nPurchase Order Created\nPurchase Invoice Created\nError\nClosed\nCompleted",
+   "options": "Pending\nAnalysis Completed\nError\nClosed\nCompleted",
    "read_only": 1
   },
   {
@@ -97,9 +84,8 @@
   {
    "fieldname": "error",
    "fieldtype": "Small Text",
-   "in_list_view": 1,
-   "label": "Error",
-   "read_only": 1
+   "hidden": 1,
+   "label": "Error"
   },
   {
    "default": "Purchase Invoice",
@@ -110,93 +96,22 @@
    "read_only": 1
   },
   {
-   "fieldname": "mapping_section",
-   "fieldtype": "Section Break",
-   "label": "Mapping"
-  },
-  {
-   "fieldname": "header_mapping",
-   "fieldtype": "Table",
-   "label": "Header Data",
-   "options": "OCR Header Mapping"
-  },
-  {
-   "fieldname": "line_items_mapping",
-   "fieldtype": "Table",
-   "label": "Line Items Data",
-   "options": "OCR Line Items Mapping"
-  },
-  {
-   "fieldname": "document_tab",
-   "fieldtype": "Tab Break",
-   "label": "Document"
-  },
-  {
    "fieldname": "document_html",
    "fieldtype": "HTML",
    "label": "Document HTML"
   },
   {
-   "fieldname": "tax_total",
-   "fieldtype": "Float",
-   "label": "Tax Total",
-   "read_only": 1
-  },
-  {
-   "fieldname": "grand_total",
-   "fieldtype": "Float",
-   "label": "Grand Total",
-   "read_only": 1
-  },
-  {
-   "fieldname": "data_tab",
-   "fieldtype": "Tab Break",
-   "label": "Data"
-  },
-  {
-   "fieldname": "supplier",
-   "fieldtype": "Link",
-   "in_list_view": 1,
-   "in_standard_filter": 1,
-   "label": "Supplier",
-   "options": "Supplier"
-  },
-  {
-   "fieldname": "column_break_lomt",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "company",
-   "fieldtype": "Link",
-   "in_list_view": 1,
-   "in_standard_filter": 1,
-   "label": "Company",
-   "options": "Company"
-  },
-  {
-   "fieldname": "net_total",
-   "fieldtype": "Float",
-   "label": "Net Total",
-   "read_only": 1
-  },
-  {
-   "fieldname": "bill_no",
-   "fieldtype": "Data",
-   "label": "Supplier Invoice No"
-  },
-  {
-   "fieldname": "bill_date",
-   "fieldtype": "Date",
-   "label": "Supplier Invoice Date"
-  },
-  {
-   "fieldname": "due_date",
-   "fieldtype": "Date",
-   "label": "Due Date"
+   "fieldname": "section_break_igml",
+   "fieldtype": "Section Break"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [
+  {
+   "group": "Pending Purchase Invoice",
+   "link_doctype": "Pending Purchase Invoice",
+   "link_fieldname": "ocr_request"
+  },
   {
    "group": "Purchase Orders",
    "link_doctype": "Purchase Order",
@@ -208,7 +123,7 @@
    "link_fieldname": "ocr_request"
   }
  ],
- "modified": "2024-09-13 11:43:27.217648",
+ "modified": "2024-12-17 17:23:09.525833",
  "modified_by": "Administrator",
  "module": "OCR",
  "name": "OCR Request",

@@ -3,6 +3,7 @@
 
 frappe.ui.form.on("OCR Request", {
 	refresh(frm) {
+		frm.dashboard.clear_headline();
 		if (frm.doc.status != "Closed") {
 			frm.add_custom_button(__('Close'), function() {
 				frm.call("close_request").then(() => { frm.reload_doc() });
@@ -17,6 +18,10 @@ frappe.ui.form.on("OCR Request", {
 			frappe.model.with_doc("File", frm.doc.file).then(() => {
 				frm.trigger("preview_file")
 			});
+		}
+
+		if (from.doc.status == "Error") {
+			frm.dashboard.set_headline_alert(__(frm.doc.error))
 		}
 	},
 

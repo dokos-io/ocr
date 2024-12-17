@@ -30,4 +30,5 @@ class PendingPurchaseInvoiceItem(Document):
 		supplier_description: DF.SmallText | None
 		supplier_item_code: DF.SmallText | None
 	# end: auto-generated types
+
 	pass
