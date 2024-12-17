@@ -4,8 +4,6 @@
 import re
 import time
 import difflib
-import datetime
-
 
 import frappe
 from frappe import _
@@ -41,26 +39,14 @@ class OCRRequest(Document):
 
 	if TYPE_CHECKING:
 		from frappe.types import DF
-		from ocr.ocr.doctype.ocr_header_mapping.ocr_header_mapping import OCRHeaderMapping
-		from ocr.ocr.doctype.ocr_line_items_mapping.ocr_line_items_mapping import OCRLineItemsMapping
 
 		analysis: DF.Code | None
-		bill_date: DF.Date | None
-		bill_no: DF.Data | None
-		company: DF.Link | None
-		due_date: DF.Date | None
 		error: DF.SmallText | None
 		file: DF.Link | None
 		filename: DF.Data | None
-		grand_total: DF.Float
-		header_mapping: DF.Table[OCRHeaderMapping]
 		job: DF.SmallText | None
-		line_items_mapping: DF.Table[OCRLineItemsMapping]
-		net_total: DF.Float
 		ocr_basket: DF.Link | None
-		status: DF.Literal["Pending", "Analysis Completed", "Purchase Order Created", "Purchase Invoice Created", "Error", "Closed", "Completed"]
-		supplier: DF.Link | None
-		tax_total: DF.Float
+		status: DF.Literal["Pending", "Analysis Completed", "Error", "Closed", "Completed"]
 		transaction_type: DF.Literal["", "Purchase Invoice", "Expense"]
 	# end: auto-generated types
 
@@ -76,12 +62,8 @@ class OCRRequest(Document):
 
 	def before_save(self):
 		if self.job and self.analysis:
-			if self.transaction_type == "Purchase Invoice":
-				if not frappe.db.get_value("Pending Purchase Invoice", dict(ocr_request=self.name)):
-					self.create_pending_purchase_invoice()
-
-	def validate(self):
-		self.find_header_correspondence()
+			if self.transaction_type == "Purchase Invoice" and not frappe.db.get_value("Pending Purchase Invoice", dict(ocr_request=self.name)):
+				self.create_pending_purchase_invoice()
 
 	@frappe.whitelist()
 	def make_analysis(self):
@@ -103,14 +85,13 @@ class OCRRequest(Document):
 			self.log_error(_("OCR Analysis Error"))
 
 	def get_textract_analysis(self):
-		if self.analysis and frappe.parse_json(self.analysis).get("JobStatus") == "SUCCEEDED":
-			return frappe.parse_json(self.analysis)
+		if self.analysis and self.get_raw_data().get("JobStatus") == "SUCCEEDED":
+			return self.get_raw_data()
 
 		textract = AWSTextractExpense(self)
 		if analysis := textract.task.get_result():
 			if analysis["JobStatus"] == "SUCCEEDED":
-				self.register_parsed_data(analysis.get("ParsedData", {}))
-				self.analysis = frappe.as_json(analysis)
+				self.analysis = frappe.as_json(analysis.get("ParsedData", {}))
 				self.save()
 
 			elif time_diff_in_hours(now_datetime(), get_datetime(self.creation)) < (7 * 24) : # Check for 7 days
@@ -164,77 +145,8 @@ class OCRRequest(Document):
 			"message": msg
 		}
 
-	def register_parsed_data(self, parsed_data):
-		self.header_mapping = []
-		self.line_items_mapping = []
-		for key, value in parsed_data.items():
-			if key == "_children":
-				for child in parsed_data["_children"]:
-					row = {}
-					for row_key, row_value in child.items():
-						if row_key in ["QUANTITY", "UNIT_PRICE", "PRICE"]:
-							row[row_key.lower()] = parse_number(row_value)
-						else:
-							row[row_key.lower()] = row_value
-					self.append("line_items_mapping", row)
-			else:
-				self.append("header_mapping", {
-					"key": key,
-					"value": value
-				})
-
-	def get_header_dict(self):
-		return {line.key: line.value for line in self.header_mapping}
-
-	def get_header_parsed_dict(self):
-		parsed_dict = {}
-		for line in self.header_mapping:
-			if line.field and line.field != "supplier":
-				value = line.field_value or line.value
-				if "date" in line.field and not (isinstance(value, datetime.datetime) or isinstance(value, datetime.date)):
-					parsed_dict[line.field] = date_parser(line.field_value)
-				else:
-					parsed_dict[line.field] = line.field_value or line.value
-		return parsed_dict
-
-	def find_header_correspondence(self):
-		pi_fields = [f.fieldname for f in frappe.get_meta("Purchase Invoice").fields]
-
-		for line in self.header_mapping:
-			predefined_mapping = PURCHASE_INVOICE_MAPPING.get(line.key)
-
-			if line.field_value:
-				if predefined_mapping and hasattr(self, predefined_mapping):
-					if not self.get(predefined_mapping):
-						self.set(predefined_mapping, line.field_value)
-				continue
-
-			if line.key.lower() in pi_fields:
-				line.field = (line.key.lower() or "")[:140]
-			elif predefined_mapping:
-				line.field = (predefined_mapping or "")[:140]
-
-			if line.key == "VENDOR_NAME":
-				line.field_value = self.get_supplier_name()
-
-			elif line.key == "RECEIVER_NAME":
-				line.field_value = self.get_company()
-
-			elif line.key in PURCHASE_INVOICE_TOTALS.keys():
-				line.field = PURCHASE_INVOICE_TOTALS[line.key]
-				line.field_value = parse_number(line.value)
-
-			elif "DATE" in line.key:
-				try:
-					line.field_value = date_parser(line.value)
-				except Exception:
-					pass
-
-			elif line.field:
-				line.field_value = line.value
-
 	def get_supplier_name(self):
-		header = self.get_header_dict()
+		header = self.get_raw_data()
 		supplier = None
 		if header.get("VENDOR_VAT_NUMBER"):
 			supplier = frappe.db.get_value("Supplier", dict(tax_id=header.get("VENDOR_VAT_NUMBER")))
@@ -271,7 +183,7 @@ class OCRRequest(Document):
 		return supplier or ""
 
 	def get_company(self):
-		header = self.get_header_dict()
+		header = self.get_raw_data()
 		company = None
 
 		company = self.get_value_from_mapping("RECEIVER_NAME", header.get("RECEIVER_NAME"), "company")
@@ -315,14 +227,59 @@ class OCRRequest(Document):
 		self.status = "Pending"
 		self.set_status(True)
 
-	def get_data_from_analysis(self):
-		data = self.get_header_parsed_dict()
-		data.update({
-			"supplier": self.get_supplier_name(),
-			"company": self.get_company()
-		})
+	def get_raw_data(self):
+		return frappe.parse_json(self.analysis or {})
 
+	def get_data_from_analysis(self):
+		return self.get_parsed_data()
+
+	def get_parsed_data(self):
+		data = {}
+		items = []
+		parsed_data = self.get_raw_data()
+		for key, value in parsed_data.items():
+			if key == "_children":
+				for child in parsed_data["_children"]:
+					row = {}
+					for row_key, row_value in child.items():
+						if row_key in ["QUANTITY", "UNIT_PRICE", "PRICE"]:
+							row[row_key.lower()] = parse_number(row_value)
+						else:
+							row[row_key.lower()] = row_value
+					items.append(row)
+			else:
+				fieldname, fieldvalue = self.find_header_correspondence(key, value)
+				if fieldname and fieldvalue:
+					data[fieldname] = fieldvalue
+
+		data["items"] = items
 		return data
+
+	def find_header_correspondence(self, key, value):
+		pi_fields = [f.fieldname for f in frappe.get_meta("Purchase Invoice").fields]
+
+		fieldname = None
+		predefined_mapping = PURCHASE_INVOICE_MAPPING.get(key)
+		if key.lower() in pi_fields:
+			fieldname = (key.lower() or "")[:140]
+		elif predefined_mapping:
+			fieldname = (predefined_mapping or "")[:140]
+
+		match key:
+			case "VENDOR_NAME":
+				return "supplier", self.get_supplier_name()
+			case "RECEIVER_NAME":
+				return "company", self.get_company()
+			case key if key in PURCHASE_INVOICE_TOTALS.keys():
+				return PURCHASE_INVOICE_TOTALS[key], parse_number(value)
+			case key if "DATE" in key and fieldname:
+				try:
+					return fieldname, date_parser(value)
+				except Exception:
+					return None, None
+			case fieldname:
+				return fieldname, value
+
 
 	def create_pending_purchase_invoice(self):
 		data = self.get_data_from_analysis()
@@ -336,18 +293,8 @@ class OCRRequest(Document):
 		doc.supplier_net_amount = data.get("net_total")
 		doc.supplier_tax_amount = data.get("grand_total")
 		doc.supplier_grand_total = data.get("tax_total")
-
-		for item in self.line_items_mapping:
-			doc.append("items", {
-				"supplier_description": item.item,
-				"supplier_item_code": item.product_code,
-				"item_code": item.item_code,
-				"rate": item.unit_price,
-				"qty": item.quantity,
-				"amount": item.price
-			})
-
-		doc.insert()
+		
+		return doc.insert(ignore_mandatory=True, ignore_links=True)
 
 
 def check_pending_analysis():

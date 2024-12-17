@@ -1,6 +1,6 @@
 {
  "actions": [],
- "allow_rename": 1,
+ "autoname": "autoincrement",
  "creation": "2024-12-09 09:29:54.884756",
  "doctype": "DocType",
  "engine": "InnoDB",
@@ -265,10 +265,11 @@
    "link_fieldname": "pending_purchase_invoice"
   }
  ],
- "modified": "2024-12-16 22:08:24.084923",
+ "modified": "2024-12-17 17:17:57.744143",
  "modified_by": "Administrator",
  "module": "OCR",
  "name": "Pending Purchase Invoice",
+ "naming_rule": "Autoincrement",
  "owner": "Administrator",
  "permissions": [
   {
