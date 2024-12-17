@@ -61,6 +61,15 @@ def get_custom_fields():
 			"fetch_from": "ocr_request.file",
 			"no_copy": 1
 		},
+		{
+			"fieldname": "pending_purchase_invoice",
+			"fieldtype": "Link",
+			"options": "Pending Purchase Invoice",
+			"label": "Pending Purchase Invoice",
+			"insert_after": "ocr_original_file",
+			"read_only": 1,
+			"no_copy": 1
+		},
 	]
 
 	return {
@@ -73,7 +82,17 @@ def get_custom_fields():
 				"options": "OCR Line Items Mapping",
 				"label": "OCR Request Line Item",
 				"insert_after": "supplier_quotation_item",
-				"read_only": 1
+				"read_only": 1,
+				"no_copy": 1
+			},
+			{
+				"fieldname": "pending_purchase_invoice_item",
+				"fieldtype": "Link",
+				"options": "Pending Purchase Invoice Item",
+				"label": "Pending Purchase Invoice Item",
+				"insert_after": "ocr_request_line_item",
+				"read_only": 1,
+				"no_copy": 1
 			},
 		],
 		"Supplier": [
