@@ -1,7 +1,12 @@
 import frappe
 
+from ocr.install import add_custom_fields
+
 def execute():
 	frappe.reload_doc("ocr", "doctype", "Pending Purchase Invoice")
+
+	add_custom_fields()
+
 	for ocr_request in frappe.get_all("OCR Request", filters={"status": ("not in", ("Closed", "Completed")), "docstatus": 0}, order_by="creation asc"):
 		ocr_request_doc = frappe.get_doc("OCR Request", ocr_request.name)
 		pending_purchase_invoice = ocr_request_doc.create_pending_purchase_invoice()

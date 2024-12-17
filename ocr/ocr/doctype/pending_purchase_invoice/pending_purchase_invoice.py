@@ -53,7 +53,10 @@ class PendingPurchaseInvoice(AccountsController):
 	# end: auto-generated types
 
 	def validate(self):
-		self.title = f"{self.supplier} : {self.bill_no}"[:140] if self.bill_no else f"{self.supplier}"[:140]
+		if self.supplier:
+			self.title = f"{self.supplier} : {self.bill_no}"[:140] if self.bill_no else f"{self.supplier}"[:140]
+		else:
+			self.title = _("Missing Supplier")
 		self.calculate_due_date()
 		self.calculate_totals()
 
