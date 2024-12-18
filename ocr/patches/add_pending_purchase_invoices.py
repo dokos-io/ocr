@@ -8,12 +8,16 @@ def execute():
 	add_custom_fields()
 
 	for ocr_request in frappe.get_all("OCR Request", filters={"status": ("not in", ("Closed", "Completed")), "docstatus": 0}, order_by="creation asc"):
+		if frappe.db.get_value("Purchase Invoice", filters={"docstatus": 1, "ocr_request": ocr_request.name}):
+			frappe.db.set_value("OCR Request", ocr_request.name, "status", "Completed", update_modified=False)
+			continue
+
 		ocr_request_doc = frappe.get_doc("OCR Request", ocr_request.name)
 		pending_purchase_invoice = ocr_request_doc.create_pending_purchase_invoice()
 
 		for dt in ["Purchase Order", "Purchase Invoice"]:
 			if docname := frappe.db.get_value(dt, dict(ocr_request=ocr_request.name)):
-				frappe.db.set_value(dt, docname, "pending_purchase_invoice", docname, update_modified=False)
+				frappe.db.set_value(dt, docname, "pending_purchase_invoice", pending_purchase_invoice.name, update_modified=False)
 
 				pending_purchase_invoice.items = []
 				target_doc = frappe.get_doc(dt, docname)

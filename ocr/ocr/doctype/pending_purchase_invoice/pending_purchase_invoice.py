@@ -77,7 +77,7 @@ class PendingPurchaseInvoice(Document):
 		# 1. Get from previous invoices with same address
 		if self.vendor_address:
 			invoices = frappe.get_all("Pending Purchase Invoice", filters={"vendor_address": ("like", f"{self.vendor_address[:5]}%"), "status": "Completed", "name": ("!=", self.name), "supplier": ("is", "set")}, fields=["supplier", "vendor_address"])
-			if best_match := get_best_match_from_list_of_dicts(invoices, self.vendor_address, "vendor_address"):
+			if invoices and (best_match := get_best_match_from_list_of_dicts(invoices, self.vendor_address, "vendor_address")):
 				self.supplier = best_match.get("supplier")
 
 		# 2.Get from OCR Request
