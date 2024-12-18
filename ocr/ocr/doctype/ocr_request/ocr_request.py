@@ -293,6 +293,8 @@ class OCRRequest(Document):
 		doc.supplier_net_amount = data.get("net_total")
 		doc.supplier_tax_amount = data.get("grand_total")
 		doc.supplier_grand_total = data.get("tax_total")
+		doc.ocr_request = self.name
+		doc.file = self.file
 		
 		return doc.insert(ignore_mandatory=True, ignore_links=True)
 
