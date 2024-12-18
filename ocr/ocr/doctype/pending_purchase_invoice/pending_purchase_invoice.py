@@ -315,6 +315,7 @@ class PendingPurchaseInvoice(Document):
 	@frappe.whitelist()
 	def close_request(self):
 		self.db_set("status", "Closed")
+		self.run_method("on_close")
 
 	@frappe.whitelist()
 	def open_request(self):
