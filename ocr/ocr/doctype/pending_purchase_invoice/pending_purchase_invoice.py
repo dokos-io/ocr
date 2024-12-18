@@ -39,6 +39,7 @@ class PendingPurchaseInvoice(Document):
 		items: DF.Table[PendingPurchaseInvoiceItem]
 		name: DF.Int | None
 		net_total: DF.Currency
+		ocr_basket: DF.Link | None
 		ocr_request: DF.Link | None
 		posting_date: DF.Date
 		status: DF.Literal["Pending", "In Progress", "Completed", "Closed"]
@@ -58,10 +59,11 @@ class PendingPurchaseInvoice(Document):
 		else:
 			self.title = _("Missing Supplier")
 		self.calculate_due_date()
-		self.calculate_totals()
 
 		if not self.items:
 			self.append_matched_orders()
+
+		self.calculate_totals()
 
 	def calculate_due_date(self):
 		if not self.due_date and self.supplier:
@@ -87,10 +89,17 @@ class PendingPurchaseInvoice(Document):
 		if commit:
 			self.db_set("status", status)
 
+	@frappe.whitelist()
 	def calculate_totals(self):
 		self.calculate_net_total()
 		self.calculate_taxes()
 		self.calculate_grand_total()
+
+		return {
+			"net_total": self.net_total,
+			"tax_total": self.tax_total,
+			"grand_total": self.grand_total
+		}
 
 	def calculate_net_total(self):
 		self.net_total = sum(flt(i.amount) for i in self.items)
@@ -102,6 +111,7 @@ class PendingPurchaseInvoice(Document):
 			doc.run_method("calculate_taxes_and_totals")
 			self.tax_total = doc.total_taxes_and_charges
 		except Exception:
+			print(frappe.get_traceback())
 			frappe.clear_messages()
 
 	def calculate_grand_total(self):
@@ -212,10 +222,10 @@ class PendingPurchaseInvoice(Document):
 		for matched_order in matched_orders:
 			doc = frappe.get_doc("Purchase Order", matched_order)
 			for item in doc.items:
-				row = frappe.copy_doc(item)
-				row.reference_doctype = doc.doctype
-				row.reference_docname = doc.name
-				row.row = item.name
+				row = frappe.copy_doc(item).as_dict()
+				row["reference_doctype"] = doc.doctype
+				row["reference_docname"] = doc.name
+				row["row"] = item.name
 				self.append("items", row)
 
 	def get_matched_orders(self):

@@ -291,8 +291,8 @@ class OCRRequest(Document):
 		doc.bill_date = data.get("bill_date")
 		doc.due_date = data.get("due_date")
 		doc.supplier_net_amount = data.get("net_total")
-		doc.supplier_tax_amount = data.get("grand_total")
-		doc.supplier_grand_total = data.get("tax_total")
+		doc.supplier_tax_amount = data.get("tax_total")
+		doc.supplier_grand_total = data.get("grand_total")
 		doc.ocr_request = self.name
 		doc.file = self.file
 		
