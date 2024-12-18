@@ -123,6 +123,9 @@ class OCRRequest(Document):
 			return
 
 		status = "Pending"
+		if ppi_status := frappe.db.get_value("Pending Purchase Invoice", dict(ocr_request=self.name)):
+			if ppi_status in ["Closed", "Completed"]:
+				status = ppi_status
 		if self.job:
 			status = "Analysis Completed"
 		if self.error:
@@ -310,10 +313,9 @@ def get_analysis(request_id):
 	doc = frappe.get_doc("OCR Request", request_id)
 	return doc.get_analysis()
 
+
 def update_ocr_request_status(doc, method):
 	if doc.ocr_request:
 		ocr_request = frappe.get_doc("OCR Request", doc.ocr_request)
 		ocr_request.set_status(True)
 
-		if ocr_request.status == "Completed":
-			ocr_request.db_set("analysis", None) # Delete analysis to avoid having a huge database
