@@ -156,6 +156,9 @@ doc_events = {
 			"ocr.ocr.doctype.ocr_request.ocr_request.update_ocr_request_status",
 			"ocr.ocr.doctype.pending_purchase_invoice.pending_purchase_invoice.set_pending_purchase_order_status"
 		]
+	},
+	"Pending Purchase Invoice": {
+		"on_close": "ocr.ocr.doctype.ocr_request.ocr_request.update_ocr_request_status",
 	}
 }
 
