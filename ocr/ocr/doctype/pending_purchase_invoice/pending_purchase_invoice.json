@@ -265,7 +265,7 @@
    "link_fieldname": "pending_purchase_invoice"
   }
  ],
- "modified": "2024-12-18 14:15:57.849178",
+ "modified": "2024-12-18 14:24:52.527507",
  "modified_by": "Administrator",
  "module": "OCR",
  "name": "Pending Purchase Invoice",
@@ -288,6 +288,23 @@
  "show_title_field_in_link": 1,
  "sort_field": "modified",
  "sort_order": "DESC",
- "states": [],
+ "states": [
+  {
+   "color": "Blue",
+   "title": "Pending"
+  },
+  {
+   "color": "Gray",
+   "title": "Closed"
+  },
+  {
+   "color": "Orange",
+   "title": "In Progress"
+  },
+  {
+   "color": "Green",
+   "title": "Completed"
+  }
+ ],
  "title_field": "title"
 }
