@@ -2,6 +2,7 @@
 # For license information, please see license.txt
 
 import re
+import difflib
 from frappe.model.document import Document
 from pypika.terms import ExistsCriterion
 
@@ -51,9 +52,12 @@ class PendingPurchaseInvoice(Document):
 		tax_total: DF.Currency
 		taxes_and_charges: DF.Link | None
 		title: DF.Data | None
+		vendor_address: DF.SmallText | None
 	# end: auto-generated types
 
 	def validate(self):
+		self.get_supplier()
+
 		if self.supplier:
 			self.title = f"{self.supplier} : {self.bill_no}"[:140] if self.bill_no else f"{self.supplier}"[:140]
 		else:
@@ -64,6 +68,27 @@ class PendingPurchaseInvoice(Document):
 			self.append_matched_orders()
 
 		self.calculate_totals()
+
+	def get_supplier(self):
+		if self.supplier:
+			return
+
+		# 1. Get from previous invoices with same address
+		if self.vendor_address:
+			invoices = frappe.get_all("Pending Purchase Invoice", filters={"vendor_address": ("like", f"{self.vendor_address[:5]}%"), "status": "Completed", "name": ("!=", self.name), "supplier": ("is", "set")}, fields=["supplier", "vendor_address"])
+			if best_match := get_best_match_from_list_of_dicts(invoices, self.vendor_address, "vendor_address"):
+				self.supplier = best_match.get("supplier")
+
+		# 2.Get from OCR Request
+		if not self.supplier and self.ocr_request:
+			ocr_data = self.get_ocr_analysis()
+			# 2.1 Find VENDOR_URL
+			if ocr_data.get("VENDOR_URL"):
+				if matching_ocr_requests := frappe.get_all("OCR Request", filters={"analysis": ("like", f"%{ocr_data.get('VENDOR_URL')}%"), "name": ("!=", self.ocr_request)}, limit=1, pluck="name"):
+					self.supplier = frappe.db.get_value("Pending Purchase Invoice", dict(ocr_request=matching_ocr_requests[0]))
+
+
+
 
 	def calculate_due_date(self):
 		if not self.due_date and self.supplier:
@@ -267,7 +292,7 @@ class PendingPurchaseInvoice(Document):
 
 		matched_orders = set()
 		if self.ocr_request:
-			ocr_data = frappe.get_doc("OCR Request", self.ocr_request).get_data_from_analysis()
+			ocr_data = self.get_ocr_analysis()
 			if ocr_data.get("PO_NUMBER"):
 				for open_order in open_orders:
 					if find_purchase_order_correspondance(open_order.name, ocr_data["PO_NUMBER"]):
@@ -282,6 +307,12 @@ class PendingPurchaseInvoice(Document):
 
 		return matched_orders
 
+	def get_ocr_analysis(self):
+		if not self.ocr_request:
+			return {}
+
+		return frappe.get_doc("OCR Request", self.ocr_request).get_data_from_analysis()
+
 	@frappe.whitelist()
 	def close_request(self):
 		self.db_set("status", "Closed")
@@ -290,6 +321,20 @@ class PendingPurchaseInvoice(Document):
 	def open_request(self):
 		self.status = "Pending"
 		self.set_status(True)
+
+
+def get_best_match_from_list_of_dicts(data, matching_element, key):
+	if best_match := next(iter(sorted(
+		data,
+		key=lambda doc: difflib.SequenceMatcher(
+			lambda doc: doc == " ", doc.get(key).lower(), matching_element.lower()
+		).ratio(),
+		reverse=True,
+	))):
+		return best_match
+
+	return {}
+
 
 def make_purchase_order(source_name, target_doc=None, ignore_permissions=False, simulation=False):
 	from frappe.model.mapper import get_mapped_doc

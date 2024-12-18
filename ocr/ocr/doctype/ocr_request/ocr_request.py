@@ -22,7 +22,9 @@ PURCHASE_INVOICE_MAPPING = {
 	"VENDOR_NAME": "supplier",
 	"RECEIVER_NAME": "company",
 	"TAX_PAYER_ID": "tax_id",
-	"DUE_DATE": "due_date"
+	"VENDOR_VAT_NUMBER": "tax_id",
+	"DUE_DATE": "due_date",
+	"VENDOR_ADDRESS": "vendor_address"
 }
 
 PURCHASE_INVOICE_TOTALS = dict(
@@ -154,11 +156,11 @@ class OCRRequest(Document):
 		if header.get("VENDOR_VAT_NUMBER"):
 			supplier = frappe.db.get_value("Supplier", dict(tax_id=header.get("VENDOR_VAT_NUMBER")))
 
+		if not supplier and header.get("TAX_PAYER_ID"):
+			supplier = frappe.db.get_value("Supplier", dict(tax_id=header.get("TAX_PAYER_ID")))
+
 		if not supplier and header.get("VENDOR_NAME"):
 			supplier = frappe.db.get_value("Supplier", header.get("VENDOR_NAME"))
-
-			if not supplier:
-				supplier = self.get_value_from_mapping("VENDOR_NAME", header.get("VENDOR_NAME"), "supplier")
 
 		if not supplier and header.get("VENDOR_NAME") and len(header.get("VENDOR_NAME").split(" ")) > 1:
 			for substring in header.get("VENDOR_NAME").split(" "):
@@ -188,9 +190,6 @@ class OCRRequest(Document):
 	def get_company(self):
 		header = self.get_raw_data()
 		company = None
-
-		company = self.get_value_from_mapping("RECEIVER_NAME", header.get("RECEIVER_NAME"), "company")
-
 		companies = [x.lower() for x in frappe.get_all("Company", pluck="name")]
 		if company_match := difflib.get_close_matches(header.get("RECEIVER_NAME","").lower(), companies, cutoff=0.9):
 			company = company_match[0]
@@ -208,18 +207,6 @@ class OCRRequest(Document):
 
 		self.company = company
 		return company or ""
-
-	def get_value_from_mapping(self, key, value, field):
-		return frappe.db.get_value(
-			"OCR Header Mapping",
-			dict(
-				key=key,
-				value=value,
-				field=field,
-				parent=("!=", self.name)
-			),
-			"field_value",
-		)
 
 	@frappe.whitelist()
 	def close_request(self):
@@ -262,11 +249,10 @@ class OCRRequest(Document):
 		pi_fields = [f.fieldname for f in frappe.get_meta("Purchase Invoice").fields]
 
 		fieldname = None
-		predefined_mapping = PURCHASE_INVOICE_MAPPING.get(key)
-		if key.lower() in pi_fields:
+		if key in PURCHASE_INVOICE_MAPPING:
+			fieldname = PURCHASE_INVOICE_MAPPING.get(key)[:140]
+		elif key.lower() in pi_fields:
 			fieldname = (key.lower() or "")[:140]
-		elif predefined_mapping:
-			fieldname = (predefined_mapping or "")[:140]
 
 		match key:
 			case "VENDOR_NAME":
@@ -280,8 +266,8 @@ class OCRRequest(Document):
 					return fieldname, date_parser(value)
 				except Exception:
 					return None, None
-			case fieldname:
-				return fieldname, value
+			case _:
+				return fieldname or key, value
 
 
 	def create_pending_purchase_invoice(self):
@@ -298,6 +284,7 @@ class OCRRequest(Document):
 		doc.supplier_grand_total = data.get("grand_total")
 		doc.ocr_request = self.name
 		doc.file = self.file
+		doc.vendor_address = data.get("vendor_address")
 		
 		return doc.insert(ignore_mandatory=True, ignore_links=True)
 
