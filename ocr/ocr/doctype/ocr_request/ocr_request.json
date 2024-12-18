@@ -17,7 +17,7 @@
   "document_html",
   "section_break_pgfr",
   "error",
-  "section_break_hxzx",
+  "data_tab",
   "job",
   "analysis"
  ],
@@ -43,6 +43,7 @@
   {
    "fieldname": "job",
    "fieldtype": "Small Text",
+   "hidden": 1,
    "label": "Job",
    "read_only": 1
   },
@@ -72,11 +73,6 @@
    "read_only": 1
   },
   {
-   "fieldname": "section_break_hxzx",
-   "fieldtype": "Section Break",
-   "hidden": 1
-  },
-  {
    "depends_on": "eval:doc.error",
    "fieldname": "section_break_pgfr",
    "fieldtype": "Section Break"
@@ -103,6 +99,11 @@
   {
    "fieldname": "section_break_igml",
    "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "data_tab",
+   "fieldtype": "Tab Break",
+   "label": "Data"
   }
  ],
  "index_web_pages_for_search": 1,
@@ -123,7 +124,7 @@
    "link_fieldname": "ocr_request"
   }
  ],
- "modified": "2024-12-17 17:23:09.525833",
+ "modified": "2024-12-18 16:00:25.325565",
  "modified_by": "Administrator",
  "module": "OCR",
  "name": "OCR Request",
@@ -143,6 +144,7 @@
    "write": 1
   }
  ],
+ "show_title_field_in_link": 1,
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": [
