@@ -42,7 +42,7 @@ frappe.ui.form.on("Pending Purchase Invoice", {
 		frm.trigger("compare_totals");
 
 		try { 
-			$('[data-fieldname="__column_1"]').removeClass("col-sm-6").addClass("col-sm-4")
+			$('[data-fieldname="data_column"]').removeClass("col-sm-6").addClass("col-sm-4")
 			$('[data-fieldname="preview_column"]').removeClass("col-sm-6").addClass("col-sm-8")
 			frm.get_field("create_purchase_invoice").$wrapper.addClass("text-right")
 			frm.get_field("create_purchase_invoice").$wrapper.parent().parent().addClass("mt-auto")
@@ -151,6 +151,22 @@ frappe.ui.form.on("Pending Purchase Invoice", {
 
 	grand_total(frm) {
 		frm.trigger("compare_totals");
+	},
+
+	taxes_and_charges(frm) {
+		frm.trigger("calculate_totals")
+	},
+
+	calculate_totals(frm) {
+		frappe.call({
+			method: "calculate_totals",
+			doc: frm.doc,
+		}).then((res) => {
+			frm.set_value(res.message);
+			frm.refresh_field("net_total");
+			frm.refresh_field("tax_total");
+			frm.refresh_field("grand_total");
+		})
 	},
 
 	compare_totals(frm) {

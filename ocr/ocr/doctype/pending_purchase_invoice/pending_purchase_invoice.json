@@ -5,6 +5,8 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
+  "invoice_tab",
+  "data_column",
   "status",
   "company",
   "supplier",
@@ -16,10 +18,7 @@
   "supplier_net_amount",
   "supplier_tax_amount",
   "supplier_grand_total",
-  "file",
-  "file_url",
   "title",
-  "ocr_request",
   "preview_column",
   "invoice_preview",
   "section_break_cesy",
@@ -39,7 +38,12 @@
   "column_break_wvsw",
   "grand_total",
   "column_break_ltet",
-  "create_purchase_invoice"
+  "create_purchase_invoice",
+  "references_tab",
+  "file",
+  "file_url",
+  "ocr_request",
+  "ocr_basket"
  ],
  "fields": [
   {
@@ -91,11 +95,13 @@
    "reqd": 1
   },
   {
+   "fetch_from": "ocr_request.file",
+   "fetch_if_empty": 1,
    "fieldname": "file",
    "fieldtype": "Link",
-   "hidden": 1,
    "label": "File",
-   "options": "File"
+   "options": "File",
+   "read_only": 1
   },
   {
    "fetch_from": "file.file_url",
@@ -151,7 +157,7 @@
    "fieldtype": "Column Break"
   },
   {
-   "depends_on": "eval:doc.status!=\"Completed\"",
+   "depends_on": "eval:[\"Completed\", \"Closed\"].includes(doc.status) && frm.doc.items",
    "fieldname": "create_purchase_invoice",
    "fieldtype": "Button",
    "label": "Create Purchase Invoice"
@@ -171,7 +177,6 @@
    "fieldtype": "Column Break"
   },
   {
-   "depends_on": "eval:doc.calculate_taxes_globally",
    "fieldname": "section_break_leyk",
    "fieldtype": "Section Break"
   },
@@ -183,6 +188,7 @@
    "read_only": 1
   },
   {
+   "description": "Leave empty for tax determination by line items",
    "fieldname": "taxes_and_charges",
    "fieldtype": "Link",
    "label": "Purchase Taxes Template",
@@ -247,9 +253,33 @@
   {
    "fieldname": "ocr_request",
    "fieldtype": "Link",
-   "hidden": 1,
    "label": "OCR Request",
-   "options": "OCR Request"
+   "options": "OCR Request",
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fetch_from": "ocr_request.ocr_basket",
+   "fieldname": "ocr_basket",
+   "fieldtype": "Link",
+   "label": "OCR Purchase Invoice Basket",
+   "options": "OCR Purchase Invoice Basket",
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "references_tab",
+   "fieldtype": "Tab Break",
+   "label": "References"
+  },
+  {
+   "fieldname": "invoice_tab",
+   "fieldtype": "Tab Break",
+   "label": "Invoice"
+  },
+  {
+   "fieldname": "data_column",
+   "fieldtype": "Column Break"
   }
  ],
  "index_web_pages_for_search": 1,
@@ -265,7 +295,7 @@
    "link_fieldname": "pending_purchase_invoice"
   }
  ],
- "modified": "2024-12-18 14:24:52.527507",
+ "modified": "2024-12-18 14:50:42.416212",
  "modified_by": "Administrator",
  "module": "OCR",
  "name": "Pending Purchase Invoice",
