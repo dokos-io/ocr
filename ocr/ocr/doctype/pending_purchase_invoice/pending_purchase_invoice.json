@@ -157,7 +157,7 @@
    "fieldtype": "Column Break"
   },
   {
-   "depends_on": "eval:[\"Completed\", \"Closed\"].includes(doc.status) && frm.doc.items",
+   "depends_on": "eval:![\"Closed\", \"Completed\"].includes(doc.status) && doc.items.length",
    "fieldname": "create_purchase_invoice",
    "fieldtype": "Button",
    "label": "Create Purchase Invoice"
@@ -295,7 +295,7 @@
    "link_fieldname": "pending_purchase_invoice"
   }
  ],
- "modified": "2024-12-18 14:50:42.416212",
+ "modified": "2024-12-18 15:45:11.007852",
  "modified_by": "Administrator",
  "module": "OCR",
  "name": "Pending Purchase Invoice",

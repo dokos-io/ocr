@@ -5,7 +5,7 @@ import re
 from frappe.model.document import Document
 from pypika.terms import ExistsCriterion
 
-from frappe.model.meta import data_fieldtypes, default_fields
+from frappe.model.meta import data_fieldtypes, default_fields, child_table_fields
 
 from frappe.query_builder import Order
 from frappe import _
@@ -16,7 +16,7 @@ import frappe
 from frappe.utils import sbool
 
 
-EXCLUDED_FIELDS = [*default_fields, "status"]
+EXCLUDED_FIELDS = [*default_fields, *child_table_fields, "status"]
 
 class PendingPurchaseInvoice(Document):
 	# begin: auto-generated types
@@ -179,6 +179,13 @@ class PendingPurchaseInvoice(Document):
 				continue
 			if field.fieldtype in data_fieldtypes:
 				doc.update({field.fieldname: self.get(field.fieldname)})
+
+		for item in self.items:
+			for doc_item in doc.items:
+				if doc_item.po_detail == item.row:
+					for field in ["rate", "qty", "cost_center", "project"]:
+						if doc_item.get(field) != item.get(field):
+							doc_item.set(field, item.get(field))
 
 		doc.run_method("set_missing_values")
 		doc.run_method("calculate_taxes_and_totals")
