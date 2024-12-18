@@ -61,6 +61,8 @@ frappe.ui.form.on("Pending Purchase Invoice", {
 			}, __("Actions"));
 		}
 
+		frm.trigger("check_tax_id")
+
 	},
 
 	async show_preview(frm) {
@@ -186,6 +188,34 @@ frappe.ui.form.on("Pending Purchase Invoice", {
 
 	tax_category(frm) {
 		erpnext.utils.set_taxes(frm, "tax_category")
+	},
+
+	tax_id(frm) {
+		frm.trigger("check_tax_id");
+	},
+
+	check_tax_id(frm) {
+		frm.get_field("tax_id").set_description("")
+		if (frm.doc.tax_id && frm.doc.supplier) {
+			frappe.db.get_value("Supplier", frm.doc.supplier, "tax_id").then((supplier) => {
+				if (!supplier.message.tax_id) {
+					frm.toggle_display("update_supplier_tax_id", true);
+					frm.get_field("tax_id").set_description(`<span class='text-info'>${__("Your supplier Tax ID is currently empty")}</span>`)
+				} else if (frm.doc.tax_id != supplier.message.tax_id) {
+					frm.toggle_display("update_supplier_tax_id", true);
+					frm.get_field("tax_id").set_description(`<span class='text-info'>${__("Your supplier's current Tax ID is {0}", [supplier.message.tax_id])}<span>`)
+				}
+			})
+		}
+	},
+
+	update_supplier_tax_id(frm) {
+		if (frm.doc.tax_id) {
+			frm.toggle_display("update_supplier_tax_id", false);
+			frappe.db.set_value("Supplier", frm.doc.supplier, "tax_id", frm.doc.tax_id).then(() => {
+				frm.trigger("check_tax_id");
+			})
+		}
 	}
 });
 

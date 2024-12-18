@@ -49,6 +49,7 @@ class PendingPurchaseInvoice(Document):
 		supplier_net_amount: DF.Currency
 		supplier_tax_amount: DF.Currency
 		tax_category: DF.Link | None
+		tax_id: DF.Data | None
 		tax_total: DF.Currency
 		taxes_and_charges: DF.Link | None
 		title: DF.Data | None
@@ -86,8 +87,6 @@ class PendingPurchaseInvoice(Document):
 			if ocr_data.get("VENDOR_URL"):
 				if matching_ocr_requests := frappe.get_all("OCR Request", filters={"analysis": ("like", f"%{ocr_data.get('VENDOR_URL')}%"), "name": ("!=", self.ocr_request)}, limit=1, pluck="name"):
 					self.supplier = frappe.db.get_value("Pending Purchase Invoice", dict(ocr_request=matching_ocr_requests[0]))
-
-
 
 
 	def calculate_due_date(self):
