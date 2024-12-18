@@ -20,7 +20,7 @@ frappe.ui.form.on("OCR Request", {
 			});
 		}
 
-		if (from.doc.status == "Error") {
+		if (frm.doc.status == "Error") {
 			frm.dashboard.set_headline_alert(__(frm.doc.error))
 		}
 	},

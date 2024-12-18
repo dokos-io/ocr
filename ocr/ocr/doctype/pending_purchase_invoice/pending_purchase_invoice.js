@@ -32,6 +32,11 @@ frappe.ui.form.on("Pending Purchase Invoice", {
 	},
 
 	refresh(frm) {
+
+		if (frm.is_new() || ["Completed", "Closed"].includes(frm.doc.status)) {
+			frm.set_read_only();
+		}
+
 		frm.trigger("show_preview");
 		frm.trigger("set_bottom_button_label");
 		frm.trigger("compare_totals");
@@ -44,6 +49,16 @@ frappe.ui.form.on("Pending Purchase Invoice", {
 			$('[data-fieldname="create_purchase_invoice"] button').addClass("btn-primary")
 		} catch(err) {
 			console.warn(e)
+		}
+
+		if (frm.doc.status != "Closed") {
+			frm.add_custom_button(__('Close'), function() {
+				frm.call("close_request").then(() => { frm.reload_doc() });
+			}, __("Actions"));
+		} else {
+			frm.add_custom_button(__('Reopen'), function() {
+				frm.call("open_request").then(() => { frm.reload_doc() });
+			}, __("Actions"));
 		}
 
 	},
