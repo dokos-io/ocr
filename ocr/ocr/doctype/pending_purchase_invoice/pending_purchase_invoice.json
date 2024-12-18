@@ -18,6 +18,7 @@
   "supplier_net_amount",
   "supplier_tax_amount",
   "supplier_grand_total",
+  "vendor_address",
   "title",
   "preview_column",
   "invoice_preview",
@@ -280,6 +281,13 @@
   {
    "fieldname": "data_column",
    "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "vendor_address",
+   "fieldtype": "Small Text",
+   "hidden": 1,
+   "label": "Supplier Address",
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
@@ -295,7 +303,7 @@
    "link_fieldname": "pending_purchase_invoice"
   }
  ],
- "modified": "2024-12-18 15:45:11.007852",
+ "modified": "2024-12-18 16:57:46.002187",
  "modified_by": "Administrator",
  "module": "OCR",
  "name": "Pending Purchase Invoice",
