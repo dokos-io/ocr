@@ -32,12 +32,17 @@ frappe.ui.form.on("Pending Purchase Invoice", {
 	},
 
 	refresh(frm) {
+
+		if (frm.is_new() || ["Completed", "Closed"].includes(frm.doc.status)) {
+			frm.set_read_only();
+		}
+
 		frm.trigger("show_preview");
 		frm.trigger("set_bottom_button_label");
 		frm.trigger("compare_totals");
 
 		try { 
-			$('[data-fieldname="__column_1"]').removeClass("col-sm-6").addClass("col-sm-4")
+			$('[data-fieldname="data_column"]').removeClass("col-sm-6").addClass("col-sm-4")
 			$('[data-fieldname="preview_column"]').removeClass("col-sm-6").addClass("col-sm-8")
 			frm.get_field("create_purchase_invoice").$wrapper.addClass("text-right")
 			frm.get_field("create_purchase_invoice").$wrapper.parent().parent().addClass("mt-auto")
@@ -45,6 +50,18 @@ frappe.ui.form.on("Pending Purchase Invoice", {
 		} catch(err) {
 			console.warn(e)
 		}
+
+		if (frm.doc.status != "Closed") {
+			frm.add_custom_button(__('Close'), function() {
+				frm.call("close_request").then(() => { frm.reload_doc() });
+			}, __("Actions"));
+		} else {
+			frm.add_custom_button(__('Reopen'), function() {
+				frm.call("open_request").then(() => { frm.reload_doc() });
+			}, __("Actions"));
+		}
+
+		frm.trigger("check_tax_id")
 
 	},
 
@@ -138,6 +155,22 @@ frappe.ui.form.on("Pending Purchase Invoice", {
 		frm.trigger("compare_totals");
 	},
 
+	taxes_and_charges(frm) {
+		frm.trigger("calculate_totals")
+	},
+
+	calculate_totals(frm) {
+		frappe.call({
+			method: "calculate_totals",
+			doc: frm.doc,
+		}).then((res) => {
+			frm.set_value(res.message);
+			frm.refresh_field("net_total");
+			frm.refresh_field("tax_total");
+			frm.refresh_field("grand_total");
+		})
+	},
+
 	compare_totals(frm) {
 		[["net_total", "supplier_net_amount"], ["tax_total", "supplier_tax_amount"], ["grand_total", "supplier_grand_total"]].map(field => {
 			const ocr_value = frm.doc[field[1]] || 0.0;
@@ -155,6 +188,34 @@ frappe.ui.form.on("Pending Purchase Invoice", {
 
 	tax_category(frm) {
 		erpnext.utils.set_taxes(frm, "tax_category")
+	},
+
+	tax_id(frm) {
+		frm.trigger("check_tax_id");
+	},
+
+	check_tax_id(frm) {
+		frm.get_field("tax_id").set_description("")
+		if (frm.doc.tax_id && frm.doc.supplier) {
+			frappe.db.get_value("Supplier", frm.doc.supplier, "tax_id").then((supplier) => {
+				if (!supplier.message.tax_id) {
+					frm.toggle_display("update_supplier_tax_id", true);
+					frm.get_field("tax_id").set_description(`<span class='text-info'>${__("Your supplier Tax ID is currently empty")}</span>`)
+				} else if (frm.doc.tax_id != supplier.message.tax_id) {
+					frm.toggle_display("update_supplier_tax_id", true);
+					frm.get_field("tax_id").set_description(`<span class='text-info'>${__("Your supplier's current Tax ID is {0}", [supplier.message.tax_id])}<span>`)
+				}
+			})
+		}
+	},
+
+	update_supplier_tax_id(frm) {
+		if (frm.doc.tax_id) {
+			frm.toggle_display("update_supplier_tax_id", false);
+			frappe.db.set_value("Supplier", frm.doc.supplier, "tax_id", frm.doc.tax_id).then(() => {
+				frm.trigger("check_tax_id");
+			})
+		}
 	}
 });
 

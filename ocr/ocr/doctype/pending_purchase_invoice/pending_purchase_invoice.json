@@ -5,9 +5,13 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
+  "invoice_tab",
+  "data_column",
   "status",
   "company",
   "supplier",
+  "tax_id",
+  "update_supplier_tax_id",
   "currency",
   "bill_no",
   "bill_date",
@@ -16,10 +20,8 @@
   "supplier_net_amount",
   "supplier_tax_amount",
   "supplier_grand_total",
-  "file",
-  "file_url",
+  "vendor_address",
   "title",
-  "ocr_request",
   "preview_column",
   "invoice_preview",
   "section_break_cesy",
@@ -39,7 +41,12 @@
   "column_break_wvsw",
   "grand_total",
   "column_break_ltet",
-  "create_purchase_invoice"
+  "create_purchase_invoice",
+  "references_tab",
+  "file",
+  "file_url",
+  "ocr_request",
+  "ocr_basket"
  ],
  "fields": [
   {
@@ -50,7 +57,7 @@
    "in_standard_filter": 1,
    "label": "Status",
    "no_copy": 1,
-   "options": "Pending\nIn Progress\nCompleted"
+   "options": "Pending\nIn Progress\nCompleted\nClosed"
   },
   {
    "fieldname": "supplier",
@@ -91,11 +98,13 @@
    "reqd": 1
   },
   {
+   "fetch_from": "ocr_request.file",
+   "fetch_if_empty": 1,
    "fieldname": "file",
    "fieldtype": "Link",
-   "hidden": 1,
    "label": "File",
-   "options": "File"
+   "options": "File",
+   "read_only": 1
   },
   {
    "fetch_from": "file.file_url",
@@ -151,7 +160,7 @@
    "fieldtype": "Column Break"
   },
   {
-   "depends_on": "eval:doc.status!=\"Completed\"",
+   "depends_on": "eval:![\"Closed\", \"Completed\"].includes(doc.status) && doc.items.length",
    "fieldname": "create_purchase_invoice",
    "fieldtype": "Button",
    "label": "Create Purchase Invoice"
@@ -171,7 +180,6 @@
    "fieldtype": "Column Break"
   },
   {
-   "depends_on": "eval:doc.calculate_taxes_globally",
    "fieldname": "section_break_leyk",
    "fieldtype": "Section Break"
   },
@@ -183,6 +191,7 @@
    "read_only": 1
   },
   {
+   "description": "Leave empty for tax determination by line items",
    "fieldname": "taxes_and_charges",
    "fieldtype": "Link",
    "label": "Purchase Taxes Template",
@@ -247,9 +256,51 @@
   {
    "fieldname": "ocr_request",
    "fieldtype": "Link",
-   "hidden": 1,
    "label": "OCR Request",
-   "options": "OCR Request"
+   "options": "OCR Request",
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fetch_from": "ocr_request.ocr_basket",
+   "fieldname": "ocr_basket",
+   "fieldtype": "Link",
+   "label": "OCR Purchase Invoice Basket",
+   "options": "OCR Purchase Invoice Basket",
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "references_tab",
+   "fieldtype": "Tab Break",
+   "label": "References"
+  },
+  {
+   "fieldname": "invoice_tab",
+   "fieldtype": "Tab Break",
+   "label": "Invoice"
+  },
+  {
+   "fieldname": "data_column",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "vendor_address",
+   "fieldtype": "Small Text",
+   "hidden": 1,
+   "label": "Supplier Address",
+   "read_only": 1
+  },
+  {
+   "fieldname": "tax_id",
+   "fieldtype": "Data",
+   "label": "Tax ID"
+  },
+  {
+   "fieldname": "update_supplier_tax_id",
+   "fieldtype": "Button",
+   "hidden": 1,
+   "label": "Update Supplier Tax ID"
   }
  ],
  "index_web_pages_for_search": 1,
@@ -265,7 +316,7 @@
    "link_fieldname": "pending_purchase_invoice"
   }
  ],
- "modified": "2024-12-17 17:17:57.744143",
+ "modified": "2024-12-18 17:48:45.775903",
  "modified_by": "Administrator",
  "module": "OCR",
  "name": "Pending Purchase Invoice",
@@ -288,6 +339,23 @@
  "show_title_field_in_link": 1,
  "sort_field": "modified",
  "sort_order": "DESC",
- "states": [],
+ "states": [
+  {
+   "color": "Blue",
+   "title": "Pending"
+  },
+  {
+   "color": "Gray",
+   "title": "Closed"
+  },
+  {
+   "color": "Orange",
+   "title": "In Progress"
+  },
+  {
+   "color": "Green",
+   "title": "Completed"
+  }
+ ],
  "title_field": "title"
 }

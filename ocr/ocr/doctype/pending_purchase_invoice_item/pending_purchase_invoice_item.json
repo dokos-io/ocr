@@ -58,7 +58,8 @@
    "fieldtype": "Link",
    "in_list_view": 1,
    "label": "Item",
-   "options": "Item"
+   "options": "Item",
+   "read_only_depends_on": "eval:doc.row"
   },
   {
    "fieldname": "qty",
@@ -139,7 +140,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2024-12-16 22:35:43.463065",
+ "modified": "2024-12-18 15:56:18.420670",
  "modified_by": "Administrator",
  "module": "OCR",
  "name": "Pending Purchase Invoice Item",

@@ -2,23 +2,24 @@
 # For license information, please see license.txt
 
 import re
+import difflib
+from frappe.model.document import Document
 from pypika.terms import ExistsCriterion
 
-from frappe.model.meta import data_fieldtypes, default_fields
+from frappe.model.meta import data_fieldtypes, default_fields, child_table_fields
 
 from frappe.query_builder import Order
 from frappe import _
 from frappe.utils import flt, nowdate
-from erpnext.controllers.accounts_controller import AccountsController
 from erpnext.accounts.party import get_due_date
 
 import frappe
 from frappe.utils import sbool
 
 
-EXCLUDED_FIELDS = [*default_fields, "status"]
+EXCLUDED_FIELDS = [*default_fields, *child_table_fields, "status"]
 
-class PendingPurchaseInvoice(AccountsController):
+class PendingPurchaseInvoice(Document):
 	# begin: auto-generated types
 	# This code is auto-generated. Do not modify anything in this block.
 
@@ -39,29 +40,54 @@ class PendingPurchaseInvoice(AccountsController):
 		items: DF.Table[PendingPurchaseInvoiceItem]
 		name: DF.Int | None
 		net_total: DF.Currency
+		ocr_basket: DF.Link | None
 		ocr_request: DF.Link | None
 		posting_date: DF.Date
-		status: DF.Literal["Pending", "In Progress", "Completed"]
+		status: DF.Literal["Pending", "In Progress", "Completed", "Closed"]
 		supplier: DF.Link
 		supplier_grand_total: DF.Currency
 		supplier_net_amount: DF.Currency
 		supplier_tax_amount: DF.Currency
 		tax_category: DF.Link | None
+		tax_id: DF.Data | None
 		tax_total: DF.Currency
 		taxes_and_charges: DF.Link | None
 		title: DF.Data | None
+		vendor_address: DF.SmallText | None
 	# end: auto-generated types
 
 	def validate(self):
+		self.get_supplier()
+
 		if self.supplier:
 			self.title = f"{self.supplier} : {self.bill_no}"[:140] if self.bill_no else f"{self.supplier}"[:140]
 		else:
 			self.title = _("Missing Supplier")
 		self.calculate_due_date()
-		self.calculate_totals()
 
 		if not self.items:
-			self.get_matched_orders()
+			self.append_matched_orders()
+
+		self.calculate_totals()
+
+	def get_supplier(self):
+		if self.supplier:
+			return
+
+		# 1. Get from previous invoices with same address
+		if self.vendor_address:
+			invoices = frappe.get_all("Pending Purchase Invoice", filters={"vendor_address": ("like", f"{self.vendor_address[:5]}%"), "status": "Completed", "name": ("!=", self.name), "supplier": ("is", "set")}, fields=["supplier", "vendor_address"])
+			if best_match := get_best_match_from_list_of_dicts(invoices, self.vendor_address, "vendor_address"):
+				self.supplier = best_match.get("supplier")
+
+		# 2.Get from OCR Request
+		if not self.supplier and self.ocr_request:
+			ocr_data = self.get_ocr_analysis()
+			# 2.1 Find VENDOR_URL
+			if ocr_data.get("VENDOR_URL"):
+				if matching_ocr_requests := frappe.get_all("OCR Request", filters={"analysis": ("like", f"%{ocr_data.get('VENDOR_URL')}%"), "name": ("!=", self.ocr_request)}, limit=1, pluck="name"):
+					self.supplier = frappe.db.get_value("Pending Purchase Invoice", dict(ocr_request=matching_ocr_requests[0]))
+
 
 	def calculate_due_date(self):
 		if not self.due_date and self.supplier:
@@ -76,7 +102,7 @@ class PendingPurchaseInvoice(AccountsController):
 			except Exception:
 				pass
 
-	def set_pending_purchase_order_status(self, commit=False):
+	def set_status(self, commit=False):
 		status = "Pending"
 		if frappe.db.exists("Purchase Order", dict(pending_purchase_invoice=self.name, docstatus=("!=", 2))):
 			status = "In Progress"
@@ -87,10 +113,17 @@ class PendingPurchaseInvoice(AccountsController):
 		if commit:
 			self.db_set("status", status)
 
+	@frappe.whitelist()
 	def calculate_totals(self):
 		self.calculate_net_total()
 		self.calculate_taxes()
 		self.calculate_grand_total()
+
+		return {
+			"net_total": self.net_total,
+			"tax_total": self.tax_total,
+			"grand_total": self.grand_total
+		}
 
 	def calculate_net_total(self):
 		self.net_total = sum(flt(i.amount) for i in self.items)
@@ -102,6 +135,7 @@ class PendingPurchaseInvoice(AccountsController):
 			doc.run_method("calculate_taxes_and_totals")
 			self.tax_total = doc.total_taxes_and_charges
 		except Exception:
+			print(frappe.get_traceback())
 			frappe.clear_messages()
 
 	def calculate_grand_total(self):
@@ -170,6 +204,13 @@ class PendingPurchaseInvoice(AccountsController):
 			if field.fieldtype in data_fieldtypes:
 				doc.update({field.fieldname: self.get(field.fieldname)})
 
+		for item in self.items:
+			for doc_item in doc.items:
+				if doc_item.po_detail == item.row:
+					for field in ["rate", "qty", "cost_center", "project"]:
+						if doc_item.get(field) != item.get(field):
+							doc_item.set(field, item.get(field))
+
 		doc.run_method("set_missing_values")
 		doc.run_method("calculate_taxes_and_totals")
 
@@ -207,6 +248,17 @@ class PendingPurchaseInvoice(AccountsController):
 
 		return doc
 
+	def append_matched_orders(self):
+		matched_orders = self.get_matched_orders()
+		for matched_order in matched_orders:
+			doc = frappe.get_doc("Purchase Order", matched_order)
+			for item in doc.items:
+				row = frappe.copy_doc(item).as_dict()
+				row["reference_doctype"] = doc.doctype
+				row["reference_docname"] = doc.name
+				row["row"] = item.name
+				self.append("items", row)
+
 	def get_matched_orders(self):
 
 		purchase_order_dt = frappe.qb.DocType("Purchase Order")
@@ -239,7 +291,7 @@ class PendingPurchaseInvoice(AccountsController):
 
 		matched_orders = set()
 		if self.ocr_request:
-			ocr_data = frappe.get_doc("OCR Request", self.ocr_request).get_data_from_analysis()
+			ocr_data = self.get_ocr_analysis()
 			if ocr_data.get("PO_NUMBER"):
 				for open_order in open_orders:
 					if find_purchase_order_correspondance(open_order.name, ocr_data["PO_NUMBER"]):
@@ -253,6 +305,34 @@ class PendingPurchaseInvoice(AccountsController):
 						matched_orders.add(open_order.name)
 
 		return matched_orders
+
+	def get_ocr_analysis(self):
+		if not self.ocr_request:
+			return {}
+
+		return frappe.get_doc("OCR Request", self.ocr_request).get_data_from_analysis()
+
+	@frappe.whitelist()
+	def close_request(self):
+		self.db_set("status", "Closed")
+
+	@frappe.whitelist()
+	def open_request(self):
+		self.status = "Pending"
+		self.set_status(True)
+
+
+def get_best_match_from_list_of_dicts(data, matching_element, key):
+	if best_match := next(iter(sorted(
+		data,
+		key=lambda doc: difflib.SequenceMatcher(
+			lambda doc: doc == " ", doc.get(key).lower(), matching_element.lower()
+		).ratio(),
+		reverse=True,
+	))):
+		return best_match
+
+	return {}
 
 
 def make_purchase_order(source_name, target_doc=None, ignore_permissions=False, simulation=False):
