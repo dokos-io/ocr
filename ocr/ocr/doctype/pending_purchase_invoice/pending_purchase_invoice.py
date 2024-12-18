@@ -2,6 +2,7 @@
 # For license information, please see license.txt
 
 import re
+from frappe.model.document import Document
 from pypika.terms import ExistsCriterion
 
 from frappe.model.meta import data_fieldtypes, default_fields
@@ -9,7 +10,6 @@ from frappe.model.meta import data_fieldtypes, default_fields
 from frappe.query_builder import Order
 from frappe import _
 from frappe.utils import flt, nowdate
-from erpnext.controllers.accounts_controller import AccountsController
 from erpnext.accounts.party import get_due_date
 
 import frappe
@@ -18,7 +18,7 @@ from frappe.utils import sbool
 
 EXCLUDED_FIELDS = [*default_fields, "status"]
 
-class PendingPurchaseInvoice(AccountsController):
+class PendingPurchaseInvoice(Document):
 	# begin: auto-generated types
 	# This code is auto-generated. Do not modify anything in this block.
 
@@ -41,7 +41,7 @@ class PendingPurchaseInvoice(AccountsController):
 		net_total: DF.Currency
 		ocr_request: DF.Link | None
 		posting_date: DF.Date
-		status: DF.Literal["Pending", "In Progress", "Completed"]
+		status: DF.Literal["Pending", "In Progress", "Completed", "Closed"]
 		supplier: DF.Link
 		supplier_grand_total: DF.Currency
 		supplier_net_amount: DF.Currency
@@ -61,7 +61,7 @@ class PendingPurchaseInvoice(AccountsController):
 		self.calculate_totals()
 
 		if not self.items:
-			self.get_matched_orders()
+			self.append_matched_orders()
 
 	def calculate_due_date(self):
 		if not self.due_date and self.supplier:
@@ -76,7 +76,7 @@ class PendingPurchaseInvoice(AccountsController):
 			except Exception:
 				pass
 
-	def set_pending_purchase_order_status(self, commit=False):
+	def set_status(self, commit=False):
 		status = "Pending"
 		if frappe.db.exists("Purchase Order", dict(pending_purchase_invoice=self.name, docstatus=("!=", 2))):
 			status = "In Progress"
@@ -207,6 +207,17 @@ class PendingPurchaseInvoice(AccountsController):
 
 		return doc
 
+	def append_matched_orders(self):
+		matched_orders = self.get_matched_orders()
+		for matched_order in matched_orders:
+			doc = frappe.get_doc("Purchase Order", matched_order)
+			for item in doc.items:
+				row = frappe.copy_doc(item)
+				row.reference_doctype = doc.doctype
+				row.reference_docname = doc.name
+				row.row = item.name
+				self.append("items", row)
+
 	def get_matched_orders(self):
 
 		purchase_order_dt = frappe.qb.DocType("Purchase Order")
@@ -254,6 +265,14 @@ class PendingPurchaseInvoice(AccountsController):
 
 		return matched_orders
 
+	@frappe.whitelist()
+	def close_request(self):
+		self.db_set("status", "Closed")
+
+	@frappe.whitelist()
+	def open_request(self):
+		self.status = "Pending"
+		self.set_status(True)
 
 def make_purchase_order(source_name, target_doc=None, ignore_permissions=False, simulation=False):
 	from frappe.model.mapper import get_mapped_doc
