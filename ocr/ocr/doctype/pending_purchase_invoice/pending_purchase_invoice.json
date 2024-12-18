@@ -10,6 +10,8 @@
   "status",
   "company",
   "supplier",
+  "tax_id",
+  "update_supplier_tax_id",
   "currency",
   "bill_no",
   "bill_date",
@@ -288,6 +290,17 @@
    "hidden": 1,
    "label": "Supplier Address",
    "read_only": 1
+  },
+  {
+   "fieldname": "tax_id",
+   "fieldtype": "Data",
+   "label": "Tax ID"
+  },
+  {
+   "fieldname": "update_supplier_tax_id",
+   "fieldtype": "Button",
+   "hidden": 1,
+   "label": "Update Supplier Tax ID"
   }
  ],
  "index_web_pages_for_search": 1,
@@ -303,7 +316,7 @@
    "link_fieldname": "pending_purchase_invoice"
   }
  ],
- "modified": "2024-12-18 16:57:46.002187",
+ "modified": "2024-12-18 17:48:45.775903",
  "modified_by": "Administrator",
  "module": "OCR",
  "name": "Pending Purchase Invoice",
