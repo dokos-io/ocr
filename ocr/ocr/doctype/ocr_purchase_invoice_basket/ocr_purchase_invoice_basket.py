@@ -98,13 +98,6 @@ def check_requests_completion():
 			except Exception:
 				doc.log_error()
 
-		for req in [a for a in associated_requests if a.status == "Analysis Completed"]:
-			try:
-				request_doc = frappe.get_doc("OCR Request", req.name)
-				request_doc.run_method("create_purchase_documents")
-			except Exception:
-				request_doc.log_error()
-
 		associated_requests = frappe.get_all("OCR Request", filters={"ocr_basket": basket.name}, fields=["name", "status"])
 		if all([a.status in ("Purchase Order Created", "Purchase Invoice Created") for a in associated_requests]):
 			frappe.db.set_value("OCR Purchase Invoice Basket", basket.name, "status", "Completed")
