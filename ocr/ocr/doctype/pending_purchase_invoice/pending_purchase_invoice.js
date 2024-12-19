@@ -221,6 +221,16 @@ frappe.ui.form.on("Pending Purchase Invoice", {
 				frm.trigger("check_tax_id");
 			})
 		}
+	},
+
+	create_supplier(frm) {
+		if (frm.doc.tax_id && !frm.doc.supplier) {
+			frappe.model.with_doctype("Supplier", () => {
+				let new_doc = frappe.model.get_new_doc("Supplier");
+				new_doc.tax_id = frm.doc.tax_id;
+				frappe.ui.form.make_quick_entry("Supplier", null, null, new_doc)
+			});
+		}
 	}
 });
 

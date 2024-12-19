@@ -12,6 +12,7 @@
   "supplier",
   "tax_id",
   "update_supplier_tax_id",
+  "create_supplier",
   "currency",
   "bill_no",
   "bill_date",
@@ -301,6 +302,12 @@
    "fieldtype": "Button",
    "hidden": 1,
    "label": "Update Supplier Tax ID"
+  },
+  {
+   "depends_on": "eval:doc.tax_id && !doc.supplier",
+   "fieldname": "create_supplier",
+   "fieldtype": "Button",
+   "label": "Create Supplier"
   }
  ],
  "index_web_pages_for_search": 1,
@@ -316,7 +323,7 @@
    "link_fieldname": "pending_purchase_invoice"
   }
  ],
- "modified": "2024-12-18 17:48:45.775903",
+ "modified": "2024-12-19 13:41:41.031805",
  "modified_by": "Administrator",
  "module": "OCR",
  "name": "Pending Purchase Invoice",
