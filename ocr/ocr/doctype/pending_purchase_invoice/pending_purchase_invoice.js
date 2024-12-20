@@ -225,11 +225,22 @@ frappe.ui.form.on("Pending Purchase Invoice", {
 
 	create_supplier(frm) {
 		if (frm.doc.tax_id && !frm.doc.supplier) {
-			frappe.model.with_doctype("Supplier", () => {
-				let new_doc = frappe.model.get_new_doc("Supplier");
-				new_doc.tax_id = frm.doc.tax_id;
-				frappe.ui.form.make_quick_entry("Supplier", null, null, new_doc)
-			});
+			frappe.call({
+				method: "erpnext.regional.france.extensions.supplier.company_query",
+				args: {
+					txt: frm.doc.tax_id
+				}
+			}).then((res) => {
+				frappe.model.with_doctype("Supplier", () => {
+					let new_doc = frappe.model.get_new_doc("Supplier");
+					new_doc.tax_id = frm.doc.tax_id;
+					if (res.message.length) {
+						new_doc.supplier_name = res.message[0].label;
+						new_doc.siren_number = frm.doc.tax_id.substring(4);
+					}
+					frappe.ui.form.make_quick_entry("Supplier", null, null, new_doc)
+				});
+			})
 		}
 	}
 });
