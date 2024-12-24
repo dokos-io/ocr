@@ -148,18 +148,6 @@ frappe.ui.form.on("Pending Purchase Invoice", {
 		}
 	},
 
-	net_total(frm) {
-		frm.trigger("calculate_grand_total");
-	},
-
-	calculate_grand_total(frm) {
-		frm.set_value("grand_total", (frm.doc.net_total || 0.0) + (frm.doc.tax_total || 0.0))
-	},
-
-	grand_total(frm) {
-		frm.trigger("compare_totals");
-	},
-
 	taxes_and_charges(frm) {
 		frm.trigger("calculate_totals")
 	},
@@ -169,10 +157,10 @@ frappe.ui.form.on("Pending Purchase Invoice", {
 			method: "calculate_totals",
 			doc: frm.doc,
 		}).then((res) => {
-			frm.set_value(res.message);
 			frm.refresh_field("net_total");
 			frm.refresh_field("tax_total");
 			frm.refresh_field("grand_total");
+			frm.trigger("compare_totals");
 		})
 	},
 
@@ -308,23 +296,15 @@ frappe.ui.form.on("Pending Purchase Invoice Item", {
 	qty(frm, cdt, cdn) {
 		const row = locals[cdt][cdn];
 		frappe.model.set_value(cdt, cdn, "amount", row.qty * row.rate);
-		calculate_totals(frm);
+		frm.trigger("calculate_totals")
 	},
 
 	rate(frm, cdt, cdn) {
 		const row = locals[cdt][cdn];
 		frappe.model.set_value(cdt, cdn, "amount", row.qty * row.rate);
-		calculate_totals(frm);
+		frm.trigger("calculate_totals")
 	},
 })
-
-const calculate_totals = (frm) => {
-	const net_total = frm.doc.items.reduce(
-		(sum, item) => (sum + item.amount),
-		0
-	);
-	frm.set_value("net_total", net_total);
-}
 
 class PurchaseDocumentSelector {
 	constructor(frm, doctype) {
