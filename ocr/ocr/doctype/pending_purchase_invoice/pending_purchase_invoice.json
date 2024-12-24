@@ -7,6 +7,7 @@
  "field_order": [
   "invoice_tab",
   "data_column",
+  "extracted_data",
   "status",
   "company",
   "supplier",
@@ -308,6 +309,11 @@
    "fieldname": "create_supplier",
    "fieldtype": "Button",
    "label": "Create Supplier"
+  },
+  {
+   "fieldname": "extracted_data",
+   "fieldtype": "Heading",
+   "label": "Extracted Data"
   }
  ],
  "index_web_pages_for_search": 1,
@@ -323,7 +329,7 @@
    "link_fieldname": "pending_purchase_invoice"
   }
  ],
- "modified": "2024-12-19 13:41:41.031805",
+ "modified": "2024-12-24 13:39:08.472899",
  "modified_by": "Administrator",
  "module": "OCR",
  "name": "Pending Purchase Invoice",
