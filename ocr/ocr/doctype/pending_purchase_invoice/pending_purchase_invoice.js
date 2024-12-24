@@ -293,9 +293,32 @@ const confirm = (message, confirm_action, reject_action, confirm_title, reject_t
 
 
 frappe.ui.form.on("Pending Purchase Invoice Item", {
+	items_add(frm, cdt, cdn) {
+		frappe.model.set_value(cdt, cdn, "qty", 1);
+		if (frm.doc.items.length == 1) {
+			frappe.model.set_value(cdt, cdn, "qty", 1);
+			frappe.model.set_value(cdt, cdn, "rate", frm.doc.supplier_net_amount);
+			frappe.model.set_value(cdt, cdn, "amount", frm.doc.supplier_net_amount);
+		}
+	},
+	item_code(frm, cdt, cdn) {
+		const row = locals[cdt][cdn];
+		frappe.call({
+			method: "ocr.ocr.doctype.pending_purchase_invoice.pending_purchase_invoice.get_item_details",
+			args: {
+				item_code: row.item_code,
+				company: frm.doc.company
+			}
+		}).then((r) => {
+			const cost_center = r.message ? r.message[0] : "";
+			const expense_account = r.message ? r.message[1] :"";
+			frappe.model.set_value(cdt, cdn, "cost_center", cost_center);
+			frappe.model.set_value(cdt, cdn, "expense_account", expense_account);
+		})
+	},
 	qty(frm, cdt, cdn) {
 		const row = locals[cdt][cdn];
-		frappe.model.set_value(cdt, cdn, "amount", row.qty * row.rate);
+		frappe.model.set_value(cdt, cdn, "amount", row.qty * (row.rate || 0.0));
 		frm.trigger("calculate_totals")
 	},
 
