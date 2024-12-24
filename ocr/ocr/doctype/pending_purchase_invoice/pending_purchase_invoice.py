@@ -68,6 +68,7 @@ class PendingPurchaseInvoice(Document):
 		if not self.items:
 			self.append_matched_orders()
 
+	def on_update(self):
 		self.calculate_totals()
 
 	def get_supplier(self):
@@ -115,31 +116,30 @@ class PendingPurchaseInvoice(Document):
 
 	@frappe.whitelist()
 	def calculate_totals(self):
-		self.calculate_net_total()
-		self.calculate_taxes()
-		self.calculate_grand_total()
-
-		return {
-			"net_total": self.net_total,
-			"tax_total": self.tax_total,
-			"grand_total": self.grand_total
-		}
-
-	def calculate_net_total(self):
-		self.net_total = sum(flt(i.amount) for i in self.items)
-
-	def calculate_taxes(self):
+		self.net_total = 0.0
+		self.tax_total = 0.0
+		self.grand_total = 0.0
 		try:
-			doc = make_purchase_order(self.name, simulation=True)
-			doc.run_method("set_missing_values")
-			doc.run_method("calculate_taxes_and_totals")
-			self.tax_total = doc.total_taxes_and_charges
+			po = frappe.new_doc("Purchase Order")
+			for item in self.items:
+				po.append("items", frappe.copy_doc(item).as_dict())
+			po.update(self.as_dict())
+			po.run_method("set_missing_values")
+			# append taxes
+			po.set("taxes", [])
+			if po.taxes_and_charges:
+				po.append_taxes_from_master()
+			else:
+				po.append_taxes_from_item_tax_template()
+
+			po.run_method("calculate_taxes_and_totals")
+
+			self.net_total = po.net_total or 0.0
+			self.tax_total = po.total_taxes_and_charges or 0.0
+			self.grand_total = po.grand_total or 0.0
 		except Exception:
-			print(frappe.get_traceback())
 			frappe.clear_messages()
 
-	def calculate_grand_total(self):
-		self.grand_total = flt(self.net_total) + flt(self.tax_total)
 
 	def get_creation_mode(self):
 		if self.get("pi_creation_mode"):
@@ -211,14 +211,15 @@ class PendingPurchaseInvoice(Document):
 						if doc_item.get(field) != item.get(field):
 							doc_item.set(field, item.get(field))
 
+
 		doc.run_method("set_missing_values")
-		doc.run_method("calculate_taxes_and_totals")
-
 		doc.set("taxes", [])
+		if doc.taxes_and_charges:
+			doc.append_taxes_from_master()
+		else:
+			doc.append_taxes_from_item_tax_template()
 
-		# 	# append taxes
-		doc.append_taxes_from_master()
-		doc.append_taxes_from_item_tax_template()
+		doc.run_method("calculate_taxes_and_totals")
 
 		return doc
 
@@ -336,18 +337,15 @@ def get_best_match_from_list_of_dicts(data, matching_element, key):
 	return {}
 
 
-def make_purchase_order(source_name, target_doc=None, ignore_permissions=False, simulation=False):
+def make_purchase_order(source_name, target_doc=None, ignore_permissions=False):
 	from frappe.model.mapper import get_mapped_doc
 	from erpnext.buying.doctype.purchase_order.purchase_order import set_missing_values
 
 	def purchase_invoice_item_condition(doc):
-		if not simulation:
-			if not doc.reference_doctype:
-				return doc
-			else:
-				return {}
-
-		return doc
+		if not doc.reference_doctype:
+			return doc
+		else:
+			return {}
 
 	def postprocess(source, target_doc):
 		target_doc.ignore_pricing_rule = 1
@@ -362,9 +360,14 @@ def make_purchase_order(source_name, target_doc=None, ignore_permissions=False, 
 
 		target_doc.set("taxes", [])
 
-		# 	# append taxes
-		target_doc.append_taxes_from_master()
-		target_doc.append_taxes_from_item_tax_template()
+		# append taxes
+		if target_doc.taxes_and_charges:
+			target_doc.append_taxes_from_master()
+		else:
+			target_doc.append_taxes_from_item_tax_template()
+
+		target_doc.run_method("set_missing_values")
+		target_doc.run_method("calculate_taxes_and_totals")
 
 	def update_source_item(obj, target, source_parent):
 		target.pending_purchase_invoice_item = obj.name
@@ -381,7 +384,6 @@ def make_purchase_order(source_name, target_doc=None, ignore_permissions=False, 
 	}, target_doc, postprocess, ignore_permissions=ignore_permissions)
 
 	return doclist
-
 
 
 @frappe.whitelist()

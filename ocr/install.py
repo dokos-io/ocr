@@ -58,7 +58,7 @@ def get_custom_fields():
 			"label": "Original File",
 			"insert_after": "ocr_request",
 			"read_only": 1,
-			"fetch_from": "ocr_request.file",
+			"fetch_from": "pending_purchase_invoice.file",
 			"no_copy": 1
 		},
 		{
