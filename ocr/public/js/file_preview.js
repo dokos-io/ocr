@@ -13,11 +13,11 @@ ocr.original_file_preview = (frm) => {
 			const doc = frappe.get_doc("Pending Purchase Invoice", frm.doc.pending_purchase_invoice)
 			let msg = ""
 
-			if (doc.grand_total != frm.doc.supplier_grand_total) {
+			if (frm.doc.grand_total != doc.supplier_grand_total) {
 				msg += `<div>${__("There is a difference between the total amount based on the data extraction (")} ${format_currency(doc.supplier_grand_total, frm.doc.currency)} ${__(") and this")}  ${__(frm.doctype).toLowerCase()} (${format_currency(frm.doc.grand_total, frm.doc.currency)} ).</div>`
 			}
 
-			if (doc.tax_total != frm.doc.supplier_tax_amount) {
+			if (frm.doc.tax_total != doc.supplier_tax_amount) {
 				msg += `<div>${__("There is a difference between the total taxes based on the data extraction (")} ${format_currency(doc.supplier_tax_amount, frm.doc.currency)} ${__(") and this")} ${__(frm.doctype).toLowerCase()} (${format_currency(frm.doc.total_taxes_and_charges, frm.doc.currency)} ).</div>`
 			}
 
