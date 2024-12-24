@@ -168,6 +168,7 @@ frappe.ui.form.on("Pending Purchase Invoice", {
 		[["net_total", "supplier_net_amount"], ["tax_total", "supplier_tax_amount"], ["grand_total", "supplier_grand_total"]].map(field => {
 			const ocr_value = frm.doc[field[1]] || 0.0;
 			const user_value = frm.doc[field[0]] || 0.0;
+			frm.get_field(field[0]).set_description("");
 			if (user_value != ocr_value) {
 				const diff = Math.abs(user_value - ocr_value);
 				frm.get_field(field[0]).set_description(`<span class='text-danger'>${__('Difference:')} ${format_currency(diff, 'EUR')}</span>`);
