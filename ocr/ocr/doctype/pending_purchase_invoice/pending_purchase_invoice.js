@@ -298,8 +298,8 @@ frappe.ui.form.on("Pending Purchase Invoice Item", {
 		frappe.model.set_value(cdt, cdn, "qty", 1);
 		if (frm.doc.items.length == 1) {
 			frappe.model.set_value(cdt, cdn, "qty", 1);
-			frappe.model.set_value(cdt, cdn, "rate", frm.doc.supplier_net_amount);
-			frappe.model.set_value(cdt, cdn, "amount", frm.doc.supplier_net_amount);
+			frappe.model.set_value(cdt, cdn, "rate", frm.doc.supplier_net_amount || frm.doc.supplier_grand_total);
+			frappe.model.set_value(cdt, cdn, "amount", frm.doc.supplier_net_amount || frm.doc.supplier_grand_total);
 		}
 	},
 	item_code(frm, cdt, cdn) {
