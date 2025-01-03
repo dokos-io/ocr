@@ -7,6 +7,7 @@ def execute():
 
 	add_custom_fields()
 
+	frappe.db.auto_commit_on_many_writes = 1
 	for ocr_request in frappe.get_all("OCR Request", filters={"status": ("not in", ("Closed", "Completed")), "docstatus": 0}, order_by="creation asc"):
 		if frappe.db.get_value("Purchase Invoice", filters={"docstatus": 1, "ocr_request": ocr_request.name}):
 			frappe.db.set_value("OCR Request", ocr_request.name, "status", "Completed", update_modified=False)
@@ -31,3 +32,4 @@ def execute():
 			frappe.db.set_value("OCR Request", ocr_request.name, "status", "Analysis Completed", update_modified=False)
 
 
+	frappe.db.auto_commit_on_many_writes = 0
