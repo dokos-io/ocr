@@ -77,10 +77,10 @@ frappe.ui.form.on("Pending Purchase Invoice", {
 	async show_preview(frm) {
 		let $preview = "";
 		await frappe.model.with_doc("File", frm.doc.file);
+		const file_preview_field = frm.get_field("invoice_preview");
 		try {
 			const file_doc = frappe.model.get_doc("File", frm.doc.file);
 			let file_extension = file_doc.file_type.toLowerCase();
-			const file_preview_field = frm.get_field("invoice_preview");
 
 			if (frappe.utils.is_image_file(file_doc.file_url)) {
 				$preview = $(`<div class="img_preview">
@@ -139,21 +139,18 @@ frappe.ui.form.on("Pending Purchase Invoice", {
 			frm.save();
 			frm.get_field("create_purchase_invoice").set_label(__("Create Purchase Invoice"));
 		} else {
-			if (items_are_not_linked_to_purchase_document(frm)) {
-				confirm(__("Create a new purchase order with all item lines without purchase order ?"),
-					() => { create_purchase_order(frm, true) },
-					() => { create_purchase_order(frm, false) },
-					__("Create and submit"),
-					__("Create and keep in draft"),
-				)
-			} else {
-				confirm(__("Create and submit a new purchase invoice ?"),
-					() => { create_purchase_invoice(frm, true) },
-					() => { create_purchase_invoice(frm, false) },
-					__("Create and submit"),
-					__("Create and keep in draft"),
-				)
-			}
+			frappe.db.get_list("Purchase Invoice", {filters: {pending_purchase_invoice: frm.doc.name, docstatus: 0}}).then(draft_invoices => {
+				if (draft_invoices.length) {
+					confirm(__("A draft purchase invoice exists already for this pending purchase invoice ?"),
+						() => { frappe.set_route("Form", "Purchase Invoice", draft_invoices[0].name); },
+						() => { create_po_pi(frm) },
+						__("Open the draft invoice"),
+						__("Create a new invoice"),
+					)
+				} else {
+					create_po_pi(frm)
+				}
+			})
 		}
 	},
 
@@ -242,6 +239,24 @@ frappe.ui.form.on("Pending Purchase Invoice", {
 		}
 	}
 });
+
+const create_po_pi = (frm) => {
+	if (items_are_not_linked_to_purchase_document(frm)) {
+		confirm(__("Create a new purchase order with all item lines without purchase order ?"),
+			() => { create_purchase_order(frm, true) },
+			() => { create_purchase_order(frm, false) },
+			__("Create and submit"),
+			__("Create and keep in draft"),
+		)
+	} else {
+		confirm(__("Create and submit a new purchase invoice ?"),
+			() => { create_purchase_invoice(frm, true) },
+			() => { create_purchase_invoice(frm, false) },
+			__("Create and submit"),
+			__("Create and keep in draft"),
+		)
+	}
+}
 
 const items_are_not_linked_to_purchase_document = (frm) => {
 	return !!frm.doc.items.filter(i => !i.reference_doctype).length

@@ -267,7 +267,6 @@ class PendingPurchaseInvoice(Document):
 				self.append("items", row)
 
 	def get_matched_orders(self):
-
 		purchase_order_dt = frappe.qb.DocType("Purchase Order")
 		purchase_invoice_item_dt = frappe.qb.DocType("Purchase Invoice Item")
 
@@ -310,6 +309,12 @@ class PendingPurchaseInvoice(Document):
 						matched_orders.add(open_order.name)
 					elif find_purchase_order_correspondance(open_order.order_confirmation_no or "", child.get("expense_row") or ""):
 						matched_orders.add(open_order.name)
+
+		if not matched_orders:
+			for open_order in open_orders:
+				if open_order.get("net_total") == self.supplier_net_amount:
+					matched_orders.add(open_order.name)
+					break
 
 		return matched_orders
 
