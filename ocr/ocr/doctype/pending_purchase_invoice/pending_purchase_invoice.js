@@ -196,6 +196,7 @@ frappe.ui.form.on("Pending Purchase Invoice", {
 
 	check_tax_id(frm) {
 		frm.get_field("tax_id").set_description("")
+		frm.toggle_display("update_supplier_tax_id", false);
 		if (frm.doc.tax_id && frm.doc.supplier) {
 			frappe.db.get_value("Supplier", frm.doc.supplier, "tax_id").then((supplier) => {
 				if (!supplier.message.tax_id) {
@@ -429,7 +430,7 @@ class PurchaseDocumentSelector {
 					res.message.items.map(r => {
 						this.frm.add_child("items",
 							{
-								reference_doctype: "Purchase Order",
+								reference_doctype: this.doctype,
 								reference_docname: r.parent,
 								row: r.name,
 								project: r.project,
