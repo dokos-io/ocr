@@ -13,6 +13,7 @@ from frappe import _
 from frappe.utils import nowdate
 from erpnext.accounts.party import get_due_date, set_taxes, get_address_tax_category
 from frappe.contacts.doctype.address.address import get_default_address
+from frappe.model.workflow import get_transitions, get_workflow, has_approval_access, apply_workflow
 
 import frappe
 from frappe.utils import sbool
@@ -243,7 +244,11 @@ class PendingPurchaseInvoice(Document):
 		doc.insert()
 
 		if sbool(submit):
-			doc.submit()
+			if workflow_actions := self.get_workflow_actions("Purchase Invoice"):
+				if len(workflow_actions) == 1:
+					apply_workflow(doc, workflow_actions[0])
+			else:
+				doc.submit()
 
 		return doc
 
@@ -254,7 +259,11 @@ class PendingPurchaseInvoice(Document):
 		doc.insert()
 
 		if sbool(submit):
-			doc.submit()
+			if workflow_actions := self.get_workflow_actions("Purchase Order"):
+				if len(workflow_actions) == 1:
+					apply_workflow(doc, workflow_actions[0])
+			else:
+				doc.submit()
 
 		return doc
 
@@ -436,6 +445,25 @@ class PendingPurchaseInvoice(Document):
 				shipping_address=party_address,
 				use_for_shopping_cart=0,
 			)
+
+	def get_workflow_actions(self, doctype):
+		if frappe.db.get_value("Workflow", dict(document_type=doctype, is_active=True)):
+			try:
+				workflow = get_workflow(doctype)
+				doc = self.get_purchase_invoice()
+				delattr(doc, "__islocal")
+				doc.set(workflow.workflow_state_field, workflow.states[0].state)
+				actions = [
+					t.get("action")
+					for t in get_transitions(doc, raise_exception=True)
+					if has_approval_access(frappe.session.user, doc, t)
+				]
+				print(actions)
+				return actions
+			except Exception:
+				return []
+
+		return []
 
 
 @frappe.whitelist()
