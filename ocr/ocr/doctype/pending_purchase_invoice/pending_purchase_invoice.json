@@ -30,6 +30,7 @@
   "select_purchase_orders",
   "select_purchase_receipts",
   "column_break_pnjn",
+  "reference_documents",
   "section_break_qhrl",
   "items",
   "section_break_leyk",
@@ -314,6 +315,11 @@
    "fieldname": "extracted_data",
    "fieldtype": "Heading",
    "label": "Extracted Data"
+  },
+  {
+   "fieldname": "reference_documents",
+   "fieldtype": "HTML",
+   "label": "Reference Documents"
   }
  ],
  "index_web_pages_for_search": 1,
@@ -329,7 +335,7 @@
    "link_fieldname": "pending_purchase_invoice"
   }
  ],
- "modified": "2024-12-24 13:39:08.472899",
+ "modified": "2025-01-10 09:21:48.385289",
  "modified_by": "Administrator",
  "module": "OCR",
  "name": "Pending Purchase Invoice",
