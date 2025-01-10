@@ -18,6 +18,15 @@ frappe.ui.form.on("Pending Purchase Invoice", {
 			};
 		});
 
+		frm.set_query("taxes_and_charges", function(doc) {
+			return {
+				filters: {
+					"company": doc.company,
+					"disabled": 0,
+				}
+			};
+		});
+
 		$(frm.wrapper).on("dirty", function () {
 			frm.trigger("set_bottom_button_label");
 		})
@@ -359,7 +368,7 @@ class PurchaseDocumentSelector {
 			child_fieldname: "items",
 			child_columns: ["supplier", this.date_field, "item_code", "qty", "net_amount", "cost_center"],
 			add_filters_group: true,
-			primary_action_label: __("Select one or more sales orders"),
+			primary_action_label: __("Select one or more purchase orders"),
 			get_query: () => {
 				return {
 					query: "ocr.ocr.doctype.pending_purchase_invoice.pending_purchase_invoice.get_purchase_documents",

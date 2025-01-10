@@ -10,8 +10,9 @@ from frappe.model.meta import data_fieldtypes, default_fields, child_table_field
 
 from frappe.query_builder import Order
 from frappe import _
-from frappe.utils import flt, nowdate
-from erpnext.accounts.party import get_due_date
+from frappe.utils import nowdate
+from erpnext.accounts.party import get_due_date, set_taxes, get_address_tax_category
+from frappe.contacts.doctype.address.address import get_default_address
 
 import frappe
 from frappe.utils import sbool
@@ -58,6 +59,8 @@ class PendingPurchaseInvoice(Document):
 
 	def validate(self):
 		self.get_supplier()
+		self.set_tax_category()
+		self.set_tax_template()
 
 		if self.supplier:
 			self.title = f"{self.supplier} : {self.bill_no}"[:140] if self.bill_no else f"{self.supplier}"[:140]
@@ -120,23 +123,26 @@ class PendingPurchaseInvoice(Document):
 		self.tax_total = 0.0
 		self.grand_total = 0.0
 		try:
-			po = frappe.new_doc("Purchase Order")
-			for item in self.items:
-				po.append("items", frappe.copy_doc(item).as_dict())
-			po.update(self.as_dict())
-			po.run_method("set_missing_values")
-			# append taxes
-			po.set("taxes", [])
-			if po.taxes_and_charges:
-				po.append_taxes_from_master()
+			if pi := frappe.db.exists("Purchase Invoice", dict(pending_purchase_invoice=self.name)):
+				doc = frappe.get_doc("Purchase Invoice", pi)
 			else:
-				po.append_taxes_from_item_tax_template()
+				doc = frappe.new_doc("Purchase Order")
+				for item in self.items:
+					doc.append("items", frappe.copy_doc(item).as_dict())
+				doc.update(self.as_dict())
+				doc.run_method("set_missing_values")
+				# append taxes
+				doc.set("taxes", [])
+				if doc.taxes_and_charges:
+					doc.append_taxes_from_master()
+				else:
+					doc.append_taxes_from_item_tax_template()
 
-			po.run_method("calculate_taxes_and_totals")
+				doc.run_method("calculate_taxes_and_totals")
 
-			self.net_total = po.net_total or 0.0
-			self.tax_total = po.total_taxes_and_charges or 0.0
-			self.grand_total = po.grand_total or 0.0
+			self.net_total = doc.net_total or 0.0
+			self.tax_total = doc.total_taxes_and_charges or 0.0
+			self.grand_total = doc.grand_total or 0.0
 		except Exception:
 			frappe.clear_messages()
 
@@ -322,6 +328,32 @@ class PendingPurchaseInvoice(Document):
 	def open_request(self):
 		self.status = "Pending"
 		self.set_status(True)
+
+	def set_tax_category(self):
+		if not self.tax_category or not self.supplier:
+			tax_category = frappe.db.get_value("Supplier", self.supplier, "tax_category")
+			party_address = get_default_address("Supplier", self.supplier)
+			self.tax_category = get_address_tax_category(
+				tax_category,
+				party_address,
+				party_address
+			)
+
+	def set_tax_template(self):
+		if not self.taxes_and_charges:
+			party_address = get_default_address("Supplier", self.supplier) # Todo: avoid duplicate query
+			self.taxes_and_charges = set_taxes(
+				party=self.supplier,
+				party_type="Supplier",
+				posting_date=self.posting_date,
+				company=self.company,
+				customer_group=None,
+				supplier_group=None,
+				tax_category=self.tax_category,
+				billing_address=party_address,
+				shipping_address=party_address,
+				use_for_shopping_cart=0,
+			)
 
 
 @frappe.whitelist()
