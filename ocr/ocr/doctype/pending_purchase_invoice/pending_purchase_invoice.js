@@ -273,8 +273,13 @@ const create_purchase_invoice = (frm, submit=false) => {
 		}
 	}).then((res) => {
 		frm.reload_doc();
-		const success_action = new ocr.ui.SuccessAction(frm, __("Purchase invoice created"), "Purchase Invoice", res.message.name)
-		success_action.show();
+		if (submit && res.message.docstatus == 0) {
+			frappe.open_in_new_tab = true;
+			frappe.set_route("Form", res.message.doctype, res.message.name);
+		} else {
+			const success_action = new ocr.ui.SuccessAction(frm, __("Purchase invoice created"), "Purchase Invoice", res.message.name)
+			success_action.show();
+		}
 	})
 }
 
