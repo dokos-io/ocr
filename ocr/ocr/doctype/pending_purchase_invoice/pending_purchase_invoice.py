@@ -69,6 +69,9 @@ class PendingPurchaseInvoice(Document):
 		self.calculate_due_date()
 
 		if not self.items:
+			self.append_matched_receipts()
+
+		if not self.items:
 			self.append_matched_orders()
 
 	def on_update(self):
@@ -291,6 +294,8 @@ class PendingPurchaseInvoice(Document):
 			query = query.where(purchase_order_dt.company == self.company)
 
 		open_orders = query.run(as_dict=True)
+		if not self.open_receipts and len(open_orders) == 1:
+			return open_orders
 
 		def find_purchase_order_correspondance(purchase_order, data):
 			return re.search(r"(?<![\w\d])" + re.escape(purchase_order) + r"(?![\w\d])", data, re.IGNORECASE)
@@ -312,6 +317,78 @@ class PendingPurchaseInvoice(Document):
 
 		if not matched_orders:
 			for open_order in open_orders:
+				if open_order.get("net_total") == self.supplier_net_amount:
+					matched_orders.add(open_order.name)
+					break
+
+		return matched_orders
+
+	def append_matched_receipts(self):
+		matched_receipts = self.get_matched_receipts()
+		for matched_receipt in matched_receipts:
+			doc = frappe.get_doc("Purchase Receipt", matched_receipt)
+			for item in doc.items:
+				row = frappe.copy_doc(item).as_dict()
+				row["reference_doctype"] = doc.doctype
+				row["reference_docname"] = doc.name
+				row["row"] = item.name
+				self.append("items", row)
+
+	def get_matched_receipts(self):
+		purchase_receipt_dt = frappe.qb.DocType("Purchase Receipt")
+		purchase_receipt_item_dt = frappe.qb.DocType("Purchase Receipt Item")
+		purchase_order_dt = frappe.qb.DocType("Purchase Order")
+		purchase_invoice_item_dt = frappe.qb.DocType("Purchase Invoice Item")
+
+		subquery = (
+			frappe.qb.from_(purchase_invoice_item_dt)
+			.select(purchase_invoice_item_dt.name)
+			.where(purchase_invoice_item_dt.docstatus.lt(2))
+			.where(purchase_invoice_item_dt.purchase_order == purchase_receipt_dt.name)
+		)
+
+		query = (
+			frappe.qb.from_(purchase_receipt_dt)
+			.right_join(purchase_receipt_item_dt)
+			.on(purchase_receipt_dt.name == purchase_receipt_item_dt.parent)
+			.left_join(purchase_order_dt)
+			.on(purchase_order_dt.name == purchase_receipt_item_dt.purchase_order)
+			.select(purchase_receipt_dt.name, purchase_receipt_dt.net_total, purchase_receipt_dt.supplier_delivery_note, purchase_receipt_dt.company, purchase_order_dt.name.as_("purchase_order"), purchase_order_dt.order_confirmation_no)
+			.where((purchase_receipt_dt.docstatus == 1) & (purchase_receipt_dt.per_billed.lt(100)) & (purchase_receipt_dt.status.notin(["Closed", "Completed"])))
+			.where(ExistsCriterion(subquery).negate())
+		)
+
+		if self.supplier:
+			query = query.where(purchase_receipt_dt.supplier == self.supplier)
+
+		if self.company:
+			query = query.where(purchase_receipt_dt.company == self.company)
+
+		open_receipts = query.run(as_dict=True)
+		self.open_receipts = open_receipts # used to return order if single
+
+		def find_purchase_order_correspondance(purchase_order, data):
+			return re.search(r"(?<![\w\d])" + re.escape(purchase_order) + r"(?![\w\d])", data, re.IGNORECASE)
+
+		matched_orders = set()
+		if self.ocr_request:
+			ocr_data = self.get_ocr_analysis()
+			if ocr_data.get("PO_NUMBER"):
+				for open_order in open_receipts:
+					if find_purchase_order_correspondance(open_order.name, ocr_data["PO_NUMBER"]):
+							matched_orders.add(open_order.name)
+					elif find_purchase_order_correspondance(open_order.purchase_order, ocr_data["PO_NUMBER"]):
+							matched_orders.add(open_order.name)
+
+			for child in ocr_data.get("items"):
+				for open_order in open_receipts:
+					if find_purchase_order_correspondance(open_order.name, child.get("expense_row") or ""):
+						matched_orders.add(open_order.name)
+					elif find_purchase_order_correspondance(open_order.order_confirmation_no or purchase_receipt_dt.supplier_delivery_note or "", child.get("expense_row") or ""):
+						matched_orders.add(open_order.name)
+
+		if not matched_orders:
+			for open_order in open_receipts:
 				if open_order.get("net_total") == self.supplier_net_amount:
 					matched_orders.add(open_order.name)
 					break
