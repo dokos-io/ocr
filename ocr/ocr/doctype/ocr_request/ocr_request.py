@@ -87,7 +87,7 @@ class OCRRequest(Document):
 			self.log_error(_("OCR Analysis Error"))
 
 	def get_textract_analysis(self):
-		if self.analysis and self.get_raw_data().get("JobStatus") == "SUCCEEDED":
+		if self.analysis:
 			return self.get_raw_data()
 
 		textract = AWSTextractExpense(self)
