@@ -169,12 +169,12 @@ doc_events = {
 # ---------------
 
 scheduler_events = {
-	"all": [
-		"ocr.ocr.doctype.ocr_purchase_invoice_basket.ocr_purchase_invoice_basket.check_requests_completion"
-	],
-	# "daily": [
-	# 	"ocr.tasks.daily"
+	# "all": [
+	# 	"ocr.tasks.all"
 	# ],
+	"daily": [
+		"ocr.ocr.doctype.ocr_purchase_invoice_basket.ocr_purchase_invoice_basket.check_ocr_basket_status"
+	],
 	"hourly": [
 		"ocr.ocr.doctype.ocr_request.ocr_request.check_pending_analysis"
 	],

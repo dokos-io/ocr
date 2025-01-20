@@ -85,9 +85,7 @@ class OCRRequest(Document):
 			self.start_analysis()
 
 		try:
-			analysis = self.get_textract_analysis()
-			self.set_status()
-			return analysis
+			return self.get_textract_analysis()
 		except Exception:
 			self.log_error(_("OCR Analysis Error"))
 
@@ -141,6 +139,12 @@ class OCRRequest(Document):
 		self.status = status
 		if commit:
 			self.db_set("status", status)
+
+		self.update_parent_status()
+
+	def update_parent_status(self):
+		if self.ocr_basket:
+			frappe.get_doc("OCR Purchase Invoice Basket", self.ocr_basket).run_method("set_status")
 
 	def reset_status_and_error(self):
 		self.db_set("error", "")
@@ -296,10 +300,11 @@ class OCRRequest(Document):
 
 
 def check_pending_analysis():
-	for req in frappe.get_all("OCR Request", filters={"status": "Pending"}, limit=500):
+	for req in frappe.get_all("OCR Request", filters={"status": ("in", ["Pending", "Error"])}, limit=500):
 		try:
 			doc = frappe.get_doc("OCR Request", req.name)
 			doc.run_method("get_analysis")
+			doc.run_method("set_status", commit=True)
 		except Exception:
 			doc.log_error()
 			continue
