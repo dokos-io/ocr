@@ -78,11 +78,16 @@ class OCRRequest(Document):
 		self.db_set("job", jobid)
 
 	def get_analysis(self):
+		if not self.file:
+			self.set_and_return_error("no file")
+
 		if not self.job:
 			self.start_analysis()
 
 		try:
-			return self.get_textract_analysis()
+			analysis = self.get_textract_analysis()
+			self.set_status()
+			return analysis
 		except Exception:
 			self.log_error(_("OCR Analysis Error"))
 
@@ -292,8 +297,12 @@ class OCRRequest(Document):
 
 def check_pending_analysis():
 	for req in frappe.get_all("OCR Request", filters={"status": "Pending"}, limit=500):
-		doc = frappe.get_doc("OCR Request", req.name)
-		doc.run_method("get_analysis")
+		try:
+			doc = frappe.get_doc("OCR Request", req.name)
+			doc.run_method("get_analysis")
+		except Exception:
+			doc.log_error()
+			continue
 
 
 @frappe.whitelist()
