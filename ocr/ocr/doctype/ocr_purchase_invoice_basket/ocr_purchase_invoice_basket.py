@@ -84,26 +84,19 @@ class OCRPurchaseInvoiceBasket(Document):
 				frappe.db.set_value("File", file, "attached_to_name", self.name)
 
 
-def check_requests_completion():
-	for basket in frappe.get_all("OCR Purchase Invoice Basket", filters={"status": ["in", ["In Progress", "Not Started"]]}, fields=["name"]):
-		associated_requests = frappe.get_all("OCR Request", filters={"ocr_basket": basket.name}, fields=["name", "status"])
-
+	def set_status(self):
+		associated_requests = frappe.get_all("OCR Request", filters={"ocr_basket": self.name}, fields=["name", "status"])
 		if not associated_requests:
 			try:
-				doc = frappe.get_doc("OCR Purchase Invoice Basket", basket.name)
-				if doc.status != "Not Started":
-					doc.db_set("status", "Not Started")
-				doc.run_method("create_requests")
-				continue
+				if self.status != "Not Started":
+					self.db_set("status", "Not Started")
+				self.run_method("create_requests")
 			except Exception:
-				doc.log_error()
+				self.log_error()
 
-		associated_requests = frappe.get_all("OCR Request", filters={"ocr_basket": basket.name}, fields=["name", "status"])
-		if all([a.status in ("Purchase Order Created", "Purchase Invoice Created") for a in associated_requests]):
-			frappe.db.set_value("OCR Purchase Invoice Basket", basket.name, "status", "Completed")
+		elif all([a.status in ["Closed", "Completed", "Analysis Completed"] for a in associated_requests]):
+			frappe.db.set_value("OCR Purchase Invoice Basket", self.name, "status", "Completed")
 
-		elif all([a.status == "Closed" for a in associated_requests]):
-			frappe.db.set_value("OCR Purchase Invoice Basket", basket.name, "status", "Closed")
 
 
 @frappe.whitelist()
@@ -124,3 +117,8 @@ def make_basket_from_communication(communication, basket_type, ignore_communicat
 
 	return basket
 
+
+@frappe.whitelist()
+def check_ocr_basket_status():
+	for ocr_basket in frappe.get_all("OCR Purchase Invoice Basket", filters={"status": "In Progress"}):
+		frappe.get_doc("OCR Purchase Invoice Basket", ocr_basket.name).run_method("set_status")
