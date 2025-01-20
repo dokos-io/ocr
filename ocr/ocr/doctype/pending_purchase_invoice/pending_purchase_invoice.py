@@ -393,7 +393,7 @@ class PendingPurchaseInvoice(Document):
 				for open_order in open_receipts:
 					if find_purchase_order_correspondance(open_order.name, child.get("expense_row") or ""):
 						matched_orders.add(open_order.name)
-					elif find_purchase_order_correspondance(open_order.order_confirmation_no or purchase_receipt_dt.supplier_delivery_note or "", child.get("expense_row") or ""):
+					elif find_purchase_order_correspondance(open_order.order_confirmation_no or open_order.supplier_delivery_note or "", child.get("expense_row") or ""):
 						matched_orders.add(open_order.name)
 
 		if not matched_orders:
