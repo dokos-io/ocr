@@ -200,6 +200,8 @@ class PendingPurchaseInvoice(Document):
 
 		doc = frappe.new_doc("Purchase Invoice")
 		doc.ignore_pricing_rule = 1
+		doc.set_posting_time = 1
+		doc.posting_date = self.posting_date
 
 		for item in self.items:
 			if item.reference_doctype == "Purchase Order":
