@@ -8,7 +8,7 @@ ocr.original_file_preview = (frm) => {
 	}
 
 
-	if (frm.doc.ocr_request) {
+	if (frm.doc.pending_purchase_invoice) {
 		frappe.model.with_doc("Pending Purchase Invoice", frm.doc.pending_purchase_invoice).then(() => {
 			const doc = frappe.get_doc("Pending Purchase Invoice", frm.doc.pending_purchase_invoice)
 			let msg = ""
