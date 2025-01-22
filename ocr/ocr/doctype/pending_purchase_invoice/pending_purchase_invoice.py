@@ -209,12 +209,13 @@ class PendingPurchaseInvoice(Document):
 			elif item.reference_doctype == "Purchase Receipt":
 				make_purchase_invoice_from_pr(item.reference_docname, doc)
 
-
 		for field in frappe.get_meta(self.doctype).fields:
 			if field.fieldname in EXCLUDED_FIELDS:
 				continue
 			if field.fieldtype in data_fieldtypes:
 				doc.update({field.fieldname: self.get(field.fieldname)})
+
+		doc.items = deduplicate_items(doc.items)
 
 		for item in self.items:
 			for doc_item in doc.items:
@@ -607,3 +608,25 @@ def set_pending_purchase_order_status(doc, method=None):
 		return
 
 	frappe.get_doc("Pending Purchase Invoice", doc.pending_purchase_invoice).run_method("set_status", commit=True)
+
+
+def deduplicate_items(items):
+	po_detail = set()
+	pr_detail = set()
+
+	output = []
+
+	for item in items:
+		if item.po_detail and item.po_detail in po_detail:
+			continue
+		elif item.po_detail:
+			po_detail.add(item.po_detail)
+
+		if item.pr_detail and item.pr_detail in pr_detail:
+			continue
+		elif item.pr_detail:
+			pr_detail.add(item.pr_detail)
+
+		output.append(item)
+
+	return output
