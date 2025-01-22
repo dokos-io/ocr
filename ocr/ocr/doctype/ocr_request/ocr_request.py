@@ -295,7 +295,8 @@ class OCRRequest(Document):
 		doc.file = self.file
 		doc.vendor_address = data.get("vendor_address")
 		doc.tax_id = data.get("tax_id")
-		
+		doc.ocr_basket = self.ocr_basket
+
 		return doc.insert(ignore_mandatory=True, ignore_links=True)
 
 
