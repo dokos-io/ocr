@@ -432,6 +432,10 @@ class PurchaseDocumentSelector {
 						this.frm.set_value("supplier", res.message.supplier)
 					}
 
+					if (res.message.currency && !this.frm.doc.currency) {
+						this.frm.set_value("currency", res.message.currency)
+					}
+
 					res.message.items.map(r => {
 						this.frm.add_child("items",
 							{
