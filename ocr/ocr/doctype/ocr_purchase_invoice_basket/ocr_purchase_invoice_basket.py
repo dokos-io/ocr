@@ -34,7 +34,13 @@ class OCRPurchaseInvoiceBasket(Document):
 		self.relink_files_after_insert()
 
 		if self.flags and self.flags._from_incoming_email:
-			self.create_requests()
+			frappe.enqueue_doc(
+				self.doctype,
+				self.name,
+				"create_requests",
+				queue="default",
+				enqueue_after_commit=True,
+			)
 
 	def get_linked_communications(self):
 		return frappe.get_all("Communication", filters={
