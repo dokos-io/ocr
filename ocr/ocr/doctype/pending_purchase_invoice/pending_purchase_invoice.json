@@ -335,7 +335,7 @@
    "link_fieldname": "pending_purchase_invoice"
   }
  ],
- "modified": "2025-02-05 10:37:55.928562",
+ "modified": "2025-02-05 10:38:43.249744",
  "modified_by": "Administrator",
  "module": "OCR",
  "name": "Pending Purchase Invoice",
@@ -363,7 +363,7 @@
    "print": 1,
    "read": 1,
    "report": 1,
-   "role": "Purchase User",
+   "role": "Accounts User",
    "select": 1,
    "share": 1,
    "write": 1
