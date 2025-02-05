@@ -62,6 +62,7 @@ class PendingPurchaseInvoice(Document):
 		self.get_supplier()
 		self.set_tax_category()
 		self.set_tax_template()
+		self.set_missing_values_in_items()
 
 		if self.supplier:
 			self.title = f"{self.supplier} : {self.bill_no}"[:140] if self.bill_no else f"{self.supplier}"[:140]
@@ -238,7 +239,7 @@ class PendingPurchaseInvoice(Document):
 		doc.insert(ignore_mandatory=True)
 
 		if sbool(submit):
-			if workflow_actions := self.get_workflow_actions("Purchase Invoice"):
+			if workflow_actions := self.get_workflow_actions("Purchase Invoice", doc):
 				if len(workflow_actions) == 1:
 					apply_workflow(doc, workflow_actions[0])
 			else:
@@ -253,7 +254,7 @@ class PendingPurchaseInvoice(Document):
 		doc.insert()
 
 		if sbool(submit):
-			if workflow_actions := self.get_workflow_actions("Purchase Order"):
+			if workflow_actions := self.get_workflow_actions("Purchase Order", doc):
 				if len(workflow_actions) == 1:
 					apply_workflow(doc, workflow_actions[0])
 			else:
@@ -440,11 +441,10 @@ class PendingPurchaseInvoice(Document):
 				use_for_shopping_cart=0,
 			)
 
-	def get_workflow_actions(self, doctype):
+	def get_workflow_actions(self, doctype, doc):
 		if frappe.db.get_value("Workflow", dict(document_type=doctype, is_active=True)):
 			try:
 				workflow = get_workflow(doctype)
-				doc = self.get_purchase_invoice()
 				delattr(doc, "__islocal")
 				doc.set(workflow.workflow_state_field, workflow.states[0].state)
 				actions = [
@@ -452,12 +452,18 @@ class PendingPurchaseInvoice(Document):
 					for t in get_transitions(doc, raise_exception=True)
 					if has_approval_access(frappe.session.user, doc, t)
 				]
-				print(actions)
 				return actions
 			except Exception:
 				return []
 
 		return []
+
+
+	def set_missing_values_in_items(self):
+		for item in self.items:
+			for field in ["project", "cost_center"]:
+				if self.get(field) and not item.get(field):
+					item.set(field, self.get(field))
 
 
 @frappe.whitelist()
