@@ -517,6 +517,7 @@ def make_purchase_order(source_name, target_doc=None, ignore_permissions=False):
 
 		#target_doc.payment_schedule = []
 		target_doc.pending_purchase_invoice = source_name
+		target_doc.department = source.department
 
 		target_doc.set("taxes", [])
 
@@ -532,7 +533,7 @@ def make_purchase_order(source_name, target_doc=None, ignore_permissions=False):
 	def update_source_item(obj, target, source_parent):
 		target.pending_purchase_invoice_item = obj.name
 
-	doclist = get_mapped_doc("Pending Purchase Invoice", source_name, 	{
+	doclist = get_mapped_doc("Pending Purchase Invoice", source_name, {
 		"Pending Purchase Invoice": {
 			"doctype": "Purchase Order",
 		},
