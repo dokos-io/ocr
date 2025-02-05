@@ -32,10 +32,11 @@ frappe.ui.form.on("Pending Purchase Invoice", {
 		})
 	},
 
-	set_bottom_button_label(frm) {
+	async set_bottom_button_label(frm) {
 		let label = __("Save")
 		if (!frm.is_dirty()) {
-			label = items_are_not_linked_to_purchase_document(frm) ? __("Create Purchase Order") : __("Create Purchase Invoice")
+			const items_not_linked_to_po = await items_are_not_linked_to_purchase_document(frm);
+			label = items_not_linked_to_po ? __("Create Purchase Order") : __("Create Purchase Invoice")
 		}
 		frm.get_field("create_purchase_invoice").set_label(label);
 	},
@@ -241,8 +242,9 @@ frappe.ui.form.on("Pending Purchase Invoice", {
 	}
 });
 
-const create_po_pi = (frm) => {
-	if (items_are_not_linked_to_purchase_document(frm)) {
+const create_po_pi = async (frm) => {
+	const items_not_linked_to_po = await items_are_not_linked_to_purchase_document(frm);
+	if (items_not_linked_to_po) {
 		confirm(__("Create a new purchase order with all item lines without purchase order ?"),
 			() => { create_purchase_order(frm, true) },
 			() => { create_purchase_order(frm, false) },
@@ -259,10 +261,9 @@ const create_po_pi = (frm) => {
 	}
 }
 
-const items_are_not_linked_to_purchase_document = (frm) => {
-	frappe.db.get_single_value("OCR Settings", "no_purchase_order").then(r => {
-		return r.no_purchase_order ? false : !!frm.doc.items.filter(i => !i.reference_doctype).length
-	})
+const items_are_not_linked_to_purchase_document = async(frm) => {
+	no_purchase_order = await frappe.db.get_single_value("OCR Settings", "no_purchase_order")
+	return no_purchase_order ? false : !!frm.doc.items.filter(i => !i.reference_doctype).length
 }
 
 const create_purchase_invoice = (frm, submit=false) => {
