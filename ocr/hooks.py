@@ -148,6 +148,7 @@ doc_events = {
 		]
 	},
 	"Purchase Invoice": {
+		"before_submit": "ocr.ocr.doctype.pending_purchase_invoice.pending_purchase_invoice.validate_total",
 		"on_submit": [
 			"ocr.ocr.doctype.ocr_request.ocr_request.update_ocr_request_status",
 			"ocr.ocr.doctype.pending_purchase_invoice.pending_purchase_invoice.set_pending_purchase_order_status"

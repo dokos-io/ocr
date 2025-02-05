@@ -636,3 +636,12 @@ def deduplicate_items(items):
 		output.append(item)
 
 	return output
+
+
+def validate_total(doc, method):
+	if not doc.pending_purchase_invoice:
+		return
+
+	if frappe.db.get_single_value("OCR Settings", "block_if_total_exceeds_pending_pi"):
+		if doc.grand_total > frappe.db.get_value("Pending Purchase Invoice", doc.pending_purchase_invoice, "supplier_grand_total"):
+			frappe.throw(_("The invoice grand total exceeds the supplier provided grand total. You are not allowed to create this purchase invoice."))

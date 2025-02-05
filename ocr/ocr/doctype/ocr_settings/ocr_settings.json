@@ -11,7 +11,8 @@
   "aws_textract_secret",
   "purchase_invoices_tab",
   "purchase_invoices_section",
-  "no_purchase_order"
+  "no_purchase_order",
+  "block_if_total_exceeds_pending_pi"
  ],
  "fields": [
   {
@@ -48,12 +49,18 @@
    "fieldname": "no_purchase_order",
    "fieldtype": "Check",
    "label": "Create purchase invoices without purchase orders or purchase receipts"
+  },
+  {
+   "default": "0",
+   "fieldname": "block_if_total_exceeds_pending_pi",
+   "fieldtype": "Check",
+   "label": "Block the creation of purchase invoices with a grand total exceeding the pending purchase invoice "
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-02-05 09:39:52.229125",
+ "modified": "2025-02-05 17:06:08.447032",
  "modified_by": "Administrator",
  "module": "OCR",
  "name": "OCR Settings",
