@@ -150,21 +150,6 @@ class PendingPurchaseInvoice(Document):
 		except Exception:
 			frappe.clear_messages()
 
-
-	def get_creation_mode(self):
-		if self.get("pi_creation_mode"):
-			return self.pi_creation_mode
-
-		pi_creation_mode = None
-		if self.supplier:
-			pi_creation_mode = frappe.db.get_value("Supplier", self.supplier, "ocr_pi_creation_mode")
-
-		if not pi_creation_mode:
-			pi_creation_mode = frappe.db.get_single_value("OCR Settings", "pi_creation_mode")
-
-		self.pi_creation_mode = pi_creation_mode
-		return self.pi_creation_mode
-
 	@frappe.whitelist()
 	def get_document_item_lines(self, doctype, selected_documents, allow_child_item_selection, filtered_line_items):
 		result = {
@@ -194,7 +179,7 @@ class PendingPurchaseInvoice(Document):
 
 		return result
 
-	def get_purchase_invoice(self):
+	def get_purchase_invoice(self, purchase_order_is_mandatory=True):
 		from erpnext.buying.doctype.purchase_order.purchase_order import make_purchase_invoice as make_purchase_invoice_from_po
 		from erpnext.stock.doctype.purchase_receipt.purchase_receipt import make_purchase_invoice as make_purchase_invoice_from_pr
 
@@ -203,11 +188,15 @@ class PendingPurchaseInvoice(Document):
 		doc.set_posting_time = 1
 		doc.posting_date = self.posting_date
 
-		for item in self.items:
-			if item.reference_doctype == "Purchase Order":
-				make_purchase_invoice_from_po(item.reference_docname, doc)
-			elif item.reference_doctype == "Purchase Receipt":
-				make_purchase_invoice_from_pr(item.reference_docname, doc)
+		if purchase_order_is_mandatory:
+			for item in self.items:
+				if item.reference_doctype == "Purchase Order":
+					make_purchase_invoice_from_po(item.reference_docname, doc)
+				elif item.reference_doctype == "Purchase Receipt":
+					make_purchase_invoice_from_pr(item.reference_docname, doc)
+		else:
+			for item in self.items:
+				doc.append("items", frappe.copy_doc(item).as_dict())
 
 		for field in frappe.get_meta(self.doctype).fields:
 			if field.fieldname in EXCLUDED_FIELDS:
@@ -215,7 +204,8 @@ class PendingPurchaseInvoice(Document):
 			if field.fieldtype in data_fieldtypes:
 				doc.update({field.fieldname: self.get(field.fieldname)})
 
-		doc.items = deduplicate_items(doc.items)
+		if purchase_order_is_mandatory:
+			doc.items = deduplicate_items(doc.items)
 
 		for item in self.items:
 			for doc_item in doc.items:
@@ -238,13 +228,14 @@ class PendingPurchaseInvoice(Document):
 
 	@frappe.whitelist()
 	def create_purchase_invoice(self, submit=False):
-		for item in self.items:
-			if not frappe.db.get_value(item.reference_doctype, item.reference_docname, "docstatus") == 1:
-				frappe.throw(_("Please submit {0}: {1} before trying to create the corresponding invoice").format(_(item.reference_doctype).lower(), item.reference_docname))
+		if (purchase_order_is_mandatory := not frappe.db.get_single_value("OCR Settings", "no_purchase_order")):
+			for item in self.items:
+				if not frappe.db.get_value(item.reference_doctype, item.reference_docname, "docstatus") == 1:
+					frappe.throw(_("Please submit {0}: {1} before trying to create the corresponding invoice").format(_(item.reference_doctype).lower(), item.reference_docname))
 
-		doc = self.get_purchase_invoice()
+		doc = self.get_purchase_invoice(purchase_order_is_mandatory)
 		doc.pending_purchase_invoice = self.name
-		doc.insert()
+		doc.insert(ignore_mandatory=True)
 
 		if sbool(submit):
 			if workflow_actions := self.get_workflow_actions("Purchase Invoice"):

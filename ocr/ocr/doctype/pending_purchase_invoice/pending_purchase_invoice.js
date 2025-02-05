@@ -260,7 +260,9 @@ const create_po_pi = (frm) => {
 }
 
 const items_are_not_linked_to_purchase_document = (frm) => {
-	return !!frm.doc.items.filter(i => !i.reference_doctype).length
+	frappe.db.get_single_value("OCR Settings", "no_purchase_order").then(r => {
+		return r.no_purchase_order ? false : !!frm.doc.items.filter(i => !i.reference_doctype).length
+	})
 }
 
 const create_purchase_invoice = (frm, submit=false) => {

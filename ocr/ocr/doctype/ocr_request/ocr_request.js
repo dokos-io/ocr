@@ -14,6 +14,12 @@ frappe.ui.form.on("OCR Request", {
 			}, __("Actions"));
 		}
 
+		if (frm.doc.status != "Error") {
+			frm.add_custom_button(__('Reset'), function() {
+				frm.call("open_request").then(() => { frm.reload_doc() });
+			}, __("Actions"));
+		}
+
 		if (frm.doc.file) {
 			frappe.model.with_doc("File", frm.doc.file).then(() => {
 				frm.trigger("preview_file")
