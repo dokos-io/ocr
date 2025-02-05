@@ -470,10 +470,18 @@ class PendingPurchaseInvoice(Document):
 def get_item_details(item_code, company):
 	from erpnext.accounts.doctype.budget.budget import get_item_details as _get_item_details
 
-	return _get_item_details(frappe._dict({
+	cost_center, expense_account = _get_item_details(frappe._dict({
 		"item_code": item_code,
 		"company": company
 	}))
+
+	description = frappe.db.get_value("Item", item_code, "description")
+
+	return {
+		"cost_center": cost_center,
+		"expense_account": expense_account,
+		"description": description
+	}
 
 
 def get_best_match_from_list_of_dicts(data, matching_element, key):

@@ -344,10 +344,9 @@ frappe.ui.form.on("Pending Purchase Invoice Item", {
 				company: frm.doc.company
 			}
 		}).then((r) => {
-			const cost_center = r.message ? r.message[0] : "";
-			const expense_account = r.message ? r.message[1] :"";
-			frappe.model.set_value(cdt, cdn, "cost_center", cost_center);
-			frappe.model.set_value(cdt, cdn, "expense_account", expense_account);
+			frappe.model.set_value(cdt, cdn, "cost_center", r.message?.cost_center || "");
+			frappe.model.set_value(cdt, cdn, "expense_account", r.message?.expense_account || "");
+			frappe.model.set_value(cdt, cdn, "description", r.message?.description || "");
 		})
 	},
 	qty(frm, cdt, cdn) {

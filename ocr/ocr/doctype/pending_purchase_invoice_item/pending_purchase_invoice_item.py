@@ -16,6 +16,7 @@ class PendingPurchaseInvoiceItem(Document):
 
 		amount: DF.Float
 		cost_center: DF.Link | None
+		description: DF.TextEditor | None
 		expense_account: DF.Link | None
 		item_code: DF.Link | None
 		parent: DF.Data
