@@ -10,14 +10,8 @@
   "aws_textract_key",
   "aws_textract_secret",
   "purchase_invoices_tab",
-  "purchase_orders_section",
-  "pi_creation_mode",
-  "auto_create_purchase_orders",
-  "items_section",
-  "generic_item",
   "purchase_invoices_section",
-  "do_not_create_purchase_invoices",
-  "auto_submit_purchase_invoices"
+  "no_purchase_order"
  ],
  "fields": [
   {
@@ -29,12 +23,6 @@
    "fieldname": "purchase_invoices_tab",
    "fieldtype": "Tab Break",
    "label": "Purchases"
-  },
-  {
-   "fieldname": "generic_item",
-   "fieldtype": "Link",
-   "label": "Generic Item",
-   "options": "Item"
   },
   {
    "fieldname": "column_break_qhyq",
@@ -51,56 +39,21 @@
    "label": "AWS Textract Secret"
   },
   {
-   "depends_on": "eval:[\"Consolidate all rows in a single invoicing line\"].includes(doc.pi_creation_mode)",
-   "fieldname": "items_section",
-   "fieldtype": "Section Break",
-   "label": "Items"
-  },
-  {
-   "default": "Get items from purchase orders recognized by the OCR",
-   "fieldname": "pi_creation_mode",
-   "fieldtype": "Select",
-   "in_list_view": 1,
-   "label": "Creation Mode",
-   "options": "Get items from purchase orders recognized by the OCR\nGet items from any open purchase order linked to the recognized supplier\nConsolidate all rows in a single invoicing line",
-   "reqd": 1
-  },
-  {
-   "default": "0",
-   "depends_on": "eval:[\"Get items from purchase orders recognized by the OCR\", \"Get items from any open purchase order linked to the recognized supplier\"].includes(doc.pi_creation_mode)",
-   "fieldname": "auto_create_purchase_orders",
-   "fieldtype": "Check",
-   "label": "Automatically create purchase orders if no match is found"
-  },
-  {
-   "default": "0",
-   "depends_on": "eval:!doc.do_not_create_purchase_invoices",
-   "fieldname": "auto_submit_purchase_invoices",
-   "fieldtype": "Check",
-   "label": "Automatically submit purchase invoices"
-  },
-  {
-   "default": "0",
-   "depends_on": "eval:[\"Get items from purchase orders recognized by the OCR\", \"Get items from any open purchase order linked to the recognized supplier\"].includes(doc.pi_creation_mode)",
-   "fieldname": "do_not_create_purchase_invoices",
-   "fieldtype": "Check",
-   "label": "Do not create purchase invoices"
-  },
-  {
-   "fieldname": "purchase_orders_section",
-   "fieldtype": "Section Break",
-   "label": "Purchase Orders"
-  },
-  {
    "fieldname": "purchase_invoices_section",
    "fieldtype": "Section Break",
    "label": "Purchase Invoices"
+  },
+  {
+   "default": "0",
+   "fieldname": "no_purchase_order",
+   "fieldtype": "Check",
+   "label": "Create purchase invoices without purchase orders or purchase receipts"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2024-08-08 11:09:54.916847",
+ "modified": "2025-02-05 09:39:52.229125",
  "modified_by": "Administrator",
  "module": "OCR",
  "name": "OCR Settings",

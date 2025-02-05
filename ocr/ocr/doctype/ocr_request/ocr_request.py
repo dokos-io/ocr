@@ -98,6 +98,7 @@ class OCRRequest(Document):
 			if analysis["JobStatus"] == "SUCCEEDED":
 				self.analysis = frappe.as_json(analysis.get("ParsedData", {}))
 				self.save()
+				self.delete_remote_file()
 
 			elif time_diff_in_hours(now_datetime(), get_datetime(self.creation)) < (7 * 24) : # Check for 7 days
 				time.sleep(25)
@@ -116,12 +117,16 @@ class OCRRequest(Document):
 
 		return analysis
 
-	def on_trash(self):
+	def delete_remote_file(self, log_exception = True):
 		try:
 			textract = AWSTextractExpense(self)
 			textract.task.delete()
 		except Exception:
-			frappe.log_error(_("OCR File Deletion Error"))
+			if log_exception:
+				frappe.log_error(_("OCR File Deletion Error"))
+
+	def on_trash(self):
+		self.delete_remote_file()
 
 	def set_status(self, commit=False):
 		if self.status == "Closed":
@@ -321,4 +326,3 @@ def update_ocr_request_status(doc, method):
 	if doc.ocr_request:
 		ocr_request = frappe.get_doc("OCR Request", doc.ocr_request)
 		ocr_request.set_status(True)
-
