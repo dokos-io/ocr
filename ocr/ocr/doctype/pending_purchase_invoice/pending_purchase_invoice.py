@@ -39,11 +39,13 @@ class PendingPurchaseInvoice(Document):
 		file: DF.Link | None
 		file_url: DF.SmallText | None
 		grand_total: DF.Currency
+		is_return: DF.Check
 		items: DF.Table[PendingPurchaseInvoiceItem]
 		name: DF.Int | None
 		net_total: DF.Currency
 		ocr_basket: DF.Link | None
 		ocr_request: DF.Link | None
+		original_invoice: DF.Link | None
 		posting_date: DF.Date
 		status: DF.Literal["Pending", "In Progress", "Completed", "Closed"]
 		supplier: DF.Link
@@ -199,6 +201,11 @@ class PendingPurchaseInvoice(Document):
 			for item in self.items:
 				doc.append("items", frappe.copy_doc(item).as_dict())
 
+		doc.is_return = bool(self.is_return)
+		if doc.is_return and self.original_invoice:
+			doc.return_against = self.original_invoice
+			doc.update_outstanding_for_self = 0
+
 		for field in frappe.get_meta(self.doctype).fields:
 			if field.fieldname in EXCLUDED_FIELDS:
 				continue
@@ -215,7 +222,6 @@ class PendingPurchaseInvoice(Document):
 						if doc_item.get(field) != item.get(field):
 							doc_item.set(field, item.get(field))
 
-
 		doc.run_method("set_missing_values")
 		doc.set("taxes", [])
 		if doc.taxes_and_charges:
@@ -229,7 +235,7 @@ class PendingPurchaseInvoice(Document):
 
 	@frappe.whitelist()
 	def create_purchase_invoice(self, submit=False):
-		if (purchase_order_is_mandatory := not frappe.db.get_single_value("OCR Settings", "no_purchase_order")):
+		if (purchase_order_is_mandatory := not self.is_return and not frappe.db.get_single_value("OCR Settings", "no_purchase_order")):
 			for item in self.items:
 				if not frappe.db.get_value(item.reference_doctype, item.reference_docname, "docstatus") == 1:
 					frappe.throw(_("Please submit {0}: {1} before trying to create the corresponding invoice").format(_(item.reference_doctype).lower(), item.reference_docname))
@@ -464,6 +470,13 @@ class PendingPurchaseInvoice(Document):
 			for field in ["project", "cost_center"]:
 				if self.get(field) and not item.get(field):
 					item.set(field, self.get(field))
+
+
+	@frappe.whitelist()
+	def get_return_invoice(self, original_invoice):
+		from erpnext.controllers.sales_and_purchase_return import make_return_doc
+
+		return make_return_doc("Purchase Invoice", original_invoice)
 
 
 @frappe.whitelist()

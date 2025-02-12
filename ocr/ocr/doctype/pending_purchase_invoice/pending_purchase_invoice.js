@@ -27,6 +27,15 @@ frappe.ui.form.on("Pending Purchase Invoice", {
 			};
 		});
 
+		frm.set_query("original_invoice", function(doc) {
+			return {
+				filters: {
+					"is_return": false,
+					"company": frm.doc.company,
+				}
+			};
+		});
+
 		$(frm.wrapper).on("dirty", function () {
 			frm.trigger("set_bottom_button_label");
 		})
@@ -239,6 +248,42 @@ frappe.ui.form.on("Pending Purchase Invoice", {
 				});
 			})
 		}
+	},
+	original_invoice(frm) {
+		if (frm.doc.original_invoice) {
+			frappe.call({
+				method: "get_return_invoice",
+				doc: frm.doc,
+				args: {
+					original_invoice: frm.doc.original_invoice
+				}
+			}).then(r => {
+				frm.set_value("items", []);
+				r.message.items.map(i => {
+					frm.add_child("items",
+						{
+							row: i.name,
+							project: i.project,
+							cost_center: i.cost_center,
+							price: i.price,
+							item_code: i.item_code,
+							description: i.description,
+							rate: i.rate,
+							qty: i.qty,
+							amount: i.amount,
+							expense_account: i.expense_account
+						}
+					)
+				})
+				frm.refresh_field("items")
+
+				["currency", "department", "cost_center"].forEach(f => {
+					if (r.message[f]) {
+						frm.set_value(f, r.message[f])
+					}
+				})
+			})
+		}
 	}
 });
 
@@ -262,6 +307,10 @@ const create_po_pi = async (frm) => {
 }
 
 const items_are_not_linked_to_purchase_document = async(frm) => {
+	if (frm.doc.is_return) {
+		return false;
+	}
+
 	no_purchase_order = await frappe.db.get_single_value("OCR Settings", "no_purchase_order")
 	return no_purchase_order ? false : !!frm.doc.items.filter(i => !i.reference_doctype).length
 }
@@ -451,7 +500,8 @@ class PurchaseDocumentSelector {
 								rate: r.rate,
 								qty: r.qty,
 								amount: r.amount,
-								expense_account: r.expense_account
+								expense_account: r.expense_account,
+								description: r.description,
 							}
 						)
 						this.frm.refresh_field("items")

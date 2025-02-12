@@ -24,6 +24,8 @@
   "supplier_grand_total",
   "vendor_address",
   "title",
+  "is_return",
+  "original_invoice",
   "preview_column",
   "invoice_preview",
   "section_break_cesy",
@@ -132,6 +134,7 @@
    "options": "Pending Purchase Invoice Item"
   },
   {
+   "depends_on": "eval:!doc.is_return",
    "fieldname": "select_purchase_orders",
    "fieldtype": "Button",
    "label": "Select Purchase Orders"
@@ -141,6 +144,7 @@
    "fieldtype": "Column Break"
   },
   {
+   "depends_on": "eval:!doc.is_return",
    "fieldname": "select_purchase_receipts",
    "fieldtype": "Button",
    "label": "Select Purchase Receipts"
@@ -320,6 +324,19 @@
    "fieldname": "reference_documents",
    "fieldtype": "HTML",
    "label": "Reference Documents"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_return",
+   "fieldtype": "Check",
+   "label": "Is Debit Note"
+  },
+  {
+   "depends_on": "eval:doc.is_return",
+   "fieldname": "original_invoice",
+   "fieldtype": "Link",
+   "label": "Original Invoice",
+   "options": "Purchase Invoice"
   }
  ],
  "index_web_pages_for_search": 1,
@@ -335,7 +352,7 @@
    "link_fieldname": "pending_purchase_invoice"
   }
  ],
- "modified": "2025-02-05 10:38:43.249744",
+ "modified": "2025-02-12 09:15:11.245404",
  "modified_by": "Administrator",
  "module": "OCR",
  "name": "Pending Purchase Invoice",
