@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: OCR VERSION\n"
 "Report-Msgid-Bugs-To: hello@dokos.io\n"
-"POT-Creation-Date: 2025-02-12 09:19+0009\n"
-"PO-Revision-Date: 2025-02-12 09:34+0100\n"
+"POT-Creation-Date: 2025-02-12 09:34+0009\n"
+"PO-Revision-Date: 2025-02-12 09:35+0100\n"
 "Last-Translator: hello@dokos.io\n"
 "Language-Team: hello@dokos.io\n"
 "Language: fr\n"
@@ -29,8 +29,8 @@ msgid "<span class=\"h4\">Data Extraction</span>"
 msgstr "<span class=\"h4\">Extraction de données</span>"
 
 #: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.js:154
-msgid "A draft purchase invoice exists already for this pending purchase invoice ?"
-msgstr "Une facture d'achats en brouillon existe déjà pour cette facture en attente."
+msgid "A draft purchase invoice exists already for this pending purchase invoice."
+msgstr "Une facture en brouillon existe déjà pour cette facture en attente."
 
 #. Label of a Data field in DocType 'OCR Settings'
 #: ocr/ocr/doctype/ocr_settings/ocr_settings.json
