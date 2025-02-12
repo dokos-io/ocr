@@ -151,7 +151,7 @@ frappe.ui.form.on("Pending Purchase Invoice", {
 		} else {
 			frappe.db.get_list("Purchase Invoice", {filters: {pending_purchase_invoice: frm.doc.name, docstatus: 0}}).then(draft_invoices => {
 				if (draft_invoices.length) {
-					confirm(__("A draft purchase invoice exists already for this pending purchase invoice ?"),
+					confirm(__("A draft purchase invoice exists already for this pending purchase invoice."),
 						() => { frappe.set_route("Form", "Purchase Invoice", draft_invoices[0].name); },
 						() => { create_po_pi(frm) },
 						__("Open the draft invoice"),
