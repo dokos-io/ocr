@@ -530,7 +530,7 @@ def make_purchase_order(source_name, target_doc=None, ignore_permissions=False):
 
 		#target_doc.payment_schedule = []
 		target_doc.pending_purchase_invoice = source_name
-		target_doc.department = source.department
+		target_doc.department = source.get("department")
 
 		target_doc.set("taxes", [])
 
