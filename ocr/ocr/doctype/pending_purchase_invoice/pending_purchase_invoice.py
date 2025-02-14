@@ -50,6 +50,7 @@ class PendingPurchaseInvoice(Document):
 		status: DF.Literal["Pending", "In Progress", "Completed", "Closed"]
 		supplier: DF.Link
 		supplier_grand_total: DF.Currency
+		supplier_name: DF.Data | None
 		supplier_net_amount: DF.Currency
 		supplier_tax_amount: DF.Currency
 		tax_category: DF.Link | None
@@ -192,14 +193,14 @@ class PendingPurchaseInvoice(Document):
 		doc.posting_date = self.posting_date
 
 		if purchase_order_is_mandatory:
-			for item in self.items:
-				if item.reference_doctype == "Purchase Order":
-					make_purchase_invoice_from_po(item.reference_docname, doc)
-				elif item.reference_doctype == "Purchase Receipt":
-					make_purchase_invoice_from_pr(item.reference_docname, doc)
-		else:
-			for item in self.items:
-				doc.append("items", frappe.copy_doc(item).as_dict())
+			if self.items[0].reference_doctype == "Purchase Order":
+				make_purchase_invoice_from_po(self.items[0].reference_docname, doc)
+			elif self.items[0].reference_doctype == "Purchase Receipt":
+				make_purchase_invoice_from_pr(self.items[0].reference_docname, doc)
+
+		doc.set("items", [])
+		for item in self.items:
+			doc.append("items", frappe.copy_doc(item).as_dict())
 
 		doc.is_return = bool(self.is_return)
 		if doc.is_return and self.original_invoice:
@@ -211,16 +212,6 @@ class PendingPurchaseInvoice(Document):
 				continue
 			if field.fieldtype in data_fieldtypes:
 				doc.update({field.fieldname: self.get(field.fieldname)})
-
-		if purchase_order_is_mandatory:
-			doc.items = deduplicate_items(doc.items)
-
-		for item in self.items:
-			for doc_item in doc.items:
-				if doc_item.po_detail == item.row:
-					for field in ["rate", "qty", "cost_center", "project"]:
-						if doc_item.get(field) != item.get(field):
-							doc_item.set(field, item.get(field))
 
 		doc.run_method("set_missing_values")
 		doc.set("taxes", [])
@@ -451,7 +442,8 @@ class PendingPurchaseInvoice(Document):
 		if frappe.db.get_value("Workflow", dict(document_type=doctype, is_active=True)):
 			try:
 				workflow = get_workflow(doctype)
-				delattr(doc, "__islocal")
+				if hasattr(doc, "__islocal"):
+					delattr(doc, "__islocal")
 				doc.set(workflow.workflow_state_field, workflow.states[0].state)
 				actions = [
 					t.get("action")
@@ -460,6 +452,7 @@ class PendingPurchaseInvoice(Document):
 				]
 				return actions
 			except Exception:
+				print("Workflow Error", frappe.get_traceback())
 				return []
 
 		return []
@@ -655,6 +648,10 @@ def validate_total(doc, method):
 	if not doc.pending_purchase_invoice:
 		return
 
-	if frappe.db.get_single_value("OCR Settings", "block_if_total_exceeds_pending_pi"):
+	if frappe.db.get_single_value("OCR Settings", "block_if_grand_total_exceeds_pending_pi"):
 		if doc.grand_total > frappe.db.get_value("Pending Purchase Invoice", doc.pending_purchase_invoice, "supplier_grand_total"):
 			frappe.throw(_("The invoice grand total exceeds the supplier provided grand total. You are not allowed to create this purchase invoice."))
+
+	if frappe.db.get_single_value("OCR Settings", "block_if_net_total_exceeds_pending_pi"):
+		if doc.net_total > frappe.db.get_value("Pending Purchase Invoice", doc.pending_purchase_invoice, "supplier_net_amount"):
+			frappe.throw(_("The invoice net total exceeds the supplier provided net total. You are not allowed to create this purchase invoice."))

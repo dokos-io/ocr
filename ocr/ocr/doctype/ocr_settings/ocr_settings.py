@@ -15,7 +15,8 @@ class OCRSettings(Document):
 
 		aws_textract_key: DF.Data | None
 		aws_textract_secret: DF.Password | None
-		block_if_total_exceeds_pending_pi: DF.Check
+		block_if_grand_total_exceeds_pending_pi: DF.Check
+		block_if_net_total_exceeds_pending_pi: DF.Check
 		no_purchase_order: DF.Check
 	# end: auto-generated types
 
