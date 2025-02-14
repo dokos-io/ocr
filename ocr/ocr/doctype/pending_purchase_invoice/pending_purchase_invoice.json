@@ -63,7 +63,7 @@
    "in_standard_filter": 1,
    "label": "Status",
    "no_copy": 1,
-   "options": "Pending\nIn Progress\nCompleted\nClosed"
+   "options": "Pending\nIn Progress\nReady\nCompleted\nClosed"
   },
   {
    "fieldname": "supplier",
@@ -361,7 +361,7 @@
    "link_fieldname": "pending_purchase_invoice"
   }
  ],
- "modified": "2025-02-14 09:41:49.363583",
+ "modified": "2025-02-14 10:38:32.658869",
  "modified_by": "Administrator",
  "module": "OCR",
  "name": "Pending Purchase Invoice",
@@ -414,6 +414,10 @@
   {
    "color": "Green",
    "title": "Completed"
+  },
+  {
+   "color": "Yellow",
+   "title": "Ready"
   }
  ],
  "title_field": "title"
