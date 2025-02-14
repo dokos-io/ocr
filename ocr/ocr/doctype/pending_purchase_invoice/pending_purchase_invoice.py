@@ -47,7 +47,7 @@ class PendingPurchaseInvoice(Document):
 		ocr_request: DF.Link | None
 		original_invoice: DF.Link | None
 		posting_date: DF.Date
-		status: DF.Literal["Pending", "In Progress", "Completed", "Closed"]
+		status: DF.Literal["Pending", "In Progress", "Ready", "Completed", "Closed"]
 		supplier: DF.Link
 		supplier_grand_total: DF.Currency
 		supplier_name: DF.Data | None
@@ -116,8 +116,11 @@ class PendingPurchaseInvoice(Document):
 
 	def set_status(self, commit=False):
 		status = "Pending"
-		if frappe.db.exists("Purchase Order", dict(pending_purchase_invoice=self.name, docstatus=("!=", 2))):
+		purchase_orders = frappe.get_all("Purchase Order", dict(pending_purchase_invoice=self.name, docstatus=("!=", 2)), pluck="docstatus")
+		if purchase_orders:
 			status = "In Progress"
+		if self.items and all([po for po in purchase_orders if po == 1]):
+			status = "Ready"
 		if frappe.db.exists("Purchase Invoice", dict(pending_purchase_invoice=self.name, docstatus=("=", 1))):
 			status = "Completed"
 
