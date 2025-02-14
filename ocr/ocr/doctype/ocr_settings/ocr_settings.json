@@ -12,7 +12,8 @@
   "purchase_invoices_tab",
   "purchase_invoices_section",
   "no_purchase_order",
-  "block_if_total_exceeds_pending_pi"
+  "block_if_grand_total_exceeds_pending_pi",
+  "block_if_net_total_exceeds_pending_pi"
  ],
  "fields": [
   {
@@ -52,15 +53,21 @@
   },
   {
    "default": "0",
-   "fieldname": "block_if_total_exceeds_pending_pi",
+   "fieldname": "block_if_grand_total_exceeds_pending_pi",
    "fieldtype": "Check",
    "label": "Block the creation of purchase invoices with a grand total exceeding the pending purchase invoice "
+  },
+  {
+   "default": "0",
+   "fieldname": "block_if_net_total_exceeds_pending_pi",
+   "fieldtype": "Check",
+   "label": "Block the creation of purchase invoices with a net total exceeding the pending purchase invoice "
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-02-05 17:06:08.447032",
+ "modified": "2025-02-14 10:34:43.733107",
  "modified_by": "Administrator",
  "module": "OCR",
  "name": "OCR Settings",

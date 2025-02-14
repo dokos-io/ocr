@@ -11,6 +11,7 @@
   "status",
   "company",
   "supplier",
+  "supplier_name",
   "tax_id",
   "update_supplier_tax_id",
   "create_supplier",
@@ -337,6 +338,14 @@
    "fieldtype": "Link",
    "label": "Original Invoice",
    "options": "Purchase Invoice"
+  },
+  {
+   "fetch_from": "supplier.supplier_name",
+   "fieldname": "supplier_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Supplier Name",
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
@@ -352,7 +361,7 @@
    "link_fieldname": "pending_purchase_invoice"
   }
  ],
- "modified": "2025-02-12 09:15:11.245404",
+ "modified": "2025-02-14 09:41:49.363583",
  "modified_by": "Administrator",
  "module": "OCR",
  "name": "Pending Purchase Invoice",
