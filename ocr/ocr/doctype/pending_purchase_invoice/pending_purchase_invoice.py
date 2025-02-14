@@ -216,6 +216,10 @@ class PendingPurchaseInvoice(Document):
 			if field.fieldtype in data_fieldtypes:
 				doc.update({field.fieldname: self.get(field.fieldname)})
 
+		# Explicitely remove discounts coming from POs
+		doc.additional_discount_percentage = 0.0
+		doc.discount_amount = 0.0
+
 		doc.run_method("set_missing_values")
 		doc.set("taxes", [])
 		if doc.taxes_and_charges:
