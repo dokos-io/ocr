@@ -321,9 +321,9 @@ const items_are_not_linked_to_purchase_document = async(frm) => {
 const create_purchase_invoice = (frm, submit=false) => {
 	frappe.show_alert("Purchase Invoice creation in progress")
 	frappe.call({
-		method: "create_purchase_invoice",
-		doc: frm.doc,
+		method: "ocr.ocr.doctype.pending_purchase_invoice.pending_purchase_invoice.create_purchase_invoice",
 		args: {
+			docname: frm.doc.name,
 			submit: submit
 		}
 	}).then((res) => {
@@ -342,9 +342,9 @@ const create_purchase_invoice = (frm, submit=false) => {
 const create_purchase_order = (frm, submit=false) => {
 	frappe.show_alert("Purchase Order creation in progress")
 	frappe.call({
-		method: "create_purchase_order",
-		doc: frm.doc,
+		method: "ocr.ocr.doctype.pending_purchase_invoice.pending_purchase_invoice.create_purchase_order",
 		args: {
+			docname: frm.doc.name,
 			submit: submit
 		}
 	}).then((res) => {
