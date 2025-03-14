@@ -18,6 +18,13 @@ frappe.ui.form.on("Pending Purchase Invoice", {
 			};
 		});
 
+		frm.set_query("item_code", "items", function(doc) {
+			return {
+				query: "erpnext.controllers.queries.item_query",
+				filters: { 'supplier': frm.doc.supplier, 'is_purchase_item': 1, 'has_variants': 0}
+			}
+		});
+
 		frm.set_query("taxes_and_charges", function(doc) {
 			return {
 				filters: {
