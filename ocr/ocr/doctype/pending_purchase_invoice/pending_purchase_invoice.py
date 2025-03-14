@@ -231,7 +231,6 @@ class PendingPurchaseInvoice(Document):
 
 		return doc
 
-	@frappe.whitelist()
 	def create_purchase_invoice(self, submit=False):
 		if (purchase_order_is_mandatory := not self.is_return and not frappe.db.get_single_value("OCR Settings", "no_purchase_order")):
 			for item in self.items:
@@ -242,7 +241,7 @@ class PendingPurchaseInvoice(Document):
 		doc.pending_purchase_invoice = self.name
 		doc.insert(ignore_mandatory=True)
 
-		if sbool(submit):
+		if submit:
 			if workflow_actions := self.get_workflow_actions("Purchase Invoice", doc):
 				if len(workflow_actions) == 1:
 					apply_workflow(doc, workflow_actions[0])
@@ -252,12 +251,11 @@ class PendingPurchaseInvoice(Document):
 		return doc
 
 
-	@frappe.whitelist()
 	def create_purchase_order(self, submit=False):
 		doc = make_purchase_order(self.name)
 		doc.insert()
 
-		if sbool(submit):
+		if submit:
 			if workflow_actions := self.get_workflow_actions("Purchase Order", doc):
 				if len(workflow_actions) == 1:
 					apply_workflow(doc, workflow_actions[0])
@@ -662,3 +660,13 @@ def validate_total(doc, method):
 	if frappe.db.get_single_value("OCR Settings", "block_if_net_total_exceeds_pending_pi"):
 		if doc.net_total > frappe.db.get_value("Pending Purchase Invoice", doc.pending_purchase_invoice, "supplier_net_amount"):
 			frappe.throw(_("The invoice net total exceeds the supplier provided net total. You are not allowed to create this purchase invoice."))
+
+
+@frappe.whitelist()
+def create_purchase_invoice(docname, submit=False):
+	return frappe.get_doc("Pending Purchase Invoice", docname).run_method("create_purchase_invoice", submit=sbool(submit))
+
+
+@frappe.whitelist()
+def create_purchase_order(docname, submit=False):
+	return frappe.get_doc("Pending Purchase Invoice", docname).run_method("create_purchase_order", submit=sbool(submit))
