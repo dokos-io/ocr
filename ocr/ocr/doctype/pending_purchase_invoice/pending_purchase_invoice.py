@@ -21,6 +21,11 @@ from frappe.utils import sbool
 
 EXCLUDED_FIELDS = [*default_fields, *child_table_fields, "status"]
 
+REFERENCE_FIELDS = {
+	"Purchase Order": {"reference_docname": "purchase_order", "row": "po_detail"},
+	"Purchase Receipt": {"reference_docname": "purchase_receipt", "row": "pr_detail"},
+}
+
 class PendingPurchaseInvoice(Document):
 	# begin: auto-generated types
 	# This code is auto-generated. Do not modify anything in this block.
@@ -203,7 +208,10 @@ class PendingPurchaseInvoice(Document):
 
 		doc.set("items", [])
 		for item in self.items:
-			doc.append("items", frappe.copy_doc(item).as_dict())
+			new_row = frappe.copy_doc(item).as_dict()
+			for key, value in REFERENCE_FIELDS.get(item.reference_doctype).items():
+				new_row[value] = item.get(key)
+			doc.append("items", new_row)
 
 		doc.is_return = bool(self.is_return)
 		if doc.is_return and self.original_invoice:
