@@ -17,9 +17,9 @@ class OCRSettings(Document):
 		auto_submit_purchase_invoices: DF.Check
 		aws_textract_key: DF.Data | None
 		aws_textract_secret: DF.Password | None
-		do_not_create_purchase_invoices: DF.Check
-		generic_item: DF.Link | None
-		pi_creation_mode: DF.Literal["Get items from purchase orders recognized by the OCR", "Get items from any open purchase order linked to the recognized supplier", "Consolidate all rows in a single invoicing line"]
+		block_if_grand_total_exceeds_pending_pi: DF.Check
+		block_if_net_total_exceeds_pending_pi: DF.Check
+		no_purchase_order: DF.Check
 	# end: auto-generated types
 
 	pass

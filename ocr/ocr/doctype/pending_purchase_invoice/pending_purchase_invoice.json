@@ -1,0 +1,424 @@
+{
+ "actions": [],
+ "autoname": "autoincrement",
+ "creation": "2024-12-09 09:29:54.884756",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "invoice_tab",
+  "data_column",
+  "extracted_data",
+  "status",
+  "company",
+  "supplier",
+  "supplier_name",
+  "tax_id",
+  "update_supplier_tax_id",
+  "create_supplier",
+  "currency",
+  "bill_no",
+  "bill_date",
+  "posting_date",
+  "due_date",
+  "supplier_net_amount",
+  "supplier_tax_amount",
+  "supplier_grand_total",
+  "vendor_address",
+  "title",
+  "is_return",
+  "original_invoice",
+  "preview_column",
+  "invoice_preview",
+  "section_break_cesy",
+  "select_purchase_orders",
+  "select_purchase_receipts",
+  "column_break_pnjn",
+  "reference_documents",
+  "section_break_qhrl",
+  "items",
+  "section_break_leyk",
+  "tax_category",
+  "taxes_and_charges",
+  "section_break_qitx",
+  "column_break_rfqg",
+  "net_total",
+  "column_break_lutf",
+  "tax_total",
+  "column_break_wvsw",
+  "grand_total",
+  "column_break_ltet",
+  "create_purchase_invoice",
+  "references_tab",
+  "file",
+  "file_url",
+  "ocr_request",
+  "ocr_basket"
+ ],
+ "fields": [
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Status",
+   "no_copy": 1,
+   "options": "Pending\nIn Progress\nReady\nCompleted\nClosed"
+  },
+  {
+   "fieldname": "supplier",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Supplier",
+   "options": "Supplier",
+   "reqd": 1
+  },
+  {
+   "fieldname": "bill_no",
+   "fieldtype": "Data",
+   "label": "Supplier Invoice No"
+  },
+  {
+   "fieldname": "bill_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Supplier Invoice Date"
+  },
+  {
+   "fieldname": "due_date",
+   "fieldtype": "Date",
+   "label": "Due Date"
+  },
+  {
+   "fieldname": "invoice_preview",
+   "fieldtype": "HTML",
+   "label": "Invoice Preview"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "ocr_request.file",
+   "fetch_if_empty": 1,
+   "fieldname": "file",
+   "fieldtype": "Link",
+   "label": "File",
+   "options": "File",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "file.file_url",
+   "fieldname": "file_url",
+   "fieldtype": "Small Text",
+   "hidden": 1,
+   "label": "File URL"
+  },
+  {
+   "fieldname": "preview_column",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_cesy",
+   "fieldtype": "Section Break",
+   "hide_border": 1
+  },
+  {
+   "fieldname": "items",
+   "fieldtype": "Table",
+   "label": "Items",
+   "options": "Pending Purchase Invoice Item"
+  },
+  {
+   "depends_on": "eval:!doc.is_return",
+   "fieldname": "select_purchase_orders",
+   "fieldtype": "Button",
+   "label": "Select Purchase Orders"
+  },
+  {
+   "fieldname": "column_break_pnjn",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval:!doc.is_return",
+   "fieldname": "select_purchase_receipts",
+   "fieldtype": "Button",
+   "label": "Select Purchase Receipts"
+  },
+  {
+   "fieldname": "section_break_qhrl",
+   "fieldtype": "Section Break",
+   "hide_border": 1
+  },
+  {
+   "fieldname": "section_break_qitx",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_rfqg",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_ltet",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval:![\"Closed\", \"Completed\"].includes(doc.status) && doc.items.length",
+   "fieldname": "create_purchase_invoice",
+   "fieldtype": "Button",
+   "label": "Create Purchase Invoice"
+  },
+  {
+   "fieldname": "column_break_wvsw",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Title"
+  },
+  {
+   "fieldname": "column_break_lutf",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_leyk",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "tax_category",
+   "fieldtype": "Link",
+   "label": "Tax Category",
+   "options": "Tax Category",
+   "read_only": 1
+  },
+  {
+   "description": "Leave empty for tax determination by line items",
+   "fieldname": "taxes_and_charges",
+   "fieldtype": "Link",
+   "label": "Purchase Taxes Template",
+   "options": "Purchase Taxes and Charges Template"
+  },
+  {
+   "default": "Today",
+   "fieldname": "posting_date",
+   "fieldtype": "Date",
+   "label": "Posting Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "supplier_net_amount",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Net Amount",
+   "read_only": 1
+  },
+  {
+   "fieldname": "supplier_tax_amount",
+   "fieldtype": "Currency",
+   "label": "Tax Amount",
+   "read_only": 1
+  },
+  {
+   "fieldname": "supplier_grand_total",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Grand Total",
+   "read_only": 1
+  },
+  {
+   "fieldname": "net_total",
+   "fieldtype": "Currency",
+   "label": "Net Total",
+   "read_only": 1
+  },
+  {
+   "fieldname": "tax_total",
+   "fieldtype": "Currency",
+   "label": "Tax Total",
+   "read_only": 1
+  },
+  {
+   "fieldname": "grand_total",
+   "fieldtype": "Currency",
+   "label": "Grand Total",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "company.default_currency",
+   "fetch_if_empty": 1,
+   "fieldname": "currency",
+   "fieldtype": "Link",
+   "label": "Currency",
+   "options": "Currency",
+   "reqd": 1
+  },
+  {
+   "fieldname": "ocr_request",
+   "fieldtype": "Link",
+   "label": "OCR Request",
+   "options": "OCR Request",
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fetch_from": "ocr_request.ocr_basket",
+   "fieldname": "ocr_basket",
+   "fieldtype": "Link",
+   "label": "OCR Purchase Invoice Basket",
+   "options": "OCR Purchase Invoice Basket",
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "references_tab",
+   "fieldtype": "Tab Break",
+   "label": "References"
+  },
+  {
+   "fieldname": "invoice_tab",
+   "fieldtype": "Tab Break",
+   "label": "Invoice"
+  },
+  {
+   "fieldname": "data_column",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "vendor_address",
+   "fieldtype": "Small Text",
+   "hidden": 1,
+   "label": "Supplier Address",
+   "read_only": 1
+  },
+  {
+   "fieldname": "tax_id",
+   "fieldtype": "Data",
+   "label": "Tax ID"
+  },
+  {
+   "fieldname": "update_supplier_tax_id",
+   "fieldtype": "Button",
+   "hidden": 1,
+   "label": "Update Supplier Tax ID"
+  },
+  {
+   "depends_on": "eval:doc.tax_id && !doc.supplier",
+   "fieldname": "create_supplier",
+   "fieldtype": "Button",
+   "label": "Create Supplier"
+  },
+  {
+   "fieldname": "extracted_data",
+   "fieldtype": "Heading",
+   "label": "Extracted Data"
+  },
+  {
+   "fieldname": "reference_documents",
+   "fieldtype": "HTML",
+   "label": "Reference Documents"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_return",
+   "fieldtype": "Check",
+   "label": "Is Debit Note"
+  },
+  {
+   "depends_on": "eval:doc.is_return",
+   "fieldname": "original_invoice",
+   "fieldtype": "Link",
+   "label": "Original Invoice",
+   "options": "Purchase Invoice"
+  },
+  {
+   "fetch_from": "supplier.supplier_name",
+   "fieldname": "supplier_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Supplier Name",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [
+  {
+   "group": "Purchase Orders",
+   "link_doctype": "Purchase Order",
+   "link_fieldname": "pending_purchase_invoice"
+  },
+  {
+   "group": "Purchase Invoices",
+   "link_doctype": "Purchase Invoice",
+   "link_fieldname": "pending_purchase_invoice"
+  }
+ ],
+ "modified": "2025-02-14 10:38:32.658869",
+ "modified_by": "Administrator",
+ "module": "OCR",
+ "name": "Pending Purchase Invoice",
+ "naming_rule": "Autoincrement",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "select": 1,
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Accounts User",
+   "select": 1,
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "show_title_field_in_link": 1,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [
+  {
+   "color": "Blue",
+   "title": "Pending"
+  },
+  {
+   "color": "Gray",
+   "title": "Closed"
+  },
+  {
+   "color": "Orange",
+   "title": "In Progress"
+  },
+  {
+   "color": "Green",
+   "title": "Completed"
+  },
+  {
+   "color": "Yellow",
+   "title": "Ready"
+  }
+ ],
+ "title_field": "title"
+}

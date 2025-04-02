@@ -1,0 +1,172 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2024-12-09 11:00:01.276920",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "supplier_description",
+  "column_break_tkvy",
+  "supplier_item_code",
+  "section_break_drta",
+  "item_code",
+  "qty",
+  "column_break_tifj",
+  "rate",
+  "amount",
+  "section_break_jtkv",
+  "description",
+  "section_break_nbbf",
+  "cost_center",
+  "project",
+  "column_break_zzny",
+  "expense_account",
+  "section_break_btot",
+  "reference_doctype",
+  "row",
+  "column_break_zkca",
+  "reference_docname"
+ ],
+ "fields": [
+  {
+   "fieldname": "supplier_description",
+   "fieldtype": "Small Text",
+   "label": "Supplier Description",
+   "read_only": 1
+  },
+  {
+   "fieldname": "supplier_item_code",
+   "fieldtype": "Small Text",
+   "label": "Supplier Item Code",
+   "read_only": 1
+  },
+  {
+   "columns": 1,
+   "fieldname": "cost_center",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Cost Center",
+   "options": "Cost Center"
+  },
+  {
+   "columns": 1,
+   "fieldname": "project",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Project",
+   "options": "Project"
+  },
+  {
+   "columns": 2,
+   "fieldname": "item_code",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Item",
+   "options": "Item",
+   "read_only_depends_on": "eval:doc.row"
+  },
+  {
+   "columns": 1,
+   "fieldname": "qty",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Quantity"
+  },
+  {
+   "columns": 1,
+   "fieldname": "rate",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Unit Rate"
+  },
+  {
+   "columns": 1,
+   "fieldname": "amount",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Amount",
+   "read_only": 1
+  },
+  {
+   "fieldname": "reference_doctype",
+   "fieldtype": "Link",
+   "label": "Reference Doctype",
+   "options": "DocType",
+   "read_only": 1
+  },
+  {
+   "columns": 2,
+   "fieldname": "reference_docname",
+   "fieldtype": "Dynamic Link",
+   "in_list_view": 1,
+   "label": "Reference Docname",
+   "options": "reference_doctype",
+   "read_only": 1
+  },
+  {
+   "fieldname": "row",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Row",
+   "read_only": 1
+  },
+  {
+   "columns": 1,
+   "fieldname": "expense_account",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Expense Account",
+   "options": "Account"
+  },
+  {
+   "fieldname": "column_break_tkvy",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_drta",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_tifj",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_nbbf",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_zzny",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_btot",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_zkca",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_jtkv",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Text Editor",
+   "label": "Description"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-02-05 14:25:47.640322",
+ "modified_by": "Administrator",
+ "module": "OCR",
+ "name": "Pending Purchase Invoice Item",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

@@ -1,6 +1,6 @@
 {
  "charts": [],
- "content": "[{\"id\":\"et_fl0glk_\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Data Extraction</span>\",\"col\":12}},{\"id\":\"Ga54JMZLjT\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"OCR Purchase Invoice Basket\",\"col\":4}},{\"id\":\"bQ7ISgNsjD\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"OCR Request\",\"col\":4}},{\"id\":\"RcrwO0v9ap\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"Purchase Invoice\",\"col\":4}}]",
+ "content": "[{\"id\":\"et_fl0glk_\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Data Extraction</span>\",\"col\":12}},{\"id\":\"Ga54JMZLjT\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"OCR Purchase Invoice Baskets\",\"col\":4}},{\"id\":\"5zddYzbPnb\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"Purchase Invoice to Create\",\"col\":4}},{\"id\":\"RcrwO0v9ap\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"Purchase Invoice to Submit\",\"col\":4}},{\"id\":\"EXc9ldsoX-\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"-7VLQIAM6Y\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"OCR Requests\",\"col\":3}},{\"id\":\"sRcV8PnFOF\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Purchase Orders\",\"col\":3}},{\"id\":\"0uTQVmBXJH\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"OCR Settings\",\"col\":3}}]",
  "creation": "2023-11-28 21:01:07.866743",
  "custom_blocks": [],
  "docstatus": 0,
@@ -10,10 +10,9 @@
  "icon": "unhide",
  "idx": 0,
  "is_hidden": 0,
- "is_standard": 1,
  "label": "Data Extraction",
  "links": [],
- "modified": "2023-11-28 21:02:47.005905",
+ "modified": "2025-02-05 14:57:14.885459",
  "modified_by": "Administrator",
  "module": "OCR",
  "name": "Data Extraction",
@@ -24,22 +23,47 @@
  "quick_lists": [
   {
    "document_type": "OCR Purchase Invoice Basket",
-   "label": "OCR Purchase Invoice Basket",
-   "quick_list_filter": "[]"
+   "label": "OCR Purchase Invoice Baskets",
+   "quick_list_filter": "[[\"OCR Purchase Invoice Basket\",\"status\",\"in\",[\"Not Started\",\"In Progress\",null],false]]"
   },
   {
-   "document_type": "OCR Request",
-   "label": "OCR Request",
-   "quick_list_filter": "[]"
+   "document_type": "Pending Purchase Invoice",
+   "label": "Purchase Invoice to Create",
+   "quick_list_filter": "[[\"Pending Purchase Invoice\",\"status\",\"in\",[\"Pending\",\"In Progress\",null],false]]"
   },
   {
    "document_type": "Purchase Invoice",
-   "label": "Purchase Invoice",
-   "quick_list_filter": "[[\"Purchase Invoice\",\"ocr_request\",\"is\",\"set\",false],[\"Purchase Invoice\",\"docstatus\",\"=\",\"0\",false]]"
+   "label": "Purchase Invoice to Submit",
+   "quick_list_filter": "[[\"Purchase Invoice\",\"pending_purchase_invoice\",\"is\",\"set\",false],[\"Purchase Invoice\",\"docstatus\",\"=\",\"0\",false]]"
   }
  ],
  "roles": [],
  "sequence_id": 51.0,
- "shortcuts": [],
+ "shortcuts": [
+  {
+   "color": "Gray",
+   "doc_view": "List",
+   "label": "OCR Requests",
+   "link_to": "OCR Request",
+   "stats_filter": "[]",
+   "type": "DocType"
+  },
+  {
+   "color": "Blue",
+   "doc_view": "List",
+   "format": "{} orders",
+   "label": "Purchase Orders",
+   "link_to": "Purchase Order",
+   "stats_filter": "[[\"Purchase Order\",\"pending_purchase_invoice\",\"is\",\"set\",false]]",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "OCR Settings",
+   "link_to": "OCR Settings",
+   "type": "DocType"
+  }
+ ],
  "title": "Data Extraction"
 }

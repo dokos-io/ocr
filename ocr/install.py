@@ -58,7 +58,16 @@ def get_custom_fields():
 			"label": "Original File",
 			"insert_after": "ocr_request",
 			"read_only": 1,
-			"fetch_from": "ocr_request.file",
+			"fetch_from": "pending_purchase_invoice.file",
+			"no_copy": 1
+		},
+		{
+			"fieldname": "pending_purchase_invoice",
+			"fieldtype": "Link",
+			"options": "Pending Purchase Invoice",
+			"label": "Pending Purchase Invoice",
+			"insert_after": "ocr_original_file",
+			"read_only": 1,
 			"no_copy": 1
 		},
 	]
@@ -73,24 +82,17 @@ def get_custom_fields():
 				"options": "OCR Line Items Mapping",
 				"label": "OCR Request Line Item",
 				"insert_after": "supplier_quotation_item",
-				"read_only": 1
-			},
-		],
-		"Supplier": [
-			{
-				"fieldname": "ocr_section",
-				"fieldtype": "Section Break",
-				"label": "Invoice Extraction",
-				"insert_after": "release_date"
+				"read_only": 1,
+				"no_copy": 1
 			},
 			{
-				"fieldname": "ocr_pi_creation_mode",
-				"fieldtype": "Select",
-				"options": "\nGet items from purchase orders recognized by the OCR\nGet items from any open purchase order linked to the recognized supplier\nConsolidate all rows in a single invoicing line",
-				"label": "Creation Mode",
-				"insert_after": "ocr_section",
-				"description": "If not set, the creation mode defined in the OCR settings will prevail.",
-				"translatable": 0,
+				"fieldname": "pending_purchase_invoice_item",
+				"fieldtype": "Link",
+				"options": "Pending Purchase Invoice Item",
+				"label": "Pending Purchase Invoice Item",
+				"insert_after": "ocr_request_line_item",
+				"read_only": 1,
+				"no_copy": 1
 			},
 		]
 	}
