@@ -7,13 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: OCR VERSION\n"
 "Report-Msgid-Bugs-To: hello@dokos.io\n"
-<<<<<<< HEAD
-"POT-Creation-Date: 2024-08-20 10:50+0009\n"
-"PO-Revision-Date: 2024-08-20 10:51+0200\n"
-=======
 "POT-Creation-Date: 2025-02-12 09:34+0009\n"
 "PO-Revision-Date: 2025-02-12 09:35+0100\n"
->>>>>>> develop
 "Last-Translator: hello@dokos.io\n"
 "Language-Team: hello@dokos.io\n"
 "Language: fr\n"
@@ -21,43 +16,6 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
-<<<<<<< HEAD
-"Generated-By: Babel 2.13.1\n"
-"X-Generator: Poedit 3.0.1\n"
-
-#: public/js/file_preview.js:17 public/js/file_preview.js:21
-msgid ") and this"
-msgstr ") et cette"
-
-#. Label of the aws_textract_key (Data) field in DocType 'OCR Settings'
-#: ocr/doctype/ocr_settings/ocr_settings.json
-msgid "AWS Textract Key"
-msgstr "Clé AWS Textract"
-
-#. Label of the aws_textract_secret (Password) field in DocType 'OCR Settings'
-#: ocr/doctype/ocr_settings/ocr_settings.json
-msgid "AWS Textract Secret"
-msgstr "Secret AWS Textract"
-
-#: ocr/doctype/ocr_request/ocr_request.js:80
-msgid "Action completed with success"
-msgstr "Action exécutée avec succès"
-
-#: ocr/doctype/ocr_request/ocr_request.js:9
-#: ocr/doctype/ocr_request/ocr_request.js:15
-#: ocr/doctype/ocr_request/ocr_request.js:19
-#: ocr/doctype/ocr_request/ocr_request.js:49
-#: ocr/doctype/ocr_request/ocr_request.js:53
-msgid "Actions"
-msgstr "Actions"
-
-#: ocr/doctype/ocr_request/ocr_request.js:226
-msgid "An error prevented the creation of the purchase order"
-msgstr "Une erreur a bloqué la création de la commande fournisseur"
-
-#. Label of the analysis (Code) field in DocType 'OCR Request'
-#: ocr/doctype/ocr_request/ocr_request.json
-=======
 "Generated-By: Babel 2.14.0\n"
 "X-Generator: Poedit 3.4.2\n"
 
@@ -104,56 +62,10 @@ msgstr "Montant"
 
 #. Label of a Code field in DocType 'OCR Request'
 #: ocr/ocr/doctype/ocr_request/ocr_request.json
->>>>>>> develop
 msgid "Analysis"
 msgstr "Analyse"
 
 #. Option for the 'Status' (Select) field in DocType 'OCR Request'
-<<<<<<< HEAD
-#: ocr/doctype/ocr_request/ocr_request.json
-msgid "Analysis Completed"
-msgstr "Analyse terminée"
-
-#: public/js/communication.js:11
-msgid "Are you sure you want to create {0} from this email ?"
-msgstr "Êtes-vous certain de vouloir créer {0} depuis cet email ?"
-
-#. Label of the attached_to_doctype (Link) field in DocType 'OCR Generic Text
-#. Transcription'
-#: ocr/doctype/ocr_generic_text_transcription/ocr_generic_text_transcription.json
-msgid "Attached To DocType"
-msgstr "Lié au type de document"
-
-#. Label of the attached_to_name (Dynamic Link) field in DocType 'OCR Generic
-#. Text Transcription'
-#: ocr/doctype/ocr_generic_text_transcription/ocr_generic_text_transcription.json
-msgid "Attached To Name"
-msgstr "Lié au document"
-
-#. Label of the auto_create_purchase_orders (Check) field in DocType 'OCR
-#. Settings'
-#: ocr/doctype/ocr_settings/ocr_settings.json
-msgid "Automatically create purchase orders if no match is found"
-msgstr "Créer une commande fournisseur si aucune correspondance n'est trouvée"
-
-#. Label of the auto_submit_purchase_invoices (Check) field in DocType 'OCR
-#. Settings'
-#: ocr/doctype/ocr_settings/ocr_settings.json
-msgid "Automatically submit purchase invoices"
-msgstr "Valider les factures d'achat automatiquement"
-
-#: ocr/doctype/ocr_purchase_invoice_basket/ocr_purchase_invoice_basket.py:31
-msgid "Basket n°"
-msgstr "Banette n°"
-
-#: ocr/doctype/ocr_request/ocr_request.js:13
-msgid "Close"
-msgstr "Fermer"
-
-#. Contextual translation for Close and doctype OCR Request
-#: ocr/doctype/ocr_request/contextual_translations.txt
-msgctxt "OCR Request"
-=======
 #: ocr/ocr/doctype/ocr_request/ocr_request.json
 msgid "Analysis Completed"
 msgstr "Analyse terminée"
@@ -187,28 +99,12 @@ msgstr "Bloquer la création de factures d'achat avec un total TTC excédant le 
 
 #: ocr/ocr/doctype/ocr_request/ocr_request.js:8
 #: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.js:74
->>>>>>> develop
 msgid "Close"
 msgstr "Fermer"
 
 #. Option for the 'Status' (Select) field in DocType 'OCR Purchase Invoice
 #. Basket'
 #. Option for the 'Status' (Select) field in DocType 'OCR Request'
-<<<<<<< HEAD
-#: ocr/doctype/ocr_purchase_invoice_basket/ocr_purchase_invoice_basket.json
-#: ocr/doctype/ocr_request/ocr_request.json
-msgid "Closed"
-msgstr "Fermée"
-
-#. Contextual translation for Closed and doctype OCR Purchase Invoice Basket
-#: ocr/doctype/ocr_purchase_invoice_basket/contextual_translations.txt
-msgctxt "OCR Purchase Invoice Basket"
-msgid "Closed"
-msgstr "Fermée"
-
-#. Label of the company (Link) field in DocType 'OCR Request'
-#: ocr/doctype/ocr_request/ocr_request.json
-=======
 #. Option for the 'Status' (Select) field in DocType 'Pending Purchase Invoice'
 #: ocr/ocr/doctype/ocr_purchase_invoice_basket/ocr_purchase_invoice_basket.json
 #: ocr/ocr/doctype/ocr_request/ocr_request.json
@@ -218,7 +114,6 @@ msgstr "Fermée"
 
 #. Label of a Link field in DocType 'Pending Purchase Invoice'
 #: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.json
->>>>>>> develop
 msgid "Company"
 msgstr "Société"
 
@@ -227,50 +122,6 @@ msgstr "Société"
 #. Option for the 'Status' (Select) field in DocType 'OCR Purchase Invoice
 #. Basket'
 #. Option for the 'Status' (Select) field in DocType 'OCR Request'
-<<<<<<< HEAD
-#: ocr/doctype/ocr_generic_text_transcription/ocr_generic_text_transcription.json
-#: ocr/doctype/ocr_purchase_invoice_basket/ocr_purchase_invoice_basket.json
-#: ocr/doctype/ocr_request/ocr_request.json
-msgid "Completed"
-msgstr "Complétée"
-
-#. Option for the 'Creation Mode' (Select) field in DocType 'OCR Settings'
-#: ocr/doctype/ocr_settings/ocr_settings.json
-msgid "Consolidate all rows in a single invoicing line"
-msgstr "Consolider les lignes en une seule ligne de facturation"
-
-#: public/js/communication.js:20
-msgid "Create"
-msgstr "Créer"
-
-#: ocr/doctype/ocr_request/ocr_request.js:143
-msgid "Create a new purchase order"
-msgstr "Créer une nouvelle commande fournisseur"
-
-#: ocr/doctype/ocr_request/ocr_request.js:47
-#: ocr/doctype/ocr_request/ocr_request.js:196
-msgid "Create a purchase order"
-msgstr "Créer une commande fournisseur"
-
-#: ocr/doctype/ocr_purchase_invoice_basket/ocr_purchase_invoice_basket.js:11
-msgid "Create purchase invoices"
-msgstr "Créer des factures d'achat"
-
-#: ocr/doctype/ocr_request/ocr_request.js:28
-msgid "Create supplier"
-msgstr "Créer le fournisseur"
-
-#. Label of the pi_creation_mode (Select) field in DocType 'OCR Settings'
-#: ocr/doctype/ocr_settings/ocr_settings.json
-msgid "Creation Mode"
-msgstr "Mode de création"
-
-#. Label of the task_results (JSON) field in DocType 'OCR Generic Text
-#. Transcription'
-#. Label of the data_tab (Tab Break) field in DocType 'OCR Request'
-#: ocr/doctype/ocr_generic_text_transcription/ocr_generic_text_transcription.json
-#: ocr/doctype/ocr_request/ocr_request.json
-=======
 #. Option for the 'Status' (Select) field in DocType 'Pending Purchase Invoice'
 #: ocr/ocr/doctype/ocr_generic_text_transcription/ocr_generic_text_transcription.json
 #: ocr/ocr/doctype/ocr_purchase_invoice_basket/ocr_purchase_invoice_basket.json
@@ -349,64 +200,20 @@ msgstr "Devise"
 #. Label of a Tab Break field in DocType 'OCR Request'
 #: ocr/ocr/doctype/ocr_generic_text_transcription/ocr_generic_text_transcription.json
 #: ocr/ocr/doctype/ocr_request/ocr_request.json
->>>>>>> develop
 msgid "Data"
 msgstr "Données"
 
 #. Name of a Workspace
-<<<<<<< HEAD
-#: ocr/workspace/data_extraction/data_extraction.json
-msgid "Data Extraction"
-msgstr "Extraction de données"
-
-#: ocr/doctype/ocr_request/ocr_request.js:183
-=======
 #: ocr/ocr/workspace/data_extraction/data_extraction.json
 msgid "Data Extraction"
 msgstr "Extraction de données"
 
 #. Label of a Text Editor field in DocType 'Pending Purchase Invoice Item'
 #: ocr/ocr/doctype/pending_purchase_invoice_item/pending_purchase_invoice_item.json
->>>>>>> develop
 msgid "Description"
 msgstr "Description"
 
 #. Name of a role
-<<<<<<< HEAD
-#: ocr/doctype/ocr_settings/ocr_settings.json
-msgid "Desk User"
-msgstr "Utilisateur du bureau"
-
-#. Label of the do_not_create_purchase_invoices (Check) field in DocType 'OCR
-#. Settings'
-#: ocr/doctype/ocr_settings/ocr_settings.json
-msgid "Do not create purchase invoices"
-msgstr "Ne pas créer de factures d'achats"
-
-#. Label of the document_tab (Tab Break) field in DocType 'OCR Request'
-#: ocr/doctype/ocr_request/ocr_request.json
-msgid "Document"
-msgstr "Document"
-
-#. Label of the document_html (HTML) field in DocType 'OCR Request'
-#: ocr/doctype/ocr_request/ocr_request.json
-msgid "Document HTML"
-msgstr "HTML du Document"
-
-#: install.py:25
-msgid "Drop a file"
-msgstr "Déposer un fichier"
-
-#. Option for the 'Status' (Select) field in DocType 'OCR Generic Text
-#. Transcription'
-#. Label of the error (Small Text) field in DocType 'OCR Purchase Invoice
-#. Basket'
-#. Option for the 'Status' (Select) field in DocType 'OCR Request'
-#. Label of the error (Small Text) field in DocType 'OCR Request'
-#: ocr/doctype/ocr_generic_text_transcription/ocr_generic_text_transcription.json
-#: ocr/doctype/ocr_purchase_invoice_basket/ocr_purchase_invoice_basket.json
-#: ocr/doctype/ocr_request/ocr_request.json
-=======
 #: ocr/ocr/doctype/ocr_settings/ocr_settings.json
 msgid "Desk User"
 msgstr "Utilisateur du bureau"
@@ -441,169 +248,10 @@ msgstr "Email"
 #: ocr/ocr/doctype/ocr_generic_text_transcription/ocr_generic_text_transcription.json
 #: ocr/ocr/doctype/ocr_purchase_invoice_basket/ocr_purchase_invoice_basket.json
 #: ocr/ocr/doctype/ocr_request/ocr_request.json
->>>>>>> develop
 msgid "Error"
 msgstr "Erreur"
 
 #. Option for the 'Transaction Type' (Select) field in DocType 'OCR Request'
-<<<<<<< HEAD
-#: ocr/doctype/ocr_request/ocr_request.json
-msgid "Expense"
-msgstr "Dépense"
-
-#. Label of the expense_row (Small Text) field in DocType 'OCR Line Items
-#. Mapping'
-#: ocr/doctype/ocr_line_items_mapping/ocr_line_items_mapping.json
-msgid "Expense Row"
-msgstr "Ligne de dépense"
-
-#: ocr/doctype/ocr_purchase_invoice_basket/ocr_purchase_invoice_basket.js:25
-msgid "Extraction in progress"
-msgstr "Extraction en cours"
-
-#. Label of the field (Data) field in DocType 'OCR Header Mapping'
-#: ocr/doctype/ocr_header_mapping/ocr_header_mapping.json
-msgid "Field"
-msgstr "Champ"
-
-#. Label of the field_value (Small Text) field in DocType 'OCR Header Mapping'
-#: ocr/doctype/ocr_header_mapping/ocr_header_mapping.json
-msgid "Field Value"
-msgstr "Valeur du champ"
-
-#. Label of the file (Attach) field in DocType 'OCR Generic Text Transcription'
-#. Label of the file (Link) field in DocType 'OCR Request'
-#: ocr/doctype/ocr_generic_text_transcription/ocr_generic_text_transcription.json
-#: ocr/doctype/ocr_request/ocr_request.json
-msgid "File"
-msgstr "Fichier"
-
-#. Label of the ocr_html (HTML) field in DocType 'OCR Purchase Invoice Basket'
-#: ocr/doctype/ocr_purchase_invoice_basket/ocr_purchase_invoice_basket.json
-msgid "File Upload HTML"
-msgstr "HTML de téléchargement de fichier"
-
-#. Label of the filename (Data) field in DocType 'OCR Request'
-#: ocr/doctype/ocr_request/ocr_request.json
-msgid "Filename"
-msgstr "Nom du fichier"
-
-#. Label of the general_settings_tab (Tab Break) field in DocType 'OCR
-#. Settings'
-#: ocr/doctype/ocr_settings/ocr_settings.json
-msgid "General Settings"
-msgstr "Paramètres généraux"
-
-#. Label of the generic_item (Link) field in DocType 'OCR Settings'
-#: ocr/doctype/ocr_settings/ocr_settings.json
-msgid "Generic Item"
-msgstr "Article générique"
-
-#. Option for the 'Creation Mode' (Select) field in DocType 'OCR Settings'
-#: ocr/doctype/ocr_settings/ocr_settings.json
-msgid "Get items from any open purchase order linked to the recognized supplier"
-msgstr "Obtenir les articles de la première commande fournisseur liée avec le fournisseur"
-
-#. Option for the 'Creation Mode' (Select) field in DocType 'OCR Settings'
-#: ocr/doctype/ocr_settings/ocr_settings.json
-msgid "Get items from purchase orders recognized by the OCR"
-msgstr "Obtenir les articles des commandes fournisseurs reconnues par l'OCR"
-
-#. Label of the grand_total (Float) field in DocType 'OCR Request'
-#: ocr/doctype/ocr_request/ocr_request.json
-msgid "Grand Total"
-msgstr "Total TTC"
-
-#. Label of the header_mapping (Table) field in DocType 'OCR Request'
-#: ocr/doctype/ocr_request/ocr_request.json
-msgid "Header Data"
-msgstr "Données d'en-tête"
-
-#. Option for the 'Status' (Select) field in DocType 'OCR Purchase Invoice
-#. Basket'
-#: ocr/doctype/ocr_purchase_invoice_basket/ocr_purchase_invoice_basket.json
-msgid "In Progress"
-msgstr "En cours"
-
-#: install.py:28
-msgid "Invoice Extraction"
-msgstr "Extraction de facture"
-
-#: ocr/doctype/ocr_request/ocr_request.py:601
-msgid "Invoice Net Total"
-msgstr "Total HT de la facture"
-
-#. Label of the item (Small Text) field in DocType 'OCR Line Items Mapping'
-#: ocr/doctype/ocr_line_items_mapping/ocr_line_items_mapping.json
-msgid "Item"
-msgstr "Article"
-
-#. Label of the item_code (Link) field in DocType 'OCR Line Items Mapping'
-#: ocr/doctype/ocr_line_items_mapping/ocr_line_items_mapping.json
-#: ocr/doctype/ocr_request/ocr_request.js:170
-msgid "Item Code"
-msgstr "Code de l'article"
-
-#: ocr/doctype/ocr_request/ocr_request.js:176
-msgid "Item Name"
-msgstr "Nom de l'article"
-
-#. Label of the items_section (Section Break) field in DocType 'OCR Settings'
-#: ocr/doctype/ocr_request/ocr_request.js:157
-#: ocr/doctype/ocr_settings/ocr_settings.json
-msgid "Items"
-msgstr "Articles"
-
-#. Label of the job (Small Text) field in DocType 'OCR Request'
-#: ocr/doctype/ocr_request/ocr_request.json
-msgid "Job"
-msgstr "Job"
-
-#. Label of the key (Data) field in DocType 'OCR Header Mapping'
-#: ocr/doctype/ocr_header_mapping/ocr_header_mapping.json
-msgid "Key"
-msgstr "Clé"
-
-#. Label of the line_items_mapping (Table) field in DocType 'OCR Request'
-#: ocr/doctype/ocr_request/ocr_request.json
-msgid "Line Items Data"
-msgstr "Données de lignes de dépense"
-
-#: ocr/doctype/ocr_request/ocr_request.js:51
-msgid "Link with a purchase order"
-msgstr "Lier avec une commande fournisseur"
-
-#. Label of the mapping_section (Section Break) field in DocType 'OCR Request'
-#: ocr/doctype/ocr_request/ocr_request.json
-msgid "Mapping"
-msgstr "Correspondance"
-
-#. Label of the net_total (Float) field in DocType 'OCR Request'
-#: ocr/doctype/ocr_request/ocr_request.json
-msgid "Net Total"
-msgstr "Total HT"
-
-#: ocr/doctype/ocr_purchase_invoice_basket/ocr_purchase_invoice_basket.py:75
-msgid "No PDF file found in this basket"
-msgstr "Aucun PDF trouvé dans cette banette"
-
-#: ocr/doctype/ocr_request/ocr_request.py:216
-msgid "No matching order found"
-msgstr "Aucune commande correspondante n'a pu être trouvée"
-
-#. Option for the 'Status' (Select) field in DocType 'OCR Purchase Invoice
-#. Basket'
-#: ocr/doctype/ocr_purchase_invoice_basket/ocr_purchase_invoice_basket.json
-msgid "Not Started"
-msgstr "Non démarré"
-
-#: ocr/doctype/ocr_request/ocr_request.py:122
-msgid "OCR Analysis Error"
-msgstr "Erreur d'analyse OCR"
-
-#. Name of a DocType
-#: ocr/doctype/ocr_generic_text_transcription/ocr_generic_text_transcription.json
-=======
 #: ocr/ocr/doctype/ocr_request/ocr_request.json
 msgid "Expense"
 msgstr "Dépense"
@@ -774,73 +422,29 @@ msgstr "Erreur de suppression du fichier d'OCR"
 
 #. Name of a DocType
 #: ocr/ocr/doctype/ocr_generic_text_transcription/ocr_generic_text_transcription.json
->>>>>>> develop
 msgid "OCR Generic Text Transcription"
 msgstr "Transcription générique de texte"
 
 #. Name of a DocType
-<<<<<<< HEAD
-#: ocr/doctype/ocr_header_mapping/ocr_header_mapping.json
-=======
 #: ocr/ocr/doctype/ocr_header_mapping/ocr_header_mapping.json
->>>>>>> develop
 msgid "OCR Header Mapping"
 msgstr "Mapping des données d'en-tête"
 
 #. Name of a DocType
-<<<<<<< HEAD
-#: ocr/doctype/ocr_line_items_mapping/ocr_line_items_mapping.json
-=======
 #: ocr/ocr/doctype/ocr_line_items_mapping/ocr_line_items_mapping.json
->>>>>>> develop
 msgid "OCR Line Items Mapping"
 msgstr "Mapping des lignes de dépense"
 
 #. Name of a DocType
-<<<<<<< HEAD
-#. Label of the ocr_basket (Link) field in DocType 'OCR Request'
-#. Label of a quick list in the Data Extraction Workspace
-#: ocr/doctype/ocr_purchase_invoice_basket/ocr_purchase_invoice_basket.json
-#: ocr/doctype/ocr_request/ocr_request.json
-#: ocr/workspace/data_extraction/data_extraction.json
-=======
 #. Label of a Link field in DocType 'OCR Request'
 #. Label of a Link field in DocType 'Pending Purchase Invoice'
 #: ocr/ocr/doctype/ocr_purchase_invoice_basket/ocr_purchase_invoice_basket.json
 #: ocr/ocr/doctype/ocr_request/ocr_request.json
 #: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.json
->>>>>>> develop
 msgid "OCR Purchase Invoice Basket"
 msgstr "Bannette de factures d'achat"
 
 #. Name of a DocType
-<<<<<<< HEAD
-#. Label of a quick list in the Data Extraction Workspace
-#: install.py:26 ocr/doctype/ocr_request/ocr_request.json
-#: ocr/workspace/data_extraction/data_extraction.json
-msgid "OCR Request"
-msgstr "Demande d'extraction de données via OCR"
-
-#: install.py:29
-msgid "OCR Request Line Item"
-msgstr "Ligne d'article de la demande d'OCR"
-
-#. Name of a DocType
-#: ocr/doctype/ocr_settings/ocr_settings.json
-msgid "OCR Settings"
-msgstr "Paramètres d'OCR"
-
-#: install.py:27
-msgid "Original File"
-msgstr "Fichier original"
-
-#: install.py:24
-msgid "Original Invoice"
-msgstr "Facture originale"
-
-#. Label of the other (Small Text) field in DocType 'OCR Line Items Mapping'
-#: ocr/doctype/ocr_line_items_mapping/ocr_line_items_mapping.json
-=======
 #. Label of a Link field in DocType 'Pending Purchase Invoice'
 #: ocr/install.py:26 ocr/ocr/doctype/ocr_request/ocr_request.json
 #: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.json
@@ -879,40 +483,12 @@ msgstr "Facture originale"
 
 #. Label of a Small Text field in DocType 'OCR Line Items Mapping'
 #: ocr/ocr/doctype/ocr_line_items_mapping/ocr_line_items_mapping.json
->>>>>>> develop
 msgid "Other"
 msgstr "Autre"
 
 #. Option for the 'Status' (Select) field in DocType 'OCR Generic Text
 #. Transcription'
 #. Option for the 'Status' (Select) field in DocType 'OCR Request'
-<<<<<<< HEAD
-#: ocr/doctype/ocr_generic_text_transcription/ocr_generic_text_transcription.json
-#: ocr/doctype/ocr_request/ocr_request.json
-msgid "Pending"
-msgstr "En attente"
-
-#: ocr/doctype/ocr_request/ocr_request.py:236
-msgid "Please select a company"
-msgstr "Veuillez sélectionner une société"
-
-#: ocr/doctype/ocr_request/ocr_request.py:239
-msgid "Please select a supplier"
-msgstr "Veuillez sélectionner un fournisseur"
-
-#. Label of the price (Float) field in DocType 'OCR Line Items Mapping'
-#: ocr/doctype/ocr_line_items_mapping/ocr_line_items_mapping.json
-msgid "Price"
-msgstr "Prix"
-
-#: ocr/doctype/ocr_request/ocr_request.js:23
-msgid "Process Request"
-msgstr "Traiter la demande"
-
-#. Option for the 'Status' (Select) field in DocType 'OCR Generic Text
-#. Transcription'
-#: ocr/doctype/ocr_generic_text_transcription/ocr_generic_text_transcription.json
-=======
 #. Option for the 'Status' (Select) field in DocType 'Pending Purchase Invoice'
 #: ocr/ocr/doctype/ocr_generic_text_transcription/ocr_generic_text_transcription.json
 #: ocr/ocr/doctype/ocr_request/ocr_request.json
@@ -981,148 +557,11 @@ msgstr "Prix"
 #. Option for the 'Status' (Select) field in DocType 'OCR Generic Text
 #. Transcription'
 #: ocr/ocr/doctype/ocr_generic_text_transcription/ocr_generic_text_transcription.json
->>>>>>> develop
 msgid "Processed"
 msgstr "Traitée"
 
 #. Option for the 'Status' (Select) field in DocType 'OCR Generic Text
 #. Transcription'
-<<<<<<< HEAD
-#: ocr/doctype/ocr_generic_text_transcription/ocr_generic_text_transcription.json
-msgid "Processing"
-msgstr "Traitement en cours"
-
-#. Label of the product_code (Small Text) field in DocType 'OCR Line Items
-#. Mapping'
-#: ocr/doctype/ocr_line_items_mapping/ocr_line_items_mapping.json
-msgid "Product Code"
-msgstr "Code produit"
-
-#. Option for the 'Transaction Type' (Select) field in DocType 'OCR Request'
-#. Group in OCR Request's connections
-#. Label of a quick list in the Data Extraction Workspace
-#: ocr/doctype/ocr_request/ocr_request.json
-#: ocr/workspace/data_extraction/data_extraction.json
-#: public/js/communication.js:14
-msgid "Purchase Invoice"
-msgstr "Facture d'achat"
-
-#. Option for the 'Status' (Select) field in DocType 'OCR Request'
-#: ocr/doctype/ocr_request/ocr_request.json
-msgid "Purchase Invoice Created"
-msgstr "Facture d'achat créée"
-
-#. Label of the purchase_invoices_section (Section Break) field in DocType 'OCR
-#. Settings'
-#: ocr/doctype/ocr_settings/ocr_settings.json
-msgid "Purchase Invoices"
-msgstr "Factures d'achat"
-
-#. Option for the 'Status' (Select) field in DocType 'OCR Request'
-#: ocr/doctype/ocr_request/ocr_request.json
-msgid "Purchase Order Created"
-msgstr "Commande fournisseur créée"
-
-#. Group in OCR Request's connections
-#. Label of the purchase_orders_section (Section Break) field in DocType 'OCR
-#. Settings'
-#: ocr/doctype/ocr_request/ocr_request.json
-#: ocr/doctype/ocr_settings/ocr_settings.json
-msgid "Purchase Orders"
-msgstr "Commandes fournisseur"
-
-#. Label of the purchase_invoices_tab (Tab Break) field in DocType 'OCR
-#. Settings'
-#: ocr/doctype/ocr_settings/ocr_settings.json
-msgid "Purchases"
-msgstr "Achats"
-
-#. Label of the quantity (Float) field in DocType 'OCR Line Items Mapping'
-#: ocr/doctype/ocr_line_items_mapping/ocr_line_items_mapping.json
-msgid "Quantity"
-msgstr "Quantité"
-
-#: ocr/doctype/ocr_request/ocr_request.js:17
-msgid "Reopen"
-msgstr "Ré-ouvrir"
-
-#: ocr/doctype/ocr_purchase_invoice_basket/ocr_purchase_invoice_basket.js:14
-msgid "Request creation in progress"
-msgstr "Création de la demande d'analyse en cours"
-
-#. Group in OCR Purchase Invoice Basket's connections
-#: ocr/doctype/ocr_purchase_invoice_basket/ocr_purchase_invoice_basket.json
-msgid "Requests"
-msgstr "Demandes"
-
-#: ocr/doctype/ocr_request/ocr_request.js:249
-msgid "Select a purchase order"
-msgstr "Veuillez sélectionner une commande fournisseur"
-
-#. Label of the sender (Data) field in DocType 'OCR Purchase Invoice Basket'
-#: ocr/doctype/ocr_purchase_invoice_basket/ocr_purchase_invoice_basket.json
-msgid "Sender"
-msgstr "Expéditeur"
-
-#. Label of the status (Select) field in DocType 'OCR Generic Text
-#. Transcription'
-#. Label of the status (Select) field in DocType 'OCR Purchase Invoice Basket'
-#. Label of the status (Select) field in DocType 'OCR Request'
-#: ocr/doctype/ocr_generic_text_transcription/ocr_generic_text_transcription.json
-#: ocr/doctype/ocr_purchase_invoice_basket/ocr_purchase_invoice_basket.json
-#: ocr/doctype/ocr_request/ocr_request.json
-msgid "Status"
-msgstr "Statut"
-
-#. Label of the subject (Small Text) field in DocType 'OCR Purchase Invoice
-#. Basket'
-#: ocr/doctype/ocr_purchase_invoice_basket/ocr_purchase_invoice_basket.json
-msgid "Subject"
-msgstr "Sujet"
-
-#. Label of the supplier (Link) field in DocType 'OCR Request'
-#: ocr/doctype/ocr_request/ocr_request.json
-msgid "Supplier"
-msgstr "Fournisseur"
-
-#. Name of a role
-#: ocr/doctype/ocr_generic_text_transcription/ocr_generic_text_transcription.json
-#: ocr/doctype/ocr_purchase_invoice_basket/ocr_purchase_invoice_basket.json
-#: ocr/doctype/ocr_request/ocr_request.json
-#: ocr/doctype/ocr_settings/ocr_settings.json
-msgid "System Manager"
-msgstr "Responsable Système"
-
-#. Label of the task (Data) field in DocType 'OCR Generic Text Transcription'
-#: ocr/doctype/ocr_generic_text_transcription/ocr_generic_text_transcription.json
-msgid "Task"
-msgstr "Tâche"
-
-#. Label of the tax_total (Float) field in DocType 'OCR Request'
-#: ocr/doctype/ocr_request/ocr_request.json
-msgid "Tax Total"
-msgstr "Total TVA"
-
-#: public/js/file_preview.js:17
-msgid "There is a difference between the total amount based on the data extraction ("
-msgstr "Il y a une différence entre le montant total basé sur l'extraction de données ("
-
-#: public/js/file_preview.js:21
-msgid "There is a difference between the total taxes based on the data extraction ("
-msgstr "Il y a une différence entre le montant total des taxes basé sur l'extraction de données ("
-
-#. Label of the title (Data) field in DocType 'OCR Purchase Invoice Basket'
-#: ocr/doctype/ocr_purchase_invoice_basket/ocr_purchase_invoice_basket.json
-msgid "Title"
-msgstr "Titre"
-
-#. Label of the transaction_type (Select) field in DocType 'OCR Request'
-#: ocr/doctype/ocr_request/ocr_request.json
-msgid "Transaction Type"
-msgstr "Type de transaction"
-
-#: ocr/doctype/ocr_request/ocr_request_list.js:20
-=======
 #: ocr/ocr/doctype/ocr_generic_text_transcription/ocr_generic_text_transcription.json
 msgid "Processing"
 msgstr "Traitement en cours"
@@ -1366,57 +805,17 @@ msgid "Transaction Type"
 msgstr "Type de transaction"
 
 #: ocr/ocr/doctype/ocr_request/ocr_request_list.js:20
->>>>>>> develop
 msgid "Transaction could not be found"
 msgstr "La transaction n'a pas pu être trouvée"
 
 #. Option for the 'Status' (Select) field in DocType 'OCR Generic Text
 #. Transcription'
-<<<<<<< HEAD
-#: ocr/doctype/ocr_generic_text_transcription/ocr_generic_text_transcription.json
-=======
 #: ocr/ocr/doctype/ocr_generic_text_transcription/ocr_generic_text_transcription.json
->>>>>>> develop
 msgid "Transcribed"
 msgstr "Transcrite"
 
 #. Option for the 'Status' (Select) field in DocType 'OCR Generic Text
 #. Transcription'
-<<<<<<< HEAD
-#: ocr/doctype/ocr_generic_text_transcription/ocr_generic_text_transcription.json
-msgid "Transcribing"
-msgstr "Transcription en cours"
-
-#: ocr/doctype/ocr_request/ocr_request.js:7
-msgid "Trigger an analysis"
-msgstr "Lancer une analyse"
-
-#. Label of the unit_price (Float) field in DocType 'OCR Line Items Mapping'
-#: ocr/doctype/ocr_line_items_mapping/ocr_line_items_mapping.json
-msgid "Unit Price"
-msgstr "Prix unitaire"
-
-#: ocr/doctype/ocr_request/ocr_request.js:283
-msgid "Validate"
-msgstr "Valider"
-
-#. Label of the value (Small Text) field in DocType 'OCR Header Mapping'
-#: ocr/doctype/ocr_header_mapping/ocr_header_mapping.json
-msgid "Value"
-msgstr "Valeur"
-
-#: ocr/doctype/ocr_request/ocr_request_list.js:11
-msgid "View {0}"
-msgstr "Vue {0}"
-
-#: ocr/doctype/ocr_request/ocr_request.js:118 public/js/file_preview.js:63
-msgid "Your browser does not support the audio element."
-msgstr "Votre navigateur ne supporte pas cet élément audio."
-
-#: ocr/doctype/ocr_request/ocr_request.js:100 public/js/file_preview.js:45
-msgid "Your browser does not support the video element."
-msgstr "Votre navigateur ne supporte pas cet élément vidéo."
-=======
 #: ocr/ocr/doctype/ocr_generic_text_transcription/ocr_generic_text_transcription.json
 msgid "Transcribing"
 msgstr "Transcription en cours"
@@ -1478,4 +877,3 @@ msgstr "Le n° de TVA de votre fournisseur est {0}"
 #: ocr/ocr/workspace/data_extraction/data_extraction.json
 msgid "{} orders"
 msgstr "{} commandes"
->>>>>>> develop
