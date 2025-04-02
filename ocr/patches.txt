@@ -9,3 +9,4 @@ ocr.patches.keep_only_parsed_data_in_analysis
 ocr.patches.add_pending_purchase_invoices
 ocr.patches.remove_all_files_from_aws
 ocr.patches.cleanup_old_errors
+ocr.patches.remove_old_custom_fields
