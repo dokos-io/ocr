@@ -31,29 +31,6 @@ frappe.ui.form.on("OCR Request", {
 		}
 	},
 
-	trigger_purchase_invoice_creation(frm, purchase_orders) {
-		return frappe.call({
-			method: "create_purchase_documents",
-			doc: frm.doc,
-			args: {
-				orders: purchase_orders
-			}
-		}).then((r) => {
-			frm.reload_doc()
-			if (r.message && r.message.status == "Error") {
-				frappe.show_alert({
-					indicator: "red",
-					message: r.message.message
-				})
-			} else {
-				frappe.show_alert({
-					indicator: "green",
-					message: __("Action completed with success")
-				})
-			}
-		})
-	},
-
 	preview_file(frm) {
 		let $preview = "";
 		const file_doc = frappe.model.get_doc("File", frm.doc.file);
