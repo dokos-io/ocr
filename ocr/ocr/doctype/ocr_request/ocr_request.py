@@ -67,16 +67,6 @@ class OCRRequest(Document):
 			if self.transaction_type == "Purchase Invoice" and not frappe.db.get_value("Pending Purchase Invoice", dict(ocr_request=self.name)):
 				self.create_pending_purchase_invoice()
 
-		if not self.company and len(frappe.get_all("Company")) == 1:
-			self.company = get_default_company()
-
-		if self.analysis:
-			self.find_header_correspondence()
-			self.find_line_items_correspondence()
-
-		self.calculate_due_date()
-		self.set_status()
-
 	@frappe.whitelist()
 	def make_analysis(self):
 		self.get_analysis()
@@ -315,19 +305,6 @@ class OCRRequest(Document):
 		return doc.insert(ignore_mandatory=True, ignore_links=True)
 
 
-	def calculate_due_date(self):
-		if not self.due_date and self.supplier:
-			try:
-				self.due_date = get_due_date(
-					posting_date=self.bill_date or nowdate(),
-					party_type="Supplier",
-					party=self.supplier,
-					company=self.company,
-					bill_date=self.bill_date
-				)
-			except Exception:
-				pass
-
 def check_pending_analysis():
 	for req in frappe.get_all("OCR Request", filters={"status": ("in", ["Pending", "Error"])}, limit=500):
 		try:
@@ -343,6 +320,7 @@ def check_pending_analysis():
 def get_analysis(request_id):
 	doc = frappe.get_doc("OCR Request", request_id)
 	return doc.get_analysis()
+
 
 def update_ocr_request_status(doc, method):
 	if doc.ocr_request:
