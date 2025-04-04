@@ -13,8 +13,6 @@ class OCRSettings(Document):
 	if TYPE_CHECKING:
 		from frappe.types import DF
 
-		auto_create_purchase_orders: DF.Check
-		auto_submit_purchase_invoices: DF.Check
 		aws_textract_key: DF.Data | None
 		aws_textract_secret: DF.Password | None
 		block_if_grand_total_exceeds_pending_pi: DF.Check
