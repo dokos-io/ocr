@@ -206,9 +206,21 @@ class PendingPurchaseInvoice(Document):
 			elif self.items[0].reference_doctype == "Purchase Receipt":
 				make_purchase_invoice_from_pr(self.items[0].reference_docname, doc)
 
+		doc_items = doc.items
+
+		def get_doc_item(item):
+			name = REFERENCE_FIELDS.get(item.reference_doctype, {}).get("row")
+			for doc_item in doc_items:
+				if doc_item.get(name) == item.row:
+					return frappe.copy_doc(doc_item).as_dict()
+			else:
+				return frappe._dict()
+
 		doc.set("items", [])
 		for item in self.items:
-			new_row = frappe.copy_doc(item).as_dict()
+			doc_item = get_doc_item(item)
+			ppi_row = frappe.copy_doc(item).as_dict()
+			new_row = doc_item.update(ppi_row)
 			for key, value in REFERENCE_FIELDS.get(item.reference_doctype).items():
 				new_row[value] = item.get(key)
 			doc.append("items", new_row)
