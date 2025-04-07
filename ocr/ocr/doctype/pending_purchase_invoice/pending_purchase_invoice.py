@@ -110,7 +110,7 @@ class PendingPurchaseInvoice(Document):
 		if not self.due_date and self.supplier:
 			try:
 				self.due_date = get_due_date(
-					posting_date=self.bill_date or nowdate(),
+					posting_date=self.bill_date or self.posting_date or nowdate(),
 					party_type="Supplier",
 					party=self.supplier,
 					company=self.company,
@@ -581,11 +581,14 @@ def make_purchase_order(source_name, target_doc=None, ignore_permissions=False):
 @frappe.whitelist()
 @frappe.validate_and_sanitize_search_inputs
 def get_purchase_documents(doctype, txt, searchfield, start, page_len, filters):
-	fields = ["name", "supplier", "grand_total"]
+	fields = ["name", "supplier", "grand_total", "status"]
 	if doctype == "Purchase Order":
 		fields.append("transaction_date")
 	elif doctype == "Purchase Receipt":
 		fields.append("posting_date")
+
+	if txt:
+		filters["name"] = ("like", f"%{txt}%")
 
 	return frappe.get_list(doctype, filters=filters, fields=fields)
 

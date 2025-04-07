@@ -445,7 +445,7 @@ class PurchaseDocumentSelector {
 					default: this.frm.doc.supplier
 				},
 			],
-			columns: ["name", "supplier", this.date_field, "grand_total"],
+			columns: ["name", "supplier", this.date_field, "grand_total", "status"],
 			allow_child_item_selection: true,
 			child_fieldname: "items",
 			child_columns: ["supplier", this.date_field, "item_code", "qty", "net_amount", "cost_center"],
