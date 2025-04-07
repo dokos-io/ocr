@@ -110,7 +110,7 @@ class PendingPurchaseInvoice(Document):
 		if not self.due_date and self.supplier:
 			try:
 				self.due_date = get_due_date(
-					posting_date=self.bill_date or nowdate(),
+					posting_date=self.bill_date or self.posting_date or nowdate(),
 					party_type="Supplier",
 					party=self.supplier,
 					company=self.company,
@@ -218,12 +218,16 @@ class PendingPurchaseInvoice(Document):
 
 		doc.set("items", [])
 		for item in self.items:
-			doc_item = get_doc_item(item)
 			ppi_row = frappe.copy_doc(item).as_dict()
-			new_row = doc_item.update(ppi_row)
-			for key, value in REFERENCE_FIELDS.get(item.reference_doctype).items():
-				new_row[value] = item.get(key)
-			doc.append("items", new_row)
+			if self.is_return:
+				doc.append("items", ppi_row)
+			else:
+				doc_item = get_doc_item(item)
+				new_row = doc_item.update(ppi_row)
+				for key, value in REFERENCE_FIELDS.get(item.reference_doctype).items():
+					new_row[value] = item.get(key)
+
+				doc.append("items", new_row)
 
 		doc.is_return = bool(self.is_return)
 		if doc.is_return and self.original_invoice:
@@ -581,11 +585,14 @@ def make_purchase_order(source_name, target_doc=None, ignore_permissions=False):
 @frappe.whitelist()
 @frappe.validate_and_sanitize_search_inputs
 def get_purchase_documents(doctype, txt, searchfield, start, page_len, filters):
-	fields = ["name", "supplier", "grand_total"]
+	fields = ["name", "supplier", "grand_total", "status"]
 	if doctype == "Purchase Order":
 		fields.append("transaction_date")
 	elif doctype == "Purchase Receipt":
 		fields.append("posting_date")
+
+	if txt:
+		filters["name"] = ("like", f"%{txt}%")
 
 	return frappe.get_list(doctype, filters=filters, fields=fields)
 
