@@ -10,6 +10,12 @@ def after_install():
 	add_custom_fields()
 
 
+def before_tests():
+	from erpnext.setup.utils import before_tests as erpnext_before_tests
+
+	erpnext_before_tests()
+
+
 def add_custom_fields():
 	click.secho("* Updating OCR Custom Fields")
 	custom_fields = get_custom_fields()
