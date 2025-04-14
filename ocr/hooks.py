@@ -190,7 +190,7 @@ scheduler_events = {
 # Testing
 # -------
 
-# before_tests = "ocr.install.before_tests"
+before_tests = "ocr.install.before_tests"
 
 # Overriding Methods
 # ------------------------------
