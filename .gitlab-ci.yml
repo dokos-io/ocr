@@ -1,19 +1,72 @@
-# You can override the included template(s) by including variable overrides
-# SAST customization: https://docs.gitlab.com/ee/user/application_security/sast/#customizing-the-sast-settings
-# Secret Detection customization: https://docs.gitlab.com/user/application_security/secret_detection/pipeline/configure
-# Dependency Scanning customization: https://docs.gitlab.com/ee/user/application_security/dependency_scanning/#customizing-the-dependency-scanning-settings
-# Container Scanning customization: https://docs.gitlab.com/ee/user/application_security/container_scanning/#customizing-the-container-scanning-settings
-# Note that environment variables can be set in several places
-# See https://docs.gitlab.com/ee/ci/variables/#cicd-variable-precedence
-stages:
-- test
-- secret-detection
-sast:
-  stage: test
 include:
-- template: Security/SAST.gitlab-ci.yml
-- template: Security/Secret-Detection.gitlab-ci.yml
+  - project: "dokos/docli"
+    ref: develop
+    file: "/.gitlab-ci.base.yml"
+
+stages:
+  - Semgrep
+  - Test
+
 variables:
-  SECRET_DETECTION_ENABLED: 'true'
-secret_detection:
-  stage: secret-detection
+  DOCLI_IMAGE: "registry.gitlab.com/dokos/docli:ci-develop"
+
+tests:
+  image: $DOCLI_IMAGE
+  stage: Test
+
+  rules:
+    - if: $SKIP_TESTS == "true"
+      when: never
+    - if: $CI_COMMIT_TAG != null
+      allow_failure: true  # Prevent flaky tests from breaking releases
+    - when: always
+
+  services:
+    - name: mariadb:10.8
+      command: ['mariadbd', '--character-set-server=utf8mb4', '--collation-server=utf8mb4_unicode_ci', '--character-set-client-handshake=FALSE', '--innodb_read_only_compressed=OFF']
+    - name: redis
+      alias: redis_queue
+    - name: redis
+      alias: redis_cache
+    - name: redis
+      alias: redis_socketio
+
+  variables:
+    MYSQL_DATABASE: "test_dodock"
+    MYSQL_ROOT_PASSWORD: "test_dodock"
+
+  before_script:
+    - set -e
+    - export APPS_BRANCH="$(/ci-utils/get-branch.sh)"
+    - bench init . --ignore-exist --no-backups --skip-redis-config-generation --skip-assets --frappe-branch ${FRAPPE_BRANCH:-$APPS_BRANCH}
+    - bench get-app https://gitlab.com/dokos/payments.git --branch ${PAYMENTS_BRANCH:-$APPS_BRANCH}
+    - bench get-app https://gitlab.com/dokos/dokos.git --branch ${DOKOS_BRANCH:-$APPS_BRANCH}
+    - bench get-app /builds/dokos/ocr/
+    - /ci-utils/setup-redis.sh v1
+    - /ci-utils/patch-procfile.sh v1
+    - cp -r apps/frappe/test_sites/test_site sites/
+    - env/bin/python -m pip install --quiet hypothesis==6.68.2 unittest-xml-reporting
+    - bench start &> bench_start.log &
+    - bench build --app erpnext &
+    - build_pid=$!
+    - bench --site test_site reinstall --yes --mariadb-root-password test_dodock
+    - bench --site test_site install-app payments
+    - bench --site test_site install-app erpnext
+    - bench --site test_site install-app ocr
+    - wait $build_pid
+
+  script:
+    - bench --site test_site run-parallel-tests --app ocr
+
+
+semgrep:
+  stage: Semgrep
+  image: semgrep/semgrep
+  allow_failure: true
+  before_script:
+    - git clone --depth 1 https://github.com/frappe/semgrep-rules.git frappe-semgrep-rules
+  script: semgrep ci --config ./frappe-semgrep-rules/rules --config r/python.lang.correctness
+
+  rules:
+  - if: $CI_MERGE_REQUEST_IID
+  - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
