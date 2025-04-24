@@ -224,7 +224,7 @@ class PendingPurchaseInvoice(Document):
 			else:
 				doc_item = get_doc_item(item)
 				new_row = doc_item.update(ppi_row)
-				for key, value in REFERENCE_FIELDS.get(item.reference_doctype).items():
+				for key, value in REFERENCE_FIELDS.get(item.reference_doctype, {}).items():
 					new_row[value] = item.get(key)
 
 				doc.append("items", new_row)
