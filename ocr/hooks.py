@@ -145,6 +145,9 @@ doc_events = {
 		"on_cancel": [
 			"ocr.ocr.doctype.ocr_request.ocr_request.update_ocr_request_status",
 			"ocr.ocr.doctype.pending_purchase_invoice.pending_purchase_invoice.set_pending_purchase_order_status"
+		],
+		"on_trash": [
+			"ocr.overrides.purchase_order.on_trash",
 		]
 	},
 	"Purchase Invoice": {
