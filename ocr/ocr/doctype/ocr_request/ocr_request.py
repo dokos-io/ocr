@@ -261,6 +261,7 @@ class OCRRequest(Document):
 
 	def find_header_correspondence(self, key, value):
 		pi_fields = [f.fieldname for f in frappe.get_meta("Purchase Invoice").fields]
+		locale = frappe.db.get_single_value("System Settings", "language")
 
 		fieldname = None
 		if key in PURCHASE_INVOICE_MAPPING:
@@ -277,7 +278,7 @@ class OCRRequest(Document):
 				return PURCHASE_INVOICE_TOTALS[key], parse_number(value)
 			case key if "DATE" in key and fieldname:
 				try:
-					return fieldname, date_parser(value)
+					return fieldname, date_parser(value, locale=locale)
 				except Exception:
 					return None, None
 			case _:

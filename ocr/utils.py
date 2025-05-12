@@ -3,6 +3,7 @@ import datetime
 from dateutil.parser import parse
 from babel.dates import parse_date
 
+import frappe
 from frappe.utils import time_diff, getdate
 
 DateTimeLikeObject = str | datetime.date | datetime.datetime
@@ -143,9 +144,13 @@ def time_diff_in_minutes(
 
 
 
-def date_parser(date) -> datetime.date:
+def date_parser(date, locale=None) -> datetime.date:
+	if not locale:
+		default_country = frappe.db.get_single_value("System Settings", "country")
+		locale = frappe.get_cached_value("Country", default_country)
+
 	try:
-		return parse_date(date)
+		return parse_date(date, locale=locale)
 	except Exception:
 		pass
 

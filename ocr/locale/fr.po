@@ -696,7 +696,7 @@ msgstr "Documents de référence"
 #. Invoice'
 #: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.json
 msgid "References"
-msgstr "Référénces"
+msgstr "Références"
 
 #: ocr/ocr/doctype/ocr_request/ocr_request.js:12
 #: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.js:85
