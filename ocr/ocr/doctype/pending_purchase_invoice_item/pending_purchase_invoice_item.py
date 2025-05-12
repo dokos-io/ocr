@@ -19,6 +19,7 @@ class PendingPurchaseInvoiceItem(Document):
 		description: DF.TextEditor | None
 		expense_account: DF.Link | None
 		item_code: DF.Link | None
+		item_tax_template: DF.Link | None
 		parent: DF.Data
 		parentfield: DF.Data
 		parenttype: DF.Data
