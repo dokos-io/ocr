@@ -46,6 +46,10 @@ frappe.ui.form.on("Pending Purchase Invoice", {
 		$(frm.wrapper).on("dirty", function () {
 			frm.trigger("set_bottom_button_label");
 		})
+
+		frm.set_query("item_tax_template", "items", function(doc, cdt, cdn) {
+			return set_query_for_item_tax_template(doc, cdt, cdn);
+		});
 	},
 
 	async set_bottom_button_label(frm) {
@@ -294,8 +298,33 @@ frappe.ui.form.on("Pending Purchase Invoice", {
 				})
 			})
 		}
-	}
+	},
 });
+
+const set_query_for_item_tax_template = (doc, cdt, cdn) => { // TODO: Handle through TransactionController ?
+	const item = frappe.get_doc(cdt, cdn);
+	if(!item.item_code) {
+		return doc.company ? {filters: {company: doc.company}} : {};
+	} else {
+		let filters = {
+			'item_code': item.item_code,
+			'valid_from': ["<=", doc.transaction_date || doc.bill_date || doc.posting_date],
+			'item_group': item.item_group,
+			'doctype': doc.doctype, // @ dokos
+			"base_net_rate": item.base_net_rate,
+		}
+
+		if (doc.tax_category)
+			filters['tax_category'] = doc.tax_category;
+		if (doc.company)
+			filters['company'] = doc.company;
+
+		return {
+			query: "erpnext.controllers.queries.get_tax_template",
+			filters: filters
+		}
+	}
+}
 
 const create_po_pi = async (frm) => {
 	const items_not_linked_to_po = await items_are_not_linked_to_purchase_document(frm);
@@ -399,13 +428,15 @@ frappe.ui.form.on("Pending Purchase Invoice Item", {
 		frappe.call({
 			method: "ocr.ocr.doctype.pending_purchase_invoice.pending_purchase_invoice.get_item_details",
 			args: {
-				item_code: row.item_code,
-				company: frm.doc.company
+				row: row,
+				company: frm.doc.company,
+				tax_category: frm.doc.tax_category
 			}
 		}).then((r) => {
 			frappe.model.set_value(cdt, cdn, "cost_center", r.message?.cost_center || "");
 			frappe.model.set_value(cdt, cdn, "expense_account", r.message?.expense_account || "");
 			frappe.model.set_value(cdt, cdn, "description", r.message?.description || "");
+			frappe.model.set_value(cdt, cdn, "item_tax_template", r.message?.item_tax_template || "");
 		})
 	},
 	qty(frm, cdt, cdn) {
