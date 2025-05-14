@@ -18,6 +18,9 @@ from frappe.model.workflow import get_transitions, get_workflow, has_approval_ac
 import frappe
 from frappe.utils import sbool
 
+ItemDetailsCtx = frappe._dict
+ItemDetails = frappe._dict
+
 
 EXCLUDED_FIELDS = [*default_fields, *child_table_fields, "status"]
 
@@ -502,8 +505,13 @@ class PendingPurchaseInvoice(Document):
 
 
 @frappe.whitelist()
-def get_item_details(item_code, company):
+def get_item_details(row, company, tax_category=None):
 	from erpnext.accounts.doctype.budget.budget import get_item_details as _get_item_details
+	from erpnext.stock.get_item_details import get_item_tax_template
+
+	row = frappe.parse_json(row)
+	item_code = row.get("item_code")
+	item = frappe.get_cached_doc("Item", item_code)
 
 	cost_center, expense_account = _get_item_details(frappe._dict({
 		"item_code": item_code,
@@ -512,10 +520,21 @@ def get_item_details(item_code, company):
 
 	description = frappe.db.get_value("Item", item_code, "description")
 
+	ctx: ItemDetailsCtx = {
+		"company": company,
+		"tax_category": tax_category,
+		"base_net_rate": row.get("base_rate"),
+		"doctype": "Purchase Invoice",
+		"child_doctype": "Purchase Invoice Item"
+	}
+
+	out = ItemDetails()
+	get_item_tax_template(ctx, item, out)
 	return {
 		"cost_center": cost_center,
 		"expense_account": expense_account,
-		"description": description
+		"description": description,
+		"item_tax_template": out.get("item_tax_template")
 	}
 
 
