@@ -6,8 +6,6 @@ frappe.provide("ocr.ui")
 
 frappe.ui.form.on("Pending Purchase Invoice", {
 	setup(frm) {
-		frm.page.sidebar.toggle(false);
-
 		frm.set_query("expense_account", "items", function(doc) {
 			return {
 				filters: {

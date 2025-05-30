@@ -176,3 +176,9 @@
 	font-weight: 500;
 	margin-bottom: .5rem;
 }
+
+[data-page-route="Pending Purchase Invoice"] {
+	.section-body {
+		--page-max-width: 100%;
+	}
+}
