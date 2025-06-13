@@ -80,7 +80,7 @@ class MistralOCR:
 
 	def upload_file(self):
 		if not self.file:
-			frappe.throw("No encoded file found")
+			frappe.throw(frappe._("No encoded file found"))
 
 		self.uploaded_file = self.client.files.upload(
 			file={
