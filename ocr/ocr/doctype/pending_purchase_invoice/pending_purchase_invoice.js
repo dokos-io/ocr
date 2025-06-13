@@ -5,6 +5,13 @@ frappe.provide("ocr.pending_invoice");
 frappe.provide("ocr.ui")
 
 frappe.ui.form.on("Pending Purchase Invoice", {
+	onload(frm) {
+		frappe.call({
+			method: "ocr.ocr.doctype.pending_purchase_invoice.pending_purchase_invoice.get_settings"
+		}).then(r => {
+			frm.toggle_display("select_purchase_orders", !r.message?.reconcile_with_purchase_receipts)
+		})
+	},
 	setup(frm) {
 		frm.set_query("expense_account", "items", function(doc) {
 			return {
