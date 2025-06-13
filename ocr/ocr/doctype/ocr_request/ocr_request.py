@@ -140,18 +140,28 @@ class OCRRequest(Document):
 		return analysis
 
 	def get_mistral_analysis(self):
+		if not self.job:
+			return
+
 		mistral = MistralOCR(self)
 
 		signed_url = mistral.get_signed_url(self.job)
 		results = mistral.get_ocr_results(signed_url.url)
-		print(results)
+		self.analysis = frappe.as_json(results)
 
-		self.analysis = results
+		self.save()
+		self.delete_remote_file()
 
 	def delete_remote_file(self, log_exception = True):
 		try:
-			textract = AWSTextractExpense(self)
-			textract.task.delete()
+			ocr_service = frappe.db.get_single_value("OCR Settings", "ocr_service")
+			if ocr_service == "Mistral OCR":
+				if self.job:
+					mistral = MistralOCR(self)
+					mistral.delete_file(self.job)
+			else:
+				textract = AWSTextractExpense(self)
+				textract.task.delete()
 		except Exception:
 			if log_exception:
 				frappe.log_error(_("OCR File Deletion Error"))
