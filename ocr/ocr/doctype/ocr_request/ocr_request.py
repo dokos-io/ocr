@@ -11,6 +11,7 @@ from frappe.utils import now_datetime, time_diff_in_hours, get_datetime
 from frappe.model.document import Document
 
 from ocr.ocr.doctype.ocr_request.aws_textract import AWSTextractExpense
+from ocr.ocr.doctype.ocr_request.mistral_ocr import MistralOCR
 from ocr.utils import parse_number, date_parser
 
 # https://docs.python.org/3/library/re.html#simulating-scanf
@@ -71,9 +72,23 @@ class OCRRequest(Document):
 	def make_analysis(self):
 		self.get_analysis()
 
-	def start_analysis(self):
+	def start_ocr_analysis(self):
+		ocr_service = frappe.db.get_single_value("OCR Settings", "ocr_service")
+		if ocr_service == "Mistral OCR":
+			return self.start_mistral_analysis()
+		else:
+			return self.start_textract_analysis()
+
+	def start_textract_analysis(self):
 		textract = AWSTextractExpense(self)
 		jobid = textract.task.start()
+		self.job = jobid
+		self.db_set("job", jobid)
+
+	def start_mistral_analysis(self):
+		mistral = MistralOCR(self)
+
+		jobid = mistral.upload_file()
 		self.job = jobid
 		self.db_set("job", jobid)
 
@@ -82,17 +97,24 @@ class OCRRequest(Document):
 			self.set_and_return_error("no file")
 
 		if not self.job:
-			self.start_analysis()
+			self.start_ocr_analysis()
 
 		try:
-			return self.get_textract_analysis()
+			return self.get_ocr_analysis()
 		except Exception:
 			self.log_error(_("OCR Analysis Error"))
 
-	def get_textract_analysis(self):
+	def get_ocr_analysis(self):
 		if self.analysis:
 			return self.get_raw_data()
 
+		ocr_service = frappe.db.get_single_value("OCR Settings", "ocr_service")
+		if ocr_service == "Mistral OCR":
+			return self.get_mistral_analysis()
+		else:
+			return self.get_textract_analysis()
+
+	def get_textract_analysis(self):
 		textract = AWSTextractExpense(self)
 		if analysis := textract.task.get_result():
 			if analysis["JobStatus"] == "SUCCEEDED":
@@ -116,6 +138,15 @@ class OCRRequest(Document):
 			self.set_and_return_error("no result")
 
 		return analysis
+
+	def get_mistral_analysis(self):
+		mistral = MistralOCR(self)
+
+		signed_url = mistral.get_signed_url(self.job)
+		results = mistral.get_ocr_results(signed_url.url)
+		print(results)
+
+		self.analysis = results
 
 	def delete_remote_file(self, log_exception = True):
 		try:
