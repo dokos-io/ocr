@@ -522,7 +522,7 @@ class PendingPurchaseInvoice(Document):
 			flt(self.supplier_net_amount) + flt(settings.max_difference_amount),
 			flt(self.supplier_net_amount) * (1 + flt(settings.max_difference_percentage_on_net_total) / 100)
 		)
-		print(self.net_total <= flt(self.supplier_net_amount), self.net_total <= max_amount)
+
 		if (
 			self.net_total <= flt(self.supplier_net_amount) or
 			self.net_total <= max_amount
