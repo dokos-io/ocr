@@ -17,7 +17,9 @@ class OCRSettings(Document):
 		aws_textract_secret: DF.Password | None
 		block_if_grand_total_exceeds_pending_pi: DF.Check
 		block_if_net_total_exceeds_pending_pi: DF.Check
+		mistral_api_key: DF.Password | None
 		no_purchase_order: DF.Check
+		ocr_service: DF.Literal["Amazon Textract", "Mistral OCR"]
 	# end: auto-generated types
 
 	pass
