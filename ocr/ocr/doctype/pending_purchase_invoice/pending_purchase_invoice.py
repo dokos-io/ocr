@@ -10,7 +10,7 @@ from frappe.model.meta import data_fieldtypes, default_fields, child_table_field
 
 from frappe.query_builder import Order
 from frappe import _
-from frappe.utils import nowdate
+from frappe.utils import flt, nowdate
 from erpnext.accounts.party import get_due_date, set_taxes, get_address_tax_category
 from frappe.contacts.doctype.address.address import get_default_address
 from frappe.model.workflow import get_transitions, get_workflow, has_approval_access, apply_workflow
@@ -89,6 +89,7 @@ class PendingPurchaseInvoice(Document):
 
 	def on_update(self):
 		self.calculate_totals()
+		self.auto_reconcile()
 
 	def get_supplier(self):
 		if self.supplier:
@@ -292,6 +293,9 @@ class PendingPurchaseInvoice(Document):
 		return doc
 
 	def append_matched_orders(self):
+		if frappe.db.get_single_value("OCR Settings", "reconcile_with_purchase_receipts"):
+			return
+
 		matched_orders = self.get_matched_orders()
 		for matched_order in matched_orders:
 			doc = frappe.get_doc("Purchase Order", matched_order)
@@ -503,6 +507,29 @@ class PendingPurchaseInvoice(Document):
 
 		return make_return_doc("Purchase Invoice", original_invoice)
 
+	def auto_reconcile(self):
+		if not self.items:
+			return
+
+		settings = frappe.get_single("OCR Settings")
+		if not settings.reconcile_with_purchase_receipts: # type: ignore
+			return
+
+		if frappe.db.exists("Purchase Invoice", dict(pending_purchase_invoice=self.name, docstatus=("!=", 2))):
+			return
+
+		max_amount = min(
+			flt(self.supplier_net_amount) + flt(settings.max_difference_amount),
+			flt(self.supplier_net_amount) * (1 + flt(settings.max_difference_percentage_on_net_total) / 100)
+		)
+
+		if (
+			self.net_total <= flt(self.supplier_net_amount) or
+			self.net_total <= max_amount
+		):
+			self.create_purchase_invoice(submit=settings.auto_submit_purchase_invoices) # type: ignore
+
+
 
 @frappe.whitelist()
 def get_item_details(row, company, tax_category=None):
@@ -523,7 +550,7 @@ def get_item_details(row, company, tax_category=None):
 	ctx: ItemDetailsCtx = {
 		"company": company,
 		"tax_category": tax_category,
-		"base_net_rate": row.get("base_rate"),
+		"base_net_rate": row.get("base_rate"), # type: ignore
 		"doctype": "Purchase Invoice",
 		"child_doctype": "Purchase Invoice Item"
 	}
@@ -716,3 +743,10 @@ def create_purchase_invoice(docname, submit=False):
 @frappe.whitelist()
 def create_purchase_order(docname, submit=False):
 	return frappe.get_doc("Pending Purchase Invoice", docname).run_method("create_purchase_order", submit=sbool(submit))
+
+@frappe.whitelist()
+def get_settings():
+	settings = frappe.get_single("OCR Settings")
+	return {
+		"reconcile_with_purchase_receipts": settings.reconcile_with_purchase_receipts # type: ignore
+	}
