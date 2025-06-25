@@ -55,6 +55,7 @@ class PendingPurchaseInvoice(Document):
 		ocr_request: DF.Link | None
 		original_invoice: DF.Link | None
 		posting_date: DF.Date
+		purchase_order_number: DF.Data | None
 		status: DF.Literal["Pending", "In Progress", "Ready", "Completed", "Closed"]
 		supplier: DF.Link
 		supplier_grand_total: DF.Currency
@@ -146,7 +147,7 @@ class PendingPurchaseInvoice(Document):
 			if pi := frappe.db.exists("Purchase Invoice", dict(pending_purchase_invoice=self.name)):
 				doc = frappe.get_doc("Purchase Invoice", pi)
 			else:
-				doc = frappe.new_doc("Purchase Order")
+				doc = frappe.new_doc("Purchase Invoice")
 				for item in self.items:
 					doc.append("items", frappe.copy_doc(item).as_dict())
 				doc.update(self.as_dict())
@@ -165,6 +166,11 @@ class PendingPurchaseInvoice(Document):
 			self.grand_total = doc.grand_total or 0.0
 		except Exception:
 			frappe.clear_messages()
+
+	def commit_totals(self):
+		self.db_set("net_total", self.net_total)
+		self.db_set("tax_total", self.tax_total)
+		self.db_set("grand_total", self.grand_total)
 
 	@frappe.whitelist()
 	def get_document_item_lines(self, doctype, selected_documents, allow_child_item_selection, filtered_line_items):
@@ -369,7 +375,14 @@ class PendingPurchaseInvoice(Document):
 				row["reference_doctype"] = doc.doctype
 				row["reference_docname"] = doc.name
 				row["row"] = item.name
+
+				if row["qty"] == 1:
+					row["rate"] = min(row["rate"], self.supplier_net_amount)
+
+				row["amount"] = row["qty"] * row["rate"]
+
 				self.append("items", row)
+
 
 	def get_matched_receipts(self):
 		purchase_receipt_dt = frappe.qb.DocType("Purchase Receipt")
@@ -424,11 +437,23 @@ class PendingPurchaseInvoice(Document):
 					elif find_purchase_order_correspondance(open_order.order_confirmation_no or open_order.supplier_delivery_note or "", child.get("expense_row") or ""):
 						matched_orders.add(open_order.name)
 
+		# Case 1: Perfect match between receipt and invoice
 		if not matched_orders:
 			for open_order in open_receipts:
+				if self.purchase_order_number and (self.purchase_order_number != open_order.get("purchase_order")):
+					continue
+
 				if open_order.get("net_total") == self.supplier_net_amount:
 					matched_orders.add(open_order.name)
 					break
+
+		# Case 2: Perfect match between receipt and invoice
+		if not matched_orders and (self.supplier_net_amount or 0.0) > 0:
+			for open_order in open_receipts:
+				if self.purchase_order_number and (self.purchase_order_number != open_order.get("purchase_order")):
+					continue
+
+				matched_orders.add(open_order.name)
 
 		return matched_orders
 
@@ -518,17 +543,28 @@ class PendingPurchaseInvoice(Document):
 		if frappe.db.exists("Purchase Invoice", dict(pending_purchase_invoice=self.name, docstatus=("!=", 2))):
 			return
 
+		# Do not automatically submit if amount do not match
+		min_amount = min(
+			flt(self.supplier_net_amount) - flt(settings.max_difference_amount),
+			flt(self.supplier_net_amount) * (1 - flt(settings.max_difference_percentage_on_net_total) / 100)
+		)
+
 		max_amount = min(
 			flt(self.supplier_net_amount) + flt(settings.max_difference_amount),
 			flt(self.supplier_net_amount) * (1 + flt(settings.max_difference_percentage_on_net_total) / 100)
 		)
 
-		if (
-			self.net_total <= flt(self.supplier_net_amount) or
-			self.net_total <= max_amount
-		):
-			self.create_purchase_invoice(submit=settings.auto_submit_purchase_invoices) # type: ignore
+		if min_amount <= self.net_total <= max_amount:
+			if difference := self.supplier_net_amount - self.net_total:
+				for item in self.items:
+					if item.qty == 1:
+						item.rate += difference
 
+			self.calculate_totals()
+			if self.supplier_net_amount == self.net_total and self.supplier_grand_total == self.grand_total:
+				self.create_purchase_invoice(submit=settings.auto_submit_purchase_invoices) # type: ignore
+
+		self.commit_totals()
 
 
 @frappe.whitelist()
