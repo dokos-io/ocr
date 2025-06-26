@@ -371,20 +371,24 @@ class PendingPurchaseInvoice(Document):
 
 	def append_matched_receipts(self):
 		matched_receipts = self.get_matched_receipts()
-		for matched_receipt in matched_receipts:
-			doc = frappe.get_doc("Purchase Receipt", matched_receipt)
-			for item in doc.items:
-				row = frappe.copy_doc(item).as_dict()
-				row["reference_doctype"] = doc.doctype
-				row["reference_docname"] = doc.name
-				row["row"] = item.name
 
-				if row["qty"] == 1:
-					row["rate"] = min(row["rate"], self.supplier_net_amount)
+		try:
+			for matched_receipt in matched_receipts:
+				doc = frappe.get_doc("Purchase Receipt", matched_receipt)
+				for item in doc.items:
+					row = frappe.copy_doc(item).as_dict()
+					row["reference_doctype"] = doc.doctype
+					row["reference_docname"] = doc.name
+					row["row"] = item.name
 
-				row["amount"] = row["qty"] * row["rate"]
+					if row["qty"] == 1:
+						row["rate"] = min(row["rate"], self.supplier_net_amount)
 
-				self.append("items", row)
+					row["amount"] = row["qty"] * row["rate"]
+
+					self.append("items", row)
+		except Exception:
+			self.log_error()
 
 
 	def get_matched_receipts(self):
