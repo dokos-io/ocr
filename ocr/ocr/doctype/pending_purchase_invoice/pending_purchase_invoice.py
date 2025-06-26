@@ -302,15 +302,18 @@ class PendingPurchaseInvoice(Document):
 		if frappe.db.get_single_value("OCR Settings", "reconcile_with_purchase_receipts"):
 			return
 
-		matched_orders = self.get_matched_orders()
-		for matched_order in matched_orders:
-			doc = frappe.get_doc("Purchase Order", matched_order)
-			for item in doc.items:
-				row = frappe.copy_doc(item).as_dict()
-				row["reference_doctype"] = doc.doctype
-				row["reference_docname"] = doc.name
-				row["row"] = item.name
-				self.append("items", row)
+		try:
+			matched_orders = self.get_matched_orders()
+			for matched_order in matched_orders:
+				doc = frappe.get_doc("Purchase Order", matched_order)
+				for item in doc.items:
+					row = frappe.copy_doc(item).as_dict()
+					row["reference_doctype"] = doc.doctype
+					row["reference_docname"] = doc.name
+					row["row"] = item.name
+					self.append("items", row)
+		except Exception:
+			self.log_error()
 
 	def get_matched_orders(self):
 		purchase_order_dt = frappe.qb.DocType("Purchase Order")
