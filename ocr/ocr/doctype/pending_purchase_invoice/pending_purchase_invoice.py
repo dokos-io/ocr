@@ -10,7 +10,7 @@ from frappe.model.meta import data_fieldtypes, default_fields, child_table_field
 
 from frappe.query_builder import Order
 from frappe import _
-from frappe.utils import flt, nowdate
+from frappe.utils import flt, fmt_money, nowdate
 from erpnext.accounts.party import get_due_date, set_taxes, get_address_tax_category
 from frappe.contacts.doctype.address.address import get_default_address
 from frappe.model.workflow import get_transitions, get_workflow, has_approval_access, apply_workflow
@@ -450,12 +450,12 @@ class PendingPurchaseInvoice(Document):
 				if self.purchase_order_number and (self.purchase_order_number != open_order.get("purchase_order")):
 					continue
 
-				if open_order.get("net_total") == self.supplier_net_amount:
+				if open_order.get("net_total") == flt(self.supplier_net_amount):
 					matched_orders.add(open_order.name)
 					break
 
 		# Case 2: Perfect match between receipt and invoice
-		if not matched_orders and (self.supplier_net_amount or 0.0) > 0:
+		if not matched_orders and flt(self.supplier_net_amount or 0.0) > 0:
 			for open_order in open_receipts:
 				if self.purchase_order_number and (self.purchase_order_number != open_order.get("purchase_order")):
 					continue
@@ -561,15 +561,25 @@ class PendingPurchaseInvoice(Document):
 			flt(self.supplier_net_amount) * (1 + flt(settings.max_difference_percentage_on_net_total) / 100)
 		)
 
-		if min_amount <= self.net_total <= max_amount:
-			if difference := self.supplier_net_amount - self.net_total:
+		precision = frappe.db.get_default("currency_precision")
+
+		if flt(min_amount, precision=precision) <= flt(self.net_total, precision=precision) <= flt(max_amount, precision=precision): # type: ignore
+			if difference := flt(self.supplier_net_amount) - flt(self.net_total):
 				for item in self.items:
 					if item.qty == 1:
 						item.rate += difference
+						self.add_comment(_("The rate at line {1} has been ajusted to {0} to match the supplier's invoice.").format(fmt_money(item.rate, currency=self.currency), item.idx))
+						break
 
 			self.calculate_totals()
-			if self.supplier_net_amount == self.net_total and self.supplier_grand_total == self.grand_total:
-				self.create_purchase_invoice(submit=settings.auto_submit_purchase_invoices) # type: ignore
+			if flt(self.supplier_net_amount, precision=precision) == flt(self.net_total, precision=precision) and flt(self.supplier_grand_total, precision=precision) == flt(self.grand_total, precision=precision): # type: ignore
+				self.add_comment(text=_("A purchase invoice has been automatically created for this invoice."))
+				#self.create_purchase_invoice(submit=settings.auto_submit_purchase_invoices) # type: ignore
+
+			self.add_comment(text=_("The automatic reconciliation has failed because the totals do not match"))
+
+		else:
+			self.add_comment(text=_("The automatic reconciliation has failed for the following reasons because the net total is higher than {0} or lower than {1}").format(fmt_money(max_amount, currency=self.currency), fmt_money(min_amount, currency=self.currency)))
 
 		self.commit_totals()
 
@@ -736,6 +746,14 @@ def register_purchase_order_items(doc, method=None):
 				frappe.db.set_value("Pending Purchase Invoice Item", item.pending_purchase_invoice_item, "reference_docname", item.parent)
 
 
+def auto_match_with_purchase_receipt(doc, method=None):
+	for pending_purchase_invoice in frappe.get_all("Pending Purchase Invoice", filters={"supplier": doc.supplier, "status": "Pending"}):
+		try:
+			frappe.get_doc("Pending Purchase Invoice").save()
+		except Exception:
+			pass
+
+
 def set_pending_purchase_order_status(doc, method=None):
 	if not doc.pending_purchase_invoice:
 		return
@@ -786,6 +804,7 @@ def create_purchase_invoice(docname, submit=False):
 @frappe.whitelist()
 def create_purchase_order(docname, submit=False):
 	return frappe.get_doc("Pending Purchase Invoice", docname).run_method("create_purchase_order", submit=sbool(submit))
+
 
 @frappe.whitelist()
 def get_settings():

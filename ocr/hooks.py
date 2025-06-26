@@ -164,6 +164,9 @@ doc_events = {
 			"ocr.overrides.purchase_invoice.after_mapping",
 		]
 	},
+	"Purchase Receipt": {
+		"on_submit": "ocr.ocr.doctype.pending_purchase_invoice.pending_purchase_invoice.auto_match_with_purchase_receipt"
+	},
 	"Pending Purchase Invoice": {
 		"on_close": "ocr.ocr.doctype.ocr_request.ocr_request.update_ocr_request_status",
 	}
