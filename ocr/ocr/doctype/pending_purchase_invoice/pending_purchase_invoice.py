@@ -747,7 +747,7 @@ def register_purchase_order_items(doc, method=None):
 
 
 def auto_match_with_purchase_receipt(doc, method=None):
-	for pending_purchase_invoice in frappe.get_all("Pending Purchase Invoice", filter={"supplier": doc.supplier, "status": "Pending"}):
+	for pending_purchase_invoice in frappe.get_all("Pending Purchase Invoice", filters={"supplier": doc.supplier, "status": "Pending"}):
 		try:
 			frappe.get_doc("Pending Purchase Invoice").save()
 		except Exception:
