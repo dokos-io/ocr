@@ -746,6 +746,14 @@ def register_purchase_order_items(doc, method=None):
 				frappe.db.set_value("Pending Purchase Invoice Item", item.pending_purchase_invoice_item, "reference_docname", item.parent)
 
 
+def auto_match_with_purchase_receipt(doc, method=None):
+	for pending_purchase_invoice in frappe.get_all("Pending Purchase Invoice", filter={"supplier": doc.supplier, "status": "Pending"}):
+		try:
+			frappe.get_doc("Pending Purchase Invoice").save()
+		except Exception:
+			pass
+
+
 def set_pending_purchase_order_status(doc, method=None):
 	if not doc.pending_purchase_invoice:
 		return
@@ -796,6 +804,7 @@ def create_purchase_invoice(docname, submit=False):
 @frappe.whitelist()
 def create_purchase_order(docname, submit=False):
 	return frappe.get_doc("Pending Purchase Invoice", docname).run_method("create_purchase_order", submit=sbool(submit))
+
 
 @frappe.whitelist()
 def get_settings():
