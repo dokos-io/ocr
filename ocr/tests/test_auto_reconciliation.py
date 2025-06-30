@@ -6,6 +6,7 @@ from frappe.utils.make_random import get_random
 from erpnext import get_default_company
 
 from erpnext.buying.doctype.purchase_order.purchase_order import PurchaseOrder, make_purchase_receipt
+from ocr.ocr.doctype.ocr_settings.ocr_settings import OCRSettings
 from ocr.tests.utils import add_items, add_suppliers
 from ocr.ocr.doctype.pending_purchase_invoice.pending_purchase_invoice import PendingPurchaseInvoice
 
@@ -47,6 +48,7 @@ class TestAutoReconciliation(IntegrationTestCase):
 
 		self.assertEqual(len(pending_purchase_invoice.items), 1)
 		self.assertIn(purchase_receipt.name, [r.reference_docname for r in pending_purchase_invoice.items])
+		pending_purchase_invoice.reload()
 		self.assertEqual(pending_purchase_invoice.status, "Completed")
 
 
@@ -62,8 +64,8 @@ class TestAutoReconciliation(IntegrationTestCase):
 		purchase_order = get_purchase_order(
 			company=get_default_company(),
 			item_code=get_random("Item", filters={"has_variants": False, "is_stock_item": 0}),
-			qty=10,
-			rate=500
+			qty=1,
+			rate=5000
 		) # type: ignore
 		purchase_order.insert()
 		purchase_order.submit()
@@ -84,11 +86,18 @@ class TestAutoReconciliation(IntegrationTestCase):
 		self.assertIn(purchase_receipt.name, [r.reference_docname for r in pending_purchase_invoice.items])
 		self.assertEqual(pending_purchase_invoice.status, "Pending")
 
-		frappe.db.set_single_value("OCR Settings", "max_difference_amount", 500)
-		frappe.db.set_single_value("OCR Settings", "max_difference_percentage_on_net_total", 10)
+		settings: OCRSettings = frappe.get_single("OCR Settings") # type: ignore
+		settings.max_difference_amount = 500.0
+		settings.max_difference_percentage_on_net_total = 10.0
+		settings.save()
 
+		pending_purchase_invoice.reload()
 		pending_purchase_invoice.save()
+		pending_purchase_invoice.reload()
 		self.assertEqual(pending_purchase_invoice.status, "Completed")
+
+		frappe.db.set_single_value("OCR Settings", "max_difference_amount", 0)
+		frappe.db.set_single_value("OCR Settings", "max_difference_percentage_on_net_total", 0)
 
 	@change_settings(
 		"OCR Settings",
