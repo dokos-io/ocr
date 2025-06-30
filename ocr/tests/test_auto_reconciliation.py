@@ -16,6 +16,8 @@ class TestAutoReconciliation(IntegrationTestCase):
 		add_items()
 		add_suppliers()
 
+		frappe.db.set_single_value("Accounts Settings", "add_taxes_from_item_tax_template", 1)
+
 	@change_settings(
 		"OCR Settings",
 		{"reconcile_with_purchase_receipts": 1, "auto_submit_purchase_invoices": 1},
