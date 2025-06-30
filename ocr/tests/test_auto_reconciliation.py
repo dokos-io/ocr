@@ -26,7 +26,7 @@ class TestAutoReconciliation(IntegrationTestCase):
 		"""
 		purchase_order = get_purchase_order(
 			company=get_default_company(),
-			item_code=get_random("Item", filters={"is_group": 0}),
+			item_code=get_random("Item", filters={"has_variants": False}),
 			qty=10,
 			rate=500
 		) # type: ignore
@@ -61,7 +61,7 @@ class TestAutoReconciliation(IntegrationTestCase):
 		"""
 		purchase_order = get_purchase_order(
 			company=get_default_company(),
-			item_code=get_random("Item", filters={"is_group": 0}),
+			item_code=get_random("Item", filters={"has_variants": False}),
 			qty=10,
 			rate=500
 		) # type: ignore
@@ -101,7 +101,7 @@ class TestAutoReconciliation(IntegrationTestCase):
 		"""
 		purchase_order = get_purchase_order(
 			company=get_default_company(),
-			item_code=get_random("Item", filters={"is_group": 0}),
+			item_code=get_random("Item", filters={"has_variants": False}),
 			qty=10,
 			rate=500
 		) # type: ignore
@@ -145,7 +145,7 @@ class TestAutoReconciliation(IntegrationTestCase):
 		"""
 		purchase_order = get_purchase_order(
 			company=get_default_company(),
-			item_code=get_random("Item", filters={"is_group": 0}),
+			item_code=get_random("Item", filters={"has_variants": False}),
 			qty=10,
 			rate=500
 		) # type: ignore
@@ -185,7 +185,7 @@ def get_purchase_order(company, item_code, qty, rate, **kwargs):
 	po.schedule_date = nowdate()
 
 	po.append("items", {
-		"item_code": item_code or get_random("Item", filters={"is_group": 0}),
+		"item_code": item_code or get_random("Item", filters={"has_variants": False}),
 		"qty": qty or 1,
 		"rate": rate or 500
 	})
