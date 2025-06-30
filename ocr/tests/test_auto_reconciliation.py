@@ -1,3 +1,4 @@
+from random import choice
 import frappe
 from frappe.tests import IntegrationTestCase, change_settings
 from frappe.utils import add_days, flt, nowdate
@@ -13,7 +14,7 @@ from ocr.ocr.doctype.pending_purchase_invoice.pending_purchase_invoice import Pe
 class TestAutoReconciliation(IntegrationTestCase):
 	@classmethod
 	def setUpClass(cls):
-		add_items()
+		cls.items = add_items()
 		add_suppliers()
 
 		frappe.db.set_single_value("Accounts Settings", "add_taxes_from_item_tax_template", 1)
@@ -29,7 +30,7 @@ class TestAutoReconciliation(IntegrationTestCase):
 		"""
 		purchase_order = get_purchase_order(
 			company=get_default_company(),
-			item_code=get_random("Item", filters={"has_variants": False, "is_stock_item": 0}),
+			item_code=choice(TestAutoReconciliation.items), # type: ignore
 			qty=10,
 			rate=500
 		) # type: ignore
@@ -66,7 +67,7 @@ class TestAutoReconciliation(IntegrationTestCase):
 		"""
 		purchase_order = get_purchase_order(
 			company=get_default_company(),
-			item_code=get_random("Item", filters={"has_variants": False, "is_stock_item": 0}),
+			item_code=choice(TestAutoReconciliation.items), # type: ignore
 			qty=1,
 			rate=5000
 		) # type: ignore
@@ -114,7 +115,7 @@ class TestAutoReconciliation(IntegrationTestCase):
 		"""
 		purchase_order = get_purchase_order(
 			company=get_default_company(),
-			item_code=get_random("Item", filters={"has_variants": False, "is_stock_item": 0}),
+			item_code=choice(TestAutoReconciliation.items), # type: ignore
 			qty=10,
 			rate=500
 		) # type: ignore
@@ -158,7 +159,7 @@ class TestAutoReconciliation(IntegrationTestCase):
 		"""
 		purchase_order = get_purchase_order(
 			company=get_default_company(),
-			item_code=get_random("Item", filters={"has_variants": False, "is_stock_item": 0}),
+			item_code=choice(TestAutoReconciliation.items), # type: ignore
 			qty=10,
 			rate=500
 		) # type: ignore

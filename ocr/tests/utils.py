@@ -23,6 +23,7 @@ def add_items():
 	item_tax_template.insert(ignore_if_duplicate=True)
 
 	item_groups = frappe.get_all("Item Group", filters={"is_group": 0})
+	items = []
 	for item_group in item_groups:
 		for i in range(randint(2, 6)):
 			item: Item = frappe.new_doc("Item") # type: ignore
@@ -35,6 +36,9 @@ def add_items():
 				"item_tax_template": item_tax_template.name 
 			})
 			item.insert(ignore_if_duplicate=True)
+			items.append(item.name)
+
+	return items
 
 
 def add_suppliers():
