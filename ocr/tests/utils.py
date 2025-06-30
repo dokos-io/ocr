@@ -14,7 +14,7 @@ def add_items():
 	item_tax_template: ItemTaxTemplate = frappe.new_doc("Item Tax Template") # type: ignore
 	item_tax_template.title = "TVA 20% Collectée"
 	item_tax_template.company = get_default_company() # type: ignore
-	item_tax_template.applicable_for = "Sales" # type: ignore
+	item_tax_template.applicable_for = "Purchases" # type: ignore
 	item_tax_template.append("taxes", {
 		"tax_type": frappe.db.get_value("Account", dict(account_type="Tax")),
 		"tax_rate": 20.0,
