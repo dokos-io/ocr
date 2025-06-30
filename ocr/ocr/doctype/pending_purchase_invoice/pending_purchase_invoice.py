@@ -3,6 +3,7 @@
 
 import re
 import difflib
+from erpnext.accounts.doctype.purchase_invoice.purchase_invoice import PurchaseInvoice
 from frappe.model.document import Document
 from pypika.terms import ExistsCriterion
 
@@ -88,8 +89,10 @@ class PendingPurchaseInvoice(Document):
 		if not self.items:
 			self.append_matched_orders()
 
-	def on_update(self):
+	def before_save(self):
 		self.calculate_totals()
+
+	def on_update(self):
 		self.auto_reconcile()
 
 	def get_supplier(self):
@@ -205,7 +208,7 @@ class PendingPurchaseInvoice(Document):
 		from erpnext.buying.doctype.purchase_order.purchase_order import make_purchase_invoice as make_purchase_invoice_from_po
 		from erpnext.stock.doctype.purchase_receipt.purchase_receipt import make_purchase_invoice as make_purchase_invoice_from_pr
 
-		doc = frappe.new_doc("Purchase Invoice")
+		doc: PurchaseInvoice = frappe.new_doc("Purchase Invoice") # type: ignore
 		doc.ignore_pricing_rule = 1
 		doc.set_posting_time = 1
 		doc.posting_date = self.posting_date
@@ -233,7 +236,7 @@ class PendingPurchaseInvoice(Document):
 				doc.append("items", ppi_row)
 			else:
 				doc_item = get_doc_item(item)
-				new_row = doc_item.update(ppi_row)
+				new_row: dict = doc_item.update(ppi_row) # type: ignore
 				for key, value in REFERENCE_FIELDS.get(item.reference_doctype, {}).items():
 					new_row[value] = item.get(key)
 
@@ -563,6 +566,7 @@ class PendingPurchaseInvoice(Document):
 
 		precision = frappe.db.get_default("currency_precision")
 
+
 		if flt(min_amount, precision=precision) <= flt(self.net_total, precision=precision) <= flt(max_amount, precision=precision): # type: ignore
 			if difference := flt(self.supplier_net_amount) - flt(self.net_total):
 				for item in self.items:
@@ -573,15 +577,15 @@ class PendingPurchaseInvoice(Document):
 
 			self.calculate_totals()
 			if flt(self.supplier_net_amount, precision=precision) == flt(self.net_total, precision=precision) and flt(self.supplier_grand_total, precision=precision) == flt(self.grand_total, precision=precision): # type: ignore
-				self.add_comment(text=_("A purchase invoice has been automatically created for this invoice."))
-				#self.create_purchase_invoice(submit=settings.auto_submit_purchase_invoices) # type: ignore
+				doc = self.create_purchase_invoice(submit=settings.auto_submit_purchase_invoices) # type: ignore
+				self.add_comment(text=_("Purchase invoice {0} has been automatically created for this invoice.").format(doc.name))
 
 			self.add_comment(text=_("The automatic reconciliation has failed because the totals do not match"))
+			self.commit_totals()
 
 		else:
 			self.add_comment(text=_("The automatic reconciliation has failed for the following reasons because the net total is higher than {0} or lower than {1}").format(fmt_money(max_amount, currency=self.currency), fmt_money(min_amount, currency=self.currency)))
 
-		self.commit_totals()
 
 
 @frappe.whitelist()
