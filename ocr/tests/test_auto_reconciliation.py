@@ -49,13 +49,14 @@ class TestAutoReconciliation(IntegrationTestCase):
 		self.assertEqual(len(pending_purchase_invoice.items), 1)
 		self.assertIn(purchase_receipt.name, [r.reference_docname for r in pending_purchase_invoice.items])
 		pending_purchase_invoice.reload()
+		print("test_auto_reconciliation_01", pending_purchase_invoice.as_dict())
 		self.assertEqual(pending_purchase_invoice.status, "Completed")
 
 
 	@change_settings(
 		"OCR Settings",
 		{"reconcile_with_purchase_receipts": 1, "auto_submit_purchase_invoices": 1},
-	)
+	) # type: ignore
 	def test_auto_reconciliation_02(self):
 		"""
 		Purchase order is received
@@ -92,6 +93,7 @@ class TestAutoReconciliation(IntegrationTestCase):
 		settings.save()
 
 		pending_purchase_invoice.reload()
+		print("test_auto_reconciliation_02", pending_purchase_invoice.as_dict())
 		pending_purchase_invoice.save()
 		pending_purchase_invoice.reload()
 		self.assertEqual(pending_purchase_invoice.status, "Completed")
