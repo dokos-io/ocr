@@ -15,7 +15,6 @@ class TestAutoReconciliation(IntegrationTestCase):
 	@classmethod
 	def setUpClass(cls):
 		cls.items = add_items()
-		print(cls.items)
 		add_suppliers()
 
 		frappe.db.set_single_value("Accounts Settings", "add_taxes_from_item_tax_template", 1)
@@ -53,7 +52,6 @@ class TestAutoReconciliation(IntegrationTestCase):
 		self.assertEqual(len(pending_purchase_invoice.items), 1)
 		self.assertIn(purchase_receipt.name, [r.reference_docname for r in pending_purchase_invoice.items])
 		pending_purchase_invoice.reload()
-		print("test_auto_reconciliation_01", pending_purchase_invoice.as_dict())
 		self.assertEqual(pending_purchase_invoice.status, "Completed")
 
 
@@ -97,7 +95,6 @@ class TestAutoReconciliation(IntegrationTestCase):
 		settings.save()
 
 		pending_purchase_invoice.reload()
-		print("test_auto_reconciliation_02", pending_purchase_invoice.as_dict())
 		pending_purchase_invoice.save()
 		pending_purchase_invoice.reload()
 		self.assertEqual(pending_purchase_invoice.status, "Completed")
