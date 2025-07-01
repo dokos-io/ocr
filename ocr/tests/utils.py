@@ -30,7 +30,8 @@ def add_items():
 			item.is_stock_item = False
 			item.stock_uom = "Unit"
 			item.append("taxes", {
-				"item_tax_template": item_tax_template.name 
+				"item_tax_template": item_tax_template.name,
+				"company": get_default_company()
 			})
 			item.insert(ignore_if_duplicate=True)
 			items.append(item.name)
