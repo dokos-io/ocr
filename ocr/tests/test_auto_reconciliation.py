@@ -15,6 +15,7 @@ class TestAutoReconciliation(IntegrationTestCase):
 	@classmethod
 	def setUpClass(cls):
 		cls.items = add_items()
+		print(cls.items)
 		add_suppliers()
 
 		frappe.db.set_single_value("Accounts Settings", "add_taxes_from_item_tax_template", 1)

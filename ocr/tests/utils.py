@@ -8,9 +8,6 @@ import frappe
 from erpnext.stock.doctype.item.item import Item
 
 def add_items():
-	if frappe.get_all("Item"):
-		return
-
 	item_tax_template: ItemTaxTemplate = frappe.new_doc("Item Tax Template") # type: ignore
 	item_tax_template.title = "TVA 20% Collectée"
 	item_tax_template.company = get_default_company() # type: ignore
