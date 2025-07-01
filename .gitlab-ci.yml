@@ -45,7 +45,7 @@ tests:
     - /ci-utils/setup-redis.sh v1
     - /ci-utils/patch-procfile.sh v1
     - cp -r apps/frappe/test_sites/test_site sites/
-    - env/bin/python -m pip install --quiet hypothesis==6.68.2 unittest-xml-reporting
+    - bench setup requirements --dev
     - bench start &> bench_start.log &
     - bench build --app erpnext &
     - build_pid=$!
