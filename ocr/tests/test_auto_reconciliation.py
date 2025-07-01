@@ -30,7 +30,7 @@ class TestAutoReconciliation(IntegrationTestCase):
 		"""
 		purchase_order = get_purchase_order(
 			company=get_default_company(),
-			item_code=choice(TestAutoReconciliation.items), # type: ignore
+			item_code=choice(self.items), # type: ignore
 			qty=10,
 			rate=500
 		) # type: ignore
@@ -67,7 +67,7 @@ class TestAutoReconciliation(IntegrationTestCase):
 		"""
 		purchase_order = get_purchase_order(
 			company=get_default_company(),
-			item_code=choice(TestAutoReconciliation.items), # type: ignore
+			item_code=choice(self.items), # type: ignore
 			qty=1,
 			rate=5000
 		) # type: ignore
@@ -115,7 +115,7 @@ class TestAutoReconciliation(IntegrationTestCase):
 		"""
 		purchase_order = get_purchase_order(
 			company=get_default_company(),
-			item_code=choice(TestAutoReconciliation.items), # type: ignore
+			item_code=choice(self.items), # type: ignore
 			qty=10,
 			rate=500
 		) # type: ignore
@@ -159,7 +159,7 @@ class TestAutoReconciliation(IntegrationTestCase):
 		"""
 		purchase_order = get_purchase_order(
 			company=get_default_company(),
-			item_code=choice(TestAutoReconciliation.items), # type: ignore
+			item_code=choice(self.items), # type: ignore
 			qty=10,
 			rate=500
 		) # type: ignore
