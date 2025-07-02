@@ -309,6 +309,9 @@ class PendingPurchaseInvoice(Document):
 			matched_orders = self.get_matched_orders()
 			for matched_order in matched_orders:
 				doc = frappe.get_doc("Purchase Order", matched_order)
+				if not self.cost_center and doc.cost_center:
+					self.cost_center = doc.cost_center
+
 				for item in doc.items:
 					row = frappe.copy_doc(item).as_dict()
 					row["reference_doctype"] = doc.doctype
@@ -378,6 +381,9 @@ class PendingPurchaseInvoice(Document):
 		try:
 			for matched_receipt in matched_receipts:
 				doc = frappe.get_doc("Purchase Receipt", matched_receipt)
+				if not self.cost_center and doc.cost_center:
+					self.cost_center = doc.cost_center
+
 				for item in doc.items:
 					row = frappe.copy_doc(item).as_dict()
 					row["reference_doctype"] = doc.doctype
