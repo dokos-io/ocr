@@ -14,7 +14,7 @@ class PendingPurchaseInvoiceItem(Document):
 	if TYPE_CHECKING:
 		from frappe.types import DF
 
-		amount: DF.Float
+		amount: DF.Currency
 		cost_center: DF.Link | None
 		description: DF.TextEditor | None
 		expense_account: DF.Link | None
@@ -25,7 +25,7 @@ class PendingPurchaseInvoiceItem(Document):
 		parenttype: DF.Data
 		project: DF.Link | None
 		qty: DF.Float
-		rate: DF.Float
+		rate: DF.Currency
 		reference_docname: DF.DynamicLink | None
 		reference_doctype: DF.Link | None
 		row: DF.Data | None
