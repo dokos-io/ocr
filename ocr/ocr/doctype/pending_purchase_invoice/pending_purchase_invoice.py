@@ -309,6 +309,9 @@ class PendingPurchaseInvoice(Document):
 			matched_orders = self.get_matched_orders()
 			for matched_order in matched_orders:
 				doc = frappe.get_doc("Purchase Order", matched_order)
+				if doc.currency != self.currency:
+					self.currency = doc.currency
+
 				for item in doc.items:
 					row = frappe.copy_doc(item).as_dict()
 					row["reference_doctype"] = doc.doctype
@@ -378,6 +381,9 @@ class PendingPurchaseInvoice(Document):
 		try:
 			for matched_receipt in matched_receipts:
 				doc = frappe.get_doc("Purchase Receipt", matched_receipt)
+				if doc.currency != self.currency:
+					self.currency = doc.currency
+
 				for item in doc.items:
 					row = frappe.copy_doc(item).as_dict()
 					row["reference_doctype"] = doc.doctype
@@ -754,10 +760,8 @@ def register_purchase_order_items(doc, method=None):
 
 def auto_match_with_purchase_receipt(doc, method=None):
 	for pending_purchase_invoice in frappe.get_all("Pending Purchase Invoice", filters={"supplier": doc.supplier, "status": "Pending"}):
-		try:
-			frappe.get_doc("Pending Purchase Invoice").save()
-		except Exception:
-			pass
+		doc = frappe.get_doc("Pending Purchase Invoice", pending_purchase_invoice.name)
+		doc.save()
 
 
 def set_pending_purchase_order_status(doc, method=None):
