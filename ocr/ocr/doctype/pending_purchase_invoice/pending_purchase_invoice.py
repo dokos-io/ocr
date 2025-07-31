@@ -1,9 +1,9 @@
 # Copyright (c) 2024, Dokos SAS and contributors
 # For license information, please see license.txt
 
+from typing import TYPE_CHECKING
 import re
 import difflib
-from erpnext.accounts.doctype.purchase_invoice.purchase_invoice import PurchaseInvoice
 from frappe.model.document import Document
 from pypika.terms import ExistsCriterion
 
@@ -18,6 +18,10 @@ from frappe.model.workflow import get_transitions, get_workflow, has_approval_ac
 
 import frappe
 from frappe.utils import sbool
+
+if TYPE_CHECKING:
+	from erpnext.accounts.doctype.purchase_invoice.purchase_invoice import PurchaseInvoice
+	from erpnext.buying.doctype.purchase_order.purchase_order import PurchaseOrder
 
 ItemDetailsCtx = frappe._dict
 ItemDetails = frappe._dict
@@ -274,8 +278,8 @@ class PendingPurchaseInvoice(Document):
 				if not frappe.db.get_value(item.reference_doctype, item.reference_docname, "docstatus") == 1:
 					frappe.throw(_("Please submit {0}: {1} before trying to create the corresponding invoice").format(_(item.reference_doctype).lower(), item.reference_docname))
 
-		doc = self.get_purchase_invoice(purchase_order_is_mandatory)
-		doc.pending_purchase_invoice = self.name
+		doc: PurchaseInvoice = self.get_purchase_invoice(purchase_order_is_mandatory)
+		doc.pending_purchase_invoice = self.name # type: ignore
 		doc.insert(ignore_mandatory=True)
 
 		if submit:
@@ -308,7 +312,7 @@ class PendingPurchaseInvoice(Document):
 		try:
 			matched_orders = self.get_matched_orders()
 			for matched_order in matched_orders:
-				doc = frappe.get_doc("Purchase Order", matched_order)
+				doc: PurchaseOrder = frappe.get_doc("Purchase Order", matched_order) # type: ignore
 				if doc.currency != self.currency:
 					self.currency = doc.currency
 
@@ -560,7 +564,7 @@ class PendingPurchaseInvoice(Document):
 			return
 
 		# Do not automatically submit if amount do not match
-		min_amount = min(
+		min_amount = max(
 			flt(self.supplier_net_amount) - flt(settings.max_difference_amount),
 			flt(self.supplier_net_amount) * (1 - flt(settings.max_difference_percentage_on_net_total) / 100)
 		)
@@ -591,6 +595,7 @@ class PendingPurchaseInvoice(Document):
 				self.add_comment(text=_("The automatic reconciliation has failed because the totals do not match"))
 
 			self.commit_totals()
+			self.notify_update()
 
 		else:
 			self.add_comment(text=_("The automatic reconciliation has failed for the following reasons because the net total is higher than {0} or lower than {1}").format(fmt_money(max_amount, currency=self.currency), fmt_money(min_amount, currency=self.currency)))
