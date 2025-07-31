@@ -587,8 +587,9 @@ class PendingPurchaseInvoice(Document):
 					self.add_comment(text=_("Purchase invoice {0} has been automatically created for this invoice.").format(doc.name))
 				except Exception as e:
 					self.add_comment(text=str(e))
+			else:
+				self.add_comment(text=_("The automatic reconciliation has failed because the totals do not match"))
 
-			self.add_comment(text=_("The automatic reconciliation has failed because the totals do not match"))
 			self.commit_totals()
 
 		else:
