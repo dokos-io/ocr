@@ -1,4 +1,5 @@
 from random import choice
+import time
 import frappe
 from frappe.tests import IntegrationTestCase, change_settings
 from frappe.utils import add_days, flt, nowdate
@@ -96,6 +97,7 @@ class TestAutoReconciliation(IntegrationTestCase):
 
 		pending_purchase_invoice.reload()
 		pending_purchase_invoice.save()
+		time.sleep(5) # Todo: wait for commit correctly
 		pending_purchase_invoice.reload()
 		self.assertEqual(pending_purchase_invoice.status, "Completed")
 
