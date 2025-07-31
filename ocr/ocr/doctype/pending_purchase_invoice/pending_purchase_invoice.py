@@ -526,6 +526,54 @@ class PendingPurchaseInvoice(Document):
 
 		return make_return_doc("Purchase Invoice", original_invoice)
 
+	def auto_reconcile(self):
+		if self.status == "Completed" or not self.items:
+			return
+
+		settings = frappe.get_single("OCR Settings")
+		if not settings.reconcile_with_purchase_receipts: # type: ignore
+			return
+
+		if frappe.db.exists("Purchase Invoice", dict(pending_purchase_invoice=self.name, docstatus=("!=", 2))):
+			return
+
+		# Do not automatically submit if amount do not match
+		min_amount = min(
+			flt(self.supplier_net_amount) - flt(settings.max_difference_amount),
+			flt(self.supplier_net_amount) * (1 - flt(settings.max_difference_percentage_on_net_total) / 100)
+		)
+
+		max_amount = min(
+			flt(self.supplier_net_amount) + flt(settings.max_difference_amount),
+			flt(self.supplier_net_amount) * (1 + flt(settings.max_difference_percentage_on_net_total) / 100)
+		)
+
+		precision = frappe.db.get_default("currency_precision")
+
+		if flt(min_amount, precision=precision) <= flt(self.net_total, precision=precision) <= flt(max_amount, precision=precision): # type: ignore
+			if difference := flt(self.supplier_net_amount) - flt(self.net_total):
+				for item in self.items:
+					if item.qty == 1:
+						item.rate += difference
+						self.add_comment(text=_("The rate at line {1} has been ajusted to {0} to match the supplier's invoice.").format(fmt_money(item.rate, currency=self.currency), item.idx))
+						break
+
+			self.calculate_totals()
+			if flt(self.supplier_net_amount, precision=precision) == flt(self.net_total, precision=precision) and flt(self.supplier_grand_total, precision=precision) == flt(self.grand_total, precision=precision): # type: ignore
+				try:
+					doc = self.create_purchase_invoice(submit=settings.auto_submit_purchase_invoices) # type: ignore
+					self.add_comment(text=_("Purchase invoice {0} has been automatically created for this invoice.").format(doc.name))
+				except Exception as e:
+					self.add_comment(text=str(e))
+			else:
+				self.add_comment(text=_("The automatic reconciliation has failed because the totals do not match"))
+
+			self.commit_totals()
+
+		else:
+			self.add_comment(text=_("The automatic reconciliation has failed for the following reasons because the net total is higher than {0} or lower than {1}").format(fmt_money(max_amount, currency=self.currency), fmt_money(min_amount, currency=self.currency)))
+
+
 
 @frappe.whitelist()
 def get_item_details(row, company, tax_category=None):
