@@ -292,9 +292,6 @@ class PendingPurchaseInvoice(Document):
 		return doc
 
 	def append_matched_orders(self):
-		if frappe.db.get_single_value("OCR Settings", "reconcile_with_purchase_receipts"):
-			return
-
 		try:
 			matched_orders = self.get_matched_orders()
 			for matched_order in matched_orders:
@@ -688,11 +685,6 @@ def register_purchase_order_items(doc, method=None):
 				frappe.db.set_value("Pending Purchase Invoice Item", item.pending_purchase_invoice_item, "reference_doctype", item.parenttype)
 				frappe.db.set_value("Pending Purchase Invoice Item", item.pending_purchase_invoice_item, "reference_docname", item.parent)
 
-
-def auto_match_with_purchase_receipt(doc, method=None):
-	for pending_purchase_invoice in frappe.get_all("Pending Purchase Invoice", filters={"supplier": doc.supplier, "status": "Pending"}):
-		doc = frappe.get_doc("Pending Purchase Invoice", pending_purchase_invoice.name)
-		doc.save()
 
 
 def set_pending_purchase_order_status(doc, method=None):
