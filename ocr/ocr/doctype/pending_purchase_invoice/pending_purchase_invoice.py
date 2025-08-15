@@ -2,6 +2,7 @@
 # For license information, please see license.txt
 
 from typing import TYPE_CHECKING
+from collections import defaultdict
 import re
 import difflib
 from frappe.model.document import Document
@@ -563,15 +564,17 @@ class PendingPurchaseInvoice(Document):
 		if frappe.db.exists("Purchase Invoice", dict(pending_purchase_invoice=self.name, docstatus=("!=", 2))):
 			return
 
+		pending_invoicing_amount = self.get_pending_invoicing_amount()
+
 		# Do not automatically submit if amount do not match
 		min_amount = max(
-			flt(self.supplier_net_amount) - flt(settings.max_difference_amount),
-			flt(self.supplier_net_amount) * (1 - flt(settings.max_difference_percentage_on_net_total) / 100)
+			flt(pending_invoicing_amount) - flt(settings.max_difference_amount),
+			flt(pending_invoicing_amount) * (1 - flt(settings.max_difference_percentage_on_net_total) / 100)
 		)
 
 		max_amount = min(
-			flt(self.supplier_net_amount) + flt(settings.max_difference_amount),
-			flt(self.supplier_net_amount) * (1 + flt(settings.max_difference_percentage_on_net_total) / 100)
+			flt(pending_invoicing_amount) + flt(settings.max_difference_amount),
+			flt(pending_invoicing_amount) * (1 + flt(settings.max_difference_percentage_on_net_total) / 100)
 		)
 
 		precision = frappe.db.get_default("currency_precision")
@@ -601,6 +604,14 @@ class PendingPurchaseInvoice(Document):
 			self.add_comment(text=_("The automatic reconciliation has failed for the following reasons because the net total is higher than {0} or lower than {1}").format(fmt_money(max_amount, currency=self.currency), fmt_money(min_amount, currency=self.currency)))
 
 
+	def get_pending_invoicing_amount(self):
+		total_per_ref = defaultdict(dict)
+		for item in self.items:
+			if item.reference_doctype and item.reference_docname and (item.reference_doctype, item.reference_docname) not in total_per_ref:
+				doc = frappe.get_doc(item.reference_doctype, item.reference_docname)
+				total_per_ref[(item.reference_doctype, item.reference_docname)] = doc.net_total - (flt(doc.per_billed) * doc.net_total)
+
+		return sum(total_per_ref.values())
 
 @frappe.whitelist()
 def get_item_details(row, company, tax_category=None):

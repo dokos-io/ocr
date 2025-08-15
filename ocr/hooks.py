@@ -151,10 +151,16 @@ doc_events = {
 		]
 	},
 	"Purchase Invoice": {
-		"before_submit": "ocr.ocr.doctype.pending_purchase_invoice.pending_purchase_invoice.validate_total",
+		"validate": [
+			"ocr.overrides.purchase_invoice.validate_over_billing",
+		],
+		"before_submit": [
+			"ocr.ocr.doctype.pending_purchase_invoice.pending_purchase_invoice.validate_total",
+			"ocr.overrides.purchase_invoice.validate_over_billing",
+		],
 		"on_submit": [
 			"ocr.ocr.doctype.ocr_request.ocr_request.update_ocr_request_status",
-			"ocr.ocr.doctype.pending_purchase_invoice.pending_purchase_invoice.set_pending_purchase_order_status"
+			"ocr.ocr.doctype.pending_purchase_invoice.pending_purchase_invoice.set_pending_purchase_order_status",
 		],
 		"on_cancel": [
 			"ocr.ocr.doctype.ocr_request.ocr_request.update_ocr_request_status",
