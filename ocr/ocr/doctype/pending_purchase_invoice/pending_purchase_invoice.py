@@ -559,10 +559,10 @@ class PendingPurchaseInvoice(Document):
 		if self.status == "Completed" or not self.items:
 			return
 
-		if not self.purchase_order_number:
+		if not self.purchase_order_number or not self.net_total:
 			return
 
-		settings: OCRSettings = frappe.get_single("OCR Settings")
+		settings: OCRSettings = frappe.get_single("OCR Settings") # type: ignore
 		if not settings.reconcile_with_purchase_receipts: # type: ignore
 			return
 
@@ -606,7 +606,7 @@ class PendingPurchaseInvoice(Document):
 			self.notify_update()
 
 		else:
-			self.add_comment(text=_("The automatic reconciliation has failed for the following reasons because the net total is higher than {0} or lower than {1}").format(fmt_money(max_amount, currency=self.currency), fmt_money(min_amount, currency=self.currency)))
+			self.add_comment(text=_("The automatic reconciliation has failed for because the net total is higher than {0} or lower than {1}").format(fmt_money(max_amount, currency=self.currency), fmt_money(min_amount, currency=self.currency)))
 
 
 	def get_pending_invoicing_amount(self):
