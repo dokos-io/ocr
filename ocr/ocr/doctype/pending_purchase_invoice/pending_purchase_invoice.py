@@ -787,7 +787,6 @@ def auto_match_with_purchase_receipt(doc, method=None):
 
 
 def set_pending_purchase_order_status(doc, method=None):
-	print("set_pending_purchase_order_status==========================================")
 	if not doc.pending_purchase_invoice:
 		return
 
