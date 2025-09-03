@@ -23,6 +23,7 @@ from frappe.utils import sbool
 if TYPE_CHECKING:
 	from erpnext.accounts.doctype.purchase_invoice.purchase_invoice import PurchaseInvoice
 	from erpnext.buying.doctype.purchase_order.purchase_order import PurchaseOrder
+	from ocr.ocr.doctype.ocr_settings.ocr_settings import OCRSettings
 
 ItemDetailsCtx = frappe._dict
 ItemDetails = frappe._dict
@@ -116,7 +117,7 @@ class PendingPurchaseInvoice(Document):
 			# 2.1 Find VENDOR_URL
 			if ocr_data.get("VENDOR_URL"):
 				if matching_ocr_requests := frappe.get_all("OCR Request", filters={"analysis": ("like", f"%{ocr_data.get('VENDOR_URL')}%"), "name": ("!=", self.ocr_request)}, limit=1, pluck="name"):
-					self.supplier = frappe.db.get_value("Pending Purchase Invoice", dict(ocr_request=matching_ocr_requests[0]))
+					self.supplier = str(frappe.db.get_value("Pending Purchase Invoice", dict(ocr_request=matching_ocr_requests[0])))
 
 
 	def calculate_due_date(self):
@@ -143,8 +144,9 @@ class PendingPurchaseInvoice(Document):
 			status = "Completed"
 
 		self.status = status
+
 		if commit:
-			self.db_set("status", status)
+			self.db_set("status", status, notify=True, commit=True)
 
 	@frappe.whitelist()
 	def calculate_totals(self):
@@ -153,9 +155,9 @@ class PendingPurchaseInvoice(Document):
 		self.grand_total = 0.0
 		try:
 			if pi := frappe.db.exists("Purchase Invoice", dict(pending_purchase_invoice=self.name)):
-				doc = frappe.get_doc("Purchase Invoice", pi)
+				doc: PurchaseInvoice = frappe.get_doc("Purchase Invoice", pi) # type: ignore
 			else:
-				doc = frappe.new_doc("Purchase Invoice")
+				doc: PurchaseInvoice = frappe.new_doc("Purchase Invoice") # type: ignore
 				for item in self.items:
 					doc.append("items", frappe.copy_doc(item).as_dict())
 				doc.update(self.as_dict())
@@ -189,7 +191,7 @@ class PendingPurchaseInvoice(Document):
 		}
 
 		for selected_document in selected_documents:
-			doc = frappe.get_doc(doctype, selected_document)
+			doc: PurchaseOrder | PurchaseInvoice = frappe.get_doc(doctype, selected_document) # type: ignore
 
 			if result["company"] and doc.company != result["company"]:
 				frappe.throw(_("Please select documents linked to the same company"))
@@ -557,7 +559,10 @@ class PendingPurchaseInvoice(Document):
 		if self.status == "Completed" or not self.items:
 			return
 
-		settings = frappe.get_single("OCR Settings")
+		if not self.purchase_order_number:
+			return
+
+		settings: OCRSettings = frappe.get_single("OCR Settings")
 		if not settings.reconcile_with_purchase_receipts: # type: ignore
 			return
 
@@ -782,6 +787,7 @@ def auto_match_with_purchase_receipt(doc, method=None):
 
 
 def set_pending_purchase_order_status(doc, method=None):
+	print("set_pending_purchase_order_status==========================================")
 	if not doc.pending_purchase_invoice:
 		return
 
