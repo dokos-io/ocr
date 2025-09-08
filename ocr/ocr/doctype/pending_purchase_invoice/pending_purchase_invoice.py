@@ -572,11 +572,6 @@ class PendingPurchaseInvoice(Document):
 		pending_invoicing_amount = self.get_pending_invoicing_amount()
 
 		# Do not automatically submit if amount do not match
-		min_amount = max(
-			flt(pending_invoicing_amount) - flt(settings.max_difference_amount),
-			flt(pending_invoicing_amount) * (1 - flt(settings.max_difference_percentage_on_net_total) / 100)
-		)
-
 		max_amount = min(
 			flt(pending_invoicing_amount) + flt(settings.max_difference_amount),
 			flt(pending_invoicing_amount) * (1 + flt(settings.max_difference_percentage_on_net_total) / 100)
@@ -584,7 +579,7 @@ class PendingPurchaseInvoice(Document):
 
 		precision = frappe.db.get_default("currency_precision")
 
-		if flt(min_amount, precision=precision) <= flt(self.net_total, precision=precision) <= flt(max_amount, precision=precision): # type: ignore
+		if flt(self.net_total, precision=precision) <= flt(max_amount, precision=precision): # type: ignore
 			if difference := flt(self.supplier_net_amount) - flt(self.net_total):
 				for item in self.items:
 					if item.qty == 1:
@@ -606,7 +601,7 @@ class PendingPurchaseInvoice(Document):
 			self.notify_update()
 
 		else:
-			self.add_comment(text=_("The automatic reconciliation has failed for because the net total is higher than {0} or lower than {1}").format(fmt_money(max_amount, currency=self.currency), fmt_money(min_amount, currency=self.currency)))
+			self.add_comment(text=_("The automatic reconciliation has failed for because the net total is higher than {0}").format(fmt_money(max_amount, currency=self.currency)))
 
 
 	def get_pending_invoicing_amount(self):
