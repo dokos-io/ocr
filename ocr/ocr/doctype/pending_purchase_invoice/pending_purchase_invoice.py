@@ -217,14 +217,16 @@ class PendingPurchaseInvoice(Document):
 
 		doc: PurchaseInvoice = frappe.new_doc("Purchase Invoice") # type: ignore
 		doc.ignore_pricing_rule = 1
-		doc.set_posting_time = 1
-		doc.posting_date = self.posting_date
 
 		if purchase_order_is_mandatory:
 			if self.items[0].reference_doctype == "Purchase Order":
 				make_purchase_invoice_from_po(self.items[0].reference_docname, doc)
 			elif self.items[0].reference_doctype == "Purchase Receipt":
 				make_purchase_invoice_from_pr(self.items[0].reference_docname, doc)
+
+
+		doc.set_posting_time = 1
+		doc.posting_date = self.posting_date
 
 		doc_items = doc.items
 
@@ -253,6 +255,7 @@ class PendingPurchaseInvoice(Document):
 		if doc.is_return and self.original_invoice:
 			doc.return_against = self.original_invoice
 			doc.update_outstanding_for_self = 0
+
 
 		for field in frappe.get_meta(self.doctype).fields:
 			if field.fieldname in EXCLUDED_FIELDS:
@@ -383,6 +386,9 @@ class PendingPurchaseInvoice(Document):
 		return matched_orders
 
 	def append_matched_receipts(self):
+		if not self.purchase_order_number:
+			return
+
 		matched_receipts = self.get_matched_receipts()
 
 		try:
