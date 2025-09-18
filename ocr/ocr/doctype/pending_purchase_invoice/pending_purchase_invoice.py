@@ -386,6 +386,9 @@ class PendingPurchaseInvoice(Document):
 		return matched_orders
 
 	def append_matched_receipts(self):
+		if not self.purchase_order_number:
+			return
+
 		matched_receipts = self.get_matched_receipts()
 
 		try:
