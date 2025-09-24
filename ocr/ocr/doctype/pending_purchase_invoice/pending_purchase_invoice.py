@@ -1,18 +1,23 @@
 # Copyright (c) 2024, Dokos SAS and contributors
 # For license information, please see license.txt
 
+import json
+import time
 from typing import TYPE_CHECKING
 from collections import defaultdict
 import re
 import difflib
+from erpnext.accounts.doctype.sales_invoice.sales_invoice import SalesInvoice
+from erpnext.controllers.accounts_controller import merge_taxes
 from frappe.model.document import Document
+from frappe.model.mapper import get_mapped_doc
 from pypika.terms import ExistsCriterion
 
 from frappe.model.meta import data_fieldtypes, default_fields, child_table_fields
 
 from frappe.query_builder import Order
 from frappe import _
-from frappe.utils import flt, fmt_money, nowdate
+from frappe.utils import cint, flt, fmt_money, nowdate
 from erpnext.accounts.party import get_due_date, set_taxes, get_address_tax_category
 from frappe.contacts.doctype.address.address import get_default_address
 from frappe.model.workflow import get_transitions, get_workflow, has_approval_access, apply_workflow
@@ -213,7 +218,6 @@ class PendingPurchaseInvoice(Document):
 
 	def get_purchase_invoice(self, purchase_order_is_mandatory=True):
 		from erpnext.buying.doctype.purchase_order.purchase_order import make_purchase_invoice as make_purchase_invoice_from_po
-		from erpnext.stock.doctype.purchase_receipt.purchase_receipt import make_purchase_invoice as make_purchase_invoice_from_pr
 
 		doc: PurchaseInvoice = frappe.new_doc("Purchase Invoice") # type: ignore
 		doc.ignore_pricing_rule = 1
@@ -323,10 +327,18 @@ class PendingPurchaseInvoice(Document):
 					self.currency = doc.currency
 
 				for item in doc.items:
+					if item.billed_amt >= item.net_amount:
+						continue
+
 					row = frappe.copy_doc(item).as_dict()
 					row["reference_doctype"] = doc.doctype
 					row["reference_docname"] = doc.name
 					row["row"] = item.name
+					if row["qty"] == 1:
+						rate = row["net_amount"] - row["billed_amt"]
+						row["rate"] = min(rate, self.supplier_net_amount)
+
+					row["amount"] = row["qty"] * row["rate"]
 					self.append("items", row)
 		except Exception:
 			self.log_error()
@@ -398,13 +410,17 @@ class PendingPurchaseInvoice(Document):
 					self.currency = doc.currency
 
 				for item in doc.items:
+					if item.billed_amt >= item.net_amount:
+						continue
+
 					row = frappe.copy_doc(item).as_dict()
 					row["reference_doctype"] = doc.doctype
 					row["reference_docname"] = doc.name
 					row["row"] = item.name
 
 					if row["qty"] == 1:
-						row["rate"] = min(row["rate"], self.supplier_net_amount)
+						rate = row["net_amount"] - row["billed_amt"]
+						row["rate"] = min(rate, self.supplier_net_amount)
 
 					row["amount"] = row["qty"] * row["rate"]
 
@@ -586,12 +602,15 @@ class PendingPurchaseInvoice(Document):
 		precision = frappe.db.get_default("currency_precision")
 
 		if flt(self.net_total, precision=precision) <= flt(max_amount, precision=precision): # type: ignore
-			if difference := flt(self.supplier_net_amount) - flt(self.net_total):
-				for item in self.items:
-					if item.qty == 1:
-						item.rate += difference
-						self.add_comment(text=_("The rate at line {1} has been ajusted to {0} to match the supplier's invoice.").format(fmt_money(item.rate, currency=self.currency), item.idx))
-						break
+			# if difference := flt(self.supplier_net_amount) - flt(self.net_total): # for now reconcile manually
+			# 	if difference <= 0.0:
+			# 		return
+
+			# 	for item in self.items:
+			# 		if item.qty == 1:
+			# 			item.rate += difference
+			# 			self.add_comment(text=_("The rate at line {1} has been ajusted to {0} to match the supplier's invoice.").format(fmt_money(item.rate, currency=self.currency), item.idx))
+			# 			break
 
 			self.calculate_totals()
 			if flt(self.supplier_net_amount, precision=precision) == flt(self.net_total, precision=precision) and flt(self.supplier_grand_total, precision=precision) == flt(self.grand_total, precision=precision): # type: ignore
@@ -600,12 +619,12 @@ class PendingPurchaseInvoice(Document):
 					self.add_comment(text=_("Purchase invoice {0} has been automatically created for this invoice.").format(doc.name))
 				except Exception as e:
 					self.add_comment(text=str(e))
+					raise e
 			else:
 				self.add_comment(text=_("The automatic reconciliation has failed because the totals do not match"))
 
 			self.commit_totals()
-			self.notify_update()
-
+			self.set_status()
 		else:
 			self.add_comment(text=_("The automatic reconciliation has failed for because the net total is higher than {0}").format(fmt_money(max_amount, currency=self.currency)))
 
@@ -615,7 +634,7 @@ class PendingPurchaseInvoice(Document):
 		for item in self.items:
 			if item.reference_doctype and item.reference_docname and (item.reference_doctype, item.reference_docname) not in total_per_ref:
 				doc = frappe.get_doc(item.reference_doctype, item.reference_docname)
-				total_per_ref[(item.reference_doctype, item.reference_docname)] = doc.net_total - (flt(doc.per_billed) * doc.net_total)
+				total_per_ref[(item.reference_doctype, item.reference_docname)] = doc.net_total - (flt(doc.per_billed) / 100.0 * doc.net_total)
 
 		return sum(total_per_ref.values())
 
@@ -744,7 +763,7 @@ def get_documents_child_items(doctype, filters, limit_page_length):
 		table=f"{doctype} Item",
 		filters=query_filters,
 		fields=["name", "parent"],
-		limit=limit_page_length,
+		limit=cint(limit_page_length),
 	)
 
 	query = (
@@ -759,6 +778,8 @@ def get_documents_child_items(doctype, filters, limit_page_length):
 		query = query.select(purchase_doc_dt.posting_date)
 
 	query = query.select(purchase_doc_item_dt.item_code, purchase_doc_item_dt.qty, purchase_doc_item_dt.net_amount, purchase_doc_item_dt.cost_center)
+
+	query = query.where(purchase_doc_item_dt.billed_amt < purchase_doc_item_dt.net_amount)
 
 	if doctype == "Purchase Order":
 		query = query.orderby(purchase_doc_dt.transaction_date, order=Order.desc)
@@ -791,7 +812,9 @@ def set_pending_purchase_order_status(doc, method=None):
 	if not doc.pending_purchase_invoice:
 		return
 
-	frappe.get_doc("Pending Purchase Invoice", doc.pending_purchase_invoice).run_method("set_status", commit=True)
+	ppi: PendingPurchaseInvoice = frappe.get_doc("Pending Purchase Invoice", doc.pending_purchase_invoice) # type: ignore
+	ppi.run_method("set_status", commit=True)
+	ppi.notify_update()
 
 
 def deduplicate_items(items):
@@ -845,3 +868,121 @@ def get_settings():
 	return {
 		"reconcile_with_purchase_receipts": settings.reconcile_with_purchase_receipts # type: ignore
 	}
+
+
+@frappe.whitelist()
+def make_purchase_invoice_from_pr(source_name, target_doc=None, args=None): # TODO: find a better way to handle this in ERPNext directly
+	from erpnext.stock.doctype.purchase_receipt.purchase_receipt import get_returned_qty_map, get_invoiced_qty_map
+
+	if args is None:
+		args = {}
+	if isinstance(args, str):
+		args = json.loads(args)
+
+	from erpnext.accounts.party import get_payment_terms_template
+
+	doc = frappe.get_doc("Purchase Receipt", source_name)
+	returned_qty_map = get_returned_qty_map(source_name)
+	invoiced_qty_map = get_invoiced_qty_map(source_name)
+
+	def set_missing_values(source, target):
+		if len(target.get("items")) == 0:
+			frappe.throw(_("All items have already been Invoiced/Returned"))
+
+		doc: SalesInvoice = frappe.get_doc(target) # type: ignore
+		doc.payment_terms_template = get_payment_terms_template(source.supplier, "Supplier", source.company)
+		doc.run_method("onload")
+		doc.run_method("set_missing_values")
+
+		if args and args.get("merge_taxes"):
+			merge_taxes(source.get("taxes") or [], doc)
+
+		doc.run_method("calculate_taxes_and_totals")
+		doc.set_payment_schedule()
+
+	def update_item(source_doc, target_doc, source_parent):
+		target_doc.qty, returned_qty = get_pending_qty(source_doc)
+		if frappe.db.get_single_value("Buying Settings", "bill_for_rejected_quantity_in_purchase_invoice"):
+			target_doc.rejected_qty = 0
+		target_doc.stock_qty = flt(target_doc.qty) * flt(
+			target_doc.conversion_factor, target_doc.precision("conversion_factor")
+		)
+		returned_qty_map[source_doc.name] = returned_qty
+
+	def get_pending_qty(item_row):
+		qty = item_row.qty
+		if frappe.db.get_single_value("Buying Settings", "bill_for_rejected_quantity_in_purchase_invoice"):
+			qty = item_row.received_qty
+
+		pending_qty = qty - invoiced_qty_map.get(item_row.name, 0)
+
+		if frappe.db.get_single_value("Buying Settings", "bill_for_rejected_quantity_in_purchase_invoice"):
+			return pending_qty, 0
+
+		returned_qty = flt(returned_qty_map.get(item_row.name, 0))
+		if item_row.rejected_qty and returned_qty:
+			returned_qty -= item_row.rejected_qty
+
+		if returned_qty:
+			if returned_qty >= pending_qty:
+				pending_qty = 0
+				returned_qty -= pending_qty
+			else:
+				pending_qty -= returned_qty
+				returned_qty = 0
+
+		if qty == 1 and item_row.billed_amt <= item_row.net_amount: # @dokos: allow creating invoices based on the billed_amt
+			pending_qty = 1
+
+		return pending_qty, returned_qty
+
+	def select_item(d):
+		filtered_items = args.get("filtered_children", [])
+		child_filter = d.name in filtered_items if filtered_items else True
+		return child_filter
+
+	doclist = get_mapped_doc(
+		"Purchase Receipt",
+		source_name,
+		{
+			"Purchase Receipt": {
+				"doctype": "Purchase Invoice",
+				"field_map": {
+					"supplier_warehouse": "supplier_warehouse",
+					"is_return": "is_return",
+					"bill_date": "bill_date",
+				},
+				"validation": {
+					"docstatus": ["=", 1],
+				},
+			},
+			"Purchase Receipt Item": {
+				"doctype": "Purchase Invoice Item",
+				"field_map": {
+					"name": "pr_detail",
+					"parent": "purchase_receipt",
+					"qty": "received_qty",
+					"purchase_order_item": "po_detail",
+					"purchase_order": "purchase_order",
+					"is_fixed_asset": "is_fixed_asset",
+					"asset_location": "asset_location",
+					"asset_category": "asset_category",
+					"wip_composite_asset": "wip_composite_asset",
+				},
+				"postprocess": update_item,
+				"filter": lambda d: (
+					get_pending_qty(d)[0] <= 0 if not doc.get("is_return") else get_pending_qty(d)[0] > 0
+				),
+				"condition": select_item,
+			},
+			"Purchase Taxes and Charges": {
+				"doctype": "Purchase Taxes and Charges",
+				"reset_value": not (args and args.get("merge_taxes")),
+				"ignore": args.get("merge_taxes") if args else 0,
+			},
+		},
+		target_doc,
+		set_missing_values,
+	)
+
+	return doclist
