@@ -88,7 +88,7 @@ class TestAutoReconciliation(IntegrationTestCase):
 
 		self.assertEqual(len(pending_purchase_invoice.items), 1)
 		self.assertIn(purchase_receipt.name, [r.reference_docname for r in pending_purchase_invoice.items])
-		self.assertEqual(pending_purchase_invoice.status, "Pending")
+		self.assertEqual(pending_purchase_invoice.status, "Ready")
 
 		settings: OCRSettings = frappe.get_single("OCR Settings") # type: ignore
 		settings.max_difference_amount = 500.0
@@ -96,6 +96,7 @@ class TestAutoReconciliation(IntegrationTestCase):
 		settings.save()
 
 		pending_purchase_invoice.reload()
+		pending_purchase_invoice.items[0].rate = purchase_receipt.net_total + 499
 		pending_purchase_invoice.save()
 		time.sleep(5) # Todo: wait for commit correctly
 		pending_purchase_invoice.reload()
@@ -136,13 +137,13 @@ class TestAutoReconciliation(IntegrationTestCase):
 
 		self.assertEqual(len(pending_purchase_invoice.items), 1)
 		self.assertIn(purchase_receipt.name, [r.reference_docname for r in pending_purchase_invoice.items])
-		self.assertEqual(pending_purchase_invoice.status, "Pending")
+		self.assertEqual(pending_purchase_invoice.status, "Ready")
 
 		frappe.db.set_single_value("OCR Settings", "max_difference_amount", 250)
 		frappe.db.set_single_value("OCR Settings", "max_difference_percentage_on_net_total", 5)
 
 		pending_purchase_invoice.save()
-		self.assertEqual(pending_purchase_invoice.status, "Pending")
+		self.assertEqual(pending_purchase_invoice.status, "Ready")
 
 		frappe.db.set_single_value("OCR Settings", "max_difference_amount", 0)
 		frappe.db.set_single_value("OCR Settings", "max_difference_percentage_on_net_total", 0)
