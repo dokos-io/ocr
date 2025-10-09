@@ -803,8 +803,16 @@ def register_purchase_order_items(doc, method=None):
 
 
 def auto_match_with_purchase_receipt(doc, method=None):
-	for pending_purchase_invoice in frappe.get_all("Pending Purchase Invoice", filters={"supplier": doc.supplier, "status": "Pending"}):
+	for pending_purchase_invoice in frappe.get_all(
+		"Pending Purchase Invoice",
+		filters={
+			"supplier": doc.supplier,
+			"status": "Pending",
+			"purchase_order_number": ("is", "set"),
+		},
+	):
 		doc = frappe.get_doc("Pending Purchase Invoice", pending_purchase_invoice.name)
+		doc.flags.ignore_permissions = True
 		doc.save()
 
 
