@@ -602,18 +602,9 @@ class PendingPurchaseInvoice(Document):
 		precision = frappe.db.get_default("currency_precision")
 
 		if flt(self.net_total, precision=precision) <= flt(max_amount, precision=precision): # type: ignore
-			# if difference := flt(self.supplier_net_amount) - flt(self.net_total): # for now reconcile manually
-			# 	if difference <= 0.0:
-			# 		return
-
-			# 	for item in self.items:
-			# 		if item.qty == 1:
-			# 			item.rate += difference
-			# 			self.add_comment(text=_("The rate at line {1} has been ajusted to {0} to match the supplier's invoice.").format(fmt_money(item.rate, currency=self.currency), item.idx))
-			# 			break
-
 			self.calculate_totals()
-			if flt(self.supplier_net_amount, precision=precision) == flt(self.net_total, precision=precision) and flt(self.supplier_grand_total, precision=precision) == flt(self.grand_total, precision=precision): # type: ignore
+
+			if flt(self.supplier_net_amount, precision=precision) == flt(self.net_total, precision=precision): # type: ignore
 				try:
 					doc = self.create_purchase_invoice(submit=settings.auto_submit_purchase_invoices) # type: ignore
 					self.add_comment(text=_("Purchase invoice {0} has been automatically created for this invoice.").format(doc.name))
