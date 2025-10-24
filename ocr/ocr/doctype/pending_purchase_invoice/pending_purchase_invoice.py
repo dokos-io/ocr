@@ -278,8 +278,9 @@ class PendingPurchaseInvoice(Document):
 		return doc
 
 
-	def create_purchase_order(self, submit=False):
-		doc = make_purchase_order(self.name)
+	def create_purchase_order(self, transaction_date=None, submit=False):
+		doc: PurchaseOrder = make_purchase_order(self.name)
+		doc.transaction_date = transaction_date or nowdate()
 		doc.insert()
 
 		if submit:
@@ -735,5 +736,131 @@ def create_purchase_invoice(docname, submit=False):
 
 
 @frappe.whitelist()
-def create_purchase_order(docname, submit=False):
-	return frappe.get_doc("Pending Purchase Invoice", docname).run_method("create_purchase_order", submit=sbool(submit))
+def create_purchase_order(docname, transaction_date=None, submit=False):
+	return frappe.get_doc("Pending Purchase Invoice", docname).run_method("create_purchase_order", transaction_date=transaction_date, submit=sbool(submit))
+
+
+@frappe.whitelist()
+def get_settings():
+	settings = frappe.get_single("OCR Settings")
+	return {
+		"reconcile_with_purchase_receipts": settings.reconcile_with_purchase_receipts # type: ignore
+	}
+
+
+@frappe.whitelist()
+def make_purchase_invoice_from_pr(source_name, target_doc=None, args=None): # TODO: find a better way to handle this in ERPNext directly
+	from erpnext.stock.doctype.purchase_receipt.purchase_receipt import get_returned_qty_map, get_invoiced_qty_map
+
+	if args is None:
+		args = {}
+	if isinstance(args, str):
+		args = json.loads(args)
+
+	from erpnext.accounts.party import get_payment_terms_template
+
+	doc = frappe.get_doc("Purchase Receipt", source_name)
+	returned_qty_map = get_returned_qty_map(source_name)
+	invoiced_qty_map = get_invoiced_qty_map(source_name)
+
+	def set_missing_values(source, target):
+		if len(target.get("items")) == 0:
+			frappe.throw(_("All items have already been Invoiced/Returned"))
+
+		doc: SalesInvoice = frappe.get_doc(target) # type: ignore
+		doc.payment_terms_template = get_payment_terms_template(source.supplier, "Supplier", source.company)
+		doc.run_method("onload")
+		doc.run_method("set_missing_values")
+
+		if args and args.get("merge_taxes"):
+			merge_taxes(source.get("taxes") or [], doc)
+
+		doc.run_method("calculate_taxes_and_totals")
+		doc.set_payment_schedule()
+
+	def update_item(source_doc, target_doc, source_parent):
+		target_doc.qty, returned_qty = get_pending_qty(source_doc)
+		if frappe.db.get_single_value("Buying Settings", "bill_for_rejected_quantity_in_purchase_invoice"):
+			target_doc.rejected_qty = 0
+		target_doc.stock_qty = flt(target_doc.qty) * flt(
+			target_doc.conversion_factor, target_doc.precision("conversion_factor")
+		)
+		returned_qty_map[source_doc.name] = returned_qty
+
+	def get_pending_qty(item_row):
+		qty = item_row.qty
+		if frappe.db.get_single_value("Buying Settings", "bill_for_rejected_quantity_in_purchase_invoice"):
+			qty = item_row.received_qty
+
+		pending_qty = qty - invoiced_qty_map.get(item_row.name, 0)
+
+		if frappe.db.get_single_value("Buying Settings", "bill_for_rejected_quantity_in_purchase_invoice"):
+			return pending_qty, 0
+
+		returned_qty = flt(returned_qty_map.get(item_row.name, 0))
+		if item_row.rejected_qty and returned_qty:
+			returned_qty -= item_row.rejected_qty
+
+		if returned_qty:
+			if returned_qty >= pending_qty:
+				pending_qty = 0
+				returned_qty -= pending_qty
+			else:
+				pending_qty -= returned_qty
+				returned_qty = 0
+
+		if qty == 1 and item_row.billed_amt <= item_row.net_amount: # @dokos: allow creating invoices based on the billed_amt
+			pending_qty = 1
+
+		return pending_qty, returned_qty
+
+	def select_item(d):
+		filtered_items = args.get("filtered_children", [])
+		child_filter = d.name in filtered_items if filtered_items else True
+		return child_filter
+
+	doclist = get_mapped_doc(
+		"Purchase Receipt",
+		source_name,
+		{
+			"Purchase Receipt": {
+				"doctype": "Purchase Invoice",
+				"field_map": {
+					"supplier_warehouse": "supplier_warehouse",
+					"is_return": "is_return",
+					"bill_date": "bill_date",
+				},
+				"validation": {
+					"docstatus": ["=", 1],
+				},
+			},
+			"Purchase Receipt Item": {
+				"doctype": "Purchase Invoice Item",
+				"field_map": {
+					"name": "pr_detail",
+					"parent": "purchase_receipt",
+					"qty": "received_qty",
+					"purchase_order_item": "po_detail",
+					"purchase_order": "purchase_order",
+					"is_fixed_asset": "is_fixed_asset",
+					"asset_location": "asset_location",
+					"asset_category": "asset_category",
+					"wip_composite_asset": "wip_composite_asset",
+				},
+				"postprocess": update_item,
+				"filter": lambda d: (
+					get_pending_qty(d)[0] <= 0 if not doc.get("is_return") else get_pending_qty(d)[0] > 0
+				),
+				"condition": select_item,
+			},
+			"Purchase Taxes and Charges": {
+				"doctype": "Purchase Taxes and Charges",
+				"reset_value": not (args and args.get("merge_taxes")),
+				"ignore": args.get("merge_taxes") if args else 0,
+			},
+		},
+		target_doc,
+		set_missing_values,
+	)
+
+	return doclist

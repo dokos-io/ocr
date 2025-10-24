@@ -164,8 +164,9 @@ frappe.ui.form.on("Pending Purchase Invoice", {
 			frappe.db.get_list("Purchase Invoice", {filters: {pending_purchase_invoice: frm.doc.name, docstatus: 0}}).then(draft_invoices => {
 				if (draft_invoices.length) {
 					confirm(__("A draft purchase invoice exists already for this pending purchase invoice."),
-						() => { frappe.set_route("Form", "Purchase Invoice", draft_invoices[0].name); },
-						() => { create_po_pi(frm) },
+						[],
+						(values) => { frappe.set_route("Form", "Purchase Invoice", draft_invoices[0].name); },
+						(values) => { create_po_pi(frm) },
 						__("Open the draft invoice"),
 						__("Create a new invoice"),
 					)
@@ -330,15 +331,24 @@ const create_po_pi = async (frm) => {
 	const items_not_linked_to_po = await items_are_not_linked_to_purchase_document(frm);
 	if (items_not_linked_to_po) {
 		confirm(__("Create a new purchase order with all item lines without purchase order ?"),
-			() => { create_purchase_order(frm, true) },
-			() => { create_purchase_order(frm, false) },
+			[
+				{
+					"fieldtype": "Date",
+					"fieldname": "transaction_date",
+					"label": __("Purchase Order Date"),
+					"default": frm.doc.bill_date
+				}
+			],
+			(values) => { create_purchase_order(frm, values.transaction_date, true) },
+			(values) => { create_purchase_order(frm, values.transaction_date, false) },
 			__("Create and submit"),
 			__("Create and keep in draft"),
 		)
 	} else {
 		confirm(__("Create and submit a new purchase invoice ?"),
-			() => { create_purchase_invoice(frm, true) },
-			() => { create_purchase_invoice(frm, false) },
+			[],
+			(values) => { create_purchase_invoice(frm, true) },
+			(values) => { create_purchase_invoice(frm, false) },
 			__("Create and submit"),
 			__("Create and keep in draft"),
 		)
@@ -375,13 +385,14 @@ const create_purchase_invoice = (frm, submit=false) => {
 }
 
 
-const create_purchase_order = (frm, submit=false) => {
+const create_purchase_order = (frm, transaction_date, submit=false) => {
 	frappe.show_alert("Purchase Order creation in progress")
 	frappe.call({
 		method: "ocr.ocr.doctype.pending_purchase_invoice.pending_purchase_invoice.create_purchase_order",
 		args: {
 			docname: frm.doc.name,
-			submit: submit
+			submit: submit,
+			transaction_date: transaction_date
 		}
 	}).then((res) => {
 		frm.reload_doc();
@@ -390,17 +401,20 @@ const create_purchase_order = (frm, submit=false) => {
 	})
 }
 
-const confirm = (message, confirm_action, reject_action, confirm_title, reject_title) => {
+const confirm = (message, fields, confirm_action, reject_action, confirm_title, reject_title) => {
 	var d = new frappe.ui.Dialog({
 		title: __("Confirm", null, "Title of confirmation dialog"),
+		fields: fields,
 		primary_action_label: confirm_title || __("Yes", null, "Approve confirmation dialog"),
 		primary_action: () => {
-			confirm_action && confirm_action();
+			const values = d.get_values()
+			confirm_action && confirm_action(values);
 			d.hide();
 		},
 		secondary_action_label: reject_title || __("No", null, "Dismiss confirmation dialog"),
 		secondary_action: () => {
-			reject_action && reject_action();
+			const values = d.get_values()
+			reject_action && reject_action(values);
 			d.hide();
 		}
 	});
