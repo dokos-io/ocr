@@ -27,6 +27,7 @@ from frappe.utils import sbool
 
 if TYPE_CHECKING:
 	from erpnext.accounts.doctype.purchase_invoice.purchase_invoice import PurchaseInvoice
+	from erpnext.accounts.doctype.purchase_invoice_item.purchase_invoice_item import PurchaseInvoiceItem
 	from erpnext.buying.doctype.purchase_order.purchase_order import PurchaseOrder
 	from ocr.ocr.doctype.ocr_settings.ocr_settings import OCRSettings
 
@@ -240,7 +241,12 @@ class PendingPurchaseInvoice(Document):
 				if doc_item.get(name) == item.row:
 					return frappe.copy_doc(doc_item).as_dict()
 			else:
-				return frappe._dict()
+				try:
+					source_item: PurchaseInvoiceItem = frappe.get_doc(f"{item.reference_doctype} Item", item.row) # type: ignore
+					source_item.parenttype = doc.doctype
+					return frappe.copy_doc(source_item).as_dict()
+				except Exception:
+					return frappe._dict()
 
 		doc.set("items", [])
 		for item in self.items:
