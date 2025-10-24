@@ -302,8 +302,9 @@ class PendingPurchaseInvoice(Document):
 		return doc
 
 
-	def create_purchase_order(self, submit=False):
-		doc = make_purchase_order(self.name)
+	def create_purchase_order(self, transaction_date=None, submit=False):
+		doc: PurchaseOrder = make_purchase_order(self.name)
+		doc.transaction_date = transaction_date or nowdate()
 		doc.insert()
 
 		if submit:
@@ -857,8 +858,8 @@ def create_purchase_invoice(docname, submit=False):
 
 
 @frappe.whitelist()
-def create_purchase_order(docname, submit=False):
-	return frappe.get_doc("Pending Purchase Invoice", docname).run_method("create_purchase_order", submit=sbool(submit))
+def create_purchase_order(docname, transaction_date=None, submit=False):
+	return frappe.get_doc("Pending Purchase Invoice", docname).run_method("create_purchase_order", transaction_date=transaction_date, submit=sbool(submit))
 
 
 @frappe.whitelist()
