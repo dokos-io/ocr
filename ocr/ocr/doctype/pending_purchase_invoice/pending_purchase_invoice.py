@@ -809,9 +809,32 @@ def auto_match_with_purchase_receipt(doc, method=None):
 			"purchase_order_number": ("is", "set"),
 		},
 	):
-		doc = frappe.get_doc("Pending Purchase Invoice", pending_purchase_invoice.name)
-		doc.flags.ignore_permissions = True
-		doc.save()
+		ppi: PendingPurchaseInvoice = frappe.get_doc("Pending Purchase Invoice", pending_purchase_invoice.name) # type: ignore
+		ppi.flags.ignore_permissions = True
+		ppi.save()
+
+
+def remove_link_with_pending_purchase_invoices(doc, method=None):
+	if method not in ["on_change", "on_cancel"]:
+		return
+
+	if method == "on_change" and doc.status != "Closed":
+		return
+
+	for pending_purchase_invoice in frappe.get_list(
+		"Pending Purchase Invoice",
+		filters={
+			"supplier": doc.supplier,
+			"status": "Pending",
+			"purchase_order_number": ("is", "set"),
+		},
+	):
+		ppi: PendingPurchaseInvoice = frappe.get_doc("Pending Purchase Invoice", pending_purchase_invoice.name) # type: ignore
+		items = [item.reference_docname for item in ppi.items if item.reference_doctype == "Purchase Receipt"]
+		if doc.name in items:
+			ppi.items = []
+		ppi.flags.ignore_permissions = True
+		ppi.save()
 
 
 def set_pending_purchase_order_status(doc, method=None):
