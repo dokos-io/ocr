@@ -171,7 +171,9 @@ doc_events = {
 		]
 	},
 	"Purchase Receipt": {
-		"on_submit": "ocr.ocr.doctype.pending_purchase_invoice.pending_purchase_invoice.auto_match_with_purchase_receipt"
+		"on_submit": "ocr.ocr.doctype.pending_purchase_invoice.pending_purchase_invoice.auto_match_with_purchase_receipt",
+		"on_cancel": "ocr.ocr.doctype.pending_purchase_invoice.pending_purchase_invoice.remove_link_with_pending_purchase_invoices",
+		"on_change": "ocr.ocr.doctype.pending_purchase_invoice.pending_purchase_invoice.remove_link_with_pending_purchase_invoices"
 	},
 	"Pending Purchase Invoice": {
 		"on_close": "ocr.ocr.doctype.ocr_request.ocr_request.update_ocr_request_status",
