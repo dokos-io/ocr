@@ -801,7 +801,7 @@ def register_purchase_order_items(doc, method=None):
 
 
 def auto_match_with_purchase_receipt(doc, method=None):
-	for pending_purchase_invoice in frappe.get_all(
+	for pending_purchase_invoice in frappe.get_list(
 		"Pending Purchase Invoice",
 		filters={
 			"supplier": doc.supplier,
