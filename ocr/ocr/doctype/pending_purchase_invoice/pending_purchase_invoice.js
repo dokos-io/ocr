@@ -96,7 +96,8 @@ frappe.ui.form.on("Pending Purchase Invoice", {
 			}, __("Actions"));
 		}
 
-		frm.trigger("check_tax_id")
+		frm.trigger("check_tax_id");
+		frm.trigger("check_supplier_id");
 
 	},
 
@@ -305,6 +306,17 @@ frappe.ui.form.on("Pending Purchase Invoice", {
 			})
 		}
 	},
+	check_supplier_id(frm) {
+		if (frm.doc.purchase_order_number && frm.doc.supplier) {
+			frappe.db.get_value("Purchase Order", frm.doc.purchase_order_number, "supplier", r => {
+				if (r.supplier != frm.doc.supplier) {
+					frm.dashboard.clear_headline();
+					const msg = __("The selected supplier ({0}) is different from the purchase order supplier ({1})", [frm.doc.supplier, r.supplier])
+					frm.dashboard.set_headline(msg, "red")
+				}
+			})
+		}
+	}
 });
 
 const set_query_for_item_tax_template = (doc, cdt, cdn) => { // TODO: Handle through TransactionController ?
