@@ -44,6 +44,7 @@ frappe.ui.form.on("Pending Purchase Invoice", {
 				filters: {
 					"is_return": false,
 					"company": frm.doc.company,
+					"supplier": frm.doc.supplier,
 				}
 			};
 		});
