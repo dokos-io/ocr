@@ -95,11 +95,14 @@ class PendingPurchaseInvoice(Document):
 			self.title = _("Missing Supplier")
 		self.calculate_due_date()
 
-		if not self.items:
+		if not self.is_return and not self.items:
 			self.append_matched_receipts()
 
-		if not self.items:
+		if not self.is_return and not self.items:
 			self.append_matched_orders()
+
+		if self.is_return and not self.items:
+			self.append_original_invoice_rows()
 
 	def before_save(self):
 		self.calculate_totals()
@@ -578,6 +581,28 @@ class PendingPurchaseInvoice(Document):
 					item.set(field, self.get(field))
 
 
+	def append_original_invoice_rows(self):
+		if self.original_invoice:
+			debit_note = self.get_return_invoice(self.original_invoice)
+			for item in debit_note.items:
+				self.append("items", {
+					"row": item.name,
+					"project": item.project,
+					"cost_center": item.cost_center,
+					"item_code": item.item_code,
+					"description": item.description,
+					"rate": item.rate,
+					"qty": item.qty,
+					"amount": item.amount,
+					"expense_account": item.expense_account,
+					"item_tax_template": item.item_tax_template
+				})
+
+			for field in ["currency", "department", "cost_center"]:
+				if debit_note.get(field):
+					self.set(field, debit_note.get(field))
+
+
 	@frappe.whitelist()
 	def get_return_invoice(self, original_invoice):
 		from erpnext.controllers.sales_and_purchase_return import make_return_doc
@@ -588,7 +613,7 @@ class PendingPurchaseInvoice(Document):
 		if self.status == "Completed" or not self.items:
 			return
 
-		if (not self.is_return or not self.purchase_order_number) or not self.net_total:
+		if (not self.purchase_order_number and not self.is_return) or not self.net_total:
 			return
 
 		settings: OCRSettings = frappe.get_single("OCR Settings") # type: ignore
@@ -813,7 +838,7 @@ def auto_match_with_purchase_receipt(doc, method=None):
 		fields=["name", "supplier_net_amount"]
 	)
 
-	exact_match = [ppi for ppi in pending_purchase_invoices if doc.net_amount == ppi.supplier_net_amount]
+	exact_match = [ppi for ppi in pending_purchase_invoices if doc.net_total == ppi.supplier_net_amount]
 	if exact_match:
 		pending_purchase_invoices = exact_match[:1]
 
