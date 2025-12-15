@@ -44,6 +44,7 @@ frappe.ui.form.on("Pending Purchase Invoice", {
 				filters: {
 					"is_return": false,
 					"company": frm.doc.company,
+					"supplier": frm.doc.supplier,
 				}
 			};
 		});
@@ -286,13 +287,13 @@ frappe.ui.form.on("Pending Purchase Invoice", {
 							row: i.name,
 							project: i.project,
 							cost_center: i.cost_center,
-							price: i.price,
 							item_code: i.item_code,
 							description: i.description,
 							rate: i.rate,
 							qty: i.qty,
 							amount: i.amount,
-							expense_account: i.expense_account
+							expense_account: i.expense_account,
+							item_tax_template: i.item_tax_template
 						}
 					)
 				})
