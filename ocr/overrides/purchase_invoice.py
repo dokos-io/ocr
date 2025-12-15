@@ -14,7 +14,7 @@ def validate_over_billing(doc, method):
 		return
 
 	settings = frappe.get_single("OCR Settings")
-	if not settings.reconcile_with_purchase_receipts: # type: ignore
+	if doc.is_return or not settings.reconcile_with_purchase_receipts: # type: ignore
 		return
 
 	total_per_ref = defaultdict(dict)
