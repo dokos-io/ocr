@@ -588,7 +588,7 @@ class PendingPurchaseInvoice(Document):
 		if self.status == "Completed" or not self.items:
 			return
 
-		if not self.purchase_order_number or not self.net_total:
+		if (not self.is_return or not self.purchase_order_number) or not self.net_total:
 			return
 
 		settings: OCRSettings = frappe.get_single("OCR Settings") # type: ignore
@@ -611,7 +611,8 @@ class PendingPurchaseInvoice(Document):
 		if flt(self.net_total, precision=precision) <= flt(max_amount, precision=precision): # type: ignore
 			self.calculate_totals()
 
-			if flt(self.supplier_net_amount, precision=precision) == flt(self.net_total, precision=precision): # type: ignore
+			net_total = abs(flt(self.net_total, precision=precision)) if self.is_return else flt(self.net_total, precision=precision) # type: ignore
+			if flt(self.supplier_net_amount, precision=precision) == net_total: # type: ignore
 				try:
 					doc = self.create_purchase_invoice(submit=settings.auto_submit_purchase_invoices) # type: ignore
 					self.add_comment(text=_("Purchase invoice {0} has been automatically created for this invoice.").format(doc.name))
@@ -801,14 +802,22 @@ def register_purchase_order_items(doc, method=None):
 
 
 def auto_match_with_purchase_receipt(doc, method=None):
-	for pending_purchase_invoice in frappe.get_list(
+	pending_purchase_invoices = frappe.get_list(
 		"Pending Purchase Invoice",
 		filters={
 			"supplier": doc.supplier,
 			"status": "Pending",
 			"purchase_order_number": ("is", "set"),
 		},
-	):
+		order_by="bill_date ASC",
+		fields=["name", "supplier_net_amount"]
+	)
+
+	exact_match = [ppi for ppi in pending_purchase_invoices if doc.net_amount == ppi.supplier_net_amount]
+	if exact_match:
+		pending_purchase_invoices = exact_match[:1]
+
+	for pending_purchase_invoice in pending_purchase_invoices:
 		ppi: PendingPurchaseInvoice = frappe.get_doc("Pending Purchase Invoice", pending_purchase_invoice.name) # type: ignore
 		ppi.flags.ignore_permissions = True
 		ppi.save()
