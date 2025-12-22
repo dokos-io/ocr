@@ -99,6 +99,7 @@ frappe.ui.form.on("Pending Purchase Invoice", {
 
 		frm.trigger("check_tax_id");
 		frm.trigger("check_supplier_id");
+		frm.trigger("check_po_exists");
 
 	},
 
@@ -310,14 +311,25 @@ frappe.ui.form.on("Pending Purchase Invoice", {
 	check_supplier_id(frm) {
 		if (frm.doc.purchase_order_number && frm.doc.supplier) {
 			frappe.db.get_value("Purchase Order", frm.doc.purchase_order_number, "supplier", r => {
-				if (r.supplier != frm.doc.supplier) {
+				if (r.supplier && r.supplier != frm.doc.supplier) {
 					frm.dashboard.clear_headline();
 					const msg = __("The selected supplier ({0}) is different from the purchase order supplier ({1})", [frm.doc.supplier, r.supplier])
 					frm.dashboard.set_headline(msg, "red")
 				}
 			})
 		}
-	}
+	},
+	check_po_exists(frm) {
+		if (frm.doc.purchase_order_number) {
+			frappe.db.get_value("Purchase Order", frm.doc.purchase_order_number, "name", r => {
+				if (!r.name) {
+					frm.dashboard.clear_headline();
+					const msg = __("We are not able to find any purchase order with number {0}.", [frm.doc.purchase_order_number])
+					frm.dashboard.set_headline(msg, "red")
+				}
+			})
+		}
+	},
 });
 
 const set_query_for_item_tax_template = (doc, cdt, cdn) => { // TODO: Handle through TransactionController ?
