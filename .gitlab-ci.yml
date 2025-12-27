@@ -8,7 +8,7 @@ stages:
   - Test
 
 variables:
-  DOCLI_IMAGE: "registry.gitlab.com/dokos/docli:ci-develop"
+  DOCLI_IMAGE: "registry.gitlab.com/dokos/docli:ci-next"
 
 tests:
   image: $DOCLI_IMAGE
