@@ -220,14 +220,14 @@
    "in_standard_filter": 1,
    "label": "Net Amount",
    "options": "currency",
-   "read_only": 1
+   "permlevel": 1
   },
   {
    "fieldname": "supplier_tax_amount",
    "fieldtype": "Currency",
    "label": "Tax Amount",
    "options": "currency",
-   "read_only": 1
+   "permlevel": 1
   },
   {
    "fieldname": "supplier_grand_total",
@@ -236,7 +236,7 @@
    "in_standard_filter": 1,
    "label": "Grand Total",
    "options": "currency",
-   "read_only": 1
+   "permlevel": 1
   },
   {
    "fieldname": "net_total",
@@ -374,7 +374,7 @@
    "link_fieldname": "pending_purchase_invoice"
   }
  ],
- "modified": "2025-09-03 18:33:38.214345",
+ "modified": "2025-12-27 09:23:30.656162",
  "modified_by": "Administrator",
  "module": "OCR",
  "name": "Pending Purchase Invoice",
@@ -405,6 +405,32 @@
    "role": "Accounts User",
    "select": 1,
    "share": 1,
+   "write": 1
+  },
+  {
+   "permlevel": 1,
+   "read": 1,
+   "role": "Accounts User",
+   "select": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Accounts Manager",
+   "select": 1,
+   "share": 1,
+   "write": 1
+  },
+  {
+   "permlevel": 1,
+   "read": 1,
+   "role": "Accounts Manager",
+   "select": 1,
    "write": 1
   }
  ],
