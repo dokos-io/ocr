@@ -211,7 +211,7 @@ frappe.ui.form.on("Pending Purchase Invoice", {
 					frm.get_field(field[0]).set_description(`<span class='text-danger'>${__('Difference:')} ${format_currency(diff, frm.doc.currency)}</span>`);
 				}
 
-				if (field[0] == "net_total") {
+				if (diff && field[0] == "net_total") {
 					frm.dashboard.set_headline(__("The net amount of the invoice and the selected purchase receipts don't match.<br>Please select another purchase receipt or adjust the unit rate to match the amount of this invoice."), "blue")
 				}
 			}
