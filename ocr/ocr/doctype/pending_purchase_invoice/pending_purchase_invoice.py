@@ -90,7 +90,7 @@ class PendingPurchaseInvoice(Document):
 		self.set_missing_values_in_items()
 
 		if self.supplier:
-			self.title = f"{self.supplier} : {self.bill_no}"[:140] if self.bill_no else f"{self.supplier}"[:140]
+			self.title = f"{self.supplier_name or self.supplier} : {self.bill_no}"[:140] if self.bill_no else f"{self.supplier or self.supplier}"[:140]
 		else:
 			self.title = _("Missing Supplier")
 		self.calculate_due_date()
@@ -610,7 +610,7 @@ class PendingPurchaseInvoice(Document):
 		return make_return_doc("Purchase Invoice", original_invoice)
 
 	def auto_reconcile(self):
-		if self.status == "Completed" or not self.items:
+		if self.status in ["Completed", "Closed"] or not self.items:
 			return
 
 		if (not self.purchase_order_number and not self.is_return) or not self.net_total:
