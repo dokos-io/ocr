@@ -1,0 +1,92 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2023-11-28 11:05:38.297654",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "item",
+  "product_code",
+  "item_code",
+  "quantity",
+  "unit_price",
+  "price",
+  "expense_row",
+  "other"
+ ],
+ "fields": [
+  {
+   "columns": 2,
+   "fieldname": "item",
+   "fieldtype": "Small Text",
+   "in_list_view": 1,
+   "label": "Item",
+   "read_only": 1
+  },
+  {
+   "columns": 1,
+   "fieldname": "quantity",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Quantity",
+   "read_only": 1
+  },
+  {
+   "columns": 1,
+   "fieldname": "price",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Price",
+   "read_only": 1
+  },
+  {
+   "fieldname": "expense_row",
+   "fieldtype": "Small Text",
+   "in_list_view": 1,
+   "label": "Expense Row",
+   "read_only": 1
+  },
+  {
+   "columns": 1,
+   "fieldname": "unit_price",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Unit Price",
+   "read_only": 1
+  },
+  {
+   "columns": 2,
+   "fieldname": "item_code",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Item Code",
+   "options": "Item"
+  },
+  {
+   "columns": 1,
+   "fieldname": "product_code",
+   "fieldtype": "Small Text",
+   "label": "Product Code",
+   "read_only": 1
+  },
+  {
+   "fieldname": "other",
+   "fieldtype": "Small Text",
+   "label": "Other",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2024-03-21 16:41:39.022649",
+ "modified_by": "Administrator",
+ "module": "eTransactions",
+ "name": "OCR Line Items Mapping",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

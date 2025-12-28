@@ -1,0 +1,104 @@
+{
+ "actions": [
+  {
+   "action": "etransactions.etransactions.doctype.ocr_generic_text_transcription.ocr_generic_text_transcription.tick",
+   "action_type": "Server Action",
+   "label": "Update"
+  }
+ ],
+ "allow_rename": 1,
+ "creation": "2024-03-04 17:18:14.561919",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_fhpj",
+  "file",
+  "status",
+  "column_break_lbch",
+  "attached_to_doctype",
+  "attached_to_name",
+  "section_break_cmkl",
+  "task",
+  "task_results"
+ ],
+ "fields": [
+  {
+   "fieldname": "file",
+   "fieldtype": "Attach",
+   "label": "File"
+  },
+  {
+   "fieldname": "task",
+   "fieldtype": "Data",
+   "label": "Task",
+   "read_only": 1
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Status",
+   "options": "Pending\nTranscribing\nTranscribed\nProcessing\nProcessed\nCompleted\nError",
+   "read_only": 1
+  },
+  {
+   "fieldname": "task_results",
+   "fieldtype": "JSON",
+   "label": "Data",
+   "max_height": "300px",
+   "read_only": 1
+  },
+  {
+   "fieldname": "attached_to_name",
+   "fieldtype": "Dynamic Link",
+   "in_list_view": 1,
+   "label": "Attached To Name",
+   "options": "attached_to_doctype"
+  },
+  {
+   "fieldname": "attached_to_doctype",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Attached To DocType",
+   "options": "DocType"
+  },
+  {
+   "fieldname": "section_break_fhpj",
+   "fieldtype": "Section Break",
+   "hide_border": 1
+  },
+  {
+   "fieldname": "section_break_cmkl",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_lbch",
+   "fieldtype": "Column Break"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2024-03-05 11:49:11.341004",
+ "modified_by": "Administrator",
+ "module": "eTransactions",
+ "name": "OCR Generic Text Transcription",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "select": 1,
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

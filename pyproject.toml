@@ -1,9 +1,9 @@
 [project]
-name = "ocr"
+name = "etransactions"
 authors = [
     { name = "Dokos SAS", email = "hello@dokos.io"}
 ]
-description = "OCR application for Dokos"
+description = "eTransactions application for Dokos"
 requires-python = ">=3.10"
 readme = "README.md"
 dynamic = ["version"]

@@ -41,7 +41,7 @@ tests:
     - bench init . --ignore-exist --no-backups --skip-redis-config-generation --skip-assets --frappe-branch ${FRAPPE_BRANCH:-$APPS_BRANCH}
     - bench get-app https://gitlab.com/dokos/payments.git --branch ${PAYMENTS_BRANCH:-$APPS_BRANCH}
     - bench get-app https://gitlab.com/dokos/dokos.git --branch ${DOKOS_BRANCH:-$APPS_BRANCH}
-    - bench get-app /builds/dokos/ocr/
+    - bench get-app /builds/dokos/etransactions/
     - /ci-utils/setup-redis.sh v1
     - /ci-utils/patch-procfile.sh v1
     - cp -r apps/frappe/test_sites/test_site sites/
@@ -52,11 +52,11 @@ tests:
     - bench --site test_site reinstall --yes --mariadb-root-password test_dodock
     - bench --site test_site install-app payments
     - bench --site test_site install-app erpnext
-    - bench --site test_site install-app ocr
+    - bench --site test_site install-app etransactions
     - wait $build_pid
 
   script:
-    - bench --site test_site run-parallel-tests --app ocr
+    - bench --site test_site run-parallel-tests --app etransactions
 
 
 semgrep:

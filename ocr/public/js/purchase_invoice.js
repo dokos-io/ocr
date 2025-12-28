@@ -1,7 +1,0 @@
-frappe.provide("ocr");
-
-frappe.ui.form.on('Purchase Invoice', {
-	refresh(frm) {
-		ocr.original_file_preview(frm);
-	},
-})
