@@ -1,0 +1,12 @@
+.DS_Store
+*.pyc
+*.egg-info
+*.swp
+tags
+node_modules
+__pycache__
+ocr/public/dist
+
+# Translations
+*.mo
+*.pot

@@ -1,0 +1,852 @@
+# French translations for eTransactions.
+# Copyright (C) 2024 Dokos SAS
+# This file is distributed under the same license as the eTransactions project.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2024.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: eTransactions VERSION\n"
+"Report-Msgid-Bugs-To: hello@dokos.io\n"
+"POT-Creation-Date: 2025-12-28 21:02+0009\n"
+"PO-Revision-Date: 2025-04-02 14:52+0200\n"
+"Last-Translator: hello@dokos.io\n"
+"Language: fr\n"
+"Language-Team: hello@dokos.io\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.16.0\n"
+
+#: ocr/public/js/file_preview.js:17 ocr/public/js/file_preview.js:21
+msgid ") and this"
+msgstr ") et cette"
+
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.js:173
+msgid "A draft purchase invoice exists already for this pending purchase invoice."
+msgstr "Une facture en brouillon existe déjà pour cette facture en attente."
+
+#. Label of the aws_textract_key (Data) field in DocType 'eTransactions Settings'
+#: ocr/ocr/doctype/ocr_settings/ocr_settings.json
+msgid "AWS Textract Key"
+msgstr "Clé AWS Textract"
+
+#. Label of the aws_textract_secret (Password) field in DocType 'eTransactions Settings'
+#: ocr/ocr/doctype/ocr_settings/ocr_settings.json
+msgid "AWS Textract Secret"
+msgstr "Secret AWS Textract"
+
+#. Name of a role
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.json
+msgid "Accounts Manager"
+msgstr "Responsable Comptabilité"
+
+#. Name of a role
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.json
+msgid "Accounts User"
+msgstr "Comptable"
+
+#: ocr/ocr/doctype/ocr_request/ocr_request.js:10
+#: ocr/ocr/doctype/ocr_request/ocr_request.js:14
+#: ocr/ocr/doctype/ocr_request/ocr_request.js:20
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.js:93
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.js:97
+msgid "Actions"
+msgstr "Actions"
+
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.py:953
+msgid "All items have already been Invoiced/Returned"
+msgstr "Tous les articles ont déjà été facturés/retournés"
+
+#: ocr/overrides/purchase_invoice.py:26
+msgid "All purchase invoice rows must be linked with a purchase receipt"
+msgstr "Toutes les lignes de facture d'achat doivent être liées à un reçu d'achat"
+
+#. Option for the 'eTransactions Service' (Select) field in DocType 'eTransactions Settings'
+#: ocr/ocr/doctype/ocr_settings/ocr_settings.json
+msgid "Amazon Textract"
+msgstr "Amazon Textract"
+
+#. Label of the amount (Currency) field in DocType 'Pending Purchase Invoice
+#. Item'
+#: ocr/ocr/doctype/pending_purchase_invoice_item/pending_purchase_invoice_item.json
+msgid "Amount"
+msgstr "Montant"
+
+#. Label of the analysis (Code) field in DocType 'eTransactions Request'
+#: ocr/ocr/doctype/ocr_request/ocr_request.json
+msgid "Analysis"
+msgstr "Analyse"
+
+#. Option for the 'Status' (Select) field in DocType 'eTransactions Request'
+#: ocr/ocr/doctype/ocr_request/ocr_request.json
+msgid "Analysis Completed"
+msgstr "Analyse terminée"
+
+#: ocr/public/js/communication.js:11
+msgid "Are you sure you want to create {0} from this email ?"
+msgstr "Êtes-vous certain de vouloir créer {0} depuis cet email ?"
+
+#. Label of the attached_to_doctype (Link) field in DocType 'eTransactions Generic Text
+#. Transcription'
+#: ocr/ocr/doctype/ocr_generic_text_transcription/ocr_generic_text_transcription.json
+msgid "Attached To DocType"
+msgstr "Lié au type de document"
+
+#. Label of the attached_to_name (Dynamic Link) field in DocType 'eTransactions Generic
+#. Text Transcription'
+#: ocr/ocr/doctype/ocr_generic_text_transcription/ocr_generic_text_transcription.json
+msgid "Attached To Name"
+msgstr "Lié au document"
+
+#. Label of the auto_reconciliation_section (Section Break) field in DocType
+#. 'eTransactions Settings'
+#: ocr/ocr/doctype/ocr_settings/ocr_settings.json
+msgid "Auto Reconciliation"
+msgstr "Rapprochement automatique"
+
+#. Label of the reconcile_with_purchase_receipts (Check) field in DocType 'eTransactions
+#. Settings'
+#: ocr/ocr/doctype/ocr_settings/ocr_settings.json
+msgid "Auto reconcile supplier invoices with purchase receipts"
+msgstr "Rapprocher automatiquement les factures fournisseur avec les reçus d'achat"
+
+#. Label of the auto_submit_purchase_invoices (Check) field in DocType 'eTransactions
+#. Settings'
+#: ocr/ocr/doctype/ocr_settings/ocr_settings.json
+msgid "Auto submit purchase invoices after creation"
+msgstr "Valider automatiquement les factures d'achat après création"
+
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.js:701
+msgid "Back to list"
+msgstr "Retour à la liste"
+
+#: ocr/ocr/doctype/ocr_purchase_invoice_basket/ocr_purchase_invoice_basket.py:31
+msgid "Basket n°"
+msgstr "Banette n°"
+
+#. Label of the block_if_grand_total_exceeds_pending_pi (Check) field in
+#. DocType 'eTransactions Settings'
+#: ocr/ocr/doctype/ocr_settings/ocr_settings.json
+msgid "Block the creation of purchase invoices with a grand total exceeding the pending purchase invoice "
+msgstr "Bloquer la création de factures d'achat avec un total TTC excédant le montant de la facture en attente"
+
+#. Label of the block_if_net_total_exceeds_pending_pi (Check) field in DocType
+#. 'eTransactions Settings'
+#: ocr/ocr/doctype/ocr_settings/ocr_settings.json
+msgid "Block the creation of purchase invoices with a net total exceeding the pending purchase invoice "
+msgstr "Bloquer la création de factures d'achat avec un total HT excédant le montant HT de la facture en attente"
+
+#: ocr/ocr/doctype/ocr_request/ocr_request.js:8
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.js:91
+msgid "Close"
+msgstr "Fermer"
+
+#. Option for the 'Status' (Select) field in DocType 'eTransactions Purchase Invoice
+#. Basket'
+#. Option for the 'Status' (Select) field in DocType 'eTransactions Request'
+#. Option for the 'Status' (Select) field in DocType 'Pending Purchase Invoice'
+#: ocr/ocr/doctype/ocr_purchase_invoice_basket/ocr_purchase_invoice_basket.json
+#: ocr/ocr/doctype/ocr_request/ocr_request.json
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.json
+msgid "Closed"
+msgstr "Fermée"
+
+#. Label of the company (Link) field in DocType 'Pending Purchase Invoice'
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.json
+msgid "Company"
+msgstr "Société"
+
+#. Option for the 'Status' (Select) field in DocType 'eTransactions Generic Text
+#. Transcription'
+#. Option for the 'Status' (Select) field in DocType 'eTransactions Purchase Invoice
+#. Basket'
+#. Option for the 'Status' (Select) field in DocType 'eTransactions Request'
+#. Option for the 'Status' (Select) field in DocType 'Pending Purchase Invoice'
+#: ocr/ocr/doctype/ocr_generic_text_transcription/ocr_generic_text_transcription.json
+#: ocr/ocr/doctype/ocr_purchase_invoice_basket/ocr_purchase_invoice_basket.json
+#: ocr/ocr/doctype/ocr_request/ocr_request.json
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.json
+msgid "Completed"
+msgstr "Complétée"
+
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.js:439
+msgctxt "Title of confirmation dialog"
+msgid "Confirm"
+msgstr "Confirmer"
+
+#. Label of the cost_center (Link) field in DocType 'Pending Purchase Invoice
+#. Item'
+#: ocr/ocr/doctype/pending_purchase_invoice_item/pending_purchase_invoice_item.json
+msgid "Cost Center"
+msgstr "Centre de coûts"
+
+#: ocr/public/js/communication.js:20
+msgid "Create"
+msgstr "Créer"
+
+#. Label of the create_purchase_invoice (Button) field in DocType 'Pending
+#. Purchase Invoice'
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.js:65
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.js:169
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.json
+msgid "Create Purchase Invoice"
+msgstr "Créer une facture d'achats"
+
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.js:65
+msgid "Create Purchase Order"
+msgstr "Créer une commande fournisseur"
+
+#. Label of the create_supplier (Button) field in DocType 'Pending Purchase
+#. Invoice'
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.json
+msgid "Create Supplier"
+msgstr "Créer un fournisseur"
+
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.js:178
+msgid "Create a new invoice"
+msgstr "Créer une nouvelle facture"
+
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.js:366
+msgid "Create a new purchase order with all item lines without purchase order ?"
+msgstr "Créer une nouvelle commande fournisseur avec toutes les lignes qui ne sont pas déjà liées à une commande existante ?"
+
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.js:378
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.js:386
+msgid "Create and keep in draft"
+msgstr "Créer et garder en brouillon"
+
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.js:377
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.js:385
+msgid "Create and submit"
+msgstr "Créer et valider"
+
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.js:381
+msgid "Create and submit a new purchase invoice ?"
+msgstr "Créer et valider une nouvelle facture d'achat ?"
+
+#: ocr/ocr/doctype/ocr_purchase_invoice_basket/ocr_purchase_invoice_basket.js:11
+msgid "Create purchase invoices"
+msgstr "Créer des factures d'achat"
+
+#. Label of the no_purchase_order (Check) field in DocType 'eTransactions Settings'
+#: ocr/ocr/doctype/ocr_settings/ocr_settings.json
+msgid "Create purchase invoices without purchase orders or purchase receipts"
+msgstr "Créer des factures d'achat sans commandes fournisseur ou reçus d'achats"
+
+#. Label of the currency (Link) field in DocType 'Pending Purchase Invoice'
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.json
+msgid "Currency"
+msgstr "Devise"
+
+#. Name of a Workspace
+#. Header text in the Data Extraction Workspace
+#: ocr/ocr/workspace/data_extraction/data_extraction.json
+msgid "Data Extraction"
+msgstr "Extraction de données"
+
+#. Label of the dimensions (Section Break) field in DocType 'Pending Purchase
+#. Invoice Item'
+#: ocr/ocr/doctype/pending_purchase_invoice_item/pending_purchase_invoice_item.json
+msgid "Dimensions"
+msgstr "Dimensions"
+
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.js:211
+msgid "Difference:"
+msgstr "Différence:"
+
+#. Label of the document_html (HTML) field in DocType 'eTransactions Request'
+#: ocr/ocr/doctype/ocr_request/ocr_request.json
+msgid "Document HTML"
+msgstr "HTML du Document"
+
+#: ocr/install.py:31
+msgid "Drop a file"
+msgstr "Déposer un fichier"
+
+#. Label of the expense_row (Small Text) field in DocType 'eTransactions Line Items
+#. Mapping'
+#: ocr/ocr/doctype/ocr_line_items_mapping/ocr_line_items_mapping.json
+msgid "Expense Row"
+msgstr "Ligne de dépense"
+
+#. Label of the extracted_data (Heading) field in DocType 'Pending Purchase
+#. Invoice'
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.json
+msgid "Extracted Data"
+msgstr "Données extraites"
+
+#: ocr/ocr/doctype/ocr_purchase_invoice_basket/ocr_purchase_invoice_basket.js:44
+msgid "Extraction in progress"
+msgstr "Extraction en cours"
+
+#. Label of the field_name (Link) field in DocType 'eTransactions Header Mapping'
+#: ocr/ocr/doctype/ocr_header_mapping/ocr_header_mapping.json
+msgid "Field Name"
+msgstr "Nom du champ"
+
+#. Label of the field_value (Small Text) field in DocType 'eTransactions Header Mapping'
+#: ocr/ocr/doctype/ocr_header_mapping/ocr_header_mapping.json
+msgid "Field Value"
+msgstr "Valeur du champ"
+
+#. Label of the ocr_html (HTML) field in DocType 'eTransactions Purchase Invoice Basket'
+#: ocr/ocr/doctype/ocr_purchase_invoice_basket/ocr_purchase_invoice_basket.json
+msgid "File Upload HTML"
+msgstr "HTML de téléchargement de fichier"
+
+#. Label of the filename (Data) field in DocType 'eTransactions Request'
+#: ocr/ocr/doctype/ocr_request/ocr_request.json
+msgid "Filename"
+msgstr "Nom du fichier"
+
+#. Label of the grand_total (Currency) field in DocType 'Pending Purchase
+#. Invoice'
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.json
+msgid "Grand Total"
+msgstr "Total TTC"
+
+#. Option for the 'Status' (Select) field in DocType 'eTransactions Purchase Invoice
+#. Basket'
+#. Option for the 'Status' (Select) field in DocType 'eTransactions Request'
+#. Option for the 'Status' (Select) field in DocType 'Pending Purchase Invoice'
+#: ocr/ocr/doctype/ocr_purchase_invoice_basket/ocr_purchase_invoice_basket.json
+#: ocr/ocr/doctype/ocr_request/ocr_request.json
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.json
+msgid "In Progress"
+msgstr "En cours"
+
+#: ocr/install.py:34
+msgid "Invoice Extraction"
+msgstr "Extraction de facture"
+
+#. Label of the invoice_number (Data) field in DocType 'eTransactions Request'
+#: ocr/ocr/doctype/ocr_request/ocr_request.json
+msgid "Invoice Number"
+msgstr "N° de facture"
+
+#. Label of the invoice_preview (HTML) field in DocType 'Pending Purchase
+#. Invoice'
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.json
+msgid "Invoice Preview"
+msgstr "Prévisualisation de la facture"
+
+#. Label of the is_return (Check) field in DocType 'Pending Purchase Invoice'
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.json
+msgid "Is Debit Note"
+msgstr "Est un avoir"
+
+#. Label of the is_paid (Check) field in DocType 'Pending Purchase Invoice'
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.json
+msgid "Is Paid"
+msgstr "Est payée"
+
+#. Label of the item (Link) field in DocType 'Pending Purchase Invoice Item'
+#: ocr/ocr/doctype/pending_purchase_invoice_item/pending_purchase_invoice_item.json
+msgid "Item"
+msgstr "Article"
+
+#. Label of the item_name (Data) field in DocType 'Pending Purchase Invoice
+#. Item'
+#: ocr/ocr/doctype/pending_purchase_invoice_item/pending_purchase_invoice_item.json
+msgid "Item Name"
+msgstr "Désignation de l'article"
+
+#. Label of the items (Table) field in DocType 'Pending Purchase Invoice'
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.json
+msgid "Items"
+msgstr "Articles"
+
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.js:215
+msgid "Items cannot be matched"
+msgstr "Les articles ne peuvent pas être rapprochés"
+
+#. Label of the key (Data) field in DocType 'eTransactions Header Mapping'
+#: ocr/ocr/doctype/ocr_header_mapping/ocr_header_mapping.json
+msgid "Key"
+msgstr "Clé"
+
+#. Option for the 'eTransactions Service' (Select) field in DocType 'eTransactions Settings'
+#: ocr/ocr/doctype/ocr_settings/ocr_settings.json
+msgid "Klippa"
+msgstr "Klippa"
+
+#. Label of the klippa_key (Data) field in DocType 'eTransactions Settings'
+#: ocr/ocr/doctype/ocr_settings/ocr_settings.json
+msgid "Klippa Key"
+msgstr "Clé Klippa"
+
+#. Label of the ocr_line_items_mapping (Table) field in DocType 'Pending
+#. Purchase Invoice'
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.json
+msgid "Line Items Data"
+msgstr "Données des lignes d'articles"
+
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.js:171
+msgid "Link with a draft purchase invoice"
+msgstr "Lier avec une facture d'achat en brouillon"
+
+#. Label of the linked_documents (HTML) field in DocType 'Pending Purchase
+#. Invoice'
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.json
+msgid "Linked Documents"
+msgstr "Documents liés"
+
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.js:347
+msgid "Link {}"
+msgstr "Lier {}"
+
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.js:375
+msgid "Make a new purchase order ?"
+msgstr "Créer une nouvelle commande fournisseur ?"
+
+#. Label of the mapped_invoice (Link) field in DocType 'eTransactions Request'
+#: ocr/ocr/doctype/ocr_request/ocr_request.json
+msgid "Mapped Invoice"
+msgstr "Facture associée"
+
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.js:209
+msgid "Matched"
+msgstr "Correspondants"
+
+#. Label of the name (Data) field in DocType 'eTransactions Generic Text Transcription'
+#. Label of the name (Data) field in DocType 'eTransactions Purchase Invoice Basket'
+#. Label of the name (Data) field in DocType 'eTransactions Request'
+#. Label of the name (Data) field in DocType 'eTransactions Settings'
+#. Label of the name (Data) field in DocType 'Pending Purchase Invoice'
+#. Label of the name (Data) field in DocType 'Pending Purchase Invoice Item'
+#: ocr/ocr/doctype/ocr_generic_text_transcription/ocr_generic_text_transcription.json
+#: ocr/ocr/doctype/ocr_purchase_invoice_basket/ocr_purchase_invoice_basket.json
+#: ocr/ocr/doctype/ocr_request/ocr_request.json
+#: ocr/ocr/doctype/ocr_settings/ocr_settings.json
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.json
+#: ocr/ocr/doctype/pending_purchase_invoice_item/pending_purchase_invoice_item.json
+msgid "Name"
+msgstr "Nom"
+
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.js:212
+msgid "Net Amount:"
+msgstr "Montant HT:"
+
+#. Label of the net_total (Currency) field in DocType 'Pending Purchase Invoice'
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.json
+msgid "Net Total"
+msgstr "Total HT"
+
+#. Name of a DocType
+#: ocr/ocr/doctype/ocr_generic_text_transcription/ocr_generic_text_transcription.json
+#: ocr/ocr/workspace/data_extraction/data_extraction.json
+msgid "eTransactions Generic Text Transcription"
+msgstr "Transcription de texte générique eTransactions"
+
+#. Label of the ocr_header_mapping (Table) field in DocType 'Pending Purchase
+#. Invoice'
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.json
+msgid "eTransactions Header Data"
+msgstr "Données d'en-tête eTransactions"
+
+#. Name of a DocType
+#: ocr/ocr/doctype/ocr_header_mapping/ocr_header_mapping.json
+msgid "eTransactions Header Mapping"
+msgstr "Correspondance d'en-tête eTransactions"
+
+#. Name of a DocType
+#: ocr/ocr/doctype/ocr_line_items_mapping/ocr_line_items_mapping.json
+msgid "eTransactions Line Items Mapping"
+msgstr "Correspondance des lignes d'articles eTransactions"
+
+#. Name of a DocType
+#: ocr/ocr/doctype/ocr_purchase_invoice_basket/ocr_purchase_invoice_basket.json
+#: ocr/ocr/workspace/data_extraction/data_extraction.json
+msgid "eTransactions Purchase Invoice Basket"
+msgstr "Banette de factures d'achat eTransactions"
+
+#. Name of a DocType
+#: ocr/ocr/doctype/ocr_request/ocr_request.json
+msgid "eTransactions Request"
+msgstr "Demande eTransactions"
+
+#. Label of the ocr_service (Select) field in DocType 'eTransactions Settings'
+#: ocr/ocr/doctype/ocr_settings/ocr_settings.json
+msgid "eTransactions Service"
+msgstr "Service eTransactions"
+
+#. Name of a DocType
+#: ocr/ocr/doctype/ocr_settings/ocr_settings.json
+#: ocr/ocr/workspace/data_extraction/data_extraction.json
+msgid "eTransactions Settings"
+msgstr "Paramètres eTransactions"
+
+#. Label of the ocr_file (Attach) field in DocType 'eTransactions Request'
+#: ocr/ocr/doctype/ocr_request/ocr_request.json
+msgid "Ocr File"
+msgstr "Fichier eTransactions"
+
+#. Name of a DocType
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.json
+#: ocr/ocr/workspace/data_extraction/data_extraction.json
+msgid "Pending Purchase Invoice"
+msgstr "Facture d'achat en attente"
+
+#. Name of a DocType
+#: ocr/ocr/doctype/pending_purchase_invoice_item/pending_purchase_invoice_item.json
+msgid "Pending Purchase Invoice Item"
+msgstr "Ligne de facture d'achat en attente"
+
+#. Label of the pending_purchase_invoice (Link) field in DocType 'eTransactions Request'
+#: ocr/ocr/doctype/ocr_request/ocr_request.json
+msgid "Pending Purchase invoice"
+msgstr "Facture d'achat en attente"
+
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.py:203
+msgid "Please select at least one purchase order"
+msgstr "Veuillez sélectionner au moins une commande fournisseur"
+
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.py:200
+msgid "Please select at least one purchase receipt"
+msgstr "Veuillez sélectionner au moins un reçu d'achats"
+
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.py:206
+msgid "Please select documents linked to the same company"
+msgstr "Veuillez sélectionner des documents associés à la même société"
+
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.py:209
+msgid "Please select documents linked to the same supplier"
+msgstr "Veuillez sélectionner des documents associés au même fournisseur"
+
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.js:552
+msgid "Please select orders linked to the same supplier"
+msgstr "Veuillez sélectionner des commandes liées au même fournisseur"
+
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.js:552
+msgid "Please select receipts linked to the same supplier"
+msgstr "Veuillez sélectionner des reçus liés au même fournisseur"
+
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.py:298
+msgid "Please submit {0}: {1} before trying to create the corresponding invoice"
+msgstr "Veuillez valider {0}: {1} avant d'essayer de créer la facture correspondante"
+
+#. Option for the 'Status' (Select) field in DocType 'eTransactions Generic Text
+#. Transcription'
+#: ocr/ocr/doctype/ocr_generic_text_transcription/ocr_generic_text_transcription.json
+msgid "Processed"
+msgstr "Traitée"
+
+#. Label of the product_code (Small Text) field in DocType 'eTransactions Line Items
+#. Mapping'
+#: ocr/ocr/doctype/ocr_line_items_mapping/ocr_line_items_mapping.json
+msgid "Product Code"
+msgstr "Code produit"
+
+#. Label of the project (Link) field in DocType 'Pending Purchase Invoice Item'
+#: ocr/ocr/doctype/pending_purchase_invoice_item/pending_purchase_invoice_item.json
+msgid "Project"
+msgstr "Projet"
+
+#. Label of the purchase_invoice (Link) field in DocType 'Pending Purchase
+#. Invoice'
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.json
+msgid "Purchase Invoice"
+msgstr "Facture d'achat"
+
+#. Label of a quick_list in the Data Extraction Workspace
+#: ocr/ocr/workspace/data_extraction/data_extraction.json
+msgid "Purchase Invoice to Create"
+msgstr "Factures d'achat à créer"
+
+#. Label of a quick_list in the Data Extraction Workspace
+#: ocr/ocr/workspace/data_extraction/data_extraction.json
+msgid "Purchase Invoice to Submit"
+msgstr "Facture d'achat à valider"
+
+#. Label of the purchase_order_number (Data) field in DocType 'Pending Purchase
+#. Invoice'
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.json
+msgid "Purchase Order Number"
+msgstr "Numéro de commande fournisseur"
+
+#. Label of the purchase_receipt (Link) field in DocType 'Pending Purchase
+#. Invoice Item'
+#: ocr/ocr/doctype/pending_purchase_invoice_item/pending_purchase_invoice_item.json
+msgid "Purchase Receipt"
+msgstr "Reçu d'achat"
+
+#. Label of the purchase_receipt_item (Data) field in DocType 'Pending Purchase
+#. Invoice Item'
+#: ocr/ocr/doctype/pending_purchase_invoice_item/pending_purchase_invoice_item.json
+msgid "Purchase Receipt Item"
+msgstr "Ligne de reçu d'achat"
+
+#. Label of the taxes_and_charges (Link) field in DocType 'Pending Purchase
+#. Invoice'
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.json
+msgid "Purchase Taxes Template"
+msgstr "Modèle de taxes à l'achat"
+
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.js:414
+msgid "Purchase invoice created"
+msgstr "Facture d'achat créée"
+
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.py:643
+msgid "Purchase invoice {0} has been automatically created for this invoice."
+msgstr "La facture d'achat {0} a été automatiquement créée pour cette facture."
+
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.js:432
+msgid "Purchase order created"
+msgstr "Commande fournisseur créée"
+
+#. Label of the qty (Float) field in DocType 'Pending Purchase Invoice Item'
+#: ocr/ocr/doctype/pending_purchase_invoice_item/pending_purchase_invoice_item.json
+msgid "Qty"
+msgstr "Qté"
+
+#. Label of the quantity (Float) field in DocType 'eTransactions Line Items Mapping'
+#: ocr/ocr/doctype/ocr_line_items_mapping/ocr_line_items_mapping.json
+msgid "Quantity"
+msgstr "Quantité"
+
+#. Option for the 'Status' (Select) field in DocType 'Pending Purchase Invoice'
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.json
+msgid "Ready"
+msgstr "Prête"
+
+#. Label of the reference_documents (HTML) field in DocType 'Pending Purchase
+#. Invoice'
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.json
+msgid "Reference Documents"
+msgstr "Documents de référence"
+
+#: ocr/ocr/doctype/ocr_purchase_invoice_basket/ocr_purchase_invoice_basket.js:33
+msgid "Request creation in progress"
+msgstr "Création de la demande d'analyse en cours"
+
+#. Label of the select_purchase_orders (Button) field in DocType 'Pending
+#. Purchase Invoice'
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.json
+msgid "Select Purchase Orders"
+msgstr "Sélectionner des commandes fournisseur"
+
+#. Label of the select_purchase_receipts (Button) field in DocType 'Pending
+#. Purchase Invoice'
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.json
+msgid "Select Purchase Receipts"
+msgstr "Sélectionner des reçus d'achat"
+
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.js:531
+msgid "Select one or more purchase orders"
+msgstr "Sélectionner une ou plusieurs commandes fournisseur"
+
+#. Label of the status (Select) field in DocType 'eTransactions Generic Text
+#. Transcription'
+#. Label of the status (Select) field in DocType 'eTransactions Purchase Invoice Basket'
+#. Label of the status (Select) field in DocType 'eTransactions Request'
+#. Label of the status (Select) field in DocType 'Pending Purchase Invoice'
+#: ocr/ocr/doctype/ocr_generic_text_transcription/ocr_generic_text_transcription.json
+#: ocr/ocr/doctype/ocr_purchase_invoice_basket/ocr_purchase_invoice_basket.json
+#: ocr/ocr/doctype/ocr_request/ocr_request.json
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.json
+msgid "Status"
+msgstr "Statut"
+
+#. Label of the supplier (Link) field in DocType 'Pending Purchase Invoice'
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.json
+msgid "Supplier"
+msgstr "Fournisseur"
+
+#. Label of the vendor_address (Small Text) field in DocType 'Pending Purchase
+#. Invoice'
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.json
+msgid "Supplier Address"
+msgstr "Adresse du fournisseur"
+
+#. Label of the supplier_description (Small Text) field in DocType 'Pending
+#. Purchase Invoice Item'
+#: ocr/ocr/doctype/pending_purchase_invoice_item/pending_purchase_invoice_item.json
+msgid "Supplier Description"
+msgstr "Description du fournisseur"
+
+#. Label of the bill_date (Date) field in DocType 'Pending Purchase Invoice'
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.json
+msgid "Supplier Invoice Date"
+msgstr "Date de la facture fournisseur"
+
+#. Label of the bill_no (Data) field in DocType 'Pending Purchase Invoice'
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.json
+msgid "Supplier Invoice No"
+msgstr "N° de la facture fournisseur"
+
+#. Label of the supplier_item_code (Small Text) field in DocType 'Pending
+#. Purchase Invoice Item'
+#: ocr/ocr/doctype/pending_purchase_invoice_item/pending_purchase_invoice_item.json
+msgid "Supplier Item Code"
+msgstr "Code article du fournisseur"
+
+#. Label of the supplier_name (Data) field in DocType 'Pending Purchase
+#. Invoice'
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.json
+msgid "Supplier Name"
+msgstr "Désignation"
+
+#. Name of a role
+#: ocr/ocr/doctype/ocr_generic_text_transcription/ocr_generic_text_transcription.json
+#: ocr/ocr/doctype/ocr_purchase_invoice_basket/ocr_purchase_invoice_basket.json
+#: ocr/ocr/doctype/ocr_request/ocr_request.json
+#: ocr/ocr/doctype/ocr_settings/ocr_settings.json
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.json
+msgid "System Manager"
+msgstr "Responsable Système"
+
+#. Label of the task (Data) field in DocType 'eTransactions Generic Text Transcription'
+#: ocr/ocr/doctype/ocr_generic_text_transcription/ocr_generic_text_transcription.json
+msgid "Task"
+msgstr "Tâche"
+
+#. Label of the supplier_tax_amount (Currency) field in DocType 'Pending
+#. Purchase Invoice'
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.json
+msgid "Tax Amount"
+msgstr "Montant des taxes"
+
+#. Label of the tax_category (Link) field in DocType 'Pending Purchase Invoice'
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.json
+msgid "Tax Category"
+msgstr "Catégorie de taxes"
+
+#. Label of the tax_id (Data) field in DocType 'Pending Purchase Invoice'
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.json
+msgid "Tax ID"
+msgstr "N° de TVA"
+
+#. Label of the tax_total (Currency) field in DocType 'Pending Purchase
+#. Invoice'
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.json
+msgid "Tax Total"
+msgstr "Total TVA"
+
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.py:648
+msgid "The automatic reconciliation has failed because the totals do not match"
+msgstr "Le rapprochement automatique a échoué car les totaux ne correspondent pas"
+
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.py:653
+msgid "The automatic reconciliation has failed for because the net total is higher than {0}"
+msgstr "Le rapprochement automatique a échoué car le total HT est supérieur à {0}"
+
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.py:911
+msgid "The invoice grand total exceeds the supplier provided grand total. You are not allowed to create this purchase invoice."
+msgstr "Le total TTC de cette facture dépasse le total TTC fourni par le fournisseur. Vous n'êtes pas autorisé à créer cette facture fournisseur."
+
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.py:915
+msgid "The invoice net total exceeds the supplier provided net total. You are not allowed to create this purchase invoice."
+msgstr "Le total HT de cette facture dépasse le total HT fourni par le fournisseur. Vous n'êtes pas autorisé à créer cette facture fournisseur."
+
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.js:215
+msgid "The net amount of the invoice and the selected purchase receipts don't match.<br>Please select another purchase receipt or adjust the unit rate to match the amount of this invoice."
+msgstr "Le montant HT de la facture et des reçus d'achat sélectionnés ne correspondent pas.<br>Veuillez sélectionner un autre reçu d'achat ou ajuster le prix unitaire pour correspondre au montant de cette facture."
+
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.js:319
+msgid "The selected supplier ({0}) is different from the purchase order supplier ({1})"
+msgstr "Le fournisseur sélectionné ({0}) est différent du fournisseur de la commande d'achat ({1})"
+
+#: ocr/public/js/file_preview.js:17
+msgid "There is a difference between the total amount based on the data extraction ("
+msgstr "Il y a une différence entre le montant total basé sur l'extraction de données ("
+
+#: ocr/public/js/file_preview.js:21
+msgid "There is a difference between the total taxes based on the data extraction ("
+msgstr "Il y a une différence entre le montant total des taxes basé sur l'extraction de données ("
+
+#: ocr/overrides/purchase_invoice.py:37
+msgid "This purchase invoice can not be submitted because the net total is higher than {0}"
+msgstr "Cette facture d'achat ne peut pas être validée car le total HT est supérieur à {0}"
+
+#. Label of the title (Data) field in DocType 'eTransactions Purchase Invoice Basket'
+#. Label of the title (Data) field in DocType 'Pending Purchase Invoice'
+#: ocr/ocr/doctype/ocr_purchase_invoice_basket/ocr_purchase_invoice_basket.json
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.json
+msgid "Title"
+msgstr "Titre"
+
+#. Label of the transaction_type (Select) field in DocType 'eTransactions Request'
+#: ocr/ocr/doctype/ocr_request/ocr_request.json
+msgid "Transaction Type"
+msgstr "Type de transaction"
+
+#: ocr/ocr/doctype/ocr_request/ocr_request_list.js:20
+msgid "Transaction could not be found"
+msgstr "La transaction n'a pas pu être trouvée"
+
+#. Option for the 'Status' (Select) field in DocType 'eTransactions Generic Text
+#. Transcription'
+#: ocr/ocr/doctype/ocr_generic_text_transcription/ocr_generic_text_transcription.json
+msgid "Transcribed"
+msgstr "Transcrite"
+
+#. Option for the 'Status' (Select) field in DocType 'eTransactions Generic Text
+#. Transcription'
+#: ocr/ocr/doctype/ocr_generic_text_transcription/ocr_generic_text_transcription.json
+msgid "Transcribing"
+msgstr "Transcription en cours"
+
+#. Label of the unit_price (Float) field in DocType 'eTransactions Line Items Mapping'
+#: ocr/ocr/doctype/ocr_line_items_mapping/ocr_line_items_mapping.json
+msgid "Unit Price"
+msgstr "Prix unitaire"
+
+#. Label of the rate (Currency) field in DocType 'Pending Purchase Invoice
+#. Item'
+#: ocr/ocr/doctype/pending_purchase_invoice_item/pending_purchase_invoice_item.json
+msgid "Unit Rate"
+msgstr "Prix unitaire"
+
+#. Label of the update_supplier_tax_id (Button) field in DocType 'Pending
+#. Purchase Invoice'
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.json
+msgid "Update Supplier Tax ID"
+msgstr "Mettre à jour le n° de TVA"
+
+#. Label of the value (Small Text) field in DocType 'eTransactions Header Mapping'
+#: ocr/ocr/doctype/ocr_header_mapping/ocr_header_mapping.json
+msgid "Value"
+msgstr "Valeur"
+
+#: ocr/ocr/doctype/ocr_request/ocr_request_list.js:11
+msgid "View {0}"
+msgstr "Vue {0}"
+
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.js:687
+msgid "View {}"
+msgstr "Voir {}"
+
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.js:330
+msgid "We are not able to find any purchase order with number {0}."
+msgstr "Nous ne parvenons pas à trouver de commande fournisseur avec le numéro {0}."
+
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.js:441
+msgctxt "Approve confirmation dialog"
+msgid "Yes"
+msgstr "Oui"
+
+#: ocr/ocr/doctype/ocr_request/ocr_request.js:66
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.js:140
+#: ocr/public/js/file_preview.js:63
+msgid "Your browser does not support the audio element."
+msgstr "Votre navigateur ne supporte pas cet élément audio."
+
+#: ocr/ocr/doctype/ocr_request/ocr_request.js:48
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.js:122
+#: ocr/public/js/file_preview.js:45
+msgid "Your browser does not support the video element."
+msgstr "Votre navigateur ne supporte pas cet élément vidéo."
+
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.js:240
+msgid "Your supplier Tax ID is currently empty"
+msgstr "Le n° de TVA de votre fournisseur est actuellement vide"
+
+#: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.js:243
+msgid "Your supplier's current Tax ID is {0}"
+msgstr "Le n° de TVA de votre fournisseur est {0}"
+
+#. Count format of shortcut in the Data Extraction Workspace
+#: ocr/ocr/workspace/data_extraction/data_extraction.json
+msgid "{} orders"
+msgstr "{} commandes"
