@@ -29,7 +29,7 @@ if TYPE_CHECKING:
 	from erpnext.accounts.doctype.purchase_invoice.purchase_invoice import PurchaseInvoice
 	from erpnext.accounts.doctype.purchase_invoice_item.purchase_invoice_item import PurchaseInvoiceItem
 	from erpnext.buying.doctype.purchase_order.purchase_order import PurchaseOrder
-	from etransactions.etransactions.doctype.ocr_settings.ocr_settings import OCRSettings
+	from etransactions.etransactions.doctype.etransactions_settings.etransactions_settings import eTransactionsSettings
 
 ItemDetailsCtx = frappe._dict
 ItemDetails = frappe._dict
@@ -616,7 +616,7 @@ class PendingPurchaseInvoice(Document):
 		if (not self.purchase_order_number and not self.is_return) or not self.net_total:
 			return
 
-		settings: OCRSettings = frappe.get_single("eTransactions Settings") # type: ignore
+		settings: eTransactionsSettings = frappe.get_single("eTransactions Settings") # type: ignore
 		if not settings.reconcile_with_purchase_receipts: # type: ignore
 			return
 

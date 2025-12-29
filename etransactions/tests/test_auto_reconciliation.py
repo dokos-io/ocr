@@ -8,7 +8,7 @@ from frappe.utils.make_random import get_random
 from erpnext import get_default_company
 
 from erpnext.buying.doctype.purchase_order.purchase_order import PurchaseOrder, make_purchase_receipt
-from etransactions.etransactions.doctype.ocr_settings.ocr_settings import OCRSettings
+from etransactions.etransactions.doctype.etransactions_settings.etransactions_settings import eTransactionsSettings
 from etransactions.tests.utils import add_items, add_suppliers
 from etransactions.etransactions.doctype.pending_purchase_invoice.pending_purchase_invoice import PendingPurchaseInvoice
 
@@ -90,7 +90,7 @@ class TestAutoReconciliation(IntegrationTestCase):
 		self.assertIn(purchase_receipt.name, [r.reference_docname for r in pending_purchase_invoice.items])
 		self.assertEqual(pending_purchase_invoice.status, "Ready")
 
-		settings: OCRSettings = frappe.get_single("eTransactions Settings") # type: ignore
+		settings: eTransactionsSettings = frappe.get_single("eTransactions Settings") # type: ignore
 		settings.max_difference_amount = 500.0
 		settings.max_difference_percentage_on_net_total = 10.0
 		settings.save()
