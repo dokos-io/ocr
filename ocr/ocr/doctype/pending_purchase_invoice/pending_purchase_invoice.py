@@ -156,6 +156,7 @@ class PendingPurchaseInvoice(Document):
 
 		if commit:
 			self.db_set("status", status, notify=True, commit=True)
+			self.save_version()
 
 	@frappe.whitelist()
 	def calculate_totals(self):
@@ -520,7 +521,8 @@ class PendingPurchaseInvoice(Document):
 
 	@frappe.whitelist()
 	def close_request(self):
-		self.db_set("status", "Closed")
+		self.db_set("status", "Closed", notify=True)
+		self.save_version()
 		self.run_method("on_close")
 
 	@frappe.whitelist()

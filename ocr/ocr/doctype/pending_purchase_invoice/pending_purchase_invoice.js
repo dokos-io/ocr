@@ -87,7 +87,7 @@ frappe.ui.form.on("Pending Purchase Invoice", {
 			console.warn(e)
 		}
 
-		if (frm.doc.status != "Closed") {
+		if (frm.doc.status != "Closed" && frappe.perm.has_perm(frm.doctype, 1, "write")) {
 			frm.add_custom_button(__('Close'), function() {
 				frm.call("close_request").then(() => { frm.reload_doc() });
 			}, __("Actions"));
