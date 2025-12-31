@@ -5,7 +5,7 @@
 tags
 node_modules
 __pycache__
-ocr/public/dist
+etransactions/public/dist
 
 # Translations
 *.mo
