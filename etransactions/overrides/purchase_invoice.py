@@ -13,6 +13,9 @@ def validate_over_billing(doc, method):
 	if not doc.pending_purchase_invoice:
 		return
 
+	if doc.flags.ignore_mandatory_pr:
+		return
+
 	settings = frappe.get_single("eTransactions Settings")
 	if doc.is_return or not settings.reconcile_with_purchase_receipts: # type: ignore
 		return
@@ -22,7 +25,7 @@ def validate_over_billing(doc, method):
 		if item.purchase_receipt:
 			pr = frappe.get_doc("Purchase Receipt", item.purchase_receipt)
 			total_per_ref[item.purchase_receipt] = pr.net_total - (flt(pr.per_billed) / 100.0 * pr.net_total)
-		else:
+		elif not doc.flags.ignore_mandatory_pr:
 			frappe.throw(_("All purchase invoice rows must be linked with a purchase receipt"))
 
 	pending_invoicing_amount = sum(total_per_ref.values())
