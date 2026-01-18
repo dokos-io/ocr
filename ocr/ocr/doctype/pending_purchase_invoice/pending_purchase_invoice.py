@@ -9,6 +9,7 @@ import re
 import difflib
 from erpnext.accounts.doctype.sales_invoice.sales_invoice import SalesInvoice
 from erpnext.controllers.accounts_controller import merge_taxes
+from erpnext.stock.get_item_details import get_item_tax_map, get_item_tax_template
 from frappe.model.document import Document
 from frappe.model.mapper import get_mapped_doc
 from pypika.terms import ExistsCriterion
@@ -286,6 +287,17 @@ class PendingPurchaseInvoice(Document):
 		if doc.taxes_and_charges:
 			doc.append_taxes_from_master()
 		else:
+			for item in doc.items:
+				# Reset item tax_map to avoid inconsistency between master data and transaction
+				item_doc = frappe.get_cached_doc("Item", item.item_code)
+				ctx: ItemDetailsCtx = doc.as_dict() # type: ignore
+				tax_template = get_item_tax_template(ctx, item_doc)
+				item.item_tax_rate = get_item_tax_map(
+					doc=doc,
+					tax_template=tax_template, # type: ignore
+					as_json=True,
+				)
+
 			doc.append_taxes_from_item_tax_template()
 
 		doc.run_method("calculate_taxes_and_totals")
