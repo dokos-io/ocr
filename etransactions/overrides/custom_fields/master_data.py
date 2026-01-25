@@ -6,12 +6,20 @@ customer_fields = [
 		"fieldname": "etransactions_tab",
 		"fieldtype": "Tab Break",
 		"label": _("eTransactions"),
-		"insert_after": "connections_tab"
+		"insert_after": "selling_party_html"
+	},
+	{
+		"fieldname": "etransaction_profile",
+		"label": "eTransaction Profile",
+		"fieldtype": "Link",
+		"options": "eTransaction Profile",
+		"insert_after": "etransactions_tab",
+		"reqd": 1,
 	},
 	{
 		"fieldname": "etransactions_buyer_reference",
 		"label": _("Buyer Reference"),
-		"insert_after": "etransactions_tab",
+		"insert_after": "etransaction_profile",
 		"fieldtype": "Data",
 	},
 	{

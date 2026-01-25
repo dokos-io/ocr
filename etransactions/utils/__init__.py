@@ -1,3 +1,4 @@
+from base64 import b64encode
 import re
 import datetime
 from dateutil.parser import parse
@@ -163,6 +164,14 @@ def date_parser(date, locale=None) -> datetime.date:
 		return getdate()
 
 
+def as_base_64(content: str | bytes) -> str:
+	"""Convert a string or bytes object to a base64-encoded string."""
+	if isinstance(content, str):
+		content = content.encode("utf-8")
+
+	return b64encode(content).decode("utf-8")
+
+
 @total_ordering
 class EInvoiceProfile(Enum):
 	"""
@@ -173,7 +182,7 @@ class EInvoiceProfile(Enum):
 	BASIC = "BASIC"
 	EN16931 = "EN 16931"
 	EXTENDED = "EXTENDED"
-	XRECHNUNG = "XRECHNUNG"
+	XRECHNUNG = "FACTUR-X"
 
 	def __lt__(self, other):
 		# https://stackoverflow.com/a/39269589

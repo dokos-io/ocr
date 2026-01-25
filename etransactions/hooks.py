@@ -81,6 +81,8 @@ after_install = "etransactions.install.after_install"
 
 after_migrate = "etransactions.migrate.after_migrate"
 
+importable_doctypes = ["eTransaction Profile"]
+
 # Uninstallation
 # ------------
 
@@ -179,9 +181,7 @@ doc_events = {
 		"on_close": "etransactions.etransactions.doctype.ocr_request.ocr_request.update_ocr_request_status",
 	},
 	"Sales Invoice": {
-		"on_update": "etransactions.overrides.sales_invoice.on_update",
-		"before_submit": "etransactions.override.sales_invoice.before_submit",
-		"on_submit": "etransactions.overrides.sales_invoice.on_submit",
+		"before_save": "etransactions.overrides.sales_invoice.before_save",
 	}
 }
 

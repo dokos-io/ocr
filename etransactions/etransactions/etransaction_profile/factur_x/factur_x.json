@@ -1,0 +1,12 @@
+{
+ "creation": "2026-01-25 13:46:37.363273",
+ "docstatus": 0,
+ "doctype": "eTransaction Profile",
+ "identifier_value": "urn:cen.eu:en16931:2017#compliant#urn:xeinkauf.de:kosit:xrechnung_3.0",
+ "idx": 0,
+ "modified": "2026-01-25 13:49:47.842074",
+ "modified_by": "Administrator",
+ "name": "FACTUR-X",
+ "owner": "Administrator",
+ "profile": "FACTUR-X"
+}

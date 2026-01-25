@@ -7,7 +7,7 @@ from frappe.model.document import Document
 
 from frappe.email.inbox import link_communication_to_document
 
-from etransactions.etransactions.doctype.einvoice.einvoice import eInvoice
+from etransactions.etransactions.doctype.einvoice.parser import eInvoiceParser
 
 
 AUTHORIZED_FILE_TYPES = ["PDF"]
@@ -82,8 +82,8 @@ class SupplierInvoicesBasket(Document):
 			for file in linked_files:
 				try:
 					file_doc = frappe.get_doc("File", file["name"])
-					xml_bytes = eInvoice.get_xml_bytes(file_doc)
-					eInvoice.get_einvoice_document(xml_bytes)
+					xml_bytes = eInvoiceParser.get_xml_bytes(file_doc)
+					eInvoiceParser.get_einvoice_document(xml_bytes)
 					einvoice = frappe.new_doc("eInvoice")
 					einvoice.einvoice = file["name"]
 					einvoice.insert()

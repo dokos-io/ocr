@@ -2,7 +2,7 @@
 from erpnext.setup.utils import identity as _
 
 
-transactions_fields = [
+purchasing_fields = [
 	{
 		"fieldname": "ocr_tab",
 		"fieldtype": "Tab Break",
@@ -46,9 +46,27 @@ transactions_fields = [
 	},
 ]
 
+selling_fields = [
+	{
+		"fieldname": "etransactions_tab",
+		"fieldtype": "Tab Break",
+		"label": _("eTransactions"),
+		"insert_after": "terms"
+	},
+	{
+		"fieldname": "etransaction_profile",
+		"label": "eTransaction Profile",
+		"fieldtype": "Link",
+		"options": "eTransaction Profile",
+		"insert_after": "etransactions_tab",
+		"fetch_from": "customer.etransaction_profile",
+		"fetch_if_empty": 1,
+	},
+]
+
 TRANSACTION_FIELDS: dict = {
-	"Purchase Order": transactions_fields,
-	"Purchase Invoice": transactions_fields,
+	"Purchase Order": purchasing_fields,
+	"Purchase Invoice": purchasing_fields,
 	"Purchase Order Item": [
 		{
 			"fieldname": "ocr_request_line_item",
@@ -68,5 +86,6 @@ TRANSACTION_FIELDS: dict = {
 			"read_only": 1,
 			"no_copy": 1
 		},
-	]
+	],
+    "Sales Invoice": selling_fields,
 }
