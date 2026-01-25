@@ -7,6 +7,8 @@ from frappe.model.document import Document
 
 from frappe.email.inbox import link_communication_to_document
 
+from etransactions.etransactions.doctype.einvoice.einvoice import eInvoice
+
 
 AUTHORIZED_FILE_TYPES = ["PDF"]
 
@@ -38,7 +40,7 @@ class SupplierInvoicesBasket(Document):
 			frappe.enqueue_doc(
 				self.doctype,
 				self.name,
-				"create_requests",
+				"route_invoices",
 				queue="default",
 				enqueue_after_commit=True,
 			)
@@ -71,18 +73,32 @@ class SupplierInvoicesBasket(Document):
 		return files
 
 	@frappe.whitelist()
-	def create_requests(self):
+	def route_invoices(self):
+		"""
+		Always check first if invoice is an einvoice.
+		Else send it to OCR.
+		"""
 		if linked_files := self.get_all_files():
 			for file in linked_files:
-				request = frappe.new_doc("OCR Request")
-				request.ocr_basket = self.name
-				request.filename = file.get("file_name")
-				request.file = file.get("name")
-				request.insert()
+				try:
+					file_doc = frappe.get_doc("File", file["name"])
+					xml_bytes = eInvoice.get_xml_bytes(file_doc)
+					eInvoice.get_einvoice_document(xml_bytes)
+					einvoice = frappe.new_doc("eInvoice")
+					einvoice.einvoice = file["name"]
+					einvoice.insert()
+				except Exception:
+					#TODO: Handle errors for UX
+
+					request = frappe.new_doc("OCR Request")
+					request.ocr_basket = self.name
+					request.filename = file.get("file_name")
+					request.file = file.get("name")
+					request.insert()
 
 			self.db_set("status", "In Progress")
 		else:
-			self.db_set("error", _("No PDF file found in this basket"))
+			self.db_set("error", _("No matching supplier format file (PDF, XML) found in this basket"))
 			self.db_set("status", "Closed")
 
 	def relink_files_after_insert(self):

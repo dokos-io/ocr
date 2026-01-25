@@ -1,0 +1,5 @@
+from .transactions import TRANSACTION_FIELDS
+from .master_data import MASTER_DATA_FIELDS
+
+
+CUSTOM_FIELDS = TRANSACTION_FIELDS | MASTER_DATA_FIELDS

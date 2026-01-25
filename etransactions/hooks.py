@@ -177,6 +177,11 @@ doc_events = {
 	},
 	"Pending Purchase Invoice": {
 		"on_close": "etransactions.etransactions.doctype.ocr_request.ocr_request.update_ocr_request_status",
+	},
+	"Sales Invoice": {
+		"on_update": "etransactions.overrides.sales_invoice.on_update",
+		"before_submit": "etransactions.override.sales_invoice.before_submit",
+		"on_submit": "etransactions.overrides.sales_invoice.on_submit",
 	}
 }
 
