@@ -1,4 +1,4 @@
-# Copyright (c) 2023, Dokos SAS and contributors
+# Copyright (c) 2026, Dokos SAS and contributors
 # For license information, please see license.txt
 
 import frappe
@@ -10,7 +10,8 @@ from frappe.email.inbox import link_communication_to_document
 
 AUTHORIZED_FILE_TYPES = ["PDF"]
 
-class OCRPurchaseInvoiceBasket(Document):
+
+class SupplierInvoicesBasket(Document):
 	# begin: auto-generated types
 	# This code is auto-generated. Do not modify anything in this block.
 
@@ -104,7 +105,7 @@ class OCRPurchaseInvoiceBasket(Document):
 				self.log_error()
 
 		elif all([a.status in ["Closed", "Completed", "Analysis Completed"] for a in associated_requests]):
-			frappe.db.set_value("OCR Purchase Invoice Basket", self.name, "status", "Completed")
+			frappe.db.set_value("Supplier Invoices Basket", self.name, "status", "Completed")
 
 
 
@@ -112,7 +113,7 @@ class OCRPurchaseInvoiceBasket(Document):
 def make_basket_from_communication(communication, basket_type, ignore_communication_links=False):
 	communication_doc = frappe.get_doc("Communication", communication)
 
-	basket = frappe.new_doc("OCR Purchase Invoice Basket")
+	basket = frappe.new_doc("Supplier Invoices Basket")
 	basket.document_type = basket_type
 	basket.subject = frappe.as_unicode(communication_doc.subject)[:140]
 	basket.sender = frappe.as_unicode(communication_doc.sender)
@@ -120,7 +121,7 @@ def make_basket_from_communication(communication, basket_type, ignore_communicat
 	basket.flags.ignore_mandatory = True
 	basket.insert(ignore_permissions=True, ignore_if_duplicate=True)
 
-	link_communication_to_document(communication_doc, "OCR Purchase Invoice Basket", basket.name, ignore_communication_links)
+	link_communication_to_document(communication_doc, "Supplier Invoices Basket", basket.name, ignore_communication_links)
 
 	basket.run_method("create_requests")
 
@@ -129,5 +130,5 @@ def make_basket_from_communication(communication, basket_type, ignore_communicat
 
 @frappe.whitelist()
 def check_ocr_basket_status():
-	for ocr_basket in frappe.get_all("OCR Purchase Invoice Basket", filters={"status": "In Progress"}):
-		frappe.get_doc("OCR Purchase Invoice Basket", ocr_basket.name).run_method("set_status")
+	for ocr_basket in frappe.get_all("Supplier Invoices Basket", filters={"status": "In Progress"}):
+		frappe.get_doc("Supplier Invoices Basket", ocr_basket.name).run_method("set_status")
