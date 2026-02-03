@@ -1,4 +1,4 @@
-// Copyright (c) 2024, ALYF GmbH, Dokos SAS and contributors
+// Copyright (c) 2026, ALYF GmbH, Dokos SAS and contributors
 // For license information, please see license.txt
 
 frappe.ui.form.on("eInvoice", {

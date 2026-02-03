@@ -87,5 +87,5 @@ TRANSACTION_FIELDS: dict = {
 			"no_copy": 1
 		},
 	],
-    "Sales Invoice": selling_fields,
+	"Sales Invoice": selling_fields,
 }

@@ -3,6 +3,7 @@ import click
 import frappe
 
 from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
+from frappe.utils import now_datetime
 
 
 def after_install():
@@ -16,9 +17,31 @@ def rename_ocr_to_etransactions():
 
 
 def before_tests():
-	from erpnext.setup.utils import before_tests as erpnext_before_tests
+	frappe.clear_cache()
+	# complete setup if missing
+	from frappe.desk.page.setup_wizard.setup_wizard import setup_complete
 
-	erpnext_before_tests()
+	if not frappe.db.a_row_exists("Company"):
+		current_year = now_datetime().year
+		setup_complete(
+			{
+				"currency": "USD",
+				"full_name": "Test User",
+				"company_name": "Dokompany",
+				"timezone": "Europe/Paris",
+				"company_abbr": "DK",
+				"industry": "Manufacturing",
+				"country": "France",
+				"fy_start_date": f"{current_year}-01-01",
+				"fy_end_date": f"{current_year}-12-31",
+				"language": "english",
+				"email": "test@dokos.io",
+				"password": "test",
+				"chart_of_accounts": "Plan Comptable Général",
+			}
+		)
+
+	frappe.db.commit()
 
 
 def add_custom_fields():

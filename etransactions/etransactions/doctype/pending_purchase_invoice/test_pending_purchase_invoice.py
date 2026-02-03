@@ -13,6 +13,8 @@ from erpnext.buying.doctype.purchase_order.purchase_order import make_purchase_r
 if TYPE_CHECKING:
 	from etransactions.etransactions.doctype.pending_purchase_invoice.pending_purchase_invoice import PendingPurchaseInvoice
 
+IGNORE_TEST_RECORD_DEPENDENCIES = ["Supplier", "Company", "Currency", "Tax Category", "Purchase Taxes and Charges Template", "Purchase Invoice", "File", "OCR Request", "Item", "Cost Center", "Project"]
+
 class TestPendingPurchaseInvoice(IntegrationTestCase):
 	def setUp(self):
 		self.clear_existing_data()
@@ -35,6 +37,7 @@ class TestPendingPurchaseInvoice(IntegrationTestCase):
 		"eTransactions Settings",
 		{"reconcile_with_purchase_receipts": 1, "auto_submit_purchase_invoices": 1},
 	)
+	@change_settings("Accounts Settings", {"mandatory_accounting_journal": 0})
 	def test_auto_reconciliation_with_purchase_receipt(self):
 		po = create_purchase_order(supplier=self.supplier.name, company=self.company, qty=1.0, rate=5000)
 		pr = make_purchase_receipt(po.name)
@@ -61,6 +64,7 @@ class TestPendingPurchaseInvoice(IntegrationTestCase):
 		"eTransactions Settings",
 		{"reconcile_with_purchase_receipts": 1, "auto_submit_purchase_invoices": 1},
 	)
+	@change_settings("Accounts Settings", {"mandatory_accounting_journal": 0})
 	def test_auto_reconciliation_of_credit_note(self):
 		po = create_purchase_order(supplier=self.supplier.name, company=self.company, qty=1.0, rate=5000)
 		pr = make_purchase_receipt(po.name)
