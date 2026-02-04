@@ -24,8 +24,9 @@ class TestPendingPurchaseInvoice(IntegrationTestCase):
 		frappe.db.rollback()
 
 	def create_prerequisites(self):
-		self.supplier = frappe.get_doc("Supplier", "_Test Supplier")
-		self.company = "_Test Company"
+		self.supplier = create_supplier()
+		create_item()
+		self.company = "Dokompany"
 
 
 	def clear_existing_data(self):
@@ -39,7 +40,7 @@ class TestPendingPurchaseInvoice(IntegrationTestCase):
 	)
 	@change_settings("Accounts Settings", {"mandatory_accounting_journal": 0})
 	def test_auto_reconciliation_with_purchase_receipt(self):
-		po = create_purchase_order(supplier=self.supplier.name, company=self.company, qty=1.0, rate=5000)
+		po = create_purchase_order(supplier=self.supplier.name, company=self.company, qty=1.0, rate=5000, warehouse="Finished Goods - DK")
 		pr = make_purchase_receipt(po.name)
 		pr.submit()
 
@@ -59,14 +60,13 @@ class TestPendingPurchaseInvoice(IntegrationTestCase):
 		pi = frappe.get_doc("Purchase Invoice", pi_name) # type: ignore
 		self.assertEqual(pi.total, 5000.0) # type: ignore
 
-
 	@change_settings(
 		"eTransactions Settings",
 		{"reconcile_with_purchase_receipts": 1, "auto_submit_purchase_invoices": 1},
 	)
 	@change_settings("Accounts Settings", {"mandatory_accounting_journal": 0})
 	def test_auto_reconciliation_of_credit_note(self):
-		po = create_purchase_order(supplier=self.supplier.name, company=self.company, qty=1.0, rate=5000)
+		po = create_purchase_order(supplier=self.supplier.name, company=self.company, qty=1.0, rate=5000, warehouse="Finished Goods - DK")
 		pr = make_purchase_receipt(po.name)
 		pr.submit()
 
@@ -104,3 +104,21 @@ class TestPendingPurchaseInvoice(IntegrationTestCase):
 		cn = frappe.get_doc("Purchase Invoice", cn_name) # type: ignore
 		self.assertEqual(cn.is_return, 1) # type: ignore
 		self.assertEqual(cn.return_against, pi.name) # type: ignore
+
+
+def create_supplier():
+	supplier = frappe.new_doc("Supplier")
+	supplier.supplier_name = "_Test Supplier"
+	supplier.supplier_group = "Services"
+	supplier.insert(ignore_if_duplicate=True)
+
+	return supplier
+
+def create_item():
+	item = frappe.new_doc("Item")
+	item.item_name = "_Test Item"
+	item.item_code = "_Test Item"
+	item.item_group = "All Item Groups"
+	item.insert(ignore_if_duplicate=True)
+
+	return item
