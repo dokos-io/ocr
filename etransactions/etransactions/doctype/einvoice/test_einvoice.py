@@ -4,7 +4,7 @@
 # import frappe
 from frappe.tests import IntegrationTestCase
 
-IGNORE_TEST_RECORD_DEPENDENCIES = ["Company", "Item", "Currency", "Purchase Order", "Sales Invoice", "Supplier", "Address"]
+IGNORE_TEST_RECORD_DEPENDENCIES = ["Company", "Item", "Currency", "Purchase Order", "Sales Invoice", "Supplier", "Address", "Purchase Order Item"]
 
 class TesteInvoice(IntegrationTestCase):
 	pass
