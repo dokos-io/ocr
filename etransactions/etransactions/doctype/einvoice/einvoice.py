@@ -18,7 +18,7 @@ from etransactions.utils import EInvoiceProfile, get_drafthorse_schema
 
 
 if TYPE_CHECKING:
-	from erpnext.accounts.doctype.purchase_invoice.purchase_invoice import PurchaseInvoice
+	from erpnext.stock.doctype.item.item import Item
 
 
 class eInvoice(Document):
@@ -276,7 +276,7 @@ class eInvoice(Document):
 
 
 @frappe.whitelist()
-def create_item(source_name, target_doc=None):
+def create_item(source_name: str, target_doc: Item | None = None):
 	def post_process(source, target):
 		if frappe.db.get_single_value("Stock Settings", "item_naming_by") == "Item Code":
 			target.item_code = target.item_name
@@ -309,7 +309,7 @@ def create_item(source_name, target_doc=None):
 
 @frappe.whitelist()
 @frappe.validate_and_sanitize_search_inputs
-def po_item_query(doctype, txt, searchfield, start, page_len, filters, as_dict=False):
+def po_item_query(doctype: str, txt: str, searchfield: str, start: int, page_len: int, filters: dict, as_dict: bool | None = False):
 	item_code = filters.pop("item_code", None)
 	purchase_order = filters.pop("parent", None)
 

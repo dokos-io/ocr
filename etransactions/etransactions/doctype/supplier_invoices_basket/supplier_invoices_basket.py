@@ -126,7 +126,7 @@ class SupplierInvoicesBasket(Document):
 
 
 @frappe.whitelist()
-def make_basket_from_communication(communication, basket_type, ignore_communication_links=False):
+def make_basket_from_communication(communication: str, basket_type: str, ignore_communication_links: bool | None = False):
 	communication_doc = frappe.get_doc("Communication", communication)
 
 	basket = frappe.new_doc("Supplier Invoices Basket")

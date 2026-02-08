@@ -41,8 +41,6 @@ def before_tests():
 			}
 		)
 
-	frappe.db.commit()
-
 
 def add_custom_fields():
 	click.secho("* Updating eTransactions Custom Fields")
