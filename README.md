@@ -14,6 +14,18 @@
 
 Issue de l'application OCR, elle a été conçue pour répondre aux exigences réglementaires françaises en matière de dématérialisation des factures, tout en restant compatible avec les applications **Dokos** et **ERPNext**.
 
+Nous avons fait le choix de développer notre propre module de compatibilité avec la facturation électronique pour plusieurs raisons:
+- Notre application d'OCR est déjà utilisée par nos utilisateurs pour l'intégration de leurs factures fournisseur et est le point d'entrée idéal pour la gestion de la facturation électronique.
+- Cela nous permet d'intégrer directement la liaison avec les Plateformes Agréées (PA) sans que les utilisateurs de Dokos/ERPNext doivent installer plusieurs applications complémentaires sur leur site.
+- La maîtrise des développements nous permet de l'intégrer avec Dokos et ERPNext en maîtrisant une élément majeur de la chaîne de valeur du logiciel.
+
+
+Cependant, ce module réutilise plusieurs composants provenant d'application tierces ou de modules déjà développés en interne:
+- [European e-Invoice](https://github.com/alyf-de/eu_einvoice) développé par Alyf GMBH
+- [eDocument](https://github.com/prilk-consulting/edocument) développé par Prilk Consulting
+- [Our own implementation experiment](https://gitlab.com/dokos/dokos/-/issues/132)
+
+
 ## Fonctionnalités
 
 ### Disponibles
@@ -64,6 +76,6 @@ Cette application est distribuée sous licence [**AGPLv3**](https://www.gnu.org/
 
 <div align="center">
 
-Développé avec ❤️ par [Dokos SAS](https://dokos.io)  
+Développé avec ❤️ par [Dokos SAS](https://dokos.io).  
 
 </div>
