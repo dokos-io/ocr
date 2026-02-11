@@ -23,7 +23,7 @@ Nous avons fait le choix de développer notre propre module de compatibilité av
 Cependant, ce module réutilise plusieurs composants provenant d'application tierces ou de modules déjà développés en interne:
 - [European e-Invoice](https://github.com/alyf-de/eu_einvoice) développé par Alyf GMBH
 - [eDocument](https://github.com/prilk-consulting/edocument) développé par Prilk Consulting
-- [Our own implementation experiment](https://gitlab.com/dokos/dokos/-/issues/132)
+- [Notre implémentation initiale](https://gitlab.com/dokos/dokos/-/issues/132)
 
 
 ## Fonctionnalités
