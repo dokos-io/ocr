@@ -49,8 +49,8 @@ class PendingPurchaseInvoice(Document):
 	from typing import TYPE_CHECKING
 
 	if TYPE_CHECKING:
-		from frappe.types import DF
 		from etransactions.etransactions.doctype.pending_purchase_invoice_item.pending_purchase_invoice_item import PendingPurchaseInvoiceItem
+		from frappe.types import DF
 
 		bill_date: DF.Date | None
 		bill_no: DF.Data | None

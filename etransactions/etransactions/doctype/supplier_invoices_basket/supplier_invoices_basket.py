@@ -1,4 +1,4 @@
-# Copyright (c) 2023, Dokos SAS and contributors
+# Copyright (c) 2026, Dokos SAS and contributors
 # For license information, please see license.txt
 
 import frappe
@@ -7,10 +7,13 @@ from frappe.model.document import Document
 
 from frappe.email.inbox import link_communication_to_document
 
+from etransactions.etransactions.doctype.einvoice.parser import eInvoiceParser
+
 
 AUTHORIZED_FILE_TYPES = ["PDF"]
 
-class OCRPurchaseInvoiceBasket(Document):
+
+class SupplierInvoicesBasket(Document):
 	# begin: auto-generated types
 	# This code is auto-generated. Do not modify anything in this block.
 
@@ -37,7 +40,7 @@ class OCRPurchaseInvoiceBasket(Document):
 			frappe.enqueue_doc(
 				self.doctype,
 				self.name,
-				"create_requests",
+				"route_invoices",
 				queue="default",
 				enqueue_after_commit=True,
 			)
@@ -70,18 +73,32 @@ class OCRPurchaseInvoiceBasket(Document):
 		return files
 
 	@frappe.whitelist()
-	def create_requests(self):
+	def route_invoices(self):
+		"""
+		Always check first if invoice is an einvoice.
+		Else send it to OCR.
+		"""
 		if linked_files := self.get_all_files():
 			for file in linked_files:
-				request = frappe.new_doc("OCR Request")
-				request.ocr_basket = self.name
-				request.filename = file.get("file_name")
-				request.file = file.get("name")
-				request.insert()
+				try:
+					file_doc = frappe.get_doc("File", file["name"])
+					xml_bytes = eInvoiceParser.get_xml_bytes(file_doc)
+					eInvoiceParser.get_einvoice_document(xml_bytes)
+					einvoice = frappe.new_doc("eInvoice")
+					einvoice.einvoice = file["name"]
+					einvoice.insert()
+				except Exception:
+					#TODO: Handle errors for UX
+
+					request = frappe.new_doc("OCR Request")
+					request.ocr_basket = self.name
+					request.filename = file.get("file_name")
+					request.file = file.get("name")
+					request.insert()
 
 			self.db_set("status", "In Progress")
 		else:
-			self.db_set("error", _("No PDF file found in this basket"))
+			self.db_set("error", _("No matching supplier format file (PDF, XML) found in this basket"))
 			self.db_set("status", "Closed")
 
 	def relink_files_after_insert(self):
@@ -104,15 +121,15 @@ class OCRPurchaseInvoiceBasket(Document):
 				self.log_error()
 
 		elif all([a.status in ["Closed", "Completed", "Analysis Completed"] for a in associated_requests]):
-			frappe.db.set_value("OCR Purchase Invoice Basket", self.name, "status", "Completed")
+			frappe.db.set_value("Supplier Invoices Basket", self.name, "status", "Completed")
 
 
 
 @frappe.whitelist()
-def make_basket_from_communication(communication, basket_type, ignore_communication_links=False):
+def make_basket_from_communication(communication: str, basket_type: str, ignore_communication_links: bool | None = False):
 	communication_doc = frappe.get_doc("Communication", communication)
 
-	basket = frappe.new_doc("OCR Purchase Invoice Basket")
+	basket = frappe.new_doc("Supplier Invoices Basket")
 	basket.document_type = basket_type
 	basket.subject = frappe.as_unicode(communication_doc.subject)[:140]
 	basket.sender = frappe.as_unicode(communication_doc.sender)
@@ -120,7 +137,7 @@ def make_basket_from_communication(communication, basket_type, ignore_communicat
 	basket.flags.ignore_mandatory = True
 	basket.insert(ignore_permissions=True, ignore_if_duplicate=True)
 
-	link_communication_to_document(communication_doc, "OCR Purchase Invoice Basket", basket.name, ignore_communication_links)
+	link_communication_to_document(communication_doc, "Supplier Invoices Basket", basket.name, ignore_communication_links)
 
 	basket.run_method("create_requests")
 
@@ -129,5 +146,5 @@ def make_basket_from_communication(communication, basket_type, ignore_communicat
 
 @frappe.whitelist()
 def check_ocr_basket_status():
-	for ocr_basket in frappe.get_all("OCR Purchase Invoice Basket", filters={"status": "In Progress"}):
-		frappe.get_doc("OCR Purchase Invoice Basket", ocr_basket.name).run_method("set_status")
+	for ocr_basket in frappe.get_all("Supplier Invoices Basket", filters={"status": "In Progress"}):
+		frappe.get_doc("Supplier Invoices Basket", ocr_basket.name).run_method("set_status")

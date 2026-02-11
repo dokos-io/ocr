@@ -81,6 +81,8 @@ after_install = "etransactions.install.after_install"
 
 after_migrate = "etransactions.migrate.after_migrate"
 
+importable_doctypes = ["eTransaction Profile"]
+
 # Uninstallation
 # ------------
 
@@ -177,6 +179,9 @@ doc_events = {
 	},
 	"Pending Purchase Invoice": {
 		"on_close": "etransactions.etransactions.doctype.ocr_request.ocr_request.update_ocr_request_status",
+	},
+	"Sales Invoice": {
+		"before_save": "etransactions.overrides.sales_invoice.before_save",
 	}
 }
 
@@ -188,7 +193,7 @@ scheduler_events = {
 	# 	"etransactions.tasks.all"
 	# ],
 	"daily": [
-		"etransactions.etransactions.doctype.ocr_purchase_invoice_basket.ocr_purchase_invoice_basket.check_ocr_basket_status"
+		"etransactions.etransactions.doctype.supplier_invoices_basket.supplier_invoices_basket.check_ocr_basket_status"
 	],
 	"hourly": [
 		"etransactions.etransactions.doctype.ocr_request.ocr_request.check_pending_analysis"

@@ -69,8 +69,8 @@
   {
    "fieldname": "ocr_basket",
    "fieldtype": "Link",
-   "label": "OCR Purchase Invoice Basket",
-   "options": "OCR Purchase Invoice Basket",
+   "label": "Supplier Invoices Basket",
+   "options": "Supplier Invoices Basket",
    "read_only": 1
   },
   {

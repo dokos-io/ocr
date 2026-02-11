@@ -1,0 +1,12 @@
+{
+ "creation": "2026-01-25 13:46:10.996559",
+ "docstatus": 0,
+ "doctype": "eTransaction Profile",
+ "identifier_value": "urn:cen.eu:en16931:2017",
+ "idx": 0,
+ "modified": "2026-01-25 13:46:10.996559",
+ "modified_by": "Administrator",
+ "name": "EN16931",
+ "owner": "Administrator",
+ "profile": "EN16931"
+}

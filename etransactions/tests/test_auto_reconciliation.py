@@ -12,6 +12,8 @@ from etransactions.etransactions.doctype.etransactions_settings.etransactions_se
 from etransactions.tests.utils import add_items, add_suppliers
 from etransactions.etransactions.doctype.pending_purchase_invoice.pending_purchase_invoice import PendingPurchaseInvoice
 
+IGNORE_TEST_RECORD_DEPENDENCIES = []
+
 class TestAutoReconciliation(IntegrationTestCase):
 	@classmethod
 	def setUpClass(cls):

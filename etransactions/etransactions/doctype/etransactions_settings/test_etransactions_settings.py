@@ -4,5 +4,7 @@
 # import frappe
 from frappe.tests.utils import FrappeTestCase
 
+IGNORE_TEST_RECORD_DEPENDENCIES = []
+
 class TestOCRSettings(FrappeTestCase):
 	pass

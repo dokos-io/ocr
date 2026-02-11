@@ -1,0 +1,12 @@
+{
+ "creation": "2026-01-25 13:45:56.633477",
+ "docstatus": 0,
+ "doctype": "eTransaction Profile",
+ "identifier_value": "urn:cen.eu:en16931:2017#compliant#urn:factur-x.eu:1p0:basic",
+ "idx": 0,
+ "modified": "2026-01-25 13:45:56.633477",
+ "modified_by": "Administrator",
+ "name": "BASIC",
+ "owner": "Administrator",
+ "profile": "BASIC"
+}

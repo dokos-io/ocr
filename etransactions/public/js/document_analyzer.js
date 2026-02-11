@@ -1,4 +1,4 @@
-frappe.provide("etransactions")
+frappe.provide("etransactions");
 
 etransactions.DocumentAnalyzer = class DocumentAnalyzer {
 	constructor(frm) {

@@ -190,7 +190,7 @@ class OCRRequest(Document):
 
 	def update_parent_status(self):
 		if self.ocr_basket:
-			frappe.get_doc("OCR Purchase Invoice Basket", self.ocr_basket).run_method("set_status")
+			frappe.get_doc("Supplier Invoices Basket", self.ocr_basket).run_method("set_status")
 
 	def reset_status_and_error(self):
 		self.db_set("error", "")

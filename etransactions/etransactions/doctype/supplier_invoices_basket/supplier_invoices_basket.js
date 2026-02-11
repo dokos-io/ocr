@@ -1,9 +1,7 @@
-// Copyright (c) 2023, Dokos SAS and contributors
+// Copyright (c) 2026, Dokos SAS and contributors
 // For license information, please see license.txt
 
-frappe.provide("etransactions")
-
-frappe.ui.form.on("OCR Purchase Invoice Basket", {
+frappe.ui.form.on("Supplier Invoices Basket", {
 	refresh(frm) {
 		new etransactions.DocumentAnalyzer(frm)
 
@@ -35,7 +33,7 @@ const trigger_request_creation = (frm) => {
 	frm.page.clear_primary_action()
 
 	frappe.call({
-		method: "create_requests",
+		method: "route_invoices",
 		doc: frm.doc
 	}).then(() => {
 		frm.reload_doc()

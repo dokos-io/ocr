@@ -280,8 +280,8 @@
    "fetch_from": "ocr_request.ocr_basket",
    "fieldname": "ocr_basket",
    "fieldtype": "Link",
-   "label": "OCR Purchase Invoice Basket",
-   "options": "OCR Purchase Invoice Basket",
+   "label": "Supplier Invoices Basket",
+   "options": "Supplier Invoices Basket",
    "read_only": 1,
    "search_index": 1
   },
@@ -374,7 +374,7 @@
    "link_fieldname": "pending_purchase_invoice"
   }
  ],
- "modified": "2025-12-27 09:23:30.656162",
+ "modified": "2026-01-25 11:13:16.195142",
  "modified_by": "Administrator",
  "module": "eTransactions",
  "name": "Pending Purchase Invoice",
