@@ -119,7 +119,7 @@ class eInvoice(Document):
 		sales_invoice: SalesInvoice = self.einvoice_data.sales_invoice
 		sales_invoice.run_method("before_einvoice_generation")
 
-		profile = EInvoiceProfile(sales_invoice.get("einvoice_profile"))
+		profile = EInvoiceProfile(sales_invoice.get("etransaction_profile"))
 		generator = EInvoiceGenerator(
 			profile=profile,
 			invoice=sales_invoice,

@@ -1,9 +1,9 @@
 import frappe
 
 def on_trash(doc, method=None):
-	unlink_pending_purchase_invoices(doc)
+	unlink_supplier_invoices(doc)
 
-def unlink_pending_purchase_invoices(doc):
+def unlink_supplier_invoices(doc):
 	if not doc.pending_purchase_invoice:
 		return
 

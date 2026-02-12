@@ -28,7 +28,7 @@ def on_validate(doc, method):
 
 		if (
 			tax_row.charge_type == "Actual"
-			and EInvoiceProfile(doc.einvoice_profile) < EInvoiceProfile.EXTENDED
+			and EInvoiceProfile(doc.etransaction_profile) < EInvoiceProfile.EXTENDED
 		):
 			frappe.msgprint(
 				_(

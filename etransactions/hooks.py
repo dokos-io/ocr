@@ -138,15 +138,15 @@ importable_doctypes = ["eTransaction Profile"]
 doc_events = {
 	"Purchase Order": {
 		"on_update": [
-			"etransactions.etransactions.doctype.pending_purchase_invoice.pending_purchase_invoice.register_purchase_order_items",
-			"etransactions.etransactions.doctype.pending_purchase_invoice.pending_purchase_invoice.set_pending_purchase_order_status"
+			"etransactions.etransactions.doctype.supplier_invoice.supplier_invoice.register_purchase_order_items",
+			"etransactions.etransactions.doctype.supplier_invoice.supplier_invoice.set_pending_purchase_order_status"
 		],
 		"on_submit": [
-			"etransactions.etransactions.doctype.pending_purchase_invoice.pending_purchase_invoice.set_pending_purchase_order_status"
+			"etransactions.etransactions.doctype.supplier_invoice.supplier_invoice.set_pending_purchase_order_status"
 		],
 		"on_cancel": [
 			"etransactions.etransactions.doctype.ocr_request.ocr_request.update_ocr_request_status",
-			"etransactions.etransactions.doctype.pending_purchase_invoice.pending_purchase_invoice.set_pending_purchase_order_status"
+			"etransactions.etransactions.doctype.supplier_invoice.supplier_invoice.set_pending_purchase_order_status"
 		],
 		"on_trash": [
 			"etransactions.overrides.purchase_order.on_trash",
@@ -157,25 +157,25 @@ doc_events = {
 			"etransactions.overrides.purchase_invoice.validate_over_billing",
 		],
 		"before_submit": [
-			"etransactions.etransactions.doctype.pending_purchase_invoice.pending_purchase_invoice.validate_total",
+			"etransactions.etransactions.doctype.supplier_invoice.supplier_invoice.validate_total",
 			"etransactions.overrides.purchase_invoice.validate_over_billing",
 		],
 		"on_submit": [
 			"etransactions.etransactions.doctype.ocr_request.ocr_request.update_ocr_request_status",
-			"etransactions.etransactions.doctype.pending_purchase_invoice.pending_purchase_invoice.set_pending_purchase_order_status",
+			"etransactions.etransactions.doctype.supplier_invoice.supplier_invoice.set_pending_purchase_order_status",
 		],
 		"on_cancel": [
 			"etransactions.etransactions.doctype.ocr_request.ocr_request.update_ocr_request_status",
-			"etransactions.etransactions.doctype.pending_purchase_invoice.pending_purchase_invoice.set_pending_purchase_order_status"
+			"etransactions.etransactions.doctype.supplier_invoice.supplier_invoice.set_pending_purchase_order_status"
 		],
 		"after_mapping": [
 			"etransactions.overrides.purchase_invoice.after_mapping",
 		]
 	},
 	"Purchase Receipt": {
-		"on_submit": "etransactions.etransactions.doctype.pending_purchase_invoice.pending_purchase_invoice.auto_match_with_purchase_receipt",
-		"on_cancel": "etransactions.etransactions.doctype.pending_purchase_invoice.pending_purchase_invoice.remove_link_with_pending_purchase_invoices",
-		"on_change": "etransactions.etransactions.doctype.pending_purchase_invoice.pending_purchase_invoice.remove_link_with_pending_purchase_invoices"
+		"on_submit": "etransactions.etransactions.doctype.supplier_invoice.supplier_invoice.auto_match_with_purchase_receipt",
+		"on_cancel": "etransactions.etransactions.doctype.supplier_invoice.supplier_invoice.remove_link_with_supplier_invoices",
+		"on_change": "etransactions.etransactions.doctype.supplier_invoice.supplier_invoice.remove_link_with_supplier_invoices"
 	},
 	"Supplier Invoice": {
 		"on_close": "etransactions.etransactions.doctype.ocr_request.ocr_request.update_ocr_request_status",
