@@ -52,7 +52,7 @@ class eInvoiceParser:
 		return get_xml_bytes(einvoice)
 
 	def parse_einvoice(self) -> None:
-		einvoice = frappe.get_doc("File", self.einvoice_document.einvoice)
+		einvoice: File = frappe.get_doc("File", self.einvoice_document.einvoice)
 		xml_bytes = eInvoiceParser.get_xml_bytes(einvoice)
 		self.einvoice_document.einvoice_xml = xml_bytes
 		doc = eInvoiceParser.get_einvoice_document(xml_bytes)
