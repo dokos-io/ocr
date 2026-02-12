@@ -181,7 +181,7 @@ doc_events = {
 		"on_close": "etransactions.etransactions.doctype.ocr_request.ocr_request.update_ocr_request_status",
 	},
 	"Sales Invoice": {
-		"before_save": "etransactions.overrides.sales_invoice.before_save",
+		"on_update": "etransactions.overrides.sales_invoice.on_update",
 	}
 }
 
