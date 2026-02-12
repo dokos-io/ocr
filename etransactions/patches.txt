@@ -4,10 +4,4 @@
 
 [post_model_sync]
 # Patches added in this section will be executed after doctypes are migrated
-ocr.ocr.doctype.ocr_request.patches.create_more_specific_statuses_for_ocr_request
-ocr.patches.keep_only_parsed_data_in_analysis
-ocr.patches.add_pending_purchase_invoices
-ocr.patches.remove_all_files_from_aws
-ocr.patches.cleanup_old_errors
-ocr.patches.remove_old_custom_fields
 ocr.patches.set_default_ocr_service
