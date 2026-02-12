@@ -120,7 +120,7 @@ class MistralOCR:
 
 			return self.process_response()
 		except Exception:
-			frappe.log_error("Mistral eTransactions Error")
+			frappe.log_error("Mistral OCR Error")
 
 	def process_response(self):
 		if not self.ocr_response:
@@ -135,7 +135,7 @@ class MistralOCR:
 		try:
 			self.client.files.delete(file_id=file_id)
 		except Exception:
-			frappe.log_error("Mistral eTransactions File Deletion Error")
+			frappe.log_error("Mistral OCR File Deletion Error")
 
 
 

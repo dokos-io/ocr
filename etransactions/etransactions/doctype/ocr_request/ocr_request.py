@@ -109,7 +109,7 @@ class OCRRequest(Document):
 			return self.get_raw_data()
 
 		ocr_service = frappe.db.get_single_value("eTransactions Settings", "ocr_service")
-		if ocr_service == "Mistral eTransactions":
+		if ocr_service == "Mistral OCR":
 			return self.get_mistral_analysis()
 		else:
 			return self.get_textract_analysis()
@@ -155,7 +155,7 @@ class OCRRequest(Document):
 	def delete_remote_file(self, log_exception = True):
 		try:
 			ocr_service = frappe.db.get_single_value("eTransactions Settings", "ocr_service")
-			if ocr_service == "Mistral eTransactions":
+			if ocr_service == "Mistral OCR":
 				if self.job:
 					mistral = MistralOCR(self)
 					mistral.delete_file(self.job)
