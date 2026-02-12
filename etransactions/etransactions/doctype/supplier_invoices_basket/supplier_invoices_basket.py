@@ -126,6 +126,25 @@ class SupplierInvoicesBasket(Document):
 
 
 @frappe.whitelist()
+def create_basket_from_files(file_names: list[str] | str):
+	if isinstance(file_names, str):
+		file_names = frappe.parse_json(file_names)
+
+	basket = frappe.new_doc("Supplier Invoices Basket")
+	basket.insert()
+
+	for file_name in file_names:
+		frappe.db.set_value("File", file_name, {
+			"attached_to_doctype": "Supplier Invoices Basket",
+			"attached_to_name": basket.name
+		})
+
+	basket.route_invoices()
+
+	return basket.name
+
+
+@frappe.whitelist()
 def make_basket_from_communication(communication: str, basket_type: str, ignore_communication_links: bool | None = False):
 	communication_doc = frappe.get_doc("Communication", communication)
 

@@ -500,7 +500,8 @@
    "fieldtype": "Link",
    "label": "EInvoice File",
    "mandatory_depends_on": "eval:doc.einvoice_type==\"Incoming\"",
-   "options": "File"
+   "options": "File",
+   "read_only": 1
   },
   {
    "fieldname": "column_break_albz",
@@ -517,6 +518,7 @@
    "fieldtype": "Select",
    "label": "eInvoice Type",
    "options": "Incoming\nOutgoing",
+   "read_only": 1,
    "reqd": 1
   },
   {
@@ -545,7 +547,7 @@
  "in_create": 1,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-02-12 08:39:42.207856",
+ "modified": "2026-02-12 08:52:39.703656",
  "modified_by": "Administrator",
  "module": "eTransactions",
  "name": "eInvoice",
