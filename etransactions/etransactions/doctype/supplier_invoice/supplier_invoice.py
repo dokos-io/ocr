@@ -57,6 +57,7 @@ class SupplierInvoice(Document):
 		company: DF.Link
 		currency: DF.Link
 		due_date: DF.Date | None
+		einvoice: DF.Link | None
 		file: DF.Link | None
 		file_url: DF.SmallText | None
 		grand_total: DF.Currency

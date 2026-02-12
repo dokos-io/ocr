@@ -13,7 +13,7 @@ frappe.listview_settings["Supplier Invoice"] = {
 					}).then(r => {
 						if (r.message) {
 							frappe.show_alert(
-								__("Basket {0} created", [listview.basket_name]),
+								__("Basket created"),
 								5
 							);
 						}

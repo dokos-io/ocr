@@ -1,6 +1,7 @@
 # Copyright (c) 2026, ALYF GmbH, Dokos SAS and contributors
 # For license information, please see license.txt
 
+import difflib
 from typing import TYPE_CHECKING
 
 import frappe
@@ -92,6 +93,10 @@ class eInvoice(Document):
 			self.create_outgoing_einvoice()
 			self.validate_einvoice()
 
+	def on_update(self):
+		if not frappe.db.get_value("Supplier Invoice", dict(einvoice=self.name)):
+			self.generate_supplier_invoice()
+
 	def validate_incoming_data(self):
 		self.read_values_from_einvoice()
 		self.guess_company()
@@ -131,7 +136,6 @@ class eInvoice(Document):
 		self.einvoice_data.sales_invoice.run_method("after_einvoice_generation")
 
 		self.einvoice_xml = doc.serialize(schema=get_drafthorse_schema(profile))
-
 
 	def on_submit(self):
 		self.add_seller_product_ids_to_items()
@@ -250,6 +254,15 @@ class eInvoice(Document):
 		if any(warnings):
 			self.validation_warnings += "\n".join(warnings)
 
+	def generate_supplier_invoice(self):
+		data = IncomingInvoiceDataTransformer(self).get_data()
+
+		doc = frappe.new_doc("Supplier Invoice")
+		doc.update(data)
+		doc.einvoice = self.name
+
+		return doc.insert(ignore_mandatory=True, ignore_links=True)
+
 
 
 @frappe.whitelist()
@@ -295,3 +308,122 @@ def get_po_item_details(po_detail: str):
 		"item_code": row.item_code,
 		"uom": row.uom,
 	}
+
+
+
+class IncomingInvoiceDataTransformer:
+	def __init__(self, invoice_doc):
+		self.invoice_doc = invoice_doc
+
+	def get_data(self):
+		data = {
+			"company": self.get_company(),
+			"supplier": self.get_supplier(),
+			"supplier_name": self.invoice_doc.seller_name,
+			"bill_no": self.invoice_doc.id,
+			"bill_date": self.invoice_doc.issue_date,
+			"due_date": self.invoice_doc.due_date,
+			"currency": self.invoice_doc.currency,
+			"supplier_net_amount": self.invoice_doc.line_total,
+			"supplier_tax_amount": self.invoice_doc.tax_total,
+			"supplier_grand_total": self.invoice_doc.grand_total,
+			"vendor_address": self.get_seller_address(),
+			"tax_id": self.invoice_doc.seller_tax_id,
+			"einvoice": self.invoice_doc.name,
+			"ocr_basket": self.invoice_doc.supplier_invoices_basket,
+			"items": []
+		}
+
+		for item in self.invoice_doc.items:
+			data["items"].append({
+				"supplier_description": item.product_name,
+				"description": item.product_description,
+				"supplier_item_code": item.seller_product_id,
+				"item_code": item.item,
+				"qty": item.billed_quantity,
+				"rate": item.net_rate,
+				"amount": item.total_amount,
+			})
+
+		return data
+
+	def get_seller_address(self):
+		address_parts = [
+			self.invoice_doc.seller_address_line_1,
+			self.invoice_doc.seller_address_line_2,
+			self.invoice_doc.seller_postcode,
+			self.invoice_doc.seller_city,
+			self.invoice_doc.seller_country
+		]
+		return ", ".join([p for p in address_parts if p])
+
+	def get_buyer_address(self):
+		address_parts = [
+			self.invoice_doc.buyer_address_line_1,
+			self.invoice_doc.buyer_address_line_2,
+			self.invoice_doc.buyer_postcode,
+			self.invoice_doc.buyer_city,
+			self.invoice_doc.buyer_country
+		]
+		return ", ".join([p for p in address_parts if p])
+
+	def get_supplier(self):
+		supplier = None
+		if self.invoice_doc.seller_tax_id:
+			supplier = frappe.db.get_value("Supplier", dict(tax_id=self.invoice_doc.seller_tax_id))
+
+		if not supplier and self.invoice_doc.seller_name:
+			supplier = frappe.db.get_value("Supplier", self.invoice_doc.seller_name)
+
+		if not supplier and self.invoice_doc.seller_name and len(self.invoice_doc.seller_name.split(" ")) > 1:
+			for substring in self.invoice_doc.seller_name.split(" "):
+				if supplier := frappe.db.get_value("Supplier", substring):
+					break
+
+		if not supplier and self.invoice_doc.seller_name:
+			existing_suppliers = frappe.get_all("Supplier", filters=dict(disabled=0), fields=["name", "supplier_name"])
+			existing_supplier_dict = {s.supplier_name: s.name for s in existing_suppliers}
+
+			if existing_supplier_list := [s.supplier_name for s in existing_suppliers]:
+				best_match = next(iter(sorted(
+					existing_supplier_list,
+					key=lambda doc: difflib.SequenceMatcher(
+						lambda doc: doc == " ", doc.lower(), self.invoice_doc.seller_name.lower()
+					).ratio(),
+					reverse=True,
+				)))
+
+				if difflib.SequenceMatcher(lambda doc: doc == " ", best_match.lower(), self.invoice_doc.seller_name.lower()).ratio() > 0.9:
+					supplier = existing_supplier_dict.get(best_match)
+
+		if supplier and not frappe.db.exists("Supplier", supplier):
+			supplier = None
+
+		return supplier or ""
+
+	def get_company(self):
+		if self.invoice_doc.company:
+			return self.invoice_doc.company
+
+		company = None
+		companies = {x.lower(): x for x in frappe.get_all("Company", pluck="name")}
+
+		receiver_name = (self.invoice_doc.buyer_name or "").lower()
+		receiver_address = self.get_buyer_address().lower()
+
+		if company_match := difflib.get_close_matches(receiver_name, list(companies.keys()), cutoff=0.9):
+			company = companies.get(company_match[0])
+
+		if not company and (company_match := difflib.get_close_matches(receiver_address, list(companies.keys()), cutoff=0.9)):
+			company = companies.get(company_match[0])
+
+		if not company:
+			for company_name_lower, company_name in companies.items():
+				if company_name_lower in receiver_name or company_name_lower in receiver_address:
+					company = company_name
+					break
+
+		if not company and len(companies) == 1:
+			company = list(companies.values())[0]
+
+		return company or get_default_company() or ""
