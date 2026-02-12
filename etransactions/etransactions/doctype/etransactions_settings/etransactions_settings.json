@@ -65,13 +65,13 @@
    "default": "0",
    "fieldname": "block_if_grand_total_exceeds_pending_pi",
    "fieldtype": "Check",
-   "label": "Block the creation of purchase invoices with a grand total exceeding the pending purchase invoice "
+   "label": "Block the creation of purchase invoices with a grand total exceeding the supplier invoice "
   },
   {
    "default": "0",
    "fieldname": "block_if_net_total_exceeds_pending_pi",
    "fieldtype": "Check",
-   "label": "Block the creation of purchase invoices with a net total exceeding the pending purchase invoice "
+   "label": "Block the creation of purchase invoices with a net total exceeding the supplier invoice "
   },
   {
    "default": "Amazon Textract",

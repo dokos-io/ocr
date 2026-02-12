@@ -177,7 +177,7 @@ doc_events = {
 		"on_cancel": "etransactions.etransactions.doctype.pending_purchase_invoice.pending_purchase_invoice.remove_link_with_pending_purchase_invoices",
 		"on_change": "etransactions.etransactions.doctype.pending_purchase_invoice.pending_purchase_invoice.remove_link_with_pending_purchase_invoices"
 	},
-	"Pending Purchase Invoice": {
+	"Supplier Invoice": {
 		"on_close": "etransactions.etransactions.doctype.ocr_request.ocr_request.update_ocr_request_status",
 	},
 	"Sales Invoice": {

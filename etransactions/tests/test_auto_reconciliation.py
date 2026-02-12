@@ -10,7 +10,7 @@ from erpnext import get_default_company
 from erpnext.buying.doctype.purchase_order.purchase_order import PurchaseOrder, make_purchase_receipt
 from etransactions.etransactions.doctype.etransactions_settings.etransactions_settings import eTransactionsSettings
 from etransactions.tests.utils import add_items, add_suppliers
-from etransactions.etransactions.doctype.pending_purchase_invoice.pending_purchase_invoice import PendingPurchaseInvoice
+from etransactions.etransactions.doctype.supplier_invoice.supplier_invoice import SupplierInvoice
 
 IGNORE_TEST_RECORD_DEPENDENCIES = []
 
@@ -213,7 +213,7 @@ def get_purchase_order(company, item_code, qty, rate, **kwargs):
 	return po
 
 def get_pending_purchase_invoice(supplier, amount, purchase_order):
-	pending_invoice: PendingPurchaseInvoice = frappe.new_doc("Pending Purchase Invoice") # type: ignore
+	pending_invoice: SupplierInvoice = frappe.new_doc("Supplier Invoice") # type: ignore
 	pending_invoice.supplier = supplier
 	pending_invoice.bill_no = frappe.generate_hash(length=8)
 	pending_invoice.bill_date = nowdate()

@@ -38,8 +38,8 @@ purchasing_fields = [
 	{
 		"fieldname": "pending_purchase_invoice",
 		"fieldtype": "Link",
-		"options": "Pending Purchase Invoice",
-		"label": _("Pending Purchase Invoice"),
+		"options": "Supplier Invoice",
+		"label": _("Supplier Invoice"),
 		"insert_after": "ocr_original_file",
 		"read_only": 1,
 		"no_copy": 1
@@ -80,8 +80,8 @@ TRANSACTION_FIELDS: dict = {
 		{
 			"fieldname": "pending_purchase_invoice_item",
 			"fieldtype": "Link",
-			"options": "Pending Purchase Invoice Item",
-			"label": _("Pending Purchase Invoice Item"),
+			"options": "Supplier Invoice Item",
+			"label": _("Supplier Invoice Item"),
 			"insert_after": "ocr_request_line_item",
 			"read_only": 1,
 			"no_copy": 1

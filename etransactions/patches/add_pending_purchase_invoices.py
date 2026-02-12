@@ -3,7 +3,7 @@ import frappe
 from etransactions.install import add_custom_fields
 
 def execute():
-	frappe.reload_doc("etransactions", "doctype", "Pending Purchase Invoice")
+	frappe.reload_doc("etransactions", "doctype", "Supplier Invoice")
 
 	add_custom_fields()
 

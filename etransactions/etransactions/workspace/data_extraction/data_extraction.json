@@ -27,9 +27,9 @@
    "quick_list_filter": "[[\"Supplier Invoices Basket\",\"status\",\"in\",[\"Not Started\",\"In Progress\",null],false]]"
   },
   {
-   "document_type": "Pending Purchase Invoice",
+   "document_type": "Supplier Invoice",
    "label": "Purchase Invoice to Create",
-   "quick_list_filter": "[[\"Pending Purchase Invoice\",\"status\",\"in\",[\"Pending\",\"In Progress\",null],false]]"
+   "quick_list_filter": "[[\"Supplier Invoice\",\"status\",\"in\",[\"Pending\",\"In Progress\",null],false]]"
   },
   {
    "document_type": "Purchase Invoice",
