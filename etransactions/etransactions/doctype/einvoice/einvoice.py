@@ -1,7 +1,6 @@
 # Copyright (c) 2026, ALYF GmbH, Dokos SAS and contributors
 # For license information, please see license.txt
 
-import difflib
 from typing import TYPE_CHECKING
 
 import frappe
@@ -20,6 +19,7 @@ from etransactions.utils import EInvoiceProfile, get_drafthorse_schema
 
 if TYPE_CHECKING:
 	from erpnext.stock.doctype.item.item import Item
+	from erpnext.accounts.doctype.sales_invoice.sales_invoice import SalesInvoice
 
 
 class eInvoice(Document):
@@ -109,19 +109,20 @@ class eInvoice(Document):
 		self.generate_einvoice()
 
 	def map_sales_invoice_to_einvoice(self):
-		self.einvoice_data = EInvoiceMapper(self)
+		self.einvoice_data: EInvoiceMapper = EInvoiceMapper(self)
 		self.einvoice_data.run()
 
 	def generate_einvoice(self):
-		if not self.einvoice_data:
+		if not hasattr(self, "einvoice_data") or not self.einvoice_data:
 			return
 
-		self.einvoice_data.sales_invoice.run_method("before_einvoice_generation")
+		sales_invoice: SalesInvoice = self.einvoice_data.sales_invoice
+		sales_invoice.run_method("before_einvoice_generation")
 
-		profile = EInvoiceProfile(self.einvoice_data.sales_invoice.einvoice_profile)
+		profile = EInvoiceProfile(sales_invoice.get("einvoice_profile"))
 		generator = EInvoiceGenerator(
 			profile=profile,
-			invoice=self.einvoice_data.sales_invoice,
+			invoice=sales_invoice,
 			company=self.einvoice_data.company,
 			customer=self.einvoice_data.customer,
 			seller_address=self.einvoice_data.seller_address,
