@@ -13,12 +13,12 @@
   "column_break_albz",
   "profile",
   "e_invoice_is_correct",
-  "validation_details_section",
-  "validation_errors",
-  "validation_warnings",
   "header_section",
   "issue_date",
   "id",
+  "validation_details_section",
+  "validation_errors",
+  "validation_warnings",
   "section_break_z2sq",
   "amended_from",
   "buyer_tab",
@@ -43,8 +43,6 @@
   "seller_name",
   "seller_tax_id",
   "column_break_jjaa",
-  "supplier",
-  "create_supplier",
   "section_break_sqyh",
   "seller_electronic_address_scheme",
   "column_break_qxvl",
@@ -56,8 +54,6 @@
   "seller_city",
   "seller_country",
   "column_break_foui",
-  "supplier_address",
-  "create_supplier_address",
   "items_tab",
   "items",
   "delivery_tab",
@@ -146,13 +142,6 @@
    "read_only": 1
   },
   {
-   "default": "0",
-   "depends_on": "eval: !doc.supplier",
-   "fieldname": "create_supplier",
-   "fieldtype": "Button",
-   "label": "Create Supplier"
-  },
-  {
    "fieldname": "column_break_reul",
    "fieldtype": "Column Break"
   },
@@ -200,30 +189,10 @@
    "options": "eInvoice Item"
   },
   {
-   "fieldname": "supplier",
-   "fieldtype": "Link",
-   "label": "Supplier",
-   "options": "Supplier"
-  },
-  {
    "fieldname": "company",
    "fieldtype": "Link",
    "label": "Company",
    "options": "Company"
-  },
-  {
-   "fieldname": "supplier_address",
-   "fieldtype": "Link",
-   "label": "Supplier Address",
-   "options": "Address",
-   "read_only_depends_on": "eval: !doc.supplier"
-  },
-  {
-   "default": "0",
-   "depends_on": "eval: doc.supplier && !doc.supplier_address",
-   "fieldname": "create_supplier_address",
-   "fieldtype": "Button",
-   "label": "Create Supplier Address"
   },
   {
    "fieldname": "seller_tax_id",
@@ -338,6 +307,8 @@
   {
    "fieldname": "profile",
    "fieldtype": "Read Only",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
    "label": "Profile",
    "options": "BASIC\nEN 16931\nEXTENDED\nXRECHNUNG",
    "read_only": 1
@@ -552,6 +523,8 @@
    "depends_on": "eval:doc.einvoice_type==\"Outgoing\"",
    "fieldname": "sales_invoice",
    "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
    "label": "Sales Invoice",
    "mandatory_depends_on": "eval:doc.einvoice_type==\"Outgoing\"",
    "options": "Sales Invoice"
@@ -572,7 +545,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-01-25 16:22:44.635892",
+ "modified": "2026-02-12 04:12:52.251130",
  "modified_by": "Administrator",
  "module": "eTransactions",
  "name": "eInvoice",

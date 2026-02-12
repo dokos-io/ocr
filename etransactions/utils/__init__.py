@@ -176,9 +176,10 @@ def as_base_64(content: str | bytes) -> str:
 class EInvoiceProfile(Enum):
 	"""
 	Profiles according to Factur-X Specification 1.07.2 page 18.
-	'MINIMUM' and 'BASIC WL' are not included because they are not valid tax invoices.
 	"""
 
+	MINIMUM = "MINIMUM"
+	BASIC_WL = "BASIC WL"
 	BASIC = "BASIC"
 	EN16931 = "EN 16931"
 	EXTENDED = "EXTENDED"
@@ -187,6 +188,8 @@ class EInvoiceProfile(Enum):
 	def __lt__(self, other):
 		# https://stackoverflow.com/a/39269589
 		order = [
+			EInvoiceProfile.MINIMUM,
+			EInvoiceProfile.BASIC_WL,
 			EInvoiceProfile.BASIC,
 			EInvoiceProfile.EN16931,
 			EInvoiceProfile.XRECHNUNG,
@@ -197,6 +200,8 @@ class EInvoiceProfile(Enum):
 
 # Map of EInvoiceProfile to drafthorse schema name
 PROFILE_TO_SCHEMA = {
+	EInvoiceProfile.MINIMUM: "FACTUR-X_MINIMUM",
+	EInvoiceProfile.BASIC_WL: "FACTUR-X_BASICWL",
 	EInvoiceProfile.BASIC: "FACTUR-X_BASIC",
 	EInvoiceProfile.EN16931: "FACTUR-X_EN16931",
 	EInvoiceProfile.XRECHNUNG: "FACTUR-X_EN16931",
@@ -205,6 +210,8 @@ PROFILE_TO_SCHEMA = {
 
 # Map of EInvoiceProfile to GuidelineSpecifiedDocumentContextParameter
 PROFILE_TO_GUIDELINE = {
+	EInvoiceProfile.MINIMUM: "urn:factur-x.eu:1p0:minimum",
+	EInvoiceProfile.BASIC_WL: "urn:factur-x.eu:1p0:basicwl",
 	EInvoiceProfile.BASIC: "urn:cen.eu:en16931:2017#compliant#urn:factur-x.eu:1p0:basic",
 	EInvoiceProfile.EN16931: "urn:cen.eu:en16931:2017",
 	EInvoiceProfile.XRECHNUNG: "urn:cen.eu:en16931:2017#compliant#urn:xeinkauf.de:kosit:xrechnung_3.0",

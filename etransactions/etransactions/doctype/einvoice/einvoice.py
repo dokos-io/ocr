@@ -76,8 +76,6 @@ class eInvoice(Document):
 		seller_name: DF.Data | None
 		seller_postcode: DF.Data | None
 		seller_tax_id: DF.Data | None
-		supplier: DF.Link | None
-		supplier_address: DF.Link | None
 		tax_basis_total: DF.Currency
 		tax_total: DF.Currency
 		taxes: DF.Table[eInvoiceTradeTax]
@@ -95,10 +93,8 @@ class eInvoice(Document):
 
 	def validate_incoming_data(self):
 		self.read_values_from_einvoice()
-		self.guess_supplier()
 		self.guess_company()
 		self.guess_uom()
-		self.guess_item_code()
 		self.guess_po_details()
 
 	def create_outgoing_einvoice(self):
@@ -146,16 +142,6 @@ class eInvoice(Document):
 	def read_values_from_einvoice(self) -> None:
 		eInvoiceParser(self).parse_einvoice()
 
-	def guess_supplier(self):
-		if self.supplier:
-			return
-
-		if frappe.db.exists("Supplier", self.seller_name):
-			self.supplier = self.seller_name
-
-		if self.seller_tax_id:
-			self.supplier = frappe.db.get_value("Supplier", {"tax_id": self.seller_tax_id}, "name")
-
 	def guess_company(self):
 		if self.company:
 			return
@@ -182,17 +168,6 @@ class eInvoice(Document):
 				stock_uom, purchase_uom = frappe.db.get_value("Item", row.item, ["stock_uom", "purchase_uom"])
 				row.uom = purchase_uom or stock_uom
 
-	def guess_item_code(self):
-		for row in self.items:
-			if row.item:
-				continue
-
-			if row.seller_product_id and self.supplier:
-				row.item = frappe.db.get_value(
-					"Item Supplier",
-					{"supplier": self.supplier, "supplier_part_no": row.seller_product_id},
-					"parent",
-				)
 
 	def guess_po_details(self):
 		if not self.purchase_order:
@@ -274,37 +249,6 @@ class eInvoice(Document):
 		if any(warnings):
 			self.validation_warnings += "\n".join(warnings)
 
-
-@frappe.whitelist()
-def create_item(source_name: str, target_doc: Item | None = None):
-	def post_process(source, target):
-		if frappe.db.get_single_value("Stock Settings", "item_naming_by") == "Item Code":
-			target.item_code = target.item_name
-		target.is_purchase_item = 1
-		target.append(
-			"supplier_items",
-			{
-				"supplier": frappe.db.get_value("E Invoice Import", source.parent, "supplier"),
-				"supplier_part_no": source.seller_product_id,
-			},
-		)
-
-	return get_mapped_doc(
-		"E Invoice Item",
-		source_name,
-		{
-			"E Invoice Item": {
-				"doctype": "Item",
-				"field_map": {
-					"product_name": "item_name",
-					"product_description": "description",
-					"uom": "stock_uom",
-				},
-			}
-		},
-		target_doc,
-		post_process,
-	)
 
 
 @frappe.whitelist()

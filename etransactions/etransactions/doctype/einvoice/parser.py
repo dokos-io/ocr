@@ -1,6 +1,5 @@
 from typing import TYPE_CHECKING
 
-
 import frappe
 from frappe import _, _dict
 
@@ -27,12 +26,26 @@ class eInvoiceParser:
 		self.einvoice_document = doc
 
 	@classmethod
-	def get_einvoice_document(cls, xml_bytes):
+	def get_einvoice_document(cls, cls_xml_bytes):
 		try:
-			doc = DrafthorseDocument.parse(xml_bytes, strict=False)
-			return doc
-		except XMLSyntaxError:
-			frappe.throw(_("The uploaded file does not contain valid XML data."), XMLSyntaxError)
+			return DrafthorseDocument.parse(cls_xml_bytes, strict=False)
+		except Exception:
+			# Drafthorse tries to parse string fields (like ClassCode) as Decimal. TODO: Fix this issue
+			try:
+				from lxml import etree
+				tree = etree.fromstring(cls_xml_bytes)
+
+				# Remove elements known to cause issues in drafthorse.
+				# DesignatedProductClassification/ClassCode
+				for el in tree.xpath("//*[local-name()='DesignatedProductClassification']"):
+					el.getparent().remove(el)
+
+				return DrafthorseDocument.parse(etree.tostring(tree), strict=False)
+			except Exception:
+				frappe.throw(
+					_("The uploaded file does not contain valid XML data or could not be parsed by the e-invoice engine."),
+					XMLSyntaxError,
+				)
 
 	@classmethod
 	def get_xml_bytes(cls, einvoice: File) -> bytes:
@@ -41,6 +54,7 @@ class eInvoiceParser:
 	def parse_einvoice(self):
 		einvoice = frappe.get_doc("File", self.einvoice_document.einvoice)
 		xml_bytes = eInvoiceParser.get_xml_bytes(einvoice)
+		#self.einvoice_document.einvoice_xml = xml_bytes
 		doc = eInvoiceParser.get_einvoice_document(xml_bytes)
 
 		self.profile = get_profile(doc.context.guideline_parameter.id._text).value
@@ -204,7 +218,7 @@ class eInvoiceParser:
 		self.einvoice_document.tax_basis_total = flt_or_none(summation.tax_basis_total._amount)
 		for value, currency in summation.tax_total_other_currency.children:
 			if currency is None or currency == self.einvoice_document.currency:
-				self.tax_total = flt_or_none(value)
+				self.einvoice_document.tax_total = flt_or_none(value)
 				break
 		self.einvoice_document.grand_total = flt_or_none(summation.grand_total._amount)
 		self.einvoice_document.total_prepaid = flt_or_none(summation.prepaid_total._value)
