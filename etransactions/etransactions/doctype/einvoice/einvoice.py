@@ -146,6 +146,9 @@ class eInvoice(Document):
 			return
 
 	def read_values_from_einvoice(self) -> None:
+		if not self.einvoice:
+			return
+
 		eInvoiceParser(self).parse_einvoice()
 
 	def guess_company(self):
