@@ -42,14 +42,14 @@ REFERENCE_FIELDS = {
 	"Purchase Receipt": {"reference_docname": "purchase_receipt", "row": "pr_detail"},
 }
 
-class PendingPurchaseInvoice(Document):
+class SupplierInvoice(Document):
 	# begin: auto-generated types
 	# This code is auto-generated. Do not modify anything in this block.
 
 	from typing import TYPE_CHECKING
 
 	if TYPE_CHECKING:
-		from etransactions.etransactions.doctype.pending_purchase_invoice_item.pending_purchase_invoice_item import PendingPurchaseInvoiceItem
+		from etransactions.etransactions.doctype.supplier_invoice_item.supplier_invoice_item import SupplierInvoiceItem
 		from frappe.types import DF
 
 		bill_date: DF.Date | None
@@ -61,7 +61,7 @@ class PendingPurchaseInvoice(Document):
 		file_url: DF.SmallText | None
 		grand_total: DF.Currency
 		is_return: DF.Check
-		items: DF.Table[PendingPurchaseInvoiceItem]
+		items: DF.Table[SupplierInvoiceItem]
 		name: DF.Int | None
 		net_total: DF.Currency
 		ocr_basket: DF.Link | None
@@ -116,7 +116,7 @@ class PendingPurchaseInvoice(Document):
 
 		# 1. Get from previous invoices with same address
 		if self.vendor_address:
-			invoices = frappe.get_all("Pending Purchase Invoice", filters={"vendor_address": ("like", f"{self.vendor_address[:5]}%"), "status": "Completed", "name": ("!=", self.name), "supplier": ("is", "set")}, fields=["supplier", "vendor_address"])
+			invoices = frappe.get_all("Supplier Invoice", filters={"vendor_address": ("like", f"{self.vendor_address[:5]}%"), "status": "Completed", "name": ("!=", self.name), "supplier": ("is", "set")}, fields=["supplier", "vendor_address"])
 			if invoices and (best_match := get_best_match_from_list_of_dicts(invoices, self.vendor_address, "vendor_address")):
 				self.supplier = best_match.get("supplier")
 
@@ -126,7 +126,7 @@ class PendingPurchaseInvoice(Document):
 			# 2.1 Find VENDOR_URL
 			if ocr_data.get("VENDOR_URL"):
 				if matching_ocr_requests := frappe.get_all("OCR Request", filters={"analysis": ("like", f"%{ocr_data.get('VENDOR_URL')}%"), "name": ("!=", self.ocr_request)}, limit=1, pluck="name"):
-					self.supplier = str(frappe.db.get_value("Pending Purchase Invoice", dict(ocr_request=matching_ocr_requests[0])))
+					self.supplier = str(frappe.db.get_value("Supplier Invoice", dict(ocr_request=matching_ocr_requests[0])))
 
 
 	def calculate_due_date(self):
@@ -144,12 +144,12 @@ class PendingPurchaseInvoice(Document):
 
 	def set_status(self, commit=False):
 		status = "Pending"
-		purchase_orders = frappe.get_all("Purchase Order", dict(pending_purchase_invoice=self.name, docstatus=("!=", 2)), pluck="docstatus")
+		purchase_orders = frappe.get_all("Purchase Order", dict(supplier_invoice=self.name, docstatus=("!=", 2)), pluck="docstatus")
 		if purchase_orders:
 			status = "In Progress"
 		if self.items and all([po for po in purchase_orders if po == 1]):
 			status = "Ready"
-		if frappe.db.exists("Purchase Invoice", dict(pending_purchase_invoice=self.name, docstatus=("=", 1))):
+		if frappe.db.exists("Purchase Invoice", dict(supplier_invoice=self.name, docstatus=("=", 1))):
 			status = "Completed"
 
 		self.status = status
@@ -164,7 +164,7 @@ class PendingPurchaseInvoice(Document):
 		self.tax_total = 0.0
 		self.grand_total = 0.0
 		try:
-			if pi := frappe.db.exists("Purchase Invoice", dict(pending_purchase_invoice=self.name)):
+			if pi := frappe.db.exists("Purchase Invoice", dict(supplier_invoice=self.name)):
 				doc: PurchaseInvoice = frappe.get_doc("Purchase Invoice", pi) # type: ignore
 			else:
 				doc: PurchaseInvoice = frappe.new_doc("Purchase Invoice") # type: ignore
@@ -299,7 +299,7 @@ class PendingPurchaseInvoice(Document):
 					frappe.throw(_("Please submit {0}: {1} before trying to create the corresponding invoice").format(_(item.reference_doctype).lower(), item.reference_docname))
 
 		doc: PurchaseInvoice = self.get_purchase_invoice(purchase_order_is_mandatory)
-		doc.pending_purchase_invoice = self.name # type: ignore
+		doc.supplier_invoice = self.name # type: ignore
 		doc.insert(ignore_mandatory=True)
 
 		if submit:
@@ -622,7 +622,7 @@ class PendingPurchaseInvoice(Document):
 		if not settings.reconcile_with_purchase_receipts: # type: ignore
 			return
 
-		if frappe.db.exists("Purchase Invoice", dict(pending_purchase_invoice=self.name, docstatus=("!=", 2))):
+		if frappe.db.exists("Purchase Invoice", dict(supplier_invoice=self.name, docstatus=("!=", 2))):
 			return
 
 		pending_invoicing_amount = self.get_pending_invoicing_amount()
@@ -730,7 +730,7 @@ def make_purchase_order(source_name, target_doc=None, ignore_permissions=False):
 			target_doc.schedule_date = frappe.utils.nowdate()
 
 		#target_doc.payment_schedule = []
-		target_doc.pending_purchase_invoice = source_name
+		target_doc.supplier_invoice = source_name
 		target_doc.department = source.get("department")
 
 		target_doc.set("taxes", [])
@@ -745,13 +745,13 @@ def make_purchase_order(source_name, target_doc=None, ignore_permissions=False):
 		target_doc.run_method("calculate_taxes_and_totals")
 
 	def update_source_item(obj, target, source_parent):
-		target.pending_purchase_invoice_item = obj.name
+		target.supplier_invoice_item = obj.name
 
-	doclist = get_mapped_doc("Pending Purchase Invoice", source_name, {
-		"Pending Purchase Invoice": {
+	doclist = get_mapped_doc("Supplier Invoice", source_name, {
+		"Supplier Invoice": {
 			"doctype": "Purchase Order",
 		},
-		"Pending Purchase Invoice Item": {
+		"Supplier Invoice Item": {
 			"doctype": "Purchase Order Item",
 			"postprocess": update_source_item,
 			"condition": purchase_invoice_item_condition,
@@ -817,20 +817,20 @@ def get_documents_child_items(doctype, filters, limit_page_length):
 
 
 def register_purchase_order_items(doc, method=None):
-	if not doc.pending_purchase_invoice:
+	if not doc.supplier_invoice:
 		return
 
 	for item in doc.items:
-		if item.pending_purchase_invoice_item:
-			if not frappe.db.get_value("Pending Purchase Invoice Item", item.pending_purchase_invoice_item, "row"):
-				frappe.db.set_value("Pending Purchase Invoice Item", item.pending_purchase_invoice_item, "row", item.name)
-				frappe.db.set_value("Pending Purchase Invoice Item", item.pending_purchase_invoice_item, "reference_doctype", item.parenttype)
-				frappe.db.set_value("Pending Purchase Invoice Item", item.pending_purchase_invoice_item, "reference_docname", item.parent)
+		if item.supplier_invoice_item:
+			if not frappe.db.get_value("Supplier Invoice Item", item.supplier_invoice_item, "row"):
+				frappe.db.set_value("Supplier Invoice Item", item.supplier_invoice_item, "row", item.name)
+				frappe.db.set_value("Supplier Invoice Item", item.supplier_invoice_item, "reference_doctype", item.parenttype)
+				frappe.db.set_value("Supplier Invoice Item", item.supplier_invoice_item, "reference_docname", item.parent)
 
 
 def auto_match_with_purchase_receipt(doc, method=None):
-	pending_purchase_invoices = frappe.get_list(
-		"Pending Purchase Invoice",
+	supplier_invoices = frappe.get_list(
+		"Supplier Invoice",
 		filters={
 			"supplier": doc.supplier,
 			"status": "Pending",
@@ -840,32 +840,32 @@ def auto_match_with_purchase_receipt(doc, method=None):
 		fields=["name", "supplier_net_amount"]
 	)
 
-	exact_match = [ppi for ppi in pending_purchase_invoices if doc.net_total == ppi.supplier_net_amount]
+	exact_match = [ppi for ppi in supplier_invoices if doc.net_total == ppi.supplier_net_amount]
 	if exact_match:
-		pending_purchase_invoices = exact_match[:1]
+		supplier_invoices = exact_match[:1]
 
-	for pending_purchase_invoice in pending_purchase_invoices:
-		ppi: PendingPurchaseInvoice = frappe.get_doc("Pending Purchase Invoice", pending_purchase_invoice.name) # type: ignore
+	for supplier_invoice in supplier_invoices:
+		ppi: SupplierInvoice = frappe.get_doc("Supplier Invoice", supplier_invoice.name) # type: ignore
 		ppi.flags.ignore_permissions = True
 		ppi.save()
 
 
-def remove_link_with_pending_purchase_invoices(doc, method=None):
+def remove_link_with_supplier_invoices(doc, method=None):
 	if method not in ["on_change", "on_cancel"]:
 		return
 
 	if method == "on_change" and doc.status != "Closed":
 		return
 
-	for pending_purchase_invoice in frappe.get_list(
-		"Pending Purchase Invoice",
+	for supplier_invoice in frappe.get_list(
+		"Supplier Invoice",
 		filters={
 			"supplier": doc.supplier,
 			"status": "Pending",
 			"purchase_order_number": ("is", "set"),
 		},
 	):
-		ppi: PendingPurchaseInvoice = frappe.get_doc("Pending Purchase Invoice", pending_purchase_invoice.name) # type: ignore
+		ppi: SupplierInvoice = frappe.get_doc("Supplier Invoice", supplier_invoice.name) # type: ignore
 		items = [item.reference_docname for item in ppi.items if item.reference_doctype == "Purchase Receipt"]
 		if doc.name in items:
 			ppi.items = []
@@ -874,10 +874,10 @@ def remove_link_with_pending_purchase_invoices(doc, method=None):
 
 
 def set_pending_purchase_order_status(doc, method=None):
-	if not doc.pending_purchase_invoice:
+	if not doc.supplier_invoice:
 		return
 
-	ppi: PendingPurchaseInvoice = frappe.get_doc("Pending Purchase Invoice", doc.pending_purchase_invoice) # type: ignore
+	ppi: SupplierInvoice = frappe.get_doc("Supplier Invoice", doc.supplier_invoice) # type: ignore
 	ppi.run_method("set_status", commit=True)
 	ppi.notify_update()
 
@@ -905,26 +905,26 @@ def deduplicate_items(items):
 
 
 def validate_total(doc, method):
-	if not doc.pending_purchase_invoice:
+	if not doc.supplier_invoice:
 		return
 
 	if frappe.db.get_single_value("eTransactions Settings", "block_if_grand_total_exceeds_pending_pi"):
-		if doc.grand_total > frappe.db.get_value("Pending Purchase Invoice", doc.pending_purchase_invoice, "supplier_grand_total"):
+		if doc.grand_total > frappe.db.get_value("Supplier Invoice", doc.supplier_invoice, "supplier_grand_total"):
 			frappe.throw(_("The invoice grand total exceeds the supplier provided grand total. You are not allowed to create this purchase invoice."))
 
 	if frappe.db.get_single_value("eTransactions Settings", "block_if_net_total_exceeds_pending_pi"):
-		if doc.net_total > frappe.db.get_value("Pending Purchase Invoice", doc.pending_purchase_invoice, "supplier_net_amount"):
+		if doc.net_total > frappe.db.get_value("Supplier Invoice", doc.supplier_invoice, "supplier_net_amount"):
 			frappe.throw(_("The invoice net total exceeds the supplier provided net total. You are not allowed to create this purchase invoice."))
 
 
 @frappe.whitelist()
 def create_purchase_invoice(docname, submit=False):
-	return frappe.get_doc("Pending Purchase Invoice", docname).run_method("create_purchase_invoice", submit=sbool(submit))
+	return frappe.get_doc("Supplier Invoice", docname).run_method("create_purchase_invoice", submit=sbool(submit))
 
 
 @frappe.whitelist()
 def create_purchase_order(docname, transaction_date=None, submit=False):
-	return frappe.get_doc("Pending Purchase Invoice", docname).run_method("create_purchase_order", transaction_date=transaction_date, submit=sbool(submit))
+	return frappe.get_doc("Supplier Invoice", docname).run_method("create_purchase_order", transaction_date=transaction_date, submit=sbool(submit))
 
 
 @frappe.whitelist()

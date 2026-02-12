@@ -111,8 +111,8 @@
  "index_web_pages_for_search": 1,
  "links": [
   {
-   "group": "Pending Purchase Invoice",
-   "link_doctype": "Pending Purchase Invoice",
+   "group": "Supplier Invoice",
+   "link_doctype": "Supplier Invoice",
    "link_fieldname": "ocr_request"
   },
   {

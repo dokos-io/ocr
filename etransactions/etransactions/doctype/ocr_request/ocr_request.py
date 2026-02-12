@@ -65,8 +65,8 @@ class OCRRequest(Document):
 
 	def before_save(self):
 		if self.job and self.analysis:
-			if self.transaction_type == "Purchase Invoice" and not frappe.db.get_value("Pending Purchase Invoice", dict(ocr_request=self.name)):
-				self.create_pending_purchase_invoice()
+			if self.transaction_type == "Purchase Invoice" and not frappe.db.get_value("Supplier Invoice", dict(ocr_request=self.name)):
+				self.create_supplier_invoice()
 
 	@frappe.whitelist()
 	def make_analysis(self):
@@ -174,7 +174,7 @@ class OCRRequest(Document):
 			return
 
 		status = "Pending"
-		if ppi_status := frappe.db.get_value("Pending Purchase Invoice", dict(ocr_request=self.name)):
+		if ppi_status := frappe.db.get_value("Supplier Invoice", dict(ocr_request=self.name)):
 			if ppi_status in ["Closed", "Completed"]:
 				status = ppi_status
 		if self.job:
@@ -326,10 +326,10 @@ class OCRRequest(Document):
 				return fieldname or key, value
 
 
-	def create_pending_purchase_invoice(self):
+	def create_supplier_invoice(self):
 		data = self.get_data_from_analysis()
 
-		doc = frappe.new_doc("Pending Purchase Invoice")
+		doc = frappe.new_doc("Supplier Invoice")
 		doc.company = data.get("company")
 		doc.supplier = data.get("supplier")
 		doc.bill_no = data.get("bill_no")

@@ -133,7 +133,7 @@
    "fieldname": "items",
    "fieldtype": "Table",
    "label": "Items",
-   "options": "Pending Purchase Invoice Item"
+   "options": "Supplier Invoice Item"
   },
   {
    "depends_on": "eval:!doc.is_return",
@@ -366,18 +366,18 @@
   {
    "group": "Purchase Orders",
    "link_doctype": "Purchase Order",
-   "link_fieldname": "pending_purchase_invoice"
+   "link_fieldname": "supplier_invoice"
   },
   {
    "group": "Purchase Invoices",
    "link_doctype": "Purchase Invoice",
-   "link_fieldname": "pending_purchase_invoice"
+   "link_fieldname": "supplier_invoice"
   }
  ],
  "modified": "2026-01-25 11:13:16.195142",
  "modified_by": "Administrator",
  "module": "eTransactions",
- "name": "Pending Purchase Invoice",
+ "name": "Supplier Invoice",
  "naming_rule": "Autoincrement",
  "owner": "Administrator",
  "permissions": [

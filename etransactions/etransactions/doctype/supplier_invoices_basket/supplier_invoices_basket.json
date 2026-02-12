@@ -71,7 +71,7 @@
  "links": [
   {
    "group": "Pending Invoices",
-   "link_doctype": "Pending Purchase Invoice",
+   "link_doctype": "Supplier Invoice",
    "link_fieldname": "ocr_basket"
   }
  ],
