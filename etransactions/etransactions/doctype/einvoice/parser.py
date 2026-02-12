@@ -54,7 +54,7 @@ class eInvoiceParser:
 	def parse_einvoice(self):
 		einvoice = frappe.get_doc("File", self.einvoice_document.einvoice)
 		xml_bytes = eInvoiceParser.get_xml_bytes(einvoice)
-		#self.einvoice_document.einvoice_xml = xml_bytes
+		self.einvoice_document.einvoice_xml = xml_bytes
 		doc = eInvoiceParser.get_einvoice_document(xml_bytes)
 
 		self.profile = get_profile(doc.context.guideline_parameter.id._text).value
