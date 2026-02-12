@@ -192,9 +192,6 @@ scheduler_events = {
 	# "all": [
 	# 	"etransactions.tasks.all"
 	# ],
-	"daily": [
-		"etransactions.etransactions.doctype.supplier_invoices_basket.supplier_invoices_basket.check_ocr_basket_status"
-	],
 	"hourly": [
 		"etransactions.etransactions.doctype.ocr_request.ocr_request.check_pending_analysis"
 	],

@@ -12,6 +12,8 @@
   "column_break_rvwl",
   "status",
   "error",
+  "section_break_dbol",
+  "dashboard_html",
   "section_break_hmpy",
   "ocr_html"
  ],
@@ -65,6 +67,14 @@
    "fieldname": "ocr_html",
    "fieldtype": "HTML",
    "label": "File Upload HTML"
+  },
+  {
+   "fieldname": "dashboard_html",
+   "fieldtype": "HTML"
+  },
+  {
+   "fieldname": "section_break_dbol",
+   "fieldtype": "Section Break"
   }
  ],
  "index_web_pages_for_search": 1,
@@ -75,7 +85,7 @@
    "link_fieldname": "ocr_basket"
   }
  ],
- "modified": "2026-01-25 11:14:05.451388",
+ "modified": "2026-02-12 09:52:30.305007",
  "modified_by": "Administrator",
  "module": "eTransactions",
  "name": "Supplier Invoices Basket",

@@ -10,6 +10,7 @@
   "einvoice_type",
   "einvoice",
   "sales_invoice",
+  "supplier_invoices_basket",
   "column_break_albz",
   "profile",
   "e_invoice_is_correct",
@@ -542,12 +543,19 @@
    "label": "eInvoice XML",
    "options": "XML",
    "read_only": 1
+  },
+  {
+   "fieldname": "supplier_invoices_basket",
+   "fieldtype": "Link",
+   "label": "Supplier Invoices Basket",
+   "options": "Supplier Invoices Basket",
+   "read_only": 1
   }
  ],
  "in_create": 1,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-02-12 08:52:39.703656",
+ "modified": "2026-02-12 09:56:14.163134",
  "modified_by": "Administrator",
  "module": "eTransactions",
  "name": "eInvoice",

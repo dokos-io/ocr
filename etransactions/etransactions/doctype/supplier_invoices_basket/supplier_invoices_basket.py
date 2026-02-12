@@ -78,6 +78,7 @@ class SupplierInvoicesBasket(Document):
 		Always check first if invoice is an einvoice.
 		Else send it to OCR.
 		"""
+		self.db_set("status", "In Progress")
 		if linked_files := self.get_all_files():
 			for file in linked_files:
 				try:
@@ -85,6 +86,7 @@ class SupplierInvoicesBasket(Document):
 					xml_bytes = eInvoiceParser.get_xml_bytes(file_doc)
 					eInvoiceParser.get_einvoice_document(xml_bytes)
 					einvoice = frappe.new_doc("eInvoice")
+					einvoice.supplier_invoices_basket = self.name
 					einvoice.einvoice = file["name"]
 					einvoice.insert()
 				except Exception:
@@ -96,7 +98,7 @@ class SupplierInvoicesBasket(Document):
 					request.file = file.get("name")
 					request.insert()
 
-			self.db_set("status", "In Progress")
+			self.db_set("status", "Completed")
 		else:
 			self.db_set("error", _("No matching supplier format file (PDF, XML) found in this basket"))
 			self.db_set("status", "Closed")
@@ -108,20 +110,6 @@ class SupplierInvoicesBasket(Document):
 				attached_to_doctype=self.doctype,
 			), pluck="name"):
 				frappe.db.set_value("File", file, "attached_to_name", self.name)
-
-
-	def set_status(self):
-		associated_requests = frappe.get_all("OCR Request", filters={"ocr_basket": self.name}, fields=["name", "status"])
-		if not associated_requests:
-			try:
-				if self.status != "Not Started":
-					self.db_set("status", "Not Started")
-				self.run_method("create_requests")
-			except Exception:
-				self.log_error()
-
-		elif all([a.status in ["Closed", "Completed", "Analysis Completed"] for a in associated_requests]):
-			frappe.db.set_value("Supplier Invoices Basket", self.name, "status", "Completed")
 
 
 
@@ -162,8 +150,3 @@ def make_basket_from_communication(communication: str, basket_type: str, ignore_
 
 	return basket
 
-
-@frappe.whitelist()
-def check_ocr_basket_status():
-	for ocr_basket in frappe.get_all("Supplier Invoices Basket", filters={"status": "In Progress"}):
-		frappe.get_doc("Supplier Invoices Basket", ocr_basket.name).run_method("set_status")

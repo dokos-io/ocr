@@ -186,12 +186,6 @@ class OCRRequest(Document):
 		if commit:
 			self.db_set("status", status)
 
-		self.update_parent_status()
-
-	def update_parent_status(self):
-		if self.ocr_basket:
-			frappe.get_doc("Supplier Invoices Basket", self.ocr_basket).run_method("set_status")
-
 	def reset_status_and_error(self):
 		self.db_set("error", "")
 		self.set_status(True)

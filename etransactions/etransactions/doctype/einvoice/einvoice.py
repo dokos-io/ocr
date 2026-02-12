@@ -76,6 +76,7 @@ class eInvoice(Document):
 		seller_name: DF.Data | None
 		seller_postcode: DF.Data | None
 		seller_tax_id: DF.Data | None
+		supplier_invoices_basket: DF.Link | None
 		tax_basis_total: DF.Currency
 		tax_total: DF.Currency
 		taxes: DF.Table[eInvoiceTradeTax]
