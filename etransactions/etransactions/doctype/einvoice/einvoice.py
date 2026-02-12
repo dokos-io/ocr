@@ -10,8 +10,8 @@ from erpnext.edi.doctype.code_list.code_list import get_docnames_for
 
 from frappe import _
 from frappe.model.document import Document
-from frappe.model.mapper import get_mapped_doc
 
+from etransactions.controllers.entity_resolver import InvoiceEntityResolverMixin
 from etransactions.etransactions.doctype.einvoice.parser import eInvoiceParser
 from etransactions.etransactions.doctype.einvoice.generator import EInvoiceMapper, EInvoiceGenerator
 from etransactions.schematron import get_validation_errors
@@ -311,7 +311,7 @@ def get_po_item_details(po_detail: str):
 
 
 
-class IncomingInvoiceDataTransformer:
+class IncomingInvoiceDataTransformer(InvoiceEntityResolverMixin):
 	def __init__(self, invoice_doc):
 		self.invoice_doc = invoice_doc
 
@@ -368,62 +368,16 @@ class IncomingInvoiceDataTransformer:
 		return ", ".join([p for p in address_parts if p])
 
 	def get_supplier(self):
-		supplier = None
-		if self.invoice_doc.seller_tax_id:
-			supplier = frappe.db.get_value("Supplier", dict(tax_id=self.invoice_doc.seller_tax_id))
-
-		if not supplier and self.invoice_doc.seller_name:
-			supplier = frappe.db.get_value("Supplier", self.invoice_doc.seller_name)
-
-		if not supplier and self.invoice_doc.seller_name and len(self.invoice_doc.seller_name.split(" ")) > 1:
-			for substring in self.invoice_doc.seller_name.split(" "):
-				if supplier := frappe.db.get_value("Supplier", substring):
-					break
-
-		if not supplier and self.invoice_doc.seller_name:
-			existing_suppliers = frappe.get_all("Supplier", filters=dict(disabled=0), fields=["name", "supplier_name"])
-			existing_supplier_dict = {s.supplier_name: s.name for s in existing_suppliers}
-
-			if existing_supplier_list := [s.supplier_name for s in existing_suppliers]:
-				best_match = next(iter(sorted(
-					existing_supplier_list,
-					key=lambda doc: difflib.SequenceMatcher(
-						lambda doc: doc == " ", doc.lower(), self.invoice_doc.seller_name.lower()
-					).ratio(),
-					reverse=True,
-				)))
-
-				if difflib.SequenceMatcher(lambda doc: doc == " ", best_match.lower(), self.invoice_doc.seller_name.lower()).ratio() > 0.9:
-					supplier = existing_supplier_dict.get(best_match)
-
-		if supplier and not frappe.db.exists("Supplier", supplier):
-			supplier = None
-
-		return supplier or ""
+		return self.resolve_supplier(
+			seller_name=self.invoice_doc.seller_name,
+			tax_id=self.invoice_doc.seller_tax_id
+		)
 
 	def get_company(self):
 		if self.invoice_doc.company:
 			return self.invoice_doc.company
-
-		company = None
-		companies = {x.lower(): x for x in frappe.get_all("Company", pluck="name")}
-
-		receiver_name = (self.invoice_doc.buyer_name or "").lower()
-		receiver_address = self.get_buyer_address().lower()
-
-		if company_match := difflib.get_close_matches(receiver_name, list(companies.keys()), cutoff=0.9):
-			company = companies.get(company_match[0])
-
-		if not company and (company_match := difflib.get_close_matches(receiver_address, list(companies.keys()), cutoff=0.9)):
-			company = companies.get(company_match[0])
-
-		if not company:
-			for company_name_lower, company_name in companies.items():
-				if company_name_lower in receiver_name or company_name_lower in receiver_address:
-					company = company_name
-					break
-
-		if not company and len(companies) == 1:
-			company = list(companies.values())[0]
-
-		return company or get_default_company() or ""
+			
+		return self.resolve_company(
+			receiver_name=self.invoice_doc.buyer_name,
+			receiver_address=self.get_buyer_address()
+		)
