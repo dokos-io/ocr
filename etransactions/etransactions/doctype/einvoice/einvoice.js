@@ -57,18 +57,6 @@ frappe.ui.form.on("eInvoice", {
 			};
 		});
 	},
-	create_supplier: function (frm) {
-		frappe.model.open_mapped_doc({
-			method: "etransactions.etransactions.doctype.einvoice.einvoice.create_supplier",
-			frm: frm,
-		});
-	},
-	create_supplier_address: function (frm) {
-		frappe.model.open_mapped_doc({
-			method: "etransactions.etransactions.doctype.einvoice.einvoice.create_supplier_address",
-			frm: frm,
-		});
-	},
 });
 
 frappe.ui.form.on("E Invoice Item", {

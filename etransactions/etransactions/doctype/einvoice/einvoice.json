@@ -10,15 +10,16 @@
   "einvoice_type",
   "einvoice",
   "sales_invoice",
+  "supplier_invoices_basket",
   "column_break_albz",
   "profile",
   "e_invoice_is_correct",
-  "validation_details_section",
-  "validation_errors",
-  "validation_warnings",
   "header_section",
   "issue_date",
   "id",
+  "validation_details_section",
+  "validation_errors",
+  "validation_warnings",
   "section_break_z2sq",
   "amended_from",
   "buyer_tab",
@@ -43,8 +44,6 @@
   "seller_name",
   "seller_tax_id",
   "column_break_jjaa",
-  "supplier",
-  "create_supplier",
   "section_break_sqyh",
   "seller_electronic_address_scheme",
   "column_break_qxvl",
@@ -56,8 +55,6 @@
   "seller_city",
   "seller_country",
   "column_break_foui",
-  "supplier_address",
-  "create_supplier_address",
   "items_tab",
   "items",
   "delivery_tab",
@@ -81,6 +78,17 @@
   "billing_period_start",
   "column_break_etpy",
   "billing_period_end",
+  "po_date",
+  "einvoice_embedded_document",
+  "is_return",
+  "return_against",
+  "terms",
+  "incoterm",
+  "named_place",
+  "buyer_tax_id",
+  "tax_category",
+  "taxes_and_charges",
+  "payment_terms_template",
   "payment_means_section",
   "payee_account_name",
   "payee_iban",
@@ -146,13 +154,6 @@
    "read_only": 1
   },
   {
-   "default": "0",
-   "depends_on": "eval: !doc.supplier",
-   "fieldname": "create_supplier",
-   "fieldtype": "Button",
-   "label": "Create Supplier"
-  },
-  {
    "fieldname": "column_break_reul",
    "fieldtype": "Column Break"
   },
@@ -200,30 +201,10 @@
    "options": "eInvoice Item"
   },
   {
-   "fieldname": "supplier",
-   "fieldtype": "Link",
-   "label": "Supplier",
-   "options": "Supplier"
-  },
-  {
    "fieldname": "company",
    "fieldtype": "Link",
    "label": "Company",
    "options": "Company"
-  },
-  {
-   "fieldname": "supplier_address",
-   "fieldtype": "Link",
-   "label": "Supplier Address",
-   "options": "Address",
-   "read_only_depends_on": "eval: !doc.supplier"
-  },
-  {
-   "default": "0",
-   "depends_on": "eval: doc.supplier && !doc.supplier_address",
-   "fieldname": "create_supplier_address",
-   "fieldtype": "Button",
-   "label": "Create Supplier Address"
   },
   {
    "fieldname": "seller_tax_id",
@@ -338,6 +319,8 @@
   {
    "fieldname": "profile",
    "fieldtype": "Read Only",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
    "label": "Profile",
    "options": "BASIC\nEN 16931\nEXTENDED\nXRECHNUNG",
    "read_only": 1
@@ -529,7 +512,8 @@
    "fieldtype": "Link",
    "label": "EInvoice File",
    "mandatory_depends_on": "eval:doc.einvoice_type==\"Incoming\"",
-   "options": "File"
+   "options": "File",
+   "read_only": 1
   },
   {
    "fieldname": "column_break_albz",
@@ -546,12 +530,15 @@
    "fieldtype": "Select",
    "label": "eInvoice Type",
    "options": "Incoming\nOutgoing",
+   "read_only": 1,
    "reqd": 1
   },
   {
    "depends_on": "eval:doc.einvoice_type==\"Outgoing\"",
    "fieldname": "sales_invoice",
    "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
    "label": "Sales Invoice",
    "mandatory_depends_on": "eval:doc.einvoice_type==\"Outgoing\"",
    "options": "Sales Invoice"
@@ -567,12 +554,91 @@
    "label": "eInvoice XML",
    "options": "XML",
    "read_only": 1
+  },
+  {
+   "fieldname": "supplier_invoices_basket",
+   "fieldtype": "Link",
+   "label": "Supplier Invoices Basket",
+   "options": "Supplier Invoices Basket",
+   "read_only": 1
+  },
+  {
+   "fieldname": "po_date",
+   "fieldtype": "Date",
+   "label": "PO Date",
+   "read_only": 1
+  },
+  {
+   "fieldname": "einvoice_embedded_document",
+   "fieldtype": "Attach",
+   "label": "Embedded Document",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "is_return",
+   "fieldtype": "Check",
+   "label": "Is Return",
+   "read_only": 1
+  },
+  {
+   "fieldname": "return_against",
+   "fieldtype": "Link",
+   "label": "Return Against",
+   "options": "Sales Invoice",
+   "read_only": 1
+  },
+  {
+   "fieldname": "terms",
+   "fieldtype": "Text Editor",
+   "label": "Terms",
+   "read_only": 1
+  },
+  {
+   "fieldname": "incoterm",
+   "fieldtype": "Link",
+   "label": "Incoterm",
+   "options": "Incoterm",
+   "read_only": 1
+  },
+  {
+   "fieldname": "named_place",
+   "fieldtype": "Data",
+   "label": "Named Place",
+   "read_only": 1
+  },
+  {
+   "fieldname": "buyer_tax_id",
+   "fieldtype": "Data",
+   "label": "Buyer Tax ID",
+   "read_only": 1
+  },
+  {
+   "fieldname": "tax_category",
+   "fieldtype": "Link",
+   "label": "Tax Category",
+   "options": "Tax Category",
+   "read_only": 1
+  },
+  {
+   "fieldname": "taxes_and_charges",
+   "fieldtype": "Link",
+   "label": "Taxes and Charges",
+   "options": "Sales Taxes and Charges Template",
+   "read_only": 1
+  },
+  {
+   "fieldname": "payment_terms_template",
+   "fieldtype": "Link",
+   "label": "Payment Terms Template",
+   "options": "Payment Terms Template",
+   "read_only": 1
   }
  ],
+ "in_create": 1,
  "index_web_pages_for_search": 1,
- "is_submittable": 1,
  "links": [],
- "modified": "2026-01-25 16:22:44.635892",
+ "modified": "2026-02-12 09:56:14.163134",
  "modified_by": "Administrator",
  "module": "eTransactions",
  "name": "eInvoice",
@@ -589,36 +655,38 @@
    "report": 1,
    "role": "System Manager",
    "share": 1,
-   "submit": 1,
    "write": 1
   },
   {
-   "amend": 1,
-   "cancel": 1,
-   "create": 1,
-   "delete": 1,
-   "email": 1,
-   "export": 1,
-   "print": 1,
-   "read": 1,
-   "report": 1,
-   "role": "Purchase User",
-   "submit": 1,
-   "write": 1
-  },
-  {
-   "amend": 1,
-   "cancel": 1,
-   "create": 1,
-   "delete": 1,
    "email": 1,
    "export": 1,
    "print": 1,
    "read": 1,
    "report": 1,
    "role": "Purchase Manager",
+   "select": 1,
+   "share": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Sales Manager",
+   "select": 1,
    "share": 1,
-   "submit": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Accounts Manager",
+   "select": 1,
+   "share": 1,
    "write": 1
   }
  ],

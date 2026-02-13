@@ -10,7 +10,7 @@ from erpnext import get_default_company
 from erpnext.buying.doctype.purchase_order.purchase_order import PurchaseOrder, make_purchase_receipt
 from etransactions.etransactions.doctype.etransactions_settings.etransactions_settings import eTransactionsSettings
 from etransactions.tests.utils import add_items, add_suppliers
-from etransactions.etransactions.doctype.pending_purchase_invoice.pending_purchase_invoice import PendingPurchaseInvoice
+from etransactions.etransactions.doctype.supplier_invoice.supplier_invoice import SupplierInvoice
 
 IGNORE_TEST_RECORD_DEPENDENCIES = []
 
@@ -44,18 +44,18 @@ class TestAutoReconciliation(IntegrationTestCase):
 		purchase_receipt.insert()
 		purchase_receipt.submit()
 
-		pending_purchase_invoice = get_pending_purchase_invoice(
+		supplier_invoice = get_supplier_invoice(
 			supplier = purchase_order.supplier,
 			amount = purchase_receipt.net_total,
 			purchase_order = purchase_order.name
 		)
 
-		pending_purchase_invoice.insert(ignore_permissions=True, ignore_mandatory=True)
+		supplier_invoice.insert(ignore_permissions=True, ignore_mandatory=True)
 
-		self.assertEqual(len(pending_purchase_invoice.items), 1)
-		self.assertIn(purchase_receipt.name, [r.reference_docname for r in pending_purchase_invoice.items])
-		pending_purchase_invoice.reload()
-		self.assertEqual(pending_purchase_invoice.status, "Completed")
+		self.assertEqual(len(supplier_invoice.items), 1)
+		self.assertIn(purchase_receipt.name, [r.reference_docname for r in supplier_invoice.items])
+		supplier_invoice.reload()
+		self.assertEqual(supplier_invoice.status, "Completed")
 
 
 	@change_settings(
@@ -80,29 +80,29 @@ class TestAutoReconciliation(IntegrationTestCase):
 		purchase_receipt.insert()
 		purchase_receipt.submit()
 
-		pending_purchase_invoice = get_pending_purchase_invoice(
+		supplier_invoice = get_supplier_invoice(
 			supplier = purchase_order.supplier,
 			amount = purchase_receipt.net_total + 499,
 			purchase_order = purchase_order.name
 		)
 
-		pending_purchase_invoice.insert(ignore_permissions=True, ignore_mandatory=True)
+		supplier_invoice.insert(ignore_permissions=True, ignore_mandatory=True)
 
-		self.assertEqual(len(pending_purchase_invoice.items), 1)
-		self.assertIn(purchase_receipt.name, [r.reference_docname for r in pending_purchase_invoice.items])
-		self.assertEqual(pending_purchase_invoice.status, "Ready")
+		self.assertEqual(len(supplier_invoice.items), 1)
+		self.assertIn(purchase_receipt.name, [r.reference_docname for r in supplier_invoice.items])
+		self.assertEqual(supplier_invoice.status, "Ready")
 
 		settings: eTransactionsSettings = frappe.get_single("eTransactions Settings") # type: ignore
 		settings.max_difference_amount = 500.0
 		settings.max_difference_percentage_on_net_total = 10.0
 		settings.save()
 
-		pending_purchase_invoice.reload()
-		pending_purchase_invoice.items[0].rate = purchase_receipt.net_total + 499
-		pending_purchase_invoice.save()
+		supplier_invoice.reload()
+		supplier_invoice.items[0].rate = purchase_receipt.net_total + 499
+		supplier_invoice.save()
 		time.sleep(5) # Todo: wait for commit correctly
-		pending_purchase_invoice.reload()
-		self.assertEqual(pending_purchase_invoice.status, "Completed")
+		supplier_invoice.reload()
+		self.assertEqual(supplier_invoice.status, "Completed")
 
 		frappe.db.set_single_value("eTransactions Settings", "max_difference_amount", 0)
 		frappe.db.set_single_value("eTransactions Settings", "max_difference_percentage_on_net_total", 0)
@@ -129,23 +129,23 @@ class TestAutoReconciliation(IntegrationTestCase):
 		purchase_receipt.insert()
 		purchase_receipt.submit()
 
-		pending_purchase_invoice = get_pending_purchase_invoice(
+		supplier_invoice = get_supplier_invoice(
 			supplier = purchase_order.supplier,
 			amount = purchase_receipt.net_total + 499,
 			purchase_order = purchase_order.name
 		)
 
-		pending_purchase_invoice.insert(ignore_permissions=True, ignore_mandatory=True)
+		supplier_invoice.insert(ignore_permissions=True, ignore_mandatory=True)
 
-		self.assertEqual(len(pending_purchase_invoice.items), 1)
-		self.assertIn(purchase_receipt.name, [r.reference_docname for r in pending_purchase_invoice.items])
-		self.assertEqual(pending_purchase_invoice.status, "Ready")
+		self.assertEqual(len(supplier_invoice.items), 1)
+		self.assertIn(purchase_receipt.name, [r.reference_docname for r in supplier_invoice.items])
+		self.assertEqual(supplier_invoice.status, "Ready")
 
 		frappe.db.set_single_value("eTransactions Settings", "max_difference_amount", 250)
 		frappe.db.set_single_value("eTransactions Settings", "max_difference_percentage_on_net_total", 5)
 
-		pending_purchase_invoice.save()
-		self.assertEqual(pending_purchase_invoice.status, "Ready")
+		supplier_invoice.save()
+		self.assertEqual(supplier_invoice.status, "Ready")
 
 		frappe.db.set_single_value("eTransactions Settings", "max_difference_amount", 0)
 		frappe.db.set_single_value("eTransactions Settings", "max_difference_percentage_on_net_total", 0)
@@ -179,20 +179,20 @@ class TestAutoReconciliation(IntegrationTestCase):
 		purchase_receipt_2.insert()
 		purchase_receipt_2.submit()
 
-		pending_purchase_invoice = get_pending_purchase_invoice(
+		supplier_invoice = get_supplier_invoice(
 			supplier = purchase_order.supplier,
 			amount = purchase_order.net_total,
 			purchase_order = purchase_order.name
 		)
 
-		pending_purchase_invoice.insert(ignore_permissions=True, ignore_mandatory=True)
+		supplier_invoice.insert(ignore_permissions=True, ignore_mandatory=True)
 
-		self.assertEqual(len(pending_purchase_invoice.items), 2)
-		self.assertIn(purchase_receipt_1.name, [r.reference_docname for r in pending_purchase_invoice.items])
-		self.assertIn(purchase_receipt_2.name, [r.reference_docname for r in pending_purchase_invoice.items])
+		self.assertEqual(len(supplier_invoice.items), 2)
+		self.assertIn(purchase_receipt_1.name, [r.reference_docname for r in supplier_invoice.items])
+		self.assertIn(purchase_receipt_2.name, [r.reference_docname for r in supplier_invoice.items])
 
-		pending_purchase_invoice.reload()
-		self.assertEqual(pending_purchase_invoice.status, "Completed")
+		supplier_invoice.reload()
+		self.assertEqual(supplier_invoice.status, "Completed")
 
 
 def get_purchase_order(company, item_code, qty, rate, **kwargs):
@@ -212,8 +212,8 @@ def get_purchase_order(company, item_code, qty, rate, **kwargs):
 
 	return po
 
-def get_pending_purchase_invoice(supplier, amount, purchase_order):
-	pending_invoice: PendingPurchaseInvoice = frappe.new_doc("Pending Purchase Invoice") # type: ignore
+def get_supplier_invoice(supplier, amount, purchase_order):
+	pending_invoice: SupplierInvoice = frappe.new_doc("Supplier Invoice") # type: ignore
 	pending_invoice.supplier = supplier
 	pending_invoice.bill_no = frappe.generate_hash(length=8)
 	pending_invoice.bill_date = nowdate()

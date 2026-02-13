@@ -4,10 +4,10 @@
 frappe.provide("etransactions.pending_invoice");
 frappe.provide("etransactions.ui")
 
-frappe.ui.form.on("Pending Purchase Invoice", {
+frappe.ui.form.on("Supplier Invoice", {
 	onload(frm) {
 		frappe.call({
-			method: "etransactions.etransactions.doctype.pending_purchase_invoice.pending_purchase_invoice.get_settings"
+			method: "etransactions.etransactions.doctype.supplier_invoice.supplier_invoice.get_settings"
 		}).then(r => {
 			frm.toggle_display("select_purchase_orders", !r.message?.reconcile_with_purchase_receipts)
 		})
@@ -168,9 +168,9 @@ frappe.ui.form.on("Pending Purchase Invoice", {
 			frm.save();
 			frm.get_field("create_purchase_invoice").set_label(__("Create Purchase Invoice"));
 		} else {
-			frappe.db.get_list("Purchase Invoice", {filters: {pending_purchase_invoice: frm.doc.name, docstatus: 0}}).then(draft_invoices => {
+			frappe.db.get_list("Purchase Invoice", {filters: {supplier_invoice: frm.doc.name, docstatus: 0}}).then(draft_invoices => {
 				if (draft_invoices.length) {
-					confirm(__("A draft purchase invoice exists already for this pending purchase invoice."),
+					confirm(__("A draft purchase invoice exists already for this supplier invoice."),
 						[],
 						(values) => { frappe.set_route("Form", "Purchase Invoice", draft_invoices[0].name); },
 						(values) => { create_po_pi(frm) },
@@ -400,7 +400,7 @@ const items_are_not_linked_to_purchase_document = async(frm) => {
 const create_purchase_invoice = (frm, submit=false) => {
 	frappe.show_alert("Purchase Invoice creation in progress")
 	frappe.call({
-		method: "etransactions.etransactions.doctype.pending_purchase_invoice.pending_purchase_invoice.create_purchase_invoice",
+		method: "etransactions.etransactions.doctype.supplier_invoice.supplier_invoice.create_purchase_invoice",
 		args: {
 			docname: frm.doc.name,
 			submit: submit
@@ -421,7 +421,7 @@ const create_purchase_invoice = (frm, submit=false) => {
 const create_purchase_order = (frm, transaction_date, submit=false) => {
 	frappe.show_alert("Purchase Order creation in progress")
 	frappe.call({
-		method: "etransactions.etransactions.doctype.pending_purchase_invoice.pending_purchase_invoice.create_purchase_order",
+		method: "etransactions.etransactions.doctype.supplier_invoice.supplier_invoice.create_purchase_order",
 		args: {
 			docname: frm.doc.name,
 			submit: submit,
@@ -461,7 +461,7 @@ const confirm = (message, fields, confirm_action, reject_action, confirm_title, 
 };
 
 
-frappe.ui.form.on("Pending Purchase Invoice Item", {
+frappe.ui.form.on("Supplier Invoice Item", {
 	items_add(frm, cdt, cdn) {
 		frappe.model.set_value(cdt, cdn, "qty", 1);
 		if (frm.doc.items.length == 1) {
@@ -473,7 +473,7 @@ frappe.ui.form.on("Pending Purchase Invoice Item", {
 	item_code(frm, cdt, cdn) {
 		const row = locals[cdt][cdn];
 		frappe.call({
-			method: "etransactions.etransactions.doctype.pending_purchase_invoice.pending_purchase_invoice.get_item_details",
+			method: "etransactions.etransactions.doctype.supplier_invoice.supplier_invoice.get_item_details",
 			args: {
 				row: row,
 				company: frm.doc.company,
@@ -531,7 +531,7 @@ class PurchaseDocumentSelector {
 			primary_action_label: __("Select one or more purchase orders"),
 			get_query: () => {
 				return {
-					query: "etransactions.etransactions.doctype.pending_purchase_invoice.pending_purchase_invoice.get_purchase_documents",
+					query: "etransactions.etransactions.doctype.supplier_invoice.supplier_invoice.get_purchase_documents",
 					filters: {
 						company: this.frm.doc.company,
 						supplier: this.frm.doc.supplier,
@@ -607,7 +607,7 @@ class PurchaseDocumentSelector {
 			multiselect_dialog.add_custom_child_filters(filters);
 
 			return frappe.call({
-				method: "etransactions.etransactions.doctype.pending_purchase_invoice.pending_purchase_invoice.get_documents_child_items",
+				method: "etransactions.etransactions.doctype.supplier_invoice.supplier_invoice.get_documents_child_items",
 				args: {
 					doctype: this.doctype,
 					filters: filters,

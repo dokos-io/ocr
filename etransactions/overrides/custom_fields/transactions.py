@@ -32,14 +32,14 @@ purchasing_fields = [
 		"label": _("Original File"),
 		"insert_after": "ocr_request",
 		"read_only": 1,
-		"fetch_from": "pending_purchase_invoice.file",
+		"fetch_from": "supplier_invoice.file",
 		"no_copy": 1
 	},
 	{
-		"fieldname": "pending_purchase_invoice",
+		"fieldname": "supplier_invoice",
 		"fieldtype": "Link",
-		"options": "Pending Purchase Invoice",
-		"label": _("Pending Purchase Invoice"),
+		"options": "Supplier Invoice",
+		"label": _("Supplier Invoice"),
 		"insert_after": "ocr_original_file",
 		"read_only": 1,
 		"no_copy": 1
@@ -47,6 +47,18 @@ purchasing_fields = [
 ]
 
 selling_fields = [
+	{
+		"fieldname": "etransactions_buyer_reference",
+		"label": _("Buyer Reference"),
+		"insert_after": "tax_id",
+		"fieldtype": "Data",
+		"fetch_from": "customer.etransactions_buyer_reference",
+		"fetch_if_empty": 1,
+		"read_only": True,
+	},
+]
+
+sales_invoicing_fields = [
 	{
 		"fieldname": "etransactions_tab",
 		"fieldtype": "Tab Break",
@@ -78,14 +90,15 @@ TRANSACTION_FIELDS: dict = {
 			"no_copy": 1
 		},
 		{
-			"fieldname": "pending_purchase_invoice_item",
+			"fieldname": "supplier_invoice_item",
 			"fieldtype": "Link",
-			"options": "Pending Purchase Invoice Item",
-			"label": _("Pending Purchase Invoice Item"),
+			"options": "Supplier Invoice Item",
+			"label": _("Supplier Invoice Item"),
 			"insert_after": "ocr_request_line_item",
 			"read_only": 1,
 			"no_copy": 1
 		},
 	],
-	"Sales Invoice": selling_fields,
+	"Sales Order": selling_fields,
+	"Sales Invoice": selling_fields + sales_invoicing_fields,
 }

@@ -1,6 +1,5 @@
 from typing import TYPE_CHECKING
 
-
 import frappe
 from frappe import _, _dict
 
@@ -27,20 +26,35 @@ class eInvoiceParser:
 		self.einvoice_document = doc
 
 	@classmethod
-	def get_einvoice_document(cls, xml_bytes):
+	def get_einvoice_document(cls, cls_xml_bytes):
 		try:
-			doc = DrafthorseDocument.parse(xml_bytes, strict=False)
-			return doc
-		except XMLSyntaxError:
-			frappe.throw(_("The uploaded file does not contain valid XML data."), XMLSyntaxError)
+			return DrafthorseDocument.parse(cls_xml_bytes, strict=False)
+		except Exception:
+			# Drafthorse tries to parse string fields (like ClassCode) as Decimal. TODO: Fix this issue
+			try:
+				from lxml import etree
+				tree = etree.fromstring(cls_xml_bytes)
+
+				# Remove elements known to cause issues in drafthorse.
+				# DesignatedProductClassification/ClassCode
+				for el in tree.xpath("//*[local-name()='DesignatedProductClassification']"):
+					el.getparent().remove(el)
+
+				return DrafthorseDocument.parse(etree.tostring(tree), strict=False)
+			except Exception:
+				frappe.throw(
+					_("The uploaded file does not contain valid XML data or could not be parsed by the e-invoice engine."),
+					XMLSyntaxError,
+				)
 
 	@classmethod
 	def get_xml_bytes(cls, einvoice: File) -> bytes:
 		return get_xml_bytes(einvoice)
 
-	def parse_einvoice(self):
-		einvoice = frappe.get_doc("File", self.einvoice_document.einvoice)
+	def parse_einvoice(self) -> None:
+		einvoice: File = frappe.get_doc("File", self.einvoice_document.einvoice)
 		xml_bytes = eInvoiceParser.get_xml_bytes(einvoice)
+		self.einvoice_document.einvoice_xml = xml_bytes
 		doc = eInvoiceParser.get_einvoice_document(xml_bytes)
 
 		self.profile = get_profile(doc.context.guideline_parameter.id._text).value
@@ -111,7 +125,7 @@ class eInvoiceParser:
 			self.einvoice_document.validation_warnings += "\n".join(validation_warnings)
 
 
-	def parse_seller(self, seller: "TradeParty"):
+	def parse_seller(self, seller: TradeParty):
 		self.einvoice_document.seller_name = str(seller.name)
 		self.einvoice_document.seller_tax_id = (
 			seller.tax_registrations.children[0].id._text if seller.tax_registrations.children else None
@@ -120,13 +134,13 @@ class eInvoiceParser:
 		self.einvoice_document.seller_electronic_address_scheme = str(seller.electronic_address.uri_ID._scheme_id)
 		self.parse_address(seller.address, "seller")
 
-	def parse_buyer(self, buyer: "TradeParty"):
+	def parse_buyer(self, buyer: TradeParty):
 		self.einvoice_document.buyer_name = str(buyer.name)
 		self.einvoice_document.buyer_electronic_address = str(buyer.electronic_address.uri_ID._text)
 		self.einvoice_document.buyer_electronic_address_scheme = str(buyer.electronic_address.uri_ID._scheme_id)
 		self.parse_address(buyer.address, "buyer")
 
-	def parse_address(self, address: "PostalTradeAddress", prefix: str) -> _dict:
+	def parse_address(self, address: PostalTradeAddress, prefix: str) -> _dict:
 		country = frappe.db.get_value("Country", {"code": str(address.country_id).lower()}, "name")
 
 		self.einvoice_document.set(f"{prefix}_city", str(address.city_name))
@@ -135,7 +149,7 @@ class eInvoiceParser:
 		self.einvoice_document.set(f"{prefix}_postcode", str(address.postcode))
 		self.einvoice_document.set(f"{prefix}_country", str(country))
 
-	def parse_line_item(self, li: "LineItem"):
+	def parse_line_item(self, li: LineItem):
 		item = self.einvoice_document.append("items")
 
 		net_rate = float(li.agreement.net.amount._value)
@@ -162,13 +176,13 @@ class eInvoiceParser:
 		item.tax_rate = flt_or_none(li.settlement.trade_tax.rate_applicable_percent._value)
 		item.total_amount = flt_or_none(li.settlement.monetary_summation.total_amount._value)
 
-	def parse_tax(self, tax: "ApplicableTradeTax"):
+	def parse_tax(self, tax: ApplicableTradeTax):
 		t = self.einvoice_document.append("taxes")
 		t.basis_amount = flt_or_none(tax.basis_amount._value)
 		t.rate_applicable_percent = flt_or_none(tax.rate_applicable_percent._value)
 		t.calculated_amount = flt_or_none(tax.calculated_amount._value)
 
-	def parse_payment_term(self, term: "PaymentTerms"):
+	def parse_payment_term(self, term: PaymentTerms):
 		if not term.partial_amount.children:
 			self.einvoice_document.due_date = term.due._value
 			return
@@ -197,27 +211,27 @@ class eInvoiceParser:
 		if term.discount_terms.actual_amount._value:
 			t.discount_actual_amount = float(term.discount_terms.actual_amount._value)
 
-	def parse_monetary_summation(self, summation: "MonetarySummation"):
+	def parse_monetary_summation(self, summation: MonetarySummation):
 		self.einvoice_document.line_total = flt_or_none(summation.line_total._value)
 		self.einvoice_document.allowance_total = flt_or_none(summation.allowance_total._value)
 		self.einvoice_document.charge_total = flt_or_none(summation.charge_total._value)
 		self.einvoice_document.tax_basis_total = flt_or_none(summation.tax_basis_total._amount)
 		for value, currency in summation.tax_total_other_currency.children:
 			if currency is None or currency == self.einvoice_document.currency:
-				self.tax_total = flt_or_none(value)
+				self.einvoice_document.tax_total = flt_or_none(value)
 				break
 		self.einvoice_document.grand_total = flt_or_none(summation.grand_total._amount)
 		self.einvoice_document.total_prepaid = flt_or_none(summation.prepaid_total._value)
 		self.einvoice_document.due_payable = flt_or_none(summation.due_amount._value)
 
-	def parse_bank_details(self, payment_means: "PaymentMeans"):
+	def parse_bank_details(self, payment_means: PaymentMeans):
 		self.einvoice_document.payee_iban = payment_means.payee_account.iban._text or None
 
 		if EInvoiceProfile(self.einvoice_document.profile) >= EInvoiceProfile.EN16931:
 			self.einvoice_document.payee_account_name = payment_means.payee_account.account_name._text or None
 			self.einvoice_document.payee_bic = payment_means.payee_institution.bic._text or None
 
-	def parse_billing_period(self, period: "BillingSpecifiedPeriod"):
+	def parse_billing_period(self, period: BillingSpecifiedPeriod):
 		self.einvoice_document.billing_period_start = period.start._value
 		self.einvoice_document.billing_period_end = period.end._value
 

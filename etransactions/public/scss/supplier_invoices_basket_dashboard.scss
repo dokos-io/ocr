@@ -1,0 +1,39 @@
+.etransactions-supplier-invoices-basket {
+	.etransactions-status-icon {
+		display: inline-block;
+		width: 32px;
+		height: 32px;
+	}
+
+
+	.bd-spinner {
+		width: 16px;
+		height: 16px;
+		margin: 0 auto 0.5rem;
+		border: 2px solid var(--border-color);
+		border-top-color: var(--primary-color);
+		border-radius: 50%;
+		animation: bd-spin 0.6s linear infinite;
+	}
+	@keyframes bd-spin { to { transform: rotate(360deg); } }
+
+	.bd-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+		gap: 0.5rem;
+	}
+
+	.bd-card {
+		background: var(--card-bg);
+		border: 1px solid var(--border-color);
+		border-radius: var(--border-radius-lg);
+		padding: 0.75rem;
+		cursor: pointer;
+		transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+		animation: bd-fade-in 0.25s ease both;
+	}
+	.bd-card:hover {
+		box-shadow: var(--shadow-sm);
+		transform: translateY(-1px);
+	}
+}

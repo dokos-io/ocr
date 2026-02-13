@@ -27,14 +27,14 @@
    "quick_list_filter": "[[\"Supplier Invoices Basket\",\"status\",\"in\",[\"Not Started\",\"In Progress\",null],false]]"
   },
   {
-   "document_type": "Pending Purchase Invoice",
+   "document_type": "Supplier Invoice",
    "label": "Purchase Invoice to Create",
-   "quick_list_filter": "[[\"Pending Purchase Invoice\",\"status\",\"in\",[\"Pending\",\"In Progress\",null],false]]"
+   "quick_list_filter": "[[\"Supplier Invoice\",\"status\",\"in\",[\"Pending\",\"In Progress\",null],false]]"
   },
   {
    "document_type": "Purchase Invoice",
    "label": "Purchase Invoice to Submit",
-   "quick_list_filter": "[[\"Purchase Invoice\",\"pending_purchase_invoice\",\"is\",\"set\",false],[\"Purchase Invoice\",\"docstatus\",\"=\",\"0\",false]]"
+   "quick_list_filter": "[[\"Purchase Invoice\",\"supplier_invoice\",\"is\",\"set\",false],[\"Purchase Invoice\",\"docstatus\",\"=\",\"0\",false]]"
   }
  ],
  "roles": [],
@@ -54,7 +54,7 @@
    "format": "{} orders",
    "label": "Purchase Orders",
    "link_to": "Purchase Order",
-   "stats_filter": "[[\"Purchase Order\",\"pending_purchase_invoice\",\"is\",\"set\",false]]",
+   "stats_filter": "[[\"Purchase Order\",\"supplier_invoice\",\"is\",\"set\",false]]",
    "type": "DocType"
   },
   {

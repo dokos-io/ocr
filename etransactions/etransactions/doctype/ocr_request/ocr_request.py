@@ -13,6 +13,7 @@ from frappe.model.document import Document
 from etransactions.etransactions.doctype.ocr_request.aws_textract import AWSTextractExpense
 from etransactions.etransactions.doctype.ocr_request.mistral_ocr import MistralOCR
 from etransactions.utils import parse_number, date_parser
+from etransactions.controllers.entity_resolver import InvoiceEntityResolverMixin
 
 # https://docs.python.org/3/library/re.html#simulating-scanf
 FLOAT_PATTERN = re.compile(r"[-+]?(\d+([.,]\d*)?|[.,]\d+)([eE][-+]?\d+)?")
@@ -34,7 +35,7 @@ PURCHASE_INVOICE_TOTALS = dict(
 	SUBTOTAL = "net_total",
 )
 
-class OCRRequest(Document):
+class OCRRequest(Document, InvoiceEntityResolverMixin):
 	# begin: auto-generated types
 	# This code is auto-generated. Do not modify anything in this block.
 
@@ -65,8 +66,8 @@ class OCRRequest(Document):
 
 	def before_save(self):
 		if self.job and self.analysis:
-			if self.transaction_type == "Purchase Invoice" and not frappe.db.get_value("Pending Purchase Invoice", dict(ocr_request=self.name)):
-				self.create_pending_purchase_invoice()
+			if self.transaction_type == "Purchase Invoice" and not frappe.db.get_value("Supplier Invoice", dict(ocr_request=self.name)):
+				self.create_supplier_invoice()
 
 	@frappe.whitelist()
 	def make_analysis(self):
@@ -109,7 +110,7 @@ class OCRRequest(Document):
 			return self.get_raw_data()
 
 		ocr_service = frappe.db.get_single_value("eTransactions Settings", "ocr_service")
-		if ocr_service == "Mistral eTransactions":
+		if ocr_service == "Mistral OCR":
 			return self.get_mistral_analysis()
 		else:
 			return self.get_textract_analysis()
@@ -155,7 +156,7 @@ class OCRRequest(Document):
 	def delete_remote_file(self, log_exception = True):
 		try:
 			ocr_service = frappe.db.get_single_value("eTransactions Settings", "ocr_service")
-			if ocr_service == "Mistral eTransactions":
+			if ocr_service == "Mistral OCR":
 				if self.job:
 					mistral = MistralOCR(self)
 					mistral.delete_file(self.job)
@@ -174,7 +175,7 @@ class OCRRequest(Document):
 			return
 
 		status = "Pending"
-		if ppi_status := frappe.db.get_value("Pending Purchase Invoice", dict(ocr_request=self.name)):
+		if ppi_status := frappe.db.get_value("Supplier Invoice", dict(ocr_request=self.name)):
 			if ppi_status in ["Closed", "Completed"]:
 				status = ppi_status
 		if self.job:
@@ -185,12 +186,6 @@ class OCRRequest(Document):
 		self.status = status
 		if commit:
 			self.db_set("status", status)
-
-		self.update_parent_status()
-
-	def update_parent_status(self):
-		if self.ocr_basket:
-			frappe.get_doc("Supplier Invoices Basket", self.ocr_basket).run_method("set_status")
 
 	def reset_status_and_error(self):
 		self.db_set("error", "")
@@ -207,61 +202,19 @@ class OCRRequest(Document):
 
 	def get_supplier_name(self):
 		header = self.get_raw_data()
-		supplier = None
-		if header.get("VENDOR_VAT_NUMBER"):
-			supplier = frappe.db.get_value("Supplier", dict(tax_id=header.get("VENDOR_VAT_NUMBER")))
-
-		if not supplier and header.get("TAX_PAYER_ID"):
-			supplier = frappe.db.get_value("Supplier", dict(tax_id=header.get("TAX_PAYER_ID")))
-
-		if not supplier and header.get("VENDOR_NAME"):
-			supplier = frappe.db.get_value("Supplier", header.get("VENDOR_NAME"))
-
-		if not supplier and header.get("VENDOR_NAME") and len(header.get("VENDOR_NAME").split(" ")) > 1:
-			for substring in header.get("VENDOR_NAME").split(" "):
-				if supplier := frappe.db.get_value("Supplier", substring):
-					break
-
-		if not supplier and header.get("VENDOR_NAME"):
-			existing_suppliers = frappe.get_all("Supplier", filters=dict(disabled=0), fields=["name", "supplier_name"])
-			existing_supplier_dict = {supplier.supplier_name: supplier.name for supplier in existing_suppliers}
-
-			if existing_supplier_list := [supplier.supplier_name for supplier in existing_suppliers]:
-				best_match = next(iter(sorted(
-					existing_supplier_list,
-					key=lambda doc: difflib.SequenceMatcher(
-						lambda doc: doc == " ", doc.lower(), header.get("VENDOR_NAME", "").lower()
-					).ratio(),
-					reverse=True,
-				)))
-
-				if difflib.SequenceMatcher(lambda doc: doc == " ", best_match.lower(), header.get("VENDOR_NAME", "").lower()).ratio() > 0.9:
-					supplier = existing_supplier_dict.get(best_match)
-
-		self.supplier = supplier if (supplier and frappe.db.exists("Supplier", supplier)) else None
-
-		return supplier or ""
+		self.supplier = self.resolve_supplier(
+			seller_name=header.get("VENDOR_NAME"), 
+			tax_id=header.get("VENDOR_VAT_NUMBER") or header.get("TAX_PAYER_ID")
+		)
+		return self.supplier
 
 	def get_company(self):
 		header = self.get_raw_data()
-		company = None
-		companies = [x.lower() for x in frappe.get_all("Company", pluck="name")]
-		if company_match := difflib.get_close_matches(header.get("RECEIVER_NAME","").lower(), companies, cutoff=0.9):
-			company = company_match[0]
-
-		if not company and (company_match := difflib.get_close_matches(header.get("RECEIVER_ADDRESS", "").lower(), companies, cutoff=0.9)):
-			company = company_match[0]
-
-		if not company:
-			for company_name in companies:
-				if company_name in header.get("RECEIVER_NAME", "").lower() or company_name in header.get("RECEIVER_ADDRESS", "").lower():
-					company = company_name
-
-		if not company and len(companies) == 1:
-			company = companies[0]
-
-		self.company = company
-		return company or ""
+		self.company = self.resolve_company(
+			receiver_name=header.get("RECEIVER_NAME"),
+			receiver_address=header.get("RECEIVER_ADDRESS")
+		)
+		return self.company
 
 	@frappe.whitelist()
 	def close_request(self):
@@ -326,23 +279,12 @@ class OCRRequest(Document):
 				return fieldname or key, value
 
 
-	def create_pending_purchase_invoice(self):
-		data = self.get_data_from_analysis()
+	def create_supplier_invoice(self):
+		from etransactions.etransactions.doctype.einvoice.einvoice import IncomingInvoiceDataTransformer
+		data = IncomingInvoiceDataTransformer(self).get_data()
 
-		doc = frappe.new_doc("Pending Purchase Invoice")
-		doc.company = data.get("company")
-		doc.supplier = data.get("supplier")
-		doc.bill_no = data.get("bill_no")
-		doc.bill_date = data.get("bill_date")
-		doc.due_date = data.get("due_date")
-		doc.supplier_net_amount = data.get("net_total")
-		doc.supplier_tax_amount = data.get("tax_total")
-		doc.supplier_grand_total = data.get("grand_total")
-		doc.ocr_request = self.name
-		doc.file = self.file
-		doc.vendor_address = data.get("vendor_address")
-		doc.tax_id = data.get("tax_id")
-		doc.ocr_basket = self.ocr_basket
+		doc = frappe.new_doc("Supplier Invoice")
+		doc.update(data)
 
 		return doc.insert(ignore_mandatory=True, ignore_links=True)
 
@@ -357,6 +299,17 @@ def check_pending_analysis():
 			doc.log_error()
 			continue
 
+
+@frappe.whitelist()
+def get_analysis(request_id):
+	doc = frappe.get_doc("OCR Request", request_id)
+	return doc.get_analysis()
+
+
+def update_ocr_request_status(doc, method):
+	if doc.ocr_request:
+		ocr_request = frappe.get_doc("OCR Request", doc.ocr_request)
+		ocr_request.set_status(True)
 
 @frappe.whitelist()
 def get_analysis(request_id):

@@ -53,7 +53,8 @@
   "file",
   "file_url",
   "ocr_request",
-  "ocr_basket"
+  "ocr_basket",
+  "einvoice"
  ],
  "fields": [
   {
@@ -133,7 +134,7 @@
    "fieldname": "items",
    "fieldtype": "Table",
    "label": "Items",
-   "options": "Pending Purchase Invoice Item"
+   "options": "Supplier Invoice Item"
   },
   {
    "depends_on": "eval:!doc.is_return",
@@ -358,6 +359,13 @@
    "fieldname": "purchase_order_number",
    "fieldtype": "Data",
    "label": "Purchase Order Number"
+  },
+  {
+   "fieldname": "einvoice",
+   "fieldtype": "Link",
+   "label": "eInvoice",
+   "options": "eInvoice",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
@@ -366,18 +374,18 @@
   {
    "group": "Purchase Orders",
    "link_doctype": "Purchase Order",
-   "link_fieldname": "pending_purchase_invoice"
+   "link_fieldname": "supplier_invoice"
   },
   {
    "group": "Purchase Invoices",
    "link_doctype": "Purchase Invoice",
-   "link_fieldname": "pending_purchase_invoice"
+   "link_fieldname": "supplier_invoice"
   }
  ],
- "modified": "2026-01-25 11:13:16.195142",
+ "modified": "2026-02-12 11:33:40.561019",
  "modified_by": "Administrator",
  "module": "eTransactions",
- "name": "Pending Purchase Invoice",
+ "name": "Supplier Invoice",
  "naming_rule": "Autoincrement",
  "owner": "Administrator",
  "permissions": [

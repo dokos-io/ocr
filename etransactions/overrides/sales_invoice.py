@@ -28,7 +28,7 @@ def on_validate(doc, method):
 
 		if (
 			tax_row.charge_type == "Actual"
-			and EInvoiceProfile(doc.einvoice_profile) < EInvoiceProfile.EXTENDED
+			and EInvoiceProfile(doc.etransaction_profile) < EInvoiceProfile.EXTENDED
 		):
 			frappe.msgprint(
 				_(
@@ -69,7 +69,7 @@ def on_validate(doc, method):
 		)
 
 
-def before_save(doc, method):
+def on_update(doc, method):
 	"""Create EDocument when Sales Invoice is saved (if profile setting enabled)."""
 	if not doc.name or not doc.etransaction_profile:
 		return

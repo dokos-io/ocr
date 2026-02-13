@@ -174,7 +174,7 @@
  "modified": "2025-07-29 17:26:09.088908",
  "modified_by": "Administrator",
  "module": "eTransactions",
- "name": "Pending Purchase Invoice Item",
+ "name": "Supplier Invoice Item",
  "owner": "Administrator",
  "permissions": [],
  "row_format": "Dynamic",
