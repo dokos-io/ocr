@@ -122,7 +122,7 @@ class eInvoice(Document):
 		profile = EInvoiceProfile(sales_invoice.get("etransaction_profile"))
 		generator = EInvoiceGenerator(
 			profile=profile,
-			invoice=sales_invoice,
+			einvoice=self,
 			company=self.einvoice_data.company,
 			customer=self.einvoice_data.customer,
 			seller_address=self.einvoice_data.seller_address,

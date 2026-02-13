@@ -26,7 +26,7 @@ class TestSupplierInvoice(IntegrationTestCase):
 	def create_prerequisites(self):
 		self.supplier = create_supplier()
 		create_item()
-		self.company = "Dokompany"
+		self.company = "Wind Power LLC"
 
 
 	def clear_existing_data(self):

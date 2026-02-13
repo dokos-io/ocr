@@ -4,10 +4,12 @@ import frappe
 
 from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
 from frappe.utils import now_datetime
+from frappe.model.sync import sync_for
 
 
 def after_install():
 	rename_ocr_to_etransactions()
+	sync_for("etransactions", force=True, reset_permissions=True)
 	add_custom_fields()
 
 
@@ -27,7 +29,7 @@ def before_tests():
 			{
 				"currency": "USD",
 				"full_name": "Test User",
-				"company_name": "Dokompany",
+				"company_name": "Wind Power LLC",
 				"timezone": "Europe/Paris",
 				"company_abbr": "DK",
 				"industry": "Manufacturing",

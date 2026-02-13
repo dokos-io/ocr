@@ -78,6 +78,17 @@
   "billing_period_start",
   "column_break_etpy",
   "billing_period_end",
+  "po_date",
+  "einvoice_embedded_document",
+  "is_return",
+  "return_against",
+  "terms",
+  "incoterm",
+  "named_place",
+  "buyer_tax_id",
+  "tax_category",
+  "taxes_and_charges",
+  "payment_terms_template",
   "payment_means_section",
   "payee_account_name",
   "payee_iban",
@@ -549,6 +560,78 @@
    "fieldtype": "Link",
    "label": "Supplier Invoices Basket",
    "options": "Supplier Invoices Basket",
+   "read_only": 1
+  },
+  {
+   "fieldname": "po_date",
+   "fieldtype": "Date",
+   "label": "PO Date",
+   "read_only": 1
+  },
+  {
+   "fieldname": "einvoice_embedded_document",
+   "fieldtype": "Attach",
+   "label": "Embedded Document",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "is_return",
+   "fieldtype": "Check",
+   "label": "Is Return",
+   "read_only": 1
+  },
+  {
+   "fieldname": "return_against",
+   "fieldtype": "Link",
+   "label": "Return Against",
+   "options": "Sales Invoice",
+   "read_only": 1
+  },
+  {
+   "fieldname": "terms",
+   "fieldtype": "Text Editor",
+   "label": "Terms",
+   "read_only": 1
+  },
+  {
+   "fieldname": "incoterm",
+   "fieldtype": "Link",
+   "label": "Incoterm",
+   "options": "Incoterm",
+   "read_only": 1
+  },
+  {
+   "fieldname": "named_place",
+   "fieldtype": "Data",
+   "label": "Named Place",
+   "read_only": 1
+  },
+  {
+   "fieldname": "buyer_tax_id",
+   "fieldtype": "Data",
+   "label": "Buyer Tax ID",
+   "read_only": 1
+  },
+  {
+   "fieldname": "tax_category",
+   "fieldtype": "Link",
+   "label": "Tax Category",
+   "options": "Tax Category",
+   "read_only": 1
+  },
+  {
+   "fieldname": "taxes_and_charges",
+   "fieldtype": "Link",
+   "label": "Taxes and Charges",
+   "options": "Sales Taxes and Charges Template",
+   "read_only": 1
+  },
+  {
+   "fieldname": "payment_terms_template",
+   "fieldtype": "Link",
+   "label": "Payment Terms Template",
+   "options": "Payment Terms Template",
    "read_only": 1
   }
  ],
