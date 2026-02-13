@@ -937,7 +937,7 @@ def get_settings():
 
 
 @frappe.whitelist()
-def make_purchase_invoice_from_pr(source_name: str, target_doc: PurchaseInvoice | None = None, args: str | None = None): # TODO: find a better way to handle this in ERPNext directly
+def make_purchase_invoice_from_pr(source_name: str, target_doc: "PurchaseInvoice" | None = None, args: str | None = None): # TODO: find a better way to handle this in ERPNext directly
 	from erpnext.stock.doctype.purchase_receipt.purchase_receipt import get_returned_qty_map, get_invoiced_qty_map
 
 	if args is None:
