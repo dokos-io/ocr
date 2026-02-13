@@ -919,12 +919,12 @@ def validate_total(doc, method):
 
 
 @frappe.whitelist()
-def create_purchase_invoice(docname, submit=False):
+def create_purchase_invoice(docname: str, submit: bool | str | None = False):
 	return frappe.get_doc("Supplier Invoice", docname).run_method("create_purchase_invoice", submit=sbool(submit))
 
 
 @frappe.whitelist()
-def create_purchase_order(docname, transaction_date=None, submit=False):
+def create_purchase_order(docname: str, transaction_date: str | None = None, submit: bool | str | None = False):
 	return frappe.get_doc("Supplier Invoice", docname).run_method("create_purchase_order", transaction_date=transaction_date, submit=sbool(submit))
 
 
@@ -937,7 +937,7 @@ def get_settings():
 
 
 @frappe.whitelist()
-def make_purchase_invoice_from_pr(source_name, target_doc=None, args=None): # TODO: find a better way to handle this in ERPNext directly
+def make_purchase_invoice_from_pr(source_name: str, target_doc: dict | None = None, args: str | None = None): # TODO: find a better way to handle this in ERPNext directly
 	from erpnext.stock.doctype.purchase_receipt.purchase_receipt import get_returned_qty_map, get_invoiced_qty_map
 
 	if args is None:

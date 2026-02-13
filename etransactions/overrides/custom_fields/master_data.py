@@ -14,7 +14,6 @@ customer_fields = [
 		"fieldtype": "Link",
 		"options": "eTransaction Profile",
 		"insert_after": "etransactions_tab",
-		"reqd": 1,
 	},
 	{
 		"fieldname": "etransactions_buyer_reference",
@@ -46,10 +45,17 @@ company_fields = [
 			"insert_after": "connections_tab"
 		},
 		{
-			"fieldname": "etransactions_buyer_reference",
-			"label": _("Buyer Reference"),
+			"fieldname": "etransactions_seller_reference",
+			"label": _("Seller Reference"),
 			"insert_after": "etransactions_tab",
 			"fieldtype": "Data",
+		},
+		{
+			"fieldname": "etransactions_electronic_address_scheme",
+			"label": _("Electronic Address Scheme"),
+			"insert_after": "etransactions_seller_reference",
+			"fieldtype": "Link",
+			"options": "Common Code",
 		},
 		{
 			"fieldname": "etransactions_electronic_address",

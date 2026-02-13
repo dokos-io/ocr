@@ -162,8 +162,8 @@ class EInvoiceGenerator:
 		self._set_seller()
 		self._set_buyer()
 
-		if self.invoice.buyer_reference:
-			self.doc.trade.agreement.buyer_reference = self.invoice.buyer_reference
+		if self.invoice.etransactions_buyer_reference:
+			self.doc.trade.agreement.buyer_reference = self.invoice.etransactions_buyer_reference
 
 		if self.invoice.po_no:
 			self.doc.trade.agreement.buyer_order.issuer_assigned_id = self.invoice.po_no
@@ -171,8 +171,8 @@ class EInvoiceGenerator:
 			if self.invoice.po_date and self.profile >= EInvoiceProfile.EXTENDED:
 				self.doc.trade.agreement.buyer_order.issue_date_time = getdate(self.invoice.po_date)
 
-		if self.profile >= EInvoiceProfile.EN16931:
-			self._embed_attachment()
+		# if self.profile >= EInvoiceProfile.EN16931: # TODO: No yet implemented
+		# 	self._embed_attachment()
 
 		sales_orders = set()
 		for item in self.invoice.items:
@@ -322,10 +322,10 @@ class EInvoiceGenerator:
 		).upper()
 
 	def _set_seller_electronic_address(self):
-		if self.company.electronic_address_scheme and self.company.electronic_address:
+		if self.company.etransactions_electronic_address_scheme and self.company.etransactions_electronic_address:
 			self.doc.trade.agreement.seller.electronic_address.uri_ID = (
-				frappe.db.get_value("Common Code", self.company.electronic_address_scheme, "common_code"),
-				self.company.electronic_address,
+				frappe.db.get_value("Common Code", self.company.etransactions_electronic_address_scheme, "common_code"),
+				self.company.etransactions_electronic_address,
 			)
 			return
 
@@ -370,10 +370,10 @@ class EInvoiceGenerator:
 		self._set_buyer_tax_id()
 
 	def _set_buyer_electronic_address(self):
-		if self.customer.electronic_address_scheme and self.customer.electronic_address:
+		if self.customer.etransactions_electronic_address_scheme and self.customer.etransactions_electronic_address:
 			self.doc.trade.agreement.buyer.electronic_address.uri_ID = (
-				frappe.db.get_value("Common Code", self.customer.electronic_address_scheme, "common_code"),
-				self.customer.electronic_address,
+				frappe.db.get_value("Common Code", self.customer.etransactions_electronic_address_scheme, "common_code"),
+				self.customer.etransactions_electronic_address,
 			)
 			return
 

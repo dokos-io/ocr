@@ -48,6 +48,18 @@ purchasing_fields = [
 
 selling_fields = [
 	{
+		"fieldname": "etransactions_buyer_reference",
+		"label": _("Buyer Reference"),
+		"insert_after": "tax_id",
+		"fieldtype": "Data",
+		"fetch_from": "customer.etransactions_buyer_reference",
+		"fetch_if_empty": 1,
+		"read_only": True,
+	},
+]
+
+sales_invoicing_fields = [
+	{
 		"fieldname": "etransactions_tab",
 		"fieldtype": "Tab Break",
 		"label": _("eTransactions"),
@@ -87,5 +99,6 @@ TRANSACTION_FIELDS: dict = {
 			"no_copy": 1
 		},
 	],
-	"Sales Invoice": selling_fields,
+	"Sales Order": selling_fields,
+	"Sales Invoice": selling_fields + sales_invoicing_fields,
 }
