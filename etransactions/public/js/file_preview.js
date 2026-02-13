@@ -8,9 +8,9 @@ etransactions.original_file_preview = (frm) => {
 	}
 
 
-	if (frm.doc.pending_purchase_invoice) {
-		frappe.model.with_doc("Supplier Invoice", frm.doc.pending_purchase_invoice).then(() => {
-			const doc = frappe.get_doc("Supplier Invoice", frm.doc.pending_purchase_invoice)
+	if (frm.doc.supplier_invoice) {
+		frappe.model.with_doc("Supplier Invoice", frm.doc.supplier_invoice).then(() => {
+			const doc = frappe.get_doc("Supplier Invoice", frm.doc.supplier_invoice)
 			let msg = ""
 
 			if (Math.abs(frm.doc.grand_total) != Math.abs(doc.supplier_grand_total)) {

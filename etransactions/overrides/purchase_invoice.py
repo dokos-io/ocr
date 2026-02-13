@@ -5,12 +5,12 @@ from frappe import _
 from frappe.utils import flt, fmt_money
 
 def after_mapping(doc, method, purchase_order):
-	if purchase_order.get("pending_purchase_invoice"):
-		doc.pending_purchase_invoice = purchase_order.pending_purchase_invoice
+	if purchase_order.get("supplier_invoice"):
+		doc.supplier_invoice = purchase_order.supplier_invoice
 		doc.ocr_original_file = purchase_order.get("ocr_original_file")
 
 def validate_over_billing(doc, method):
-	if not doc.pending_purchase_invoice:
+	if not doc.supplier_invoice:
 		return
 
 	if doc.flags.ignore_mandatory_pr:

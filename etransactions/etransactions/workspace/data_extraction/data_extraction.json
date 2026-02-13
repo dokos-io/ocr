@@ -34,7 +34,7 @@
   {
    "document_type": "Purchase Invoice",
    "label": "Purchase Invoice to Submit",
-   "quick_list_filter": "[[\"Purchase Invoice\",\"pending_purchase_invoice\",\"is\",\"set\",false],[\"Purchase Invoice\",\"docstatus\",\"=\",\"0\",false]]"
+   "quick_list_filter": "[[\"Purchase Invoice\",\"supplier_invoice\",\"is\",\"set\",false],[\"Purchase Invoice\",\"docstatus\",\"=\",\"0\",false]]"
   }
  ],
  "roles": [],
@@ -54,7 +54,7 @@
    "format": "{} orders",
    "label": "Purchase Orders",
    "link_to": "Purchase Order",
-   "stats_filter": "[[\"Purchase Order\",\"pending_purchase_invoice\",\"is\",\"set\",false]]",
+   "stats_filter": "[[\"Purchase Order\",\"supplier_invoice\",\"is\",\"set\",false]]",
    "type": "DocType"
   },
   {

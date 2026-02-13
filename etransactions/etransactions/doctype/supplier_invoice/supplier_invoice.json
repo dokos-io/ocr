@@ -374,12 +374,12 @@
   {
    "group": "Purchase Orders",
    "link_doctype": "Purchase Order",
-   "link_fieldname": "pending_purchase_invoice"
+   "link_fieldname": "supplier_invoice"
   },
   {
    "group": "Purchase Invoices",
    "link_doctype": "Purchase Invoice",
-   "link_fieldname": "pending_purchase_invoice"
+   "link_fieldname": "supplier_invoice"
   }
  ],
  "modified": "2026-02-12 11:33:40.561019",
