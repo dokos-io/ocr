@@ -58,17 +58,40 @@ class EInvoiceMapper:
 	def run(self):
 		self.check_permissions()
 
+		self.customer = frappe.get_doc("Customer", self.sales_invoice.customer)
+		self.company = frappe.get_doc("Company", self.sales_invoice.company)
+
+		self.map_header()
 		self.map_seller_address()
 		self.map_buyer_address()
 		self.map_shipping_address()
 		self.map_seller_contact()
 		self.map_buyer_contact()
-
-		self.customer = frappe.get_doc("Customer", self.sales_invoice.customer)
-		self.company = frappe.get_doc("Company", self.sales_invoice.company)
+		self.map_electronic_addresses()
+		self.map_tax_ids()
+		self.map_items()
+		self.map_taxes()
+		self.map_payment_terms()
+		self.map_payment_means()
+		self.map_totals()
 
 	def check_permissions(self):
 		self.sales_invoice.check_permission("read")
+
+	def map_header(self):
+		self.einvoice.id = self.sales_invoice.name
+		self.einvoice.issue_date = self.sales_invoice.posting_date
+		self.einvoice.due_date = self.sales_invoice.due_date
+		self.einvoice.currency = self.sales_invoice.currency
+		self.einvoice.purchase_order = self.sales_invoice.po_no
+		self.einvoice.buyer_reference = self.sales_invoice.etransactions_buyer_reference
+		self.einvoice.company = self.sales_invoice.company
+		self.einvoice.profile = self.sales_invoice.etransaction_profile
+
+		if self.sales_invoice.from_date:
+			self.einvoice.billing_period_start = self.sales_invoice.from_date
+		if self.sales_invoice.to_date:
+			self.einvoice.billing_period_end = self.sales_invoice.to_date
 
 	def map_seller_address(self):
 		seller_address_map = {
@@ -82,11 +105,13 @@ class EInvoiceMapper:
 		if self.sales_invoice.company_address:
 			self.seller_address = frappe.get_doc("Address", self.sales_invoice.company_address)
 
+		self.einvoice.seller_name = self.sales_invoice.company
+
 		if not self.seller_address:
 			return
 
 		for address_field, einvoice_field in seller_address_map.items():
-			self.einvoice.set(einvoice_field, self.buyer_address.get(address_field))
+			self.einvoice.set(einvoice_field, self.seller_address.get(address_field))
 
 	def map_buyer_address(self):
 		buyer_address_map = {
@@ -100,6 +125,8 @@ class EInvoiceMapper:
 		if self.sales_invoice.customer_address:
 			self.buyer_address = frappe.get_doc("Address", self.sales_invoice.customer_address)
 
+		self.einvoice.buyer_name = self.sales_invoice.customer_name
+
 		if not self.buyer_address:
 			return
 
@@ -110,15 +137,133 @@ class EInvoiceMapper:
 		if self.sales_invoice.shipping_address_name:
 			self.shipping_address = frappe.get_doc("Address", self.sales_invoice.shipping_address_name)
 
-
 	def map_seller_contact(self):
 		if self.sales_invoice.company_contact_person:
 			self.seller_contact = frappe.get_doc("Contact", self.sales_invoice.company_contact_person)
 
-
 	def map_buyer_contact(self):
-		if self.sales_invoice.company_contact_person:
+		if self.sales_invoice.contact_person:
 			self.buyer_contact = frappe.get_doc("Contact", self.sales_invoice.contact_person)
+
+	def map_electronic_addresses(self):
+		if self.company.etransactions_electronic_address_scheme and self.company.etransactions_electronic_address:
+			self.einvoice.seller_electronic_address_scheme = frappe.db.get_value(
+				"Common Code", self.company.etransactions_electronic_address_scheme, "common_code"
+			)
+			self.einvoice.seller_electronic_address = self.company.etransactions_electronic_address
+		elif self.seller_contact and self.seller_contact.email_id:
+			self.einvoice.seller_electronic_address_scheme = "EM"
+			self.einvoice.seller_electronic_address = self.seller_contact.email_id
+		elif self.company.email:
+			self.einvoice.seller_electronic_address_scheme = "EM"
+			self.einvoice.seller_electronic_address = self.company.email
+
+		if self.customer.etransactions_electronic_address_scheme and self.customer.etransactions_electronic_address:
+			self.einvoice.buyer_electronic_address_scheme = frappe.db.get_value(
+				"Common Code", self.customer.etransactions_electronic_address_scheme, "common_code"
+			)
+			self.einvoice.buyer_electronic_address = self.customer.etransactions_electronic_address
+		elif self.sales_invoice.contact_email:
+			self.einvoice.buyer_electronic_address_scheme = "EM"
+			self.einvoice.buyer_electronic_address = self.sales_invoice.contact_email
+		elif self.buyer_address and self.buyer_address.email_id:
+			self.einvoice.buyer_electronic_address_scheme = "EM"
+			self.einvoice.buyer_electronic_address = self.buyer_address.email_id
+
+	def map_tax_ids(self):
+		if self.sales_invoice.company_tax_id:
+			self.einvoice.seller_tax_id = self.sales_invoice.company_tax_id
+
+	def map_items(self):
+		self.einvoice.set("items", [])
+		for item in self.sales_invoice.items:
+			self.einvoice.append(
+				"items",
+				{
+					"product_name": item.item_name,
+					"seller_product_id": item.item_code,
+					"product_description": html2text(item.description),
+					"item": item.item_code,
+					"billed_quantity": item.qty,
+					"unit_code": uom_codes.get([("UOM", item.uom)]),
+					"uom": item.uom,
+					"net_rate": item.net_rate,
+					"tax_rate": get_item_rate(item.item_tax_template, self.sales_invoice.taxes) or 0,
+					"total_amount": item.net_amount,
+				},
+			)
+
+	def map_taxes(self):
+		self.einvoice.set("taxes", [])
+		for tax in self.sales_invoice.taxes:
+			if tax.charge_type == "Actual":
+				continue
+
+			tax_rate = tax.rate or frappe.db.get_value("Account", tax.account_head, "tax_rate") or 0
+			basis_amount = 0
+			if len(self.sales_invoice.taxes) == 1:
+				basis_amount = self.sales_invoice.net_total
+			elif hasattr(tax, "net_amount"):
+				basis_amount = tax.net_amount
+			elif hasattr(tax, "custom_net_amount"):
+				basis_amount = tax.custom_net_amount
+			elif tax.tax_amount and tax_rate:
+				basis_amount = round(tax.tax_amount / tax_rate * 100, 2)
+
+			self.einvoice.append(
+				"taxes",
+				{
+					"basis_amount": basis_amount,
+					"rate_applicable_percent": tax_rate,
+					"calculated_amount": tax.tax_amount,
+					"tax_account": tax.account_head,
+				},
+			)
+
+	def map_payment_terms(self):
+		self.einvoice.set("payment_terms", [])
+		for ps in self.sales_invoice.payment_schedule:
+			self.einvoice.append(
+				"payment_terms",
+				{
+					"due": ps.due_date,
+					"partial_amount": ps.payment_amount,
+					"discount_basis_date": ps.discount_date,
+					"discount_calculation_percent": ps.discount if ps.discount_type == "Percentage" else 0,
+					"discount_actual_amount": ps.discount if ps.discount_type == "Amount" else 0,
+				},
+			)
+
+	def map_payment_means(self):
+		modes_of_payment = {ps.mode_of_payment for ps in self.sales_invoice.payment_schedule if ps.mode_of_payment}
+		for mode_of_payment in modes_of_payment:
+			iban, bic = get_bank_details(mode_of_payment, self.sales_invoice.company)
+			if not iban:
+				continue
+
+			self.einvoice.payee_iban = iban
+			self.einvoice.payee_bic = bic
+			self.einvoice.payee_account_name = self.sales_invoice.company
+			break
+
+	def map_totals(self):
+		self.einvoice.line_total = self.sales_invoice.net_total
+		actual_charge_total = sum(
+			tax.tax_amount for tax in self.sales_invoice.taxes if tax.charge_type == "Actual"
+		)
+		self.einvoice.charge_total = actual_charge_total
+		self.einvoice.tax_basis_total = self.sales_invoice.net_total + actual_charge_total
+		self.einvoice.tax_total = sum(
+			tax.tax_amount for tax in self.sales_invoice.taxes if tax.charge_type != "Actual"
+		)
+		self.einvoice.grand_total = self.sales_invoice.grand_total
+
+		if self.sales_invoice.outstanding_amount == 0:
+			self.einvoice.total_prepaid = self.sales_invoice.grand_total
+		else:
+			self.einvoice.total_prepaid = self.sales_invoice.total_advance
+
+		self.einvoice.due_payable = self.sales_invoice.outstanding_amount
 
 
 class EInvoiceGenerator:

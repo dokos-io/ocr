@@ -110,3 +110,71 @@ class TesteInvoice(IntegrationTestCase):
 		self.assertEqual(len(supplier_invoice.items), 1)
 		self.assertEqual(supplier_invoice.items[0].supplier_description, "Test Product")
 		self.assertEqual(supplier_invoice.einvoice, einvoice.name)
+
+	def test_sales_invoice_to_einvoice(self):
+		company = "_Test Company"
+
+		if not frappe.db.exists("Customer", "_Test Customer"):
+			frappe.get_doc({
+				"doctype": "Customer",
+				"customer_name": "_Test Customer",
+				"customer_group": "All Customer Groups",
+				"territory": "All Territories"
+			}).insert()
+		
+		customer = "_Test Customer"
+
+		item_names = ["_Test Item 1", "_Test Item 2"]
+		for item_name in item_names:
+			if not frappe.db.exists("Item", item_name):
+				frappe.get_doc({
+					"doctype": "Item",
+					"item_code": item_name,
+					"item_group": "All Item Groups",
+					"is_stock_item": 0
+				}).insert()
+
+		# 4. Create Sales Invoice
+		si = frappe.new_doc("Sales Invoice")
+		si.company = company
+		si.customer = customer
+		si.currency = "INR"
+		si.posting_date = frappe.utils.today()
+		si.etransaction_profile = "EN16931"
+		
+		si.append("items", {
+			"item_code": "_Test Item 1",
+			"qty": 2,
+			"rate": 50.0,
+		})
+		si.append("items", {
+			"item_code": "_Test Item 2",
+			"qty": 1,
+			"rate": 100.0,
+		})
+
+		si.insert()
+
+		# 5. Check if eInvoice was created automatically (by before_save override)
+		einvoice_name = frappe.db.exists("eInvoice", {"sales_invoice": si.name})
+		self.assertTrue(einvoice_name, "eInvoice should be created automatically for Sales Invoice")
+
+		einvoice = frappe.get_doc("eInvoice", einvoice_name)
+
+		# 6. Verify eInvoice data
+		self.assertEqual(einvoice.einvoice_type, "Outgoing")
+		self.assertEqual(einvoice.sales_invoice, si.name)
+		self.assertEqual(einvoice.company, company)
+
+		# Check totals
+		self.assertEqual(einvoice.grand_total, si.grand_total)
+		self.assertEqual(einvoice.line_total, si.total)
+		
+		# Check items
+		self.assertEqual(len(einvoice.items), 2)
+		self.assertEqual(einvoice.items[0].product_name, "_Test Item 1")
+		self.assertEqual(einvoice.items[0].billed_quantity, 2)
+		self.assertEqual(einvoice.items[0].net_rate, 50.0)
+		self.assertEqual(einvoice.items[1].product_name, "_Test Item 2")
+		self.assertEqual(einvoice.items[1].billed_quantity, 1)
+		self.assertEqual(einvoice.items[1].net_rate, 100.0)
