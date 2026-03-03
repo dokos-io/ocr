@@ -95,7 +95,7 @@ class OCRRequest(Document, InvoiceEntityResolverMixin):
 
 	def get_analysis(self):
 		if not self.file:
-			self.set_and_return_error("no file")
+			return self.set_and_return_error("no file")
 
 		if not self.job:
 			self.start_ocr_analysis()
@@ -299,17 +299,6 @@ def check_pending_analysis():
 			doc.log_error()
 			continue
 
-
-@frappe.whitelist()
-def get_analysis(request_id):
-	doc = frappe.get_doc("OCR Request", request_id)
-	return doc.get_analysis()
-
-
-def update_ocr_request_status(doc, method):
-	if doc.ocr_request:
-		ocr_request = frappe.get_doc("OCR Request", doc.ocr_request)
-		ocr_request.set_status(True)
 
 @frappe.whitelist()
 def get_analysis(request_id):

@@ -127,7 +127,7 @@ class SupplierInvoice(Document):
 			# 2.1 Find VENDOR_URL
 			if ocr_data.get("VENDOR_URL"):
 				if matching_ocr_requests := frappe.get_all("OCR Request", filters={"analysis": ("like", f"%{ocr_data.get('VENDOR_URL')}%"), "name": ("!=", self.ocr_request)}, limit=1, pluck="name"):
-					self.supplier = str(frappe.db.get_value("Supplier Invoice", dict(ocr_request=matching_ocr_requests[0])))
+					self.supplier = frappe.db.get_value("Supplier Invoice", dict(ocr_request=matching_ocr_requests[0]), "supplier")
 
 
 	def calculate_due_date(self):
@@ -532,7 +532,7 @@ class SupplierInvoice(Document):
 		self.set_status(True)
 
 	def set_tax_category(self):
-		if not self.tax_category or not self.supplier:
+		if not self.tax_category and self.supplier:
 			tax_category = frappe.db.get_value("Supplier", self.supplier, "tax_category")
 			party_address = get_default_address("Supplier", self.supplier)
 			self.tax_category = get_address_tax_category(
@@ -571,7 +571,7 @@ class SupplierInvoice(Document):
 				]
 				return actions
 			except Exception:
-				print("Workflow Error", frappe.get_traceback())
+				frappe.log_error(frappe.get_traceback(), "Workflow Error")
 				return []
 
 		return []
@@ -653,7 +653,7 @@ class SupplierInvoice(Document):
 			self.commit_totals()
 			self.set_status()
 		else:
-			self.add_comment(text=_("The automatic reconciliation has failed for because the net total is higher than {0}").format(fmt_money(max_amount, currency=self.currency)))
+			self.add_comment(text=_("The automatic reconciliation has failed because the net total is higher than {0}").format(fmt_money(max_amount, currency=self.currency)))
 
 
 	def get_pending_invoicing_amount(self):
@@ -991,8 +991,8 @@ def make_purchase_invoice_from_pr(source_name: str, target_doc: "PurchaseInvoice
 
 		if returned_qty:
 			if returned_qty >= pending_qty:
-				pending_qty = 0
 				returned_qty -= pending_qty
+				pending_qty = 0
 			else:
 				pending_qty -= returned_qty
 				returned_qty = 0
