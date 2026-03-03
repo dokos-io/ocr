@@ -532,7 +532,7 @@ class SupplierInvoice(Document):
 		self.set_status(True)
 
 	def set_tax_category(self):
-		if not self.tax_category or not self.supplier:
+		if not self.tax_category and self.supplier:
 			tax_category = frappe.db.get_value("Supplier", self.supplier, "tax_category")
 			party_address = get_default_address("Supplier", self.supplier)
 			self.tax_category = get_address_tax_category(
