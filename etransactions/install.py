@@ -44,6 +44,8 @@ def before_tests():
 			}
 		)
 
+	frappe.db.set_single_value("Stock Settings", "enable_serial_and_batch_no_for_item", 1)
+
 
 def add_custom_fields():
 	click.secho("* Updating eTransactions Custom Fields")
