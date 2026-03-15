@@ -784,6 +784,63 @@ EN16931_INVOICES = {
 	},
 }
 
+UBL_INVOICES = {
+	# Minimal UBL 2.1 invoice — no currency code, no tax, single line item
+	"UBL-Invoice-2.1-Example-Trivial.xml": {
+		"id": "123",
+		"issue_date": "2011-09-22",
+		"currency": None,
+		"seller_name": "Custom Cotter Pins",
+		"buyer_name": "North American Veeblefetzer",
+		"billing_period_start": "2011-08-01",
+		"billing_period_end": "2011-08-31",
+		"due_payable": 100.0,
+		"profile": "EN16931",
+	},
+	# Full UBL 2.1 invoice from the OASIS specification examples
+	"UBL-Invoice-2.1-Example.xml": {
+		"id": "TOSL108",
+		"issue_date": "2009-12-15",
+		"currency": "EUR",
+		# Seller
+		"seller_name": "The Sellercompany Incorporated",
+		"seller_tax_id": "DK12345",
+		"seller_address_line_1": "Main street",
+		"seller_address_line_2": "Suite 123",
+		"seller_city": "Big city",
+		"seller_postcode": "54321",
+		"seller_electronic_address": "1234567890123",
+		"seller_electronic_address_scheme": "GLN",
+		# Buyer
+		"buyer_name": "The buyercompany inc.",
+		"buyer_tax_id": "BE54321",
+		"buyer_address_line_1": "Anystreet",
+		"buyer_address_line_2": "Back door",
+		"buyer_city": "Anytown",
+		"buyer_postcode": "101",
+		"buyer_electronic_address": "1234567987654",
+		"buyer_electronic_address_scheme": "GLN",
+		"buyer_reference": "123",
+		# Dates
+		"billing_period_start": "2009-11-01",
+		"billing_period_end": "2009-11-30",
+		# Bank
+		"payee_iban": "DK1212341234123412",
+		"payee_bic": "DKDKABCD",
+		# Monetary totals
+		"line_total": 1436.5,
+		"allowance_total": 100.0,
+		"charge_total": 100.0,
+		"tax_basis_total": 1436.5,
+		"tax_total": 292.2,
+		"grand_total": 1729.0,
+		"total_prepaid": 1000.0,
+		"due_payable": 729.0,
+		# Profile
+		"profile": "EN16931",
+	},
+}
+
 EXTENDED_INVOICES = {
 	"Facture_F20220023-LE_FOURNISSEUR-POUR-LE_CLIENT_EXTENDED.pdf": {
 		"id": "F20220023",

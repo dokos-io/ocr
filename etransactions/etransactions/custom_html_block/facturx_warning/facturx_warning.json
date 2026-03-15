@@ -1,0 +1,17 @@
+{
+ "creation": "2026-03-15 00:00:00",
+ "docstatus": 0,
+ "doctype": "Custom HTML Block",
+ "html": "<div id=\"facturx-warning\"></div>",
+ "idx": 0,
+ "is_standard": 1,
+ "modified": "2026-03-15 15:36:59.473424",
+ "modified_by": "Administrator",
+ "module": "eTransactions",
+ "name": "FacturX Warning",
+ "owner": "Administrator",
+ "private": 0,
+ "roles": [],
+ "script": "(function () {\n    var el = root_element.getElementById('facturx-warning');\n    el.innerHTML =\n        '<div class=\"facturx-warning-banner\">' +\n            '<div class=\"warning-icon\">' +\n                '<svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\">' +\n                    '<path d=\"m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z\"/>' +\n                    '<path d=\"M12 9v4\"/>' +\n                    '<path d=\"M12 17h.01\"/>' +\n                '</svg>' +\n            '</div>' +\n            '<div class=\"warning-content\">' +\n                '<p class=\"warning-title\">' + __('FacturX / Electronic Invoicing \u2014 Feature in Progress') + '</p>' +\n                '<p>' + __('Development is underway for Factur-X/UBL e-invoicing and connectivity to approved PA (Plateforme de D\\u00e9mat\\u00e9rialisation Partenaire) platforms.') + '</p>' +\n                '<p>' + __('Utilize these reports to refine your data quality and ensure your organization is fully prepared for the upcoming feature deployment.') + '</p>' +\n            '</div>'\n        '</div>';\n})();",
+ "style": "#facturx-warning {\n    margin: -7px;\n\n    .facturx-warning-banner {\n        display: flex;\n        gap: var(--padding-md);\n        align-items: flex-start;\n        padding: var(--padding-md) var(--padding-lg);\n        background: var(--yellow-50, #fffbeb);\n        border: 1px solid var(--yellow-300, #fcd34d);\n        border-left: 4px solid var(--yellow-500, #f59e0b);\n        border-radius: var(--border-radius-lg);\n        color: var(--yellow-900, #78350f);\n    }\n\n    .warning-icon {\n        flex-shrink: 0;\n        padding-top: 2px;\n        color: var(--yellow-600, #d97706);\n        line-height: 0;\n    }\n\n    .warning-content {\n        p {\n            margin: 0 0 var(--padding-xs);\n            font-size: var(--text-base);\n            line-height: 1.6;\n\n            &:last-child { margin-bottom: 0; }\n        }\n    }\n\n    .warning-title {\n        font-weight: 600;\n        font-size: var(--text-md) !important;\n        margin-bottom: var(--padding-sm) !important;\n    }\n}"
+}

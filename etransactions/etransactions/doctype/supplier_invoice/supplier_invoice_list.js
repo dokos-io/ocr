@@ -20,6 +20,99 @@ frappe.listview_settings["Supplier Invoice"] = {
 					})
 				},
 			});
-		});
+		}, null, "primary");
+
+		listview.etransactions_dashboard = new SupplierInvoiceDashboard(listview);
+	},
+
+	refresh: function (listview) {
+		listview.etransactions_dashboard.refresh();
 	},
 };
+
+class SupplierInvoiceDashboard {
+	constructor(list_view) {
+		this.list_view = list_view;
+		const page_toolbars = list_view.parent.getElementsByClassName("page-toolbar");
+		if (!page_toolbars.length) return;
+		this.page_toolbar = page_toolbars[0];
+	}
+
+	refresh() {
+		this.build();
+	}
+
+	async build() {
+		await this.get_data();
+		this.page_toolbar.innerHTML = "";
+
+		const dashboard_container = document.createElement("div");
+		dashboard_container.classList.add("list-dashboard", "pb-4", "w-100");
+		this.page_toolbar.appendChild(dashboard_container);
+
+		const cards = [
+			{
+				label: __("Uploads Pending Analysis", null, "Supplier Invoice List"),
+				count: this.basket_count,
+				icon: "inbox",
+				color: this.basket_count > 0 ? "var(--yellow-500)" : "var(--gray-500)",
+				bg: this.basket_count > 0 ? "var(--yellow-100)" : "var(--bg-light-gray)",
+				action: () => frappe.set_route("List", "Supplier Invoices Basket", {
+					status: ["in", ["Not Started", "In Progress"]],
+				}),
+			},
+			{
+				label: __("OCR In Progress", null, "Supplier Invoice List"),
+				count: this.ocr_count,
+				icon: "setting",
+				color: this.ocr_count > 0 ? "var(--blue-500)" : "var(--gray-500)",
+				bg: this.ocr_count > 0 ? "var(--blue-100)" : "var(--bg-light-gray)",
+				action: () => frappe.set_route("List", "OCR Request", {
+					status: ["in", ["Analysis Completed", "Error"]],
+				}),
+			},
+		];
+
+		cards.forEach((card_settings) => {
+			const card = document.createElement("div");
+			card.classList.add("dashboard-card");
+			card.style.setProperty("--card-color", card_settings.color);
+			card.style.setProperty("--card-bg-color", card_settings.bg);
+			card.onclick = card_settings.action;
+
+			const icon_wrapper = document.createElement("div");
+			icon_wrapper.classList.add("icon-wrapper");
+			icon_wrapper.innerHTML = frappe.utils.icon(card_settings.icon, "lg");
+
+			const text_content = document.createElement("div");
+			text_content.classList.add("text-content");
+
+			const label = document.createElement("div");
+			label.classList.add("label");
+			label.innerText = card_settings.label;
+
+			const value = document.createElement("div");
+			value.classList.add("value");
+			value.innerText = card_settings.count;
+
+			text_content.appendChild(label);
+			text_content.appendChild(value);
+			card.appendChild(icon_wrapper);
+			card.appendChild(text_content);
+			dashboard_container.appendChild(card);
+		});
+
+		this.page_toolbar.classList.remove("hide");
+	}
+
+	async get_data() {
+		[this.basket_count, this.ocr_count] = await Promise.all([
+			frappe.db.count("Supplier Invoices Basket", {
+				filters: [["status", "in", ["Not Started", "In Progress"]]],
+			}),
+			frappe.db.count("OCR Request", {
+				filters: [["status", "in", ["Analysis Completed", "Error"]]],
+			}),
+		]);
+	}
+}

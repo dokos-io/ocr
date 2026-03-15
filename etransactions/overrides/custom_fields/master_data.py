@@ -6,7 +6,8 @@ customer_fields = [
 		"fieldname": "etransactions_tab",
 		"fieldtype": "Tab Break",
 		"label": _("eTransactions"),
-		"insert_after": "selling_party_html"
+		"insert_after": "selling_party_html",
+		"hidden": 1
 	},
 	{
 		"fieldname": "etransaction_profile",

@@ -9,6 +9,7 @@ from lxml.etree import XMLSyntaxError
 from etransactions.schematron import get_validation_errors
 from etransactions.utils import EInvoiceProfile, get_profile
 from etransactions.utils.xml import get_xml_bytes
+from etransactions.utils.ubl_parser import parse_ubl
 
 if TYPE_CHECKING:
 	from drafthorse.models.accounting import ApplicableTradeTax, MonetarySummation
@@ -48,13 +49,25 @@ class eInvoiceParser:
 				)
 
 	@classmethod
-	def get_xml_bytes(cls, einvoice: File) -> bytes:
+	def get_xml_bytes(cls, einvoice: "File") -> tuple[bytes, str]:
 		return get_xml_bytes(einvoice)
 
 	def parse_einvoice(self) -> None:
 		einvoice: File = frappe.get_doc("File", self.einvoice_document.einvoice)
-		xml_bytes = eInvoiceParser.get_xml_bytes(einvoice)
+		xml_bytes, xml_format = eInvoiceParser.get_xml_bytes(einvoice)
 		self.einvoice_document.einvoice_xml = xml_bytes
+
+		if xml_format == "ubl":
+			self._parse_ubl(xml_bytes)
+		else:
+			self._parse_facturx(xml_bytes)
+
+	def _parse_ubl(self, xml_bytes: bytes) -> None:
+		parse_ubl(xml_bytes, self.einvoice_document)
+		self.profile = self.einvoice_document.profile
+		self._validate_schematron(xml_bytes)
+
+	def _parse_facturx(self, xml_bytes: bytes) -> None:
 		doc = eInvoiceParser.get_einvoice_document(xml_bytes)
 
 		self.profile = get_profile(doc.context.guideline_parameter.id._text).value

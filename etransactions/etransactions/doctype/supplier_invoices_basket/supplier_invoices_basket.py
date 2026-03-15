@@ -1,6 +1,8 @@
 # Copyright (c) 2026, Dokos SAS and contributors
 # For license information, please see license.txt
 
+from typing import TYPE_CHECKING
+
 import frappe
 from frappe import _
 from frappe.model.document import Document
@@ -8,7 +10,12 @@ from frappe.model.document import Document
 from frappe.email.inbox import link_communication_to_document
 
 from etransactions.etransactions.doctype.einvoice.parser import eInvoiceParser
+from etransactions.etransactions.doctype.etransactions_settings.etransactions_settings import eTransactionsSettings
 
+if TYPE_CHECKING:
+	from frappe.core.doctype.file.file import File
+	from etransactions.etransactions.doctype.ocr_request.ocr_request import OCRRequest
+	from etransactions.etransactions.doctype.einvoice.einvoice import eInvoice
 
 AUTHORIZED_FILE_TYPES = ["PDF"]
 
@@ -82,17 +89,24 @@ class SupplierInvoicesBasket(Document):
 		if linked_files := self.get_all_files():
 			for file in linked_files:
 				try:
-					file_doc = frappe.get_doc("File", file["name"])
-					xml_bytes = eInvoiceParser.get_xml_bytes(file_doc)
-					eInvoiceParser.get_einvoice_document(xml_bytes)
-					einvoice = frappe.new_doc("eInvoice")
+					file_doc: File = frappe.get_doc("File", file["name"]) # type: ignore
+
+					# Parse the XML before creating the eInvoice to throw if not an eInvoice
+					_xml_bytes, xml_format = eInvoiceParser.get_xml_bytes(file_doc)
+
+					einvoice: eInvoice = frappe.new_doc("eInvoice") # type: ignore
 					einvoice.supplier_invoices_basket = self.name
 					einvoice.einvoice = file["name"]
 					einvoice.insert()
 				except Exception:
 					#TODO: Handle errors for UX
+					frappe.clear_messages()
 
-					request = frappe.new_doc("OCR Request")
+					if not is_ocr_service_configured():
+						frappe.msgprint("File {} is not an eInvoice and needs to be processed with an OCR Service.<br>Activate Amazon Textract or Mistral in eTransactions Settings.".format(file["name"]), alert=True)
+						continue
+
+					request: OCRRequest = frappe.new_doc("OCR Request") # type: ignore
 					request.ocr_basket = self.name
 					request.filename = file.get("file_name")
 					request.file = file.get("name")
@@ -111,6 +125,16 @@ class SupplierInvoicesBasket(Document):
 			), pluck="name"):
 				frappe.db.set_value("File", file, "attached_to_name", self.name)
 
+
+def is_ocr_service_configured() -> bool:
+	settings: eTransactionsSettings = frappe.get_cached_doc("eTransactions Settings")  # type: ignore[assignment]
+	if not settings.ocr_service:
+		return False
+	if settings.ocr_service == "Amazon Textract":
+		return bool(settings.aws_textract_key and settings.aws_textract_secret)
+	if settings.ocr_service == "Mistral OCR":
+		return bool(settings.mistral_api_key)
+	return False
 
 
 @frappe.whitelist()

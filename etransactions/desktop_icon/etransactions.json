@@ -1,0 +1,22 @@
+{
+ "app": "etransactions",
+ "bg_color": "blue",
+ "creation": "2026-03-15 13:34:15.307121",
+ "docstatus": 0,
+ "doctype": "Desktop Icon",
+ "hidden": 0,
+ "icon_type": "Link",
+ "idx": 0,
+ "label": "eTransactions",
+ "link_to": "eTransactions",
+ "link_type": "Workspace Sidebar",
+ "logo_url": "/assets/etransactions/images/etransactions_solid.svg",
+ "modified": "2026-03-15 13:43:24.668177",
+ "modified_by": "Administrator",
+ "name": "eTransactions",
+ "owner": "Administrator",
+ "parent_icon": "Dokos",
+ "restrict_removal": 0,
+ "roles": [],
+ "standard": 1
+}

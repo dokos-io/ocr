@@ -9,6 +9,7 @@ from frappe.model.sync import sync_for
 
 def after_install():
 	rename_ocr_to_etransactions()
+	frappe.delete_doc("Workspace", "Data Extraction", ignore_missing=True, force=True)
 	sync_for("etransactions", force=True, reset_permissions=True)
 	add_custom_fields()
 
@@ -42,6 +43,8 @@ def before_tests():
 				"chart_of_accounts": "Plan Comptable Général",
 			}
 		)
+
+	frappe.db.set_single_value("Stock Settings", "enable_serial_and_batch_no_for_item", 1)
 
 
 def add_custom_fields():

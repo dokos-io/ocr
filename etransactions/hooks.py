@@ -6,6 +6,15 @@ app_email = "hello@dokos.io"
 app_license = "agpl-3.0"
 required_apps = ["erpnext"]
 
+add_to_apps_screen = [
+	{
+		"name": "etransactions",
+		"logo": "/assets/etransactions/images/etransactions_solid.svg",
+		"title": "eTransactions",
+		"route": "/app/supplier-invoice",
+	},
+]
+
 # Includes in <head>
 # ------------------
 
@@ -36,7 +45,8 @@ doctype_js = {
 }
 
 doctype_list_js = {
-	"Expense" : "public/js/expense_list.js"
+	"Expense": "public/js/expense_list.js",
+	"Purchase Invoice": "public/js/purchase_invoice_list.js",
 }
 
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}

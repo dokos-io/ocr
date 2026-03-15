@@ -1,0 +1,91 @@
+{
+ "app": "etransactions",
+ "creation": "2026-03-15 13:39:43.262646",
+ "docstatus": 0,
+ "doctype": "Workspace Sidebar",
+ "header_icon": "squares-exclude",
+ "idx": 0,
+ "items": [
+  {
+   "child": 0,
+   "collapsible": 1,
+   "doc_view": "",
+   "icon": "buying",
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "Supplier Invoices",
+   "link_to": "Supplier Invoice",
+   "link_type": "DocType",
+   "show_arrow": 0,
+   "type": "Link"
+  },
+  {
+   "child": 0,
+   "collapsible": 1,
+   "doc_view": "",
+   "icon": "lightbulb",
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "FacturX Readiness",
+   "link_to": "FacturX Readiness",
+   "link_type": "Workspace",
+   "show_arrow": 0,
+   "type": "Link"
+  },
+  {
+   "child": 0,
+   "collapsible": 1,
+   "doc_view": "",
+   "icon": "setting-gear",
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "eTransactions Settings",
+   "link_to": "eTransactions Settings",
+   "link_type": "DocType",
+   "show_arrow": 0,
+   "type": "Link"
+  },
+  {
+   "child": 0,
+   "collapsible": 1,
+   "doc_view": "",
+   "icon": "cassette-tape",
+   "indent": 1,
+   "keep_closed": 1,
+   "label": "Technical Documents",
+   "link_type": "DocType",
+   "show_arrow": 0,
+   "type": "Section Break"
+  },
+  {
+   "child": 1,
+   "collapsible": 1,
+   "doc_view": "",
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "Supplier Invoices Basket",
+   "link_to": "Supplier Invoices Basket",
+   "link_type": "DocType",
+   "show_arrow": 0,
+   "type": "Link"
+  },
+  {
+   "child": 1,
+   "collapsible": 1,
+   "doc_view": "",
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "OCR Request",
+   "link_to": "OCR Request",
+   "link_type": "DocType",
+   "show_arrow": 0,
+   "type": "Link"
+  }
+ ],
+ "modified": "2026-03-15 15:27:46.461484",
+ "modified_by": "Administrator",
+ "name": "eTransactions",
+ "owner": "Administrator",
+ "standard": 1,
+ "title": "eTransactions"
+}

@@ -24,7 +24,7 @@ class eTransactionsSettings(Document):
 		max_difference_percentage_on_net_total: DF.Percent
 		mistral_api_key: DF.Password | None
 		no_purchase_order: DF.Check
-		ocr_service: DF.Literal["Amazon Textract", "Mistral eTransactions"]
+		ocr_service: DF.Literal["Amazon Textract", "Mistral OCR"]
 		reconcile_with_purchase_receipts: DF.Check
 	# end: auto-generated types
 
