@@ -8,6 +8,7 @@ from frappe.model.document import Document
 from frappe.email.inbox import link_communication_to_document
 
 from etransactions.etransactions.doctype.einvoice.parser import eInvoiceParser
+from etransactions.etransactions.doctype.etransactions_settings.etransactions_settings import eTransactionsSettings
 
 
 AUTHORIZED_FILE_TYPES = ["PDF"]
@@ -93,6 +94,10 @@ class SupplierInvoicesBasket(Document):
 					#TODO: Handle errors for UX
 					frappe.clear_messages()
 
+					if not is_ocr_service_configured():
+						frappe.msgprint("File {} is not an eInvoice and needs to be processed with an OCR Service.<br>Activate Amazon Textract or Mistral in eTransactions Settings.".format(file["name"]), alert=True)
+						continue
+
 					request = frappe.new_doc("OCR Request")
 					request.ocr_basket = self.name
 					request.filename = file.get("file_name")
@@ -112,6 +117,16 @@ class SupplierInvoicesBasket(Document):
 			), pluck="name"):
 				frappe.db.set_value("File", file, "attached_to_name", self.name)
 
+
+def is_ocr_service_configured() -> bool:
+	settings: eTransactionsSettings = frappe.get_cached_doc("eTransactions Settings")  # type: ignore[assignment]
+	if not settings.ocr_service:
+		return False
+	if settings.ocr_service == "Amazon Textract":
+		return bool(settings.aws_textract_key and settings.aws_textract_secret)
+	if settings.ocr_service == "Mistral OCR":
+		return bool(settings.mistral_api_key)
+	return False
 
 
 @frappe.whitelist()
