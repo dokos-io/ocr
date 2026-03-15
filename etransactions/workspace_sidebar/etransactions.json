@@ -23,6 +23,19 @@
    "child": 0,
    "collapsible": 1,
    "doc_view": "",
+   "icon": "lightbulb",
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "FacturX Readiness",
+   "link_to": "FacturX Readiness",
+   "link_type": "Workspace",
+   "show_arrow": 0,
+   "type": "Link"
+  },
+  {
+   "child": 0,
+   "collapsible": 1,
+   "doc_view": "",
    "icon": "setting-gear",
    "indent": 0,
    "keep_closed": 0,
@@ -69,7 +82,7 @@
    "type": "Link"
   }
  ],
- "modified": "2026-03-15 13:39:43.262646",
+ "modified": "2026-03-15 15:27:46.461484",
  "modified_by": "Administrator",
  "name": "eTransactions",
  "owner": "Administrator",

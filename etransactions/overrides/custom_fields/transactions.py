@@ -63,7 +63,8 @@ sales_invoicing_fields = [
 		"fieldname": "etransactions_tab",
 		"fieldtype": "Tab Break",
 		"label": _("eTransactions"),
-		"insert_after": "terms"
+		"insert_after": "terms",
+		"hidden": 1
 	},
 	{
 		"fieldname": "etransaction_profile",
