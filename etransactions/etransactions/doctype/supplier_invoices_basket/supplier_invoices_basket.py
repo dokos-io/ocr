@@ -91,6 +91,7 @@ class SupplierInvoicesBasket(Document):
 					einvoice.insert()
 				except Exception:
 					#TODO: Handle errors for UX
+					frappe.clear_messages()
 
 					request = frappe.new_doc("OCR Request")
 					request.ocr_basket = self.name

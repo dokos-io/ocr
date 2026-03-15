@@ -20,6 +20,6 @@ frappe.listview_settings["Supplier Invoice"] = {
 					})
 				},
 			});
-		});
+		}, null, "primary");
 	},
 };
