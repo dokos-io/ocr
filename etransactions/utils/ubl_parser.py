@@ -244,11 +244,12 @@ def _parse_line_item(line, doc: "eInvoice", quantity_elem: str) -> None:
 		item.billed_quantity = _flt(qty_el.text)
 		item.unit_code       = qty_el.get("unitCode") or None
 
-	# Rate
+	# Rate: PriceAmount is the price per BaseQuantity (default 1)
 	price_text = _text(line, ".//cac:Price/cbc:PriceAmount")
+	base_qty_text = _text(line, ".//cac:Price/cbc:BaseQuantity")
 	if price_text is not None:
-		basis_qty = float(item.billed_quantity or 1) or 1.0
-		item.net_rate = _flt(price_text) / basis_qty if item.billed_quantity else _flt(price_text)
+		base_qty = float(base_qty_text) if base_qty_text else 1.0
+		item.net_rate = _flt(price_text) / (base_qty or 1.0)
 
 	# Line total
 	item.total_amount = _flt(_text(line, ".//cbc:LineExtensionAmount"))

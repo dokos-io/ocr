@@ -9,7 +9,7 @@ from frappe.model.sync import sync_for
 
 def after_install():
 	rename_ocr_to_etransactions()
-	frappe.delete_doc("Data Extraction", "eTransactions", ignore_missing=True, force=True)
+	frappe.delete_doc("Workspace", "Data Extraction", ignore_missing=True, force=True)
 	sync_for("etransactions", force=True, reset_permissions=True)
 	add_custom_fields()
 
