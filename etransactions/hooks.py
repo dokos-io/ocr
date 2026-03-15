@@ -6,6 +6,15 @@ app_email = "hello@dokos.io"
 app_license = "agpl-3.0"
 required_apps = ["erpnext"]
 
+add_to_apps_screen = [
+	{
+		"name": "etransactions",
+		"logo": "/assets/etransactions/images/etransactions_solid.svg",
+		"title": "eTransactions",
+		"route": "/app/supplier-invoice",
+	},
+]
+
 # Includes in <head>
 # ------------------
 
