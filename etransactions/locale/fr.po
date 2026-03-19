@@ -60,7 +60,7 @@ msgstr "Tous les articles ont déjà été facturés/retournés"
 
 #: ocr/overrides/purchase_invoice.py:26
 msgid "All purchase invoice rows must be linked with a purchase receipt"
-msgstr "Toutes les lignes de facture d'achat doivent être liées à un reçu d'achat"
+msgstr "Toutes les lignes de facture d'achat doivent être liées à une réception"
 
 #. Option for the 'eTransactions Service' (Select) field in DocType 'eTransactions Settings'
 #: ocr/ocr/doctype/ocr_settings/ocr_settings.json
@@ -504,7 +504,7 @@ msgstr "Veuillez sélectionner au moins une commande fournisseur"
 
 #: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.py:200
 msgid "Please select at least one purchase receipt"
-msgstr "Veuillez sélectionner au moins un reçu d'achats"
+msgstr "Veuillez sélectionner au moins une réception"
 
 #: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.py:206
 msgid "Please select documents linked to the same company"
@@ -569,13 +569,13 @@ msgstr "Numéro de commande fournisseur"
 #. Invoice Item'
 #: ocr/ocr/doctype/pending_purchase_invoice_item/pending_purchase_invoice_item.json
 msgid "Purchase Receipt"
-msgstr "Reçu d'achat"
+msgstr "Réception"
 
 #. Label of the purchase_receipt_item (Data) field in DocType 'Pending Purchase
 #. Invoice Item'
 #: ocr/ocr/doctype/pending_purchase_invoice_item/pending_purchase_invoice_item.json
 msgid "Purchase Receipt Item"
-msgstr "Ligne de reçu d'achat"
+msgstr "Ligne de réception"
 
 #. Label of the taxes_and_charges (Link) field in DocType 'Pending Purchase
 #. Invoice'
@@ -741,7 +741,7 @@ msgstr "Le total HT de cette facture dépasse le total HT fourni par le fourniss
 
 #: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.js:215
 msgid "The net amount of the invoice and the selected purchase receipts don't match.<br>Please select another purchase receipt or adjust the unit rate to match the amount of this invoice."
-msgstr "Le montant HT de la facture et des reçus d'achat sélectionnés ne correspondent pas.<br>Veuillez sélectionner un autre reçu d'achat ou ajuster le prix unitaire pour correspondre au montant de cette facture."
+msgstr "Le montant HT de la facture et des reçus d'achat sélectionnés ne correspondent pas.<br>Veuillez sélectionner un autre réception ou ajuster le prix unitaire pour correspondre au montant de cette facture."
 
 #: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.js:319
 msgid "The selected supplier ({0}) is different from the purchase order supplier ({1})"
