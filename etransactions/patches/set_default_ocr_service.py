@@ -1,4 +1,5 @@
 import frappe
 
 def execute():
-	frappe.db.set_single_value("eTransactions Settings", "ocr_service", "Amazon Textract")
+	if not frappe.get_single_value("eTransactions Settings", "ocr_service"):
+		frappe.db.set_single_value("eTransactions Settings", "ocr_service", "Amazon Textract")
