@@ -4,9 +4,6 @@
 
 ---
 
-> [!ATTENTION]
-> **Cette application est en cours de développement actif.** Les fonctionnalités peuvent être incomplètes, instables ou sujettes à des changements majeurs sans préavis. Elle n'est pas destinée à être utilisée en environnement de production pour le moment.
-
 
 ## Présentation
 
