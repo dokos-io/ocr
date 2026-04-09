@@ -2,10 +2,13 @@ from random import choice, randint
 from erpnext import get_default_company
 from erpnext.accounts.doctype.item_tax_template.item_tax_template import ItemTaxTemplate
 from erpnext.buying.doctype.supplier.supplier import Supplier
+from erpnext.tests.utils import ERPNextTestSuite
 from faker import Faker
 import frappe
 
 from erpnext.stock.doctype.item.item import Item
+from frappe.desk.page.setup_wizard.setup_wizard import setup_complete
+from frappe.utils import now_datetime
 
 def add_items():
 	item_tax_template: ItemTaxTemplate = frappe.new_doc("Item Tax Template") # type: ignore
@@ -51,3 +54,10 @@ def add_suppliers():
 		supplier.supplier_type = "Company"
 		supplier.supplier_group = choice(supplier_groups)
 		supplier.insert()
+
+
+
+class eTransactionsTestSuite(ERPNextTestSuite):
+	"""Base class for eTransactions integration test suites"""
+
+	pass

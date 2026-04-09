@@ -4,7 +4,7 @@
 import os
 import datetime
 import frappe
-from frappe.tests import IntegrationTestCase
+from etransactions.tests.utils import eTransactionsTestSuite
 from etransactions.etransactions.doctype.einvoice.test_data import (
 	MINIMUM_INVOICES,
 	BASIC_WL_INVOICES,
@@ -16,7 +16,11 @@ from etransactions.etransactions.doctype.einvoice.test_data import (
 
 IGNORE_TEST_RECORD_DEPENDENCIES = ["Company", "Item", "Currency", "Purchase Order", "Sales Invoice", "Supplier", "Address", "Purchase Order Item"]
 
-class TesteInvoice(IntegrationTestCase):
+class TesteInvoice(eTransactionsTestSuite):
+	def setUp(self):
+		super().setUp()
+		frappe.db.set_default("company", "_Test Company")
+
 	def test_parse_minimum_invoices(self):
 		self.run_invoice_tests("0.minimum", MINIMUM_INVOICES)
 
@@ -218,7 +222,7 @@ class TesteInvoice(IntegrationTestCase):
 
 		# Mock Supplier and Company if they don't exist
 		if not frappe.db.exists("Company", "Test Company"):
-			frappe.get_doc({"doctype": "Company", "company_name": "Test Company", "default_currency": "EUR"}).insert()
+			frappe.get_doc({"doctype": "Company", "company_name": "Test Company", "country": "France", "default_currency": "EUR"}).insert()
 		
 		einvoice.company = "Test Company"
 		

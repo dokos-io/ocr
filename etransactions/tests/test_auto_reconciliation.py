@@ -1,7 +1,8 @@
 from random import choice
 import time
 import frappe
-from frappe.tests import IntegrationTestCase, change_settings
+from etransactions.tests.utils import eTransactionsTestSuite
+from frappe.tests.utils import change_settings
 from frappe.utils import add_days, flt, nowdate
 from frappe.utils.make_random import get_random
 
@@ -14,13 +15,15 @@ from etransactions.etransactions.doctype.supplier_invoice.supplier_invoice impor
 
 IGNORE_TEST_RECORD_DEPENDENCIES = []
 
-class TestAutoReconciliation(IntegrationTestCase):
+class TestAutoReconciliation(eTransactionsTestSuite):
 	@classmethod
 	def setUpClass(cls):
+		frappe.db.set_default("company", "_Test Company")
 		cls.items = add_items()
 		add_suppliers()
 
 		frappe.db.set_single_value("Accounts Settings", "add_taxes_from_item_tax_template", 1)
+		frappe.db.commit()
 
 	@change_settings(
 		"eTransactions Settings",
@@ -198,7 +201,7 @@ class TestAutoReconciliation(IntegrationTestCase):
 def get_purchase_order(company, item_code, qty, rate, **kwargs):
 	po: PurchaseOrder = frappe.new_doc("Purchase Order") # type: ignore
 	po.company = company or get_default_company() # type: ignore
-	po.supplier = get_random("Supplier") # type: ignore
+	po.supplier = "_Test Supplier"
 	po.schedule_date = nowdate()
 
 	po.append("items", {

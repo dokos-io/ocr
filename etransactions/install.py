@@ -202,32 +202,7 @@ def _migrate_purchasing_document_links():
 		)
 
 
-def before_tests():
-	frappe.clear_cache()
-	# complete setup if missing
-	from frappe.desk.page.setup_wizard.setup_wizard import setup_complete
 
-	if not frappe.db.a_row_exists("Company"):
-		current_year = now_datetime().year
-		setup_complete(
-			{
-				"currency": "USD",
-				"full_name": "Test User",
-				"company_name": "Wind Power LLC",
-				"timezone": "Europe/Paris",
-				"company_abbr": "DK",
-				"industry": "Manufacturing",
-				"country": "France",
-				"fy_start_date": f"{current_year}-01-01",
-				"fy_end_date": f"{current_year}-12-31",
-				"language": "english",
-				"email": "test@dokos.io",
-				"password": "test",
-				"chart_of_accounts": "Plan Comptable Général",
-			}
-		)
-
-	frappe.db.set_single_value("Stock Settings", "enable_serial_and_batch_no_for_item", 1)
 
 
 CUSTOM_FIELDS_TO_DELETE = [

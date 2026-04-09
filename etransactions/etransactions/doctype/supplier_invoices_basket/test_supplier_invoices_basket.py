@@ -2,7 +2,7 @@
 # For license information, please see license.txt
 
 # import frappe
-from frappe.tests import IntegrationTestCase
+from etransactions.tests.utils import eTransactionsTestSuite
 
 
 # On IntegrationTestCase, the doctype test records and all
@@ -13,7 +13,7 @@ IGNORE_TEST_RECORD_DEPENDENCIES = []  # eg. ["User"]
 
 
 
-class IntegrationTestSupplierInvoicesBasket(IntegrationTestCase):
+class IntegrationTestSupplierInvoicesBasket(eTransactionsTestSuite):
 	"""
 	Integration tests for SupplierInvoicesBasket.
 	Use this class for testing interactions between multiple components.

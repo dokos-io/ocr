@@ -216,7 +216,7 @@ scheduler_events = {
 # Testing
 # -------
 
-before_tests = "etransactions.install.before_tests"
+
 
 # Overriding Methods
 # ------------------------------
