@@ -3,7 +3,8 @@
 
 
 from typing import TYPE_CHECKING
-from frappe.tests import IntegrationTestCase, change_settings
+from etransactions.tests.utils import eTransactionsTestSuite
+from frappe.tests.utils import change_settings
 import frappe
 from frappe.utils.data import nowdate
 
@@ -15,7 +16,7 @@ if TYPE_CHECKING:
 
 IGNORE_TEST_RECORD_DEPENDENCIES = ["Supplier", "Company", "Currency", "Tax Category", "Purchase Taxes and Charges Template", "Purchase Invoice", "File", "OCR Request", "Item", "Cost Center", "Project"]
 
-class TestSupplierInvoice(IntegrationTestCase):
+class TestSupplierInvoice(eTransactionsTestSuite):
 	def setUp(self):
 		self.clear_existing_data()
 		self.create_prerequisites()
@@ -26,7 +27,7 @@ class TestSupplierInvoice(IntegrationTestCase):
 	def create_prerequisites(self):
 		self.supplier = create_supplier()
 		create_item()
-		self.company = "Wind Power LLC"
+		self.company = "_Test Company"
 
 
 	def clear_existing_data(self):
@@ -40,7 +41,7 @@ class TestSupplierInvoice(IntegrationTestCase):
 	)
 	@change_settings("Accounts Settings", {"mandatory_accounting_journal": 0})
 	def test_auto_reconciliation_with_purchase_receipt(self):
-		po = create_purchase_order(supplier=self.supplier.name, company=self.company, qty=1.0, rate=5000, warehouse="Finished Goods - DK")
+		po = create_purchase_order(supplier=self.supplier.name, company=self.company, qty=1.0, rate=5000, warehouse="_Test Warehouse - _TC")
 		pr = make_purchase_receipt(po.name)
 		pr.submit()
 
@@ -66,7 +67,7 @@ class TestSupplierInvoice(IntegrationTestCase):
 	)
 	@change_settings("Accounts Settings", {"mandatory_accounting_journal": 0})
 	def test_auto_reconciliation_of_credit_note(self):
-		po = create_purchase_order(supplier=self.supplier.name, company=self.company, qty=1.0, rate=5000, warehouse="Finished Goods - DK")
+		po = create_purchase_order(supplier=self.supplier.name, company=self.company, qty=1.0, rate=5000, warehouse="_Test Warehouse - _TC")
 		pr = make_purchase_receipt(po.name)
 		pr.submit()
 
