@@ -82,7 +82,7 @@ frappe.ui.form.on("Supplier Invoice", {
 			$('[data-fieldname="preview_column"]').removeClass("col-sm-6").addClass("col-sm-8")
 			frm.get_field("create_purchase_invoice").$wrapper.addClass("text-right")
 			frm.get_field("create_purchase_invoice").$wrapper.parent().parent().addClass("mt-auto")
-			$('[data-fieldname="create_purchase_invoice"] button').addClass("btn-primary")
+			$('[data-fieldname="create_purchase_invoice"] button').removeClass("btn-secondary").addClass("btn-primary")
 		} catch(err) {
 			console.warn(e)
 		}
@@ -520,7 +520,8 @@ class PurchaseDocumentSelector {
 					options: "Supplier",
 					label: __("Supplier"),
 					fieldname: "supplier",
-					default: this.frm.doc.supplier
+					default: this.frm.doc.supplier,
+					onchange: () => multiselect_dialog.get_results()
 				},
 			],
 			columns: ["name", "supplier", this.date_field, "grand_total", "status"],
