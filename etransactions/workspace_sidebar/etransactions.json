@@ -16,6 +16,7 @@
    "label": "Supplier Invoices",
    "link_to": "Supplier Invoice",
    "link_type": "DocType",
+   "open_in_new_tab": 0,
    "show_arrow": 0,
    "type": "Link"
   },
@@ -29,6 +30,7 @@
    "label": "FacturX Readiness",
    "link_to": "FacturX Readiness",
    "link_type": "Workspace",
+   "open_in_new_tab": 0,
    "show_arrow": 0,
    "type": "Link"
   },
@@ -42,6 +44,7 @@
    "label": "eTransactions Settings",
    "link_to": "eTransactions Settings",
    "link_type": "DocType",
+   "open_in_new_tab": 0,
    "show_arrow": 0,
    "type": "Link"
   },
@@ -54,6 +57,7 @@
    "keep_closed": 1,
    "label": "Technical Documents",
    "link_type": "DocType",
+   "open_in_new_tab": 0,
    "show_arrow": 0,
    "type": "Section Break"
   },
@@ -66,6 +70,7 @@
    "label": "Supplier Invoices Basket",
    "link_to": "Supplier Invoices Basket",
    "link_type": "DocType",
+   "open_in_new_tab": 0,
    "show_arrow": 0,
    "type": "Link"
   },
@@ -78,11 +83,12 @@
    "label": "OCR Request",
    "link_to": "OCR Request",
    "link_type": "DocType",
+   "open_in_new_tab": 0,
    "show_arrow": 0,
    "type": "Link"
   }
  ],
- "modified": "2026-03-15 15:27:46.461484",
+ "modified": "2026-04-12 09:59:08.595727",
  "modified_by": "Administrator",
  "name": "eTransactions",
  "owner": "Administrator",
