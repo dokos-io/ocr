@@ -12,6 +12,7 @@ add_to_apps_screen = [
 		"logo": "/assets/etransactions/images/etransactions_solid.svg",
 		"title": "eTransactions",
 		"route": "/app/supplier-invoice",
+        "has_permission": "etransactions.check_app_permission",
 	},
 ]
 
