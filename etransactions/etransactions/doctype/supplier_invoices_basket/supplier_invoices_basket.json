@@ -85,7 +85,7 @@
    "link_fieldname": "ocr_basket"
   }
  ],
- "modified": "2026-02-12 09:52:30.305007",
+ "modified": "2026-04-12 09:41:19.460963",
  "modified_by": "Administrator",
  "module": "eTransactions",
  "name": "Supplier Invoices Basket",
@@ -100,6 +100,32 @@
    "read": 1,
    "report": 1,
    "role": "System Manager",
+   "select": 1,
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Purchase Manager",
+   "select": 1,
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Accounts User",
    "select": 1,
    "share": 1,
    "write": 1
