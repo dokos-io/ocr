@@ -520,7 +520,8 @@ class PurchaseDocumentSelector {
 					options: "Supplier",
 					label: __("Supplier"),
 					fieldname: "supplier",
-					default: this.frm.doc.supplier
+					default: this.frm.doc.supplier,
+					onchange: () => multiselect_dialog.get_results()
 				},
 			],
 			columns: ["name", "supplier", this.date_field, "grand_total", "status"],
