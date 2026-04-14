@@ -83,7 +83,7 @@
    "reqd": 1
   },
   {
-   "depends_on": "eval:doc.ocr_service==\"Mistral eTransactions\"",
+   "depends_on": "eval:doc.ocr_service==\"Mistral OCR\"",
    "fieldname": "mistral_api_key",
    "fieldtype": "Password",
    "label": "Mistral API Key"
