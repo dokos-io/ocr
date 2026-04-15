@@ -75,7 +75,7 @@ class MistralOCR:
 		self.file = frappe.get_doc("File", self.doc.file) if self.doc.file else frappe._dict()
 		self.uploaded_file = None
 		self.signed_url = None
-		self.model = "mistral-etransactions-latest"
+		self.model = "mistral-ocr-latest"
 
 
 	def upload_file(self):
@@ -87,7 +87,7 @@ class MistralOCR:
 				"file_name": self.file.file_name, # type: ignore
 				"content": self.file.get_content(), # type: ignore
 			},
-			purpose="etransactions"
+			purpose="ocr"
 		)
 
 		return self.uploaded_file.id
@@ -108,7 +108,7 @@ class MistralOCR:
 
 	def get_ocr_results(self, url):
 		try:
-			self.ocr_response = self.client.etransactions.process(
+			self.ocr_response = self.client.ocr.process(
 				model=self.model,
 				document={
 					"type": "document_url",
