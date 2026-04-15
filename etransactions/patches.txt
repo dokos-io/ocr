@@ -6,4 +6,4 @@
 # Patches added in this section will be executed after doctypes are migrated
 etransactions.patches.set_default_ocr_service
 etransactions.patches.check_ocr_request_links
-etransactions.patches.update_communication_reference_doctype
+etransactions.patches.update_communication_reference_doctype # 20260415
