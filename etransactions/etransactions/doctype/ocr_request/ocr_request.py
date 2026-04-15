@@ -80,7 +80,7 @@ class OCRRequest(Document, InvoiceEntityResolverMixin):
 
 	def start_ocr_analysis(self) -> None:
 		ocr_service = frappe.db.get_single_value("eTransactions Settings", "ocr_service")
-		if ocr_service == "Mistral ons":
+		if ocr_service == "Mistral OCR":
 			self.start_mistral_analysis()
 		else:
 			self.start_textract_analysis()
