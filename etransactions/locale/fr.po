@@ -18,11 +18,13 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 "Generated-By: Babel 2.16.0\n"
 
-#: etransactions/etransactions/api/widgets.py:136 etransactions/etransactions/api/widgets.py:211
+#: etransactions/etransactions/api/widgets.py:136
+#: etransactions/etransactions/api/widgets.py:211
 msgid "(No Group)"
 msgstr "(Sans groupe)"
 
-#: etransactions/public/js/file_preview.js:17 etransactions/public/js/file_preview.js:21
+#: etransactions/public/js/file_preview.js:17
+#: etransactions/public/js/file_preview.js:21
 msgid ") and this"
 msgstr ") et cette"
 
@@ -52,16 +54,25 @@ msgid "Account Name"
 msgstr "Nom du compte"
 
 #. Name of a role
-#: etransactions/etransactions/doctype/einvoice/einvoice.json etransactions/etransactions/doctype/etransaction_profile/etransaction_profile.json etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json
+#: etransactions/etransactions/doctype/einvoice/einvoice.json
+#: etransactions/etransactions/doctype/etransaction_profile/etransaction_profile.json
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json
 msgid "Accounts Manager"
 msgstr "Responsable Comptabilité"
 
 #. Name of a role
-#: etransactions/etransactions/doctype/etransaction_profile/etransaction_profile.json etransactions/etransactions/doctype/ocr_request/ocr_request.json etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json etransactions/etransactions/doctype/supplier_invoices_basket/supplier_invoices_basket.json
+#: etransactions/etransactions/doctype/etransaction_profile/etransaction_profile.json
+#: etransactions/etransactions/doctype/ocr_request/ocr_request.json
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json
+#: etransactions/etransactions/doctype/supplier_invoices_basket/supplier_invoices_basket.json
 msgid "Accounts User"
 msgstr "Comptable"
 
-#: etransactions/etransactions/doctype/ocr_request/ocr_request.js:10 etransactions/etransactions/doctype/ocr_request/ocr_request.js:14 etransactions/etransactions/doctype/ocr_request/ocr_request.js:20 etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:93 etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:97
+#: etransactions/etransactions/doctype/ocr_request/ocr_request.js:10
+#: etransactions/etransactions/doctype/ocr_request/ocr_request.js:14
+#: etransactions/etransactions/doctype/ocr_request/ocr_request.js:20
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:93
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:97
 msgid "Actions"
 msgstr "Actions"
 
@@ -75,7 +86,8 @@ msgstr "Montant réel"
 msgid "Address Fields"
 msgstr "Champs d'adresse"
 
-#: etransactions/etransactions/report/customer_einvoice_readiness/customer_einvoice_readiness.py:82 etransactions/etransactions/report/customer_einvoice_readiness/customer_einvoice_readiness.py:259
+#: etransactions/etransactions/report/customer_einvoice_readiness/customer_einvoice_readiness.py:82
+#: etransactions/etransactions/report/customer_einvoice_readiness/customer_einvoice_readiness.py:259
 msgid "Address Line 1"
 msgstr "Adresse ligne 1"
 
@@ -114,7 +126,8 @@ msgid "Amended From"
 msgstr "Modifié depuis"
 
 #. Label of the amount (Currency) field in DocType 'Supplier Invoice Item'
-#: etransactions/etransactions/doctype/supplier_invoice_item/supplier_invoice_item.json etransactions/public/dist/js/ocr_dashboard.bundle.RKBXDGUE.js:136
+#: etransactions/etransactions/doctype/supplier_invoice_item/supplier_invoice_item.json
+#: etransactions/public/dist/js/ocr_dashboard.bundle.RKBXDGUE.js:136
 msgid "Amount"
 msgstr "Montant"
 
@@ -203,7 +216,8 @@ msgstr "% facturé"
 msgid "Billed Quantity"
 msgstr "Quantité facturée"
 
-#: etransactions/etransactions/api/widgets.py:95 etransactions/etransactions/report/customer_einvoice_readiness/customer_einvoice_readiness.py:69
+#: etransactions/etransactions/api/widgets.py:95
+#: etransactions/etransactions/report/customer_einvoice_readiness/customer_einvoice_readiness.py:69
 msgid "Billing Address"
 msgstr "Adresse de facturation"
 
@@ -282,7 +296,9 @@ msgid "Buyer Postcode"
 msgstr "Code postal de l'acheteur"
 
 #. Label of the buyer_reference (Data) field in DocType 'eInvoice'
-#: etransactions/etransactions/doctype/einvoice/einvoice.json etransactions/overrides/custom_fields/master_data.py:21 etransactions/overrides/custom_fields/transactions.py:52
+#: etransactions/etransactions/doctype/einvoice/einvoice.json
+#: etransactions/overrides/custom_fields/master_data.py:21
+#: etransactions/overrides/custom_fields/transactions.py:52
 msgid "Buyer Reference"
 msgstr "Référence de l'acheteur"
 
@@ -316,7 +332,8 @@ msgstr "Impossible de valider le schématron de la facture électronique."
 msgid "Charge Total"
 msgstr "Total des frais"
 
-#: etransactions/etransactions/report/customer_einvoice_readiness/customer_einvoice_readiness.py:88 etransactions/etransactions/report/customer_einvoice_readiness/customer_einvoice_readiness.py:260
+#: etransactions/etransactions/report/customer_einvoice_readiness/customer_einvoice_readiness.py:88
+#: etransactions/etransactions/report/customer_einvoice_readiness/customer_einvoice_readiness.py:260
 msgid "City"
 msgstr "Ville"
 
@@ -324,20 +341,25 @@ msgstr "Ville"
 msgid "Click 'Create purchase invoices' to begin processing your files."
 msgstr "Cliquez sur 'Créer des factures d'achat' pour commencer le traitement de vos fichiers."
 
-#: etransactions/etransactions/doctype/ocr_request/ocr_request.js:8 etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:91
+#: etransactions/etransactions/doctype/ocr_request/ocr_request.js:8
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:91
 msgid "Close"
 msgstr "Fermer"
 
 #. Option for the 'Status' (Select) field in DocType 'OCR Request'
 #. Option for the 'Status' (Select) field in DocType 'Supplier Invoice'
 #. Option for the 'Status' (Select) field in DocType 'Supplier Invoices Basket'
-#: etransactions/etransactions/doctype/ocr_request/ocr_request.json etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json etransactions/etransactions/doctype/supplier_invoices_basket/supplier_invoices_basket.json
+#: etransactions/etransactions/doctype/ocr_request/ocr_request.json
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json
+#: etransactions/etransactions/doctype/supplier_invoices_basket/supplier_invoices_basket.json
 msgid "Closed"
 msgstr "Fermée"
 
 #. Label of the company (Link) field in DocType 'eInvoice'
 #. Label of the company (Link) field in DocType 'Supplier Invoice'
-#: etransactions/etransactions/doctype/einvoice/einvoice.json etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json etransactions/public/dist/js/ocr_dashboard.bundle.RKBXDGUE.js:7513
+#: etransactions/etransactions/doctype/einvoice/einvoice.json
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json
+#: etransactions/public/dist/js/ocr_dashboard.bundle.RKBXDGUE.js:7513
 msgid "Company"
 msgstr "Société"
 
@@ -346,7 +368,10 @@ msgstr "Société"
 #. Option for the 'Status' (Select) field in DocType 'OCR Request'
 #. Option for the 'Status' (Select) field in DocType 'Supplier Invoice'
 #. Option for the 'Status' (Select) field in DocType 'Supplier Invoices Basket'
-#: etransactions/etransactions/doctype/ocr_generic_text_transcription/ocr_generic_text_transcription.json etransactions/etransactions/doctype/ocr_request/ocr_request.json etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json etransactions/etransactions/doctype/supplier_invoices_basket/supplier_invoices_basket.json
+#: etransactions/etransactions/doctype/ocr_generic_text_transcription/ocr_generic_text_transcription.json
+#: etransactions/etransactions/doctype/ocr_request/ocr_request.json
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json
+#: etransactions/etransactions/doctype/supplier_invoices_basket/supplier_invoices_basket.json
 msgid "Completed"
 msgstr "Complétée"
 
@@ -364,7 +389,8 @@ msgstr "Centre de coûts"
 msgid "Could not validate E Invoice schematron. See Error Log for details."
 msgstr "Impossible de valider le schématron de la facture électronique. Consultez le journal des erreurs pour plus de détails."
 
-#: etransactions/etransactions/report/customer_einvoice_readiness/customer_einvoice_readiness.py:100 etransactions/etransactions/report/customer_einvoice_readiness/customer_einvoice_readiness.py:262
+#: etransactions/etransactions/report/customer_einvoice_readiness/customer_einvoice_readiness.py:100
+#: etransactions/etransactions/report/customer_einvoice_readiness/customer_einvoice_readiness.py:262
 msgid "Country"
 msgstr "Pays"
 
@@ -379,7 +405,9 @@ msgstr "Créer un article"
 
 #. Label of the create_purchase_invoice (Button) field in DocType 'Supplier
 #. Invoice'
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:65 etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:169 etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:65
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:169
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json
 msgid "Create Purchase Invoice"
 msgstr "Créer une facture d'achats"
 
@@ -404,11 +432,13 @@ msgstr "Créer une nouvelle facture"
 msgid "Create a new purchase order with all item lines without purchase order ?"
 msgstr "Créer une nouvelle commande fournisseur avec toutes les lignes qui ne sont pas déjà liées à une commande existante ?"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:378 etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:386
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:378
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:386
 msgid "Create and keep in draft"
 msgstr "Créer et garder en brouillon"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:377 etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:385
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:377
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:385
 msgid "Create and submit"
 msgstr "Créer et valider"
 
@@ -436,12 +466,14 @@ msgstr "Date de création"
 
 #. Label of the currency (Link) field in DocType 'eInvoice'
 #. Label of the currency (Link) field in DocType 'Supplier Invoice'
-#: etransactions/etransactions/doctype/einvoice/einvoice.json etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json
+#: etransactions/etransactions/doctype/einvoice/einvoice.json
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json
 msgid "Currency"
 msgstr "Devise"
 
 #. Label of a Link in the FacturX Readiness Workspace
-#: etransactions/etransactions/report/customer_einvoice_readiness/customer_einvoice_readiness.py:29 etransactions/etransactions/workspace/facturx_readiness/facturx_readiness.json
+#: etransactions/etransactions/report/customer_einvoice_readiness/customer_einvoice_readiness.py:29
+#: etransactions/etransactions/workspace/facturx_readiness/facturx_readiness.json
 msgid "Customer"
 msgstr "Client"
 
@@ -455,25 +487,29 @@ msgstr "Nom du client"
 
 #. Name of a report
 #. Label of a Link in the FacturX Readiness Workspace
-#: etransactions/etransactions/report/customer_einvoice_readiness/customer_einvoice_readiness.json etransactions/etransactions/workspace/facturx_readiness/facturx_readiness.json
+#: etransactions/etransactions/report/customer_einvoice_readiness/customer_einvoice_readiness.json
+#: etransactions/etransactions/workspace/facturx_readiness/facturx_readiness.json
 msgid "Customer eInvoice Readiness"
 msgstr "Préparation à la facturation électronique du client"
 
 #. Label of the task_results (JSON) field in DocType 'OCR Generic Text
 #. Transcription'
 #. Label of the data_tab (Tab Break) field in DocType 'OCR Request'
-#: etransactions/etransactions/doctype/ocr_generic_text_transcription/ocr_generic_text_transcription.json etransactions/etransactions/doctype/ocr_request/ocr_request.json
+#: etransactions/etransactions/doctype/ocr_generic_text_transcription/ocr_generic_text_transcription.json
+#: etransactions/etransactions/doctype/ocr_request/ocr_request.json
 msgid "Data"
 msgstr "Données"
 
-#: etransactions/public/dist/js/ocr_dashboard.bundle.RKBXDGUE.js:146 etransactions/public/dist/js/ocr_dashboard.bundle.RKBXDGUE.js:7257
+#: etransactions/public/dist/js/ocr_dashboard.bundle.RKBXDGUE.js:146
+#: etransactions/public/dist/js/ocr_dashboard.bundle.RKBXDGUE.js:7257
 msgid "Date"
 msgstr "Date"
 
 #. Label of the delivery_tab (Tab Break) field in DocType 'eInvoice'
 #. Label of the delivery_section (Section Break) field in DocType 'eInvoice
 #. Item'
-#: etransactions/etransactions/doctype/einvoice/einvoice.json etransactions/etransactions/doctype/einvoice_item/einvoice_item.json
+#: etransactions/etransactions/doctype/einvoice/einvoice.json
+#: etransactions/etransactions/doctype/einvoice_item/einvoice_item.json
 msgid "Delivery"
 msgstr "Livraison"
 
@@ -523,7 +559,9 @@ msgstr "Échu"
 
 #. Label of the due_date (Date) field in DocType 'eInvoice'
 #. Label of the due_date (Date) field in DocType 'Supplier Invoice'
-#: etransactions/etransactions/doctype/einvoice/einvoice.json etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json etransactions/public/dist/js/ocr_dashboard.bundle.RKBXDGUE.js:7562
+#: etransactions/etransactions/doctype/einvoice/einvoice.json
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json
+#: etransactions/public/dist/js/ocr_dashboard.bundle.RKBXDGUE.js:7562
 msgid "Due Date"
 msgstr "Date d'échéance"
 
@@ -537,15 +575,19 @@ msgstr "Montant dû"
 msgid "EInvoice File"
 msgstr "Fichier de facture électronique"
 
-#: etransactions/overrides/custom_fields/master_data.py:34 etransactions/overrides/custom_fields/master_data.py:63
+#: etransactions/overrides/custom_fields/master_data.py:34
+#: etransactions/overrides/custom_fields/master_data.py:63
 msgid "Electronic Address"
 msgstr "Adresse électronique"
 
-#: etransactions/overrides/custom_fields/master_data.py:27 etransactions/overrides/custom_fields/master_data.py:56
+#: etransactions/overrides/custom_fields/master_data.py:27
+#: etransactions/overrides/custom_fields/master_data.py:56
 msgid "Electronic Address Scheme"
 msgstr "Schéma d'adresse électronique"
 
-#: etransactions/etransactions/api/widgets.py:87 etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:698 etransactions/etransactions/report/customer_einvoice_readiness/customer_einvoice_readiness.py:63
+#: etransactions/etransactions/api/widgets.py:87
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:698
+#: etransactions/etransactions/report/customer_einvoice_readiness/customer_einvoice_readiness.py:63
 msgid "Email"
 msgstr "E-mail"
 
@@ -559,7 +601,9 @@ msgstr "Document intégré"
 #. Option for the 'Status' (Select) field in DocType 'OCR Request'
 #. Label of the error (Small Text) field in DocType 'OCR Request'
 #. Label of the error (Small Text) field in DocType 'Supplier Invoices Basket'
-#: etransactions/etransactions/doctype/ocr_generic_text_transcription/ocr_generic_text_transcription.json etransactions/etransactions/doctype/ocr_request/ocr_request.json etransactions/etransactions/doctype/supplier_invoices_basket/supplier_invoices_basket.json
+#: etransactions/etransactions/doctype/ocr_generic_text_transcription/ocr_generic_text_transcription.json
+#: etransactions/etransactions/doctype/ocr_request/ocr_request.json
+#: etransactions/etransactions/doctype/supplier_invoices_basket/supplier_invoices_basket.json
 msgid "Error"
 msgstr "Erreur"
 
@@ -590,7 +634,8 @@ msgstr "Extraction en cours"
 
 #. Name of a Workspace
 #. Label of a Workspace Sidebar Item
-#: etransactions/etransactions/workspace/facturx_readiness/facturx_readiness.json etransactions/workspace_sidebar/etransactions.json
+#: etransactions/etransactions/workspace/facturx_readiness/facturx_readiness.json
+#: etransactions/workspace_sidebar/etransactions.json
 msgid "FacturX Readiness"
 msgstr "Préparation FacturX"
 
@@ -615,7 +660,9 @@ msgstr "Valeur du champ"
 #. Label of the file (Attach) field in DocType 'OCR Generic Text Transcription'
 #. Label of the file (Link) field in DocType 'OCR Request'
 #. Label of the file (Link) field in DocType 'Supplier Invoice'
-#: etransactions/etransactions/doctype/ocr_generic_text_transcription/ocr_generic_text_transcription.json etransactions/etransactions/doctype/ocr_request/ocr_request.json etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json
+#: etransactions/etransactions/doctype/ocr_generic_text_transcription/ocr_generic_text_transcription.json
+#: etransactions/etransactions/doctype/ocr_request/ocr_request.json
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json
 msgid "File"
 msgstr "Fichier"
 
@@ -654,7 +701,10 @@ msgstr "Paramètres généraux"
 #. Label of the supplier_grand_total (Currency) field in DocType 'Supplier
 #. Invoice'
 #. Label of the grand_total (Currency) field in DocType 'Supplier Invoice'
-#: etransactions/etransactions/doctype/einvoice/einvoice.json etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json etransactions/public/dist/js/ocr_dashboard.bundle.RKBXDGUE.js:7273 etransactions/public/dist/js/ocr_dashboard.bundle.RKBXDGUE.js:7596
+#: etransactions/etransactions/doctype/einvoice/einvoice.json
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json
+#: etransactions/public/dist/js/ocr_dashboard.bundle.RKBXDGUE.js:7273
+#: etransactions/public/dist/js/ocr_dashboard.bundle.RKBXDGUE.js:7596
 msgid "Grand Total"
 msgstr "Total TTC"
 
@@ -683,7 +733,8 @@ msgstr "Importé"
 
 #. Option for the 'Status' (Select) field in DocType 'Supplier Invoice'
 #. Option for the 'Status' (Select) field in DocType 'Supplier Invoices Basket'
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json etransactions/etransactions/doctype/supplier_invoices_basket/supplier_invoices_basket.json
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json
+#: etransactions/etransactions/doctype/supplier_invoices_basket/supplier_invoices_basket.json
 msgid "In Progress"
 msgstr "En cours"
 
@@ -724,7 +775,8 @@ msgid "Invoice Number"
 msgstr "N° de facture"
 
 #. Label of the invoice_preview (HTML) field in DocType 'Supplier Invoice'
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json etransactions/public/dist/js/ocr_dashboard.bundle.RKBXDGUE.js:7626
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json
+#: etransactions/public/dist/js/ocr_dashboard.bundle.RKBXDGUE.js:7626
 msgid "Invoice Preview"
 msgstr "Prévisualisation de la facture"
 
@@ -743,14 +795,18 @@ msgstr "Est un retour"
 msgid "Issue Date"
 msgstr "Date d'émission"
 
-#: etransactions/etransactions/report/customer_einvoice_readiness/customer_einvoice_readiness.py:107 etransactions/etransactions/report/item_tax_readiness/item_tax_readiness.py:58
+#: etransactions/etransactions/report/customer_einvoice_readiness/customer_einvoice_readiness.py:107
+#: etransactions/etransactions/report/item_tax_readiness/item_tax_readiness.py:58
 msgid "Issues"
 msgstr "Problèmes"
 
 #. Label of the item (Link) field in DocType 'eInvoice Item'
 #. Label of the item (Small Text) field in DocType 'OCR Line Items Mapping'
 #. Label of the item_code (Link) field in DocType 'Supplier Invoice Item'
-#: etransactions/etransactions/doctype/einvoice_item/einvoice_item.json etransactions/etransactions/doctype/ocr_line_items_mapping/ocr_line_items_mapping.json etransactions/etransactions/doctype/supplier_invoice_item/supplier_invoice_item.json etransactions/etransactions/report/item_tax_readiness/item_tax_readiness.py:26
+#: etransactions/etransactions/doctype/einvoice_item/einvoice_item.json
+#: etransactions/etransactions/doctype/ocr_line_items_mapping/ocr_line_items_mapping.json
+#: etransactions/etransactions/doctype/supplier_invoice_item/supplier_invoice_item.json
+#: etransactions/etransactions/report/item_tax_readiness/item_tax_readiness.py:26
 msgid "Item"
 msgstr "Article"
 
@@ -759,7 +815,8 @@ msgstr "Article"
 msgid "Item Code"
 msgstr "Code article"
 
-#: etransactions/etransactions/report/item_tax_readiness/item_tax_readiness.js:8 etransactions/etransactions/report/item_tax_readiness/item_tax_readiness.py:39
+#: etransactions/etransactions/report/item_tax_readiness/item_tax_readiness.js:8
+#: etransactions/etransactions/report/item_tax_readiness/item_tax_readiness.py:39
 msgid "Item Group"
 msgstr "Groupe d'articles"
 
@@ -769,7 +826,8 @@ msgstr "Désignation de l'article"
 
 #. Name of a report
 #. Label of a Link in the FacturX Readiness Workspace
-#: etransactions/etransactions/report/item_tax_readiness/item_tax_readiness.json etransactions/etransactions/workspace/facturx_readiness/facturx_readiness.json
+#: etransactions/etransactions/report/item_tax_readiness/item_tax_readiness.json
+#: etransactions/etransactions/workspace/facturx_readiness/facturx_readiness.json
 msgid "Item Tax Readiness"
 msgstr "Préparation à la taxe sur l'article"
 
@@ -782,7 +840,8 @@ msgstr "Modèle de taxes sur l'article"
 #. Label of the items (Table) field in DocType 'eInvoice'
 #. Label of the items_tab (Tab Break) field in DocType 'eInvoice'
 #. Label of the items (Table) field in DocType 'Supplier Invoice'
-#: etransactions/etransactions/doctype/einvoice/einvoice.json etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json
+#: etransactions/etransactions/doctype/einvoice/einvoice.json
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json
 msgid "Items"
 msgstr "Articles"
 
@@ -878,7 +937,9 @@ msgid "Net Rate"
 msgstr "Taux net"
 
 #. Label of the net_total (Currency) field in DocType 'Supplier Invoice'
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json etransactions/public/dist/js/ocr_dashboard.bundle.RKBXDGUE.js:7265 etransactions/public/dist/js/ocr_dashboard.bundle.RKBXDGUE.js:7577
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json
+#: etransactions/public/dist/js/ocr_dashboard.bundle.RKBXDGUE.js:7265
+#: etransactions/public/dist/js/ocr_dashboard.bundle.RKBXDGUE.js:7577
 msgid "Net Total"
 msgstr "Total HT"
 
@@ -963,7 +1024,10 @@ msgstr "Correspondance des lignes OCR"
 #. Name of a DocType
 #. Label of the ocr_request (Link) field in DocType 'Supplier Invoice'
 #. Label of a Workspace Sidebar Item
-#: etransactions/etransactions/doctype/ocr_request/ocr_request.json etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json etransactions/overrides/custom_fields/transactions.py:23 etransactions/workspace_sidebar/etransactions.json
+#: etransactions/etransactions/doctype/ocr_request/ocr_request.json
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json
+#: etransactions/overrides/custom_fields/transactions.py:23
+#: etransactions/workspace_sidebar/etransactions.json
 msgid "OCR Request"
 msgstr "Demande OCR"
 
@@ -997,7 +1061,8 @@ msgid "Original File"
 msgstr "Fichier original"
 
 #. Label of the original_invoice (Link) field in DocType 'Supplier Invoice'
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json etransactions/overrides/custom_fields/transactions.py:9
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json
+#: etransactions/overrides/custom_fields/transactions.py:9
 msgid "Original Invoice"
 msgstr "Facture originale"
 
@@ -1042,7 +1107,9 @@ msgstr "Modèle de conditions de paiement"
 #. Transcription'
 #. Option for the 'Status' (Select) field in DocType 'OCR Request'
 #. Option for the 'Status' (Select) field in DocType 'Supplier Invoice'
-#: etransactions/etransactions/doctype/ocr_generic_text_transcription/ocr_generic_text_transcription.json etransactions/etransactions/doctype/ocr_request/ocr_request.json etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json
+#: etransactions/etransactions/doctype/ocr_generic_text_transcription/ocr_generic_text_transcription.json
+#: etransactions/etransactions/doctype/ocr_request/ocr_request.json
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json
 msgid "Pending"
 msgstr "En attente"
 
@@ -1051,7 +1118,8 @@ msgstr "En attente"
 msgid "Pending Invoices"
 msgstr "Factures en attente"
 
-#: etransactions/etransactions/report/customer_einvoice_readiness/customer_einvoice_readiness.py:94 etransactions/etransactions/report/customer_einvoice_readiness/customer_einvoice_readiness.py:261
+#: etransactions/etransactions/report/customer_einvoice_readiness/customer_einvoice_readiness.py:94
+#: etransactions/etransactions/report/customer_einvoice_readiness/customer_einvoice_readiness.py:261
 msgid "Pincode"
 msgstr "Code PIN"
 
@@ -1093,7 +1161,8 @@ msgstr "Date de comptabilisation"
 msgid "Price"
 msgstr "Prix"
 
-#: etransactions/etransactions/api/widgets.py:81 etransactions/etransactions/report/customer_einvoice_readiness/customer_einvoice_readiness.py:54
+#: etransactions/etransactions/api/widgets.py:81
+#: etransactions/etransactions/report/customer_einvoice_readiness/customer_einvoice_readiness.py:54
 msgid "Primary Contact"
 msgstr "Contact principal"
 
@@ -1134,7 +1203,8 @@ msgstr "Nom du produit"
 
 #. Label of the profile (Read Only) field in DocType 'eInvoice'
 #. Label of the profile (Data) field in DocType 'eTransaction Profile'
-#: etransactions/etransactions/doctype/einvoice/einvoice.json etransactions/etransactions/doctype/etransaction_profile/etransaction_profile.json
+#: etransactions/etransactions/doctype/einvoice/einvoice.json
+#: etransactions/etransactions/doctype/etransaction_profile/etransaction_profile.json
 msgid "Profile"
 msgstr "Profil"
 
@@ -1145,7 +1215,8 @@ msgstr "Projet"
 
 #. Option for the 'Transaction Type' (Select) field in DocType 'OCR Request'
 #. Group in OCR Request's connections
-#: etransactions/etransactions/doctype/ocr_request/ocr_request.json etransactions/public/js/communication.js:14
+#: etransactions/etransactions/doctype/ocr_request/ocr_request.json
+#: etransactions/public/js/communication.js:14
 msgid "Purchase Invoice"
 msgstr "Facture d'achat"
 
@@ -1156,12 +1227,16 @@ msgstr "Facture d'achat créée"
 #. Label of the purchase_invoices_section (Section Break) field in DocType
 #. 'eTransactions Settings'
 #. Group in Supplier Invoice's connections
-#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.json etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json
+#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.json
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json
 msgid "Purchase Invoices"
 msgstr "Factures d'achat"
 
 #. Name of a role
-#: etransactions/etransactions/doctype/einvoice/einvoice.json etransactions/etransactions/doctype/etransaction_profile/etransaction_profile.json etransactions/etransactions/doctype/ocr_request/ocr_request.json etransactions/etransactions/doctype/supplier_invoices_basket/supplier_invoices_basket.json
+#: etransactions/etransactions/doctype/einvoice/einvoice.json
+#: etransactions/etransactions/doctype/etransaction_profile/etransaction_profile.json
+#: etransactions/etransactions/doctype/ocr_request/ocr_request.json
+#: etransactions/etransactions/doctype/supplier_invoices_basket/supplier_invoices_basket.json
 msgid "Purchase Manager"
 msgstr "Responsable des achats"
 
@@ -1171,7 +1246,8 @@ msgid "Purchase Master Manager"
 msgstr "Gestionnaire principal des achats"
 
 #. Label of the purchase_order (Link) field in DocType 'eInvoice'
-#: etransactions/etransactions/doctype/einvoice/einvoice.json etransactions/public/dist/js/ocr_dashboard.bundle.RKBXDGUE.js:7360
+#: etransactions/etransactions/doctype/einvoice/einvoice.json
+#: etransactions/public/dist/js/ocr_dashboard.bundle.RKBXDGUE.js:7360
 msgid "Purchase Order"
 msgstr "Commande fournisseur"
 
@@ -1192,7 +1268,8 @@ msgstr "Ligne de commande fournisseur"
 
 #. Group in OCR Request's connections
 #. Group in Supplier Invoice's connections
-#: etransactions/etransactions/doctype/ocr_request/ocr_request.json etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json
+#: etransactions/etransactions/doctype/ocr_request/ocr_request.json
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json
 msgid "Purchase Orders"
 msgstr "Commandes fournisseur"
 
@@ -1225,7 +1302,8 @@ msgstr "Achats"
 
 #. Label of the quantity (Float) field in DocType 'OCR Line Items Mapping'
 #. Label of the qty (Float) field in DocType 'Supplier Invoice Item'
-#: etransactions/etransactions/doctype/ocr_line_items_mapping/ocr_line_items_mapping.json etransactions/etransactions/doctype/supplier_invoice_item/supplier_invoice_item.json
+#: etransactions/etransactions/doctype/ocr_line_items_mapping/ocr_line_items_mapping.json
+#: etransactions/etransactions/doctype/supplier_invoice_item/supplier_invoice_item.json
 msgid "Quantity"
 msgstr "Quantité"
 
@@ -1274,7 +1352,8 @@ msgstr "Documents de référence"
 msgid "References"
 msgstr "Références"
 
-#: etransactions/etransactions/doctype/ocr_request/ocr_request.js:12 etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:95
+#: etransactions/etransactions/doctype/ocr_request/ocr_request.js:12
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:95
 msgid "Reopen"
 msgstr "Rouvrir"
 
@@ -1300,7 +1379,8 @@ msgstr "Ligne"
 msgid "Row {0}"
 msgstr "Ligne {0}"
 
-#: etransactions/etransactions/api/widgets.py:77 etransactions/etransactions/report/customer_einvoice_readiness/customer_einvoice_readiness.py:42
+#: etransactions/etransactions/api/widgets.py:77
+#: etransactions/etransactions/report/customer_einvoice_readiness/customer_einvoice_readiness.py:42
 msgid "SIREN Number"
 msgstr "Numéro SIREN"
 
@@ -1318,7 +1398,8 @@ msgid "Sales Invoice"
 msgstr "Facture de vente"
 
 #. Name of a role
-#: etransactions/etransactions/doctype/einvoice/einvoice.json etransactions/etransactions/doctype/etransaction_profile/etransaction_profile.json
+#: etransactions/etransactions/doctype/einvoice/einvoice.json
+#: etransactions/etransactions/doctype/etransaction_profile/etransaction_profile.json
 msgid "Sales Manager"
 msgstr "Responsable des ventes"
 
@@ -1327,7 +1408,8 @@ msgstr "Responsable des ventes"
 msgid "Sales Master Manager"
 msgstr "Gestionnaire principal des ventes"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:62 etransactions/public/dist/js/ocr_dashboard.bundle.RKBXDGUE.js:7615
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:62
+#: etransactions/public/dist/js/ocr_dashboard.bundle.RKBXDGUE.js:7615
 msgid "Save"
 msgstr "Enregistrer"
 
@@ -1343,7 +1425,8 @@ msgstr "Sélectionner des commandes fournisseur"
 msgid "Select Purchase Receipts"
 msgstr "Sélectionner des reçus d'achat"
 
-#: etransactions/public/dist/js/ocr_dashboard.bundle.RKBXDGUE.js:7371 etransactions/public/dist/js/ocr_dashboard.bundle.RKBXDGUE.js:7377
+#: etransactions/public/dist/js/ocr_dashboard.bundle.RKBXDGUE.js:7371
+#: etransactions/public/dist/js/ocr_dashboard.bundle.RKBXDGUE.js:7377
 msgid "Select matching documents"
 msgstr "Sélectionner les documents correspondants"
 
@@ -1419,7 +1502,8 @@ msgstr "Expéditeur"
 #. Label of the settlement_tab (Tab Break) field in DocType 'eInvoice'
 #. Label of the settlement_section (Section Break) field in DocType 'eInvoice
 #. Item'
-#: etransactions/etransactions/doctype/einvoice/einvoice.json etransactions/etransactions/doctype/einvoice_item/einvoice_item.json
+#: etransactions/etransactions/doctype/einvoice/einvoice.json
+#: etransactions/etransactions/doctype/einvoice_item/einvoice_item.json
 msgid "Settlement"
 msgstr "Règlement"
 
@@ -1432,7 +1516,10 @@ msgstr "Trier par"
 #. Label of the status (Select) field in DocType 'OCR Request'
 #. Label of the status (Select) field in DocType 'Supplier Invoice'
 #. Label of the status (Select) field in DocType 'Supplier Invoices Basket'
-#: etransactions/etransactions/doctype/ocr_generic_text_transcription/ocr_generic_text_transcription.json etransactions/etransactions/doctype/ocr_request/ocr_request.json etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json etransactions/etransactions/doctype/supplier_invoices_basket/supplier_invoices_basket.json
+#: etransactions/etransactions/doctype/ocr_generic_text_transcription/ocr_generic_text_transcription.json
+#: etransactions/etransactions/doctype/ocr_request/ocr_request.json
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json
+#: etransactions/etransactions/doctype/supplier_invoices_basket/supplier_invoices_basket.json
 msgid "Status"
 msgstr "Statut"
 
@@ -1443,7 +1530,11 @@ msgid "Subject"
 msgstr "Objet"
 
 #. Label of the supplier (Link) field in DocType 'Supplier Invoice'
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:521 etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json etransactions/public/dist/js/ocr_dashboard.bundle.RKBXDGUE.js:128 etransactions/public/dist/js/ocr_dashboard.bundle.RKBXDGUE.js:7249 etransactions/public/dist/js/ocr_dashboard.bundle.RKBXDGUE.js:7525
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:521
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json
+#: etransactions/public/dist/js/ocr_dashboard.bundle.RKBXDGUE.js:128
+#: etransactions/public/dist/js/ocr_dashboard.bundle.RKBXDGUE.js:7249
+#: etransactions/public/dist/js/ocr_dashboard.bundle.RKBXDGUE.js:7525
 msgid "Supplier"
 msgstr "Fournisseur"
 
@@ -1460,7 +1551,9 @@ msgstr "Description du fournisseur"
 
 #. Group in OCR Request's connections
 #. Name of a DocType
-#: etransactions/etransactions/doctype/ocr_request/ocr_request.json etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json etransactions/overrides/custom_fields/transactions.py:42
+#: etransactions/etransactions/doctype/ocr_request/ocr_request.json
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json
+#: etransactions/overrides/custom_fields/transactions.py:42
 msgid "Supplier Invoice"
 msgstr "Facture fournisseur"
 
@@ -1470,7 +1563,8 @@ msgid "Supplier Invoice Date"
 msgstr "Date de la facture fournisseur"
 
 #. Name of a DocType
-#: etransactions/etransactions/doctype/supplier_invoice_item/supplier_invoice_item.json etransactions/overrides/custom_fields/transactions.py:97
+#: etransactions/etransactions/doctype/supplier_invoice_item/supplier_invoice_item.json
+#: etransactions/overrides/custom_fields/transactions.py:97
 msgid "Supplier Invoice Item"
 msgstr "Article de facture fournisseur"
 
@@ -1480,7 +1574,8 @@ msgid "Supplier Invoice No"
 msgstr "N° de la facture fournisseur"
 
 #. Label of a Workspace Sidebar Item
-#: etransactions/etransactions/doctype/supplier_invoices_basket/supplier_invoices_basket.js:143 etransactions/workspace_sidebar/etransactions.json
+#: etransactions/etransactions/doctype/supplier_invoices_basket/supplier_invoices_basket.js:143
+#: etransactions/workspace_sidebar/etransactions.json
 msgid "Supplier Invoices"
 msgstr "Factures fournisseurs"
 
@@ -1489,7 +1584,11 @@ msgstr "Factures fournisseurs"
 #. Label of the ocr_basket (Link) field in DocType 'Supplier Invoice'
 #. Name of a DocType
 #. Label of a Workspace Sidebar Item
-#: etransactions/etransactions/doctype/einvoice/einvoice.json etransactions/etransactions/doctype/ocr_request/ocr_request.json etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json etransactions/etransactions/doctype/supplier_invoices_basket/supplier_invoices_basket.json etransactions/workspace_sidebar/etransactions.json
+#: etransactions/etransactions/doctype/einvoice/einvoice.json
+#: etransactions/etransactions/doctype/ocr_request/ocr_request.json
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json
+#: etransactions/etransactions/doctype/supplier_invoices_basket/supplier_invoices_basket.json
+#: etransactions/workspace_sidebar/etransactions.json
 msgid "Supplier Invoices Basket"
 msgstr "Panier de factures fournisseurs"
 
@@ -1505,7 +1604,13 @@ msgid "Supplier Name"
 msgstr "Désignation"
 
 #. Name of a role
-#: etransactions/etransactions/doctype/einvoice/einvoice.json etransactions/etransactions/doctype/etransaction_profile/etransaction_profile.json etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.json etransactions/etransactions/doctype/ocr_generic_text_transcription/ocr_generic_text_transcription.json etransactions/etransactions/doctype/ocr_request/ocr_request.json etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json etransactions/etransactions/doctype/supplier_invoices_basket/supplier_invoices_basket.json
+#: etransactions/etransactions/doctype/einvoice/einvoice.json
+#: etransactions/etransactions/doctype/etransaction_profile/etransaction_profile.json
+#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.json
+#: etransactions/etransactions/doctype/ocr_generic_text_transcription/ocr_generic_text_transcription.json
+#: etransactions/etransactions/doctype/ocr_request/ocr_request.json
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json
+#: etransactions/etransactions/doctype/supplier_invoices_basket/supplier_invoices_basket.json
 msgid "System Manager"
 msgstr "Responsable Système"
 
@@ -1532,12 +1637,15 @@ msgstr "Total de la base d'imposition"
 
 #. Label of the tax_category (Link) field in DocType 'eInvoice'
 #. Label of the tax_category (Link) field in DocType 'Supplier Invoice'
-#: etransactions/etransactions/doctype/einvoice/einvoice.json etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json
+#: etransactions/etransactions/doctype/einvoice/einvoice.json
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json
 msgid "Tax Category"
 msgstr "Catégorie de taxes"
 
 #. Label of the tax_id (Data) field in DocType 'Supplier Invoice'
-#: etransactions/etransactions/api/widgets.py:78 etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json etransactions/etransactions/report/customer_einvoice_readiness/customer_einvoice_readiness.py:48
+#: etransactions/etransactions/api/widgets.py:78
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json
+#: etransactions/etransactions/report/customer_einvoice_readiness/customer_einvoice_readiness.py:48
 msgid "Tax ID"
 msgstr "N° de TVA"
 
@@ -1552,7 +1660,9 @@ msgstr "Modèles de taxes"
 
 #. Label of the tax_total (Currency) field in DocType 'eInvoice'
 #. Label of the tax_total (Currency) field in DocType 'Supplier Invoice'
-#: etransactions/etransactions/doctype/einvoice/einvoice.json etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json etransactions/public/dist/js/ocr_dashboard.bundle.RKBXDGUE.js:7585
+#: etransactions/etransactions/doctype/einvoice/einvoice.json
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json
+#: etransactions/public/dist/js/ocr_dashboard.bundle.RKBXDGUE.js:7585
 msgid "Tax Total"
 msgstr "Total TVA"
 
@@ -1638,7 +1748,8 @@ msgstr "Cette facture d'achat ne peut pas être validée car le total HT est sup
 
 #. Label of the title (Data) field in DocType 'Supplier Invoice'
 #. Label of the title (Data) field in DocType 'Supplier Invoices Basket'
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json etransactions/etransactions/doctype/supplier_invoices_basket/supplier_invoices_basket.json
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json
+#: etransactions/etransactions/doctype/supplier_invoices_basket/supplier_invoices_basket.json
 msgid "Title"
 msgstr "Titre"
 
@@ -1771,11 +1882,17 @@ msgctxt "Approve confirmation dialog"
 msgid "Yes"
 msgstr "Oui"
 
-#: etransactions/etransactions/doctype/ocr_request/ocr_request.js:69 etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:143 etransactions/public/dist/js/ocr_dashboard.bundle.RKBXDGUE.js:7667 etransactions/public/js/file_preview.js:66
+#: etransactions/etransactions/doctype/ocr_request/ocr_request.js:69
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:143
+#: etransactions/public/dist/js/ocr_dashboard.bundle.RKBXDGUE.js:7667
+#: etransactions/public/js/file_preview.js:66
 msgid "Your browser does not support the audio element."
 msgstr "Votre navigateur ne supporte pas cet élément audio."
 
-#: etransactions/etransactions/doctype/ocr_request/ocr_request.js:51 etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:125 etransactions/public/dist/js/ocr_dashboard.bundle.RKBXDGUE.js:7649 etransactions/public/js/file_preview.js:48
+#: etransactions/etransactions/doctype/ocr_request/ocr_request.js:51
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:125
+#: etransactions/public/dist/js/ocr_dashboard.bundle.RKBXDGUE.js:7649
+#: etransactions/public/js/file_preview.js:48
 msgid "Your browser does not support the video element."
 msgstr "Votre navigateur ne supporte pas cet élément vidéo."
 
@@ -1789,7 +1906,8 @@ msgstr "Le n° de TVA de votre fournisseur est {0}"
 
 #. Name of a DocType
 #. Label of the einvoice (Link) field in DocType 'Supplier Invoice'
-#: etransactions/etransactions/doctype/einvoice/einvoice.json etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json
+#: etransactions/etransactions/doctype/einvoice/einvoice.json
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json
 msgid "eInvoice"
 msgstr "Facture électronique"
 
@@ -1834,7 +1952,11 @@ msgstr "Profil de transaction électronique"
 
 #. Label of a Desktop Icon
 #. Title of a Workspace Sidebar
-#: etransactions/desktop_icon/etransactions.json etransactions/overrides/custom_fields/master_data.py:8 etransactions/overrides/custom_fields/master_data.py:45 etransactions/overrides/custom_fields/transactions.py:65 etransactions/workspace_sidebar/etransactions.json
+#: etransactions/desktop_icon/etransactions.json
+#: etransactions/overrides/custom_fields/master_data.py:8
+#: etransactions/overrides/custom_fields/master_data.py:45
+#: etransactions/overrides/custom_fields/transactions.py:65
+#: etransactions/workspace_sidebar/etransactions.json
 msgid "eTransactions"
 msgstr "Transactions électroniques"
 
@@ -1848,7 +1970,8 @@ msgstr "Erreur de suppression du fichier eTransactions"
 
 #. Name of a DocType
 #. Label of a Workspace Sidebar Item
-#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.json etransactions/workspace_sidebar/etransactions.json
+#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.json
+#: etransactions/workspace_sidebar/etransactions.json
 msgid "eTransactions Settings"
 msgstr "Paramètres eTransactions"
 
@@ -1871,3 +1994,54 @@ msgstr "{0} combinaison(s) catégorie de taxe / société non couvertes"
 #: etransactions/overrides/sales_invoice.py:57
 msgid "{0}: Only one mode of payment will be considered in the e-invoice."
 msgstr "{0} : Un seul mode de paiement sera pris en compte dans la facture électronique."
+
+msgid "By Customer Group"
+msgstr "Par groupe de clients"
+
+msgid "By Item Group"
+msgstr "Par groupe d'articles"
+
+msgid "Customer Readiness"
+msgstr "Préparation des clients"
+
+msgid "Development is underway for Factur-X/UBL e-invoicing and connectivity to approved PA (Plateforme de Dématérialisation Partenaire) platforms."
+msgstr "Le développement de la facturation électronique Factur-X/UBL et de la connectivité aux plateformes de dématérialisation partenaires (PDP) agréées est en cours."
+
+msgid "FacturX / Electronic Invoicing — Feature in Progress"
+msgstr "FacturX / Facturation électronique — Fonctionnalité en cours de développement"
+
+msgid "Group"
+msgstr "Groupe"
+
+msgid "Loading"
+msgstr "Chargement"
+
+msgid "No active customers found."
+msgstr "Aucun client actif trouvé."
+
+msgid "No active sales items found."
+msgstr "Aucun article de vente actif trouvé."
+
+msgid "Total"
+msgstr "Total"
+
+msgid "Update"
+msgstr "Mettre à jour"
+
+msgid "Utilize these reports to refine your data quality and ensure your organization is fully prepared for the upcoming feature deployment."
+msgstr "Utilisez ces rapports pour améliorer la qualité de vos données et vous assurer que votre organisation est entièrement prête pour le déploiement de la fonctionnalité à venir."
+
+msgid "View full report"
+msgstr "Voir le rapport complet"
+
+msgid "active customers"
+msgstr "clients actifs"
+
+msgid "active sales items"
+msgstr "articles de vente actifs"
+
+msgid "fully ready"
+msgstr "entièrement prêt"
+
+msgid "optional"
+msgstr "optionnel"
