@@ -43,6 +43,7 @@ doctype_js = {
 	"Communication" : "public/js/communication.js",
 	"Purchase Invoice": "public/js/purchase_invoice.js",
 	"Purchase Order": "public/js/purchase_order.js",
+	"Sales Invoice": "public/js/sales_invoice.js",
 }
 
 doctype_list_js = {
@@ -193,6 +194,7 @@ doc_events = {
 	},
 	"Sales Invoice": {
 		"on_update": "etransactions.overrides.sales_invoice.on_update",
+		"on_submit": "etransactions.overrides.sales_invoice.on_submit",
 	}
 }
 
