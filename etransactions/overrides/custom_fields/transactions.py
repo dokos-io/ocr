@@ -54,7 +54,6 @@ selling_fields = [
 		"fieldtype": "Data",
 		"fetch_from": "customer.etransactions_buyer_reference",
 		"fetch_if_empty": 1,
-		"read_only": True,
 	},
 ]
 
@@ -64,7 +63,6 @@ sales_invoicing_fields = [
 		"fieldtype": "Tab Break",
 		"label": _("eTransactions"),
 		"insert_after": "terms",
-		"hidden": 1
 	},
 	{
 		"fieldname": "etransaction_profile",
@@ -74,6 +72,12 @@ sales_invoicing_fields = [
 		"insert_after": "etransactions_tab",
 		"fetch_from": "customer.etransaction_profile",
 		"fetch_if_empty": 1,
+	},
+	{
+		"fieldname": "etransactions_status_html",
+		"fieldtype": "HTML",
+		"label": "",
+		"insert_after": "etransaction_profile",
 	},
 ]
 

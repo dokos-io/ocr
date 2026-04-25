@@ -20,6 +20,8 @@ class eTransactionsSettings(Document):
 		aws_textract_secret: DF.Password | None
 		block_if_grand_total_exceeds_pending_pi: DF.Check
 		block_if_net_total_exceeds_pending_pi: DF.Check
+		block_submission_on_facturx_failure: DF.Check
+		generate_facturx_on_submit: DF.Check
 		max_difference_amount: DF.Currency
 		max_difference_percentage_on_net_total: DF.Percent
 		mistral_api_key: DF.Password | None

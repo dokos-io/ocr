@@ -11,6 +11,10 @@
   "aws_textract_key",
   "aws_textract_secret",
   "mistral_api_key",
+  "sales_invoices_tab",
+  "facturx_section",
+  "generate_facturx_on_submit",
+  "block_submission_on_facturx_failure",
   "purchase_invoices_tab",
   "purchase_invoices_section",
   "no_purchase_order",
@@ -27,6 +31,29 @@
    "fieldname": "general_settings_tab",
    "fieldtype": "Tab Break",
    "label": "General Settings"
+  },
+  {
+   "fieldname": "sales_invoices_tab",
+   "fieldtype": "Tab Break",
+   "label": "Sales"
+  },
+  {
+   "fieldname": "facturx_section",
+   "fieldtype": "Section Break",
+   "label": "FacturX PDF"
+  },
+  {
+   "default": "0",
+   "fieldname": "generate_facturx_on_submit",
+   "fieldtype": "Check",
+   "label": "Generate FacturX PDF automatically when a Sales Invoice is submitted"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.generate_facturx_on_submit",
+   "fieldname": "block_submission_on_facturx_failure",
+   "fieldtype": "Check",
+   "label": "Block submission if FacturX PDF generation fails"
   },
   {
    "fieldname": "purchase_invoices_tab",
@@ -125,7 +152,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-03-15 12:12:17.054807",
+ "modified": "2026-04-23 09:00:00.000000",
  "modified_by": "Administrator",
  "module": "eTransactions",
  "name": "eTransactions Settings",
