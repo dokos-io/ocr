@@ -2045,3 +2045,70 @@ msgstr "entièrement prêt"
 
 msgid "optional"
 msgstr "optionnel"
+
+msgid "Block submission if FacturX PDF generation fails"
+msgstr "Bloquer la validation si la génération du PDF FacturX échoue"
+
+msgid "Download FacturX Invoice"
+msgstr "Télécharger la facture FacturX"
+
+msgid "FacturX PDF"
+msgstr "PDF FacturX"
+
+msgid "FacturX PDF Generation Failed"
+msgstr "Échec de la génération du PDF FacturX"
+
+msgid "Generate FacturX PDF automatically when a Sales Invoice is submitted"
+msgstr "Générer automatiquement le PDF FacturX lors de la validation d'une facture client"
+
+msgid "Generating FacturX PDF…"
+msgstr "Génération du PDF FacturX en cours…"
+
+msgid "No eInvoice found for Sales Invoice {0}. Save the Sales Invoice with an eTransaction Profile first."
+msgstr "Aucune facture électronique trouvée pour la facture client {0}. Enregistrez la facture client avec un profil de transaction électronique d'abord."
+
+msgid "No eInvoice generated yet."
+msgstr "Aucune facture électronique générée pour l'instant."
+
+msgid "No payment IBAN configured."
+msgstr "Aucun IBAN de paiement configuré."
+
+msgid "Open eInvoice →"
+msgstr "Ouvrir la facture électronique →"
+
+msgid "Sales"
+msgstr "Ventes"
+
+msgid "Set up payment IBAN →"
+msgstr "Configurer l'IBAN de paiement →"
+
+msgid "The FacturX PDF could not be generated. Please check the error log."
+msgstr "Le PDF FacturX n'a pas pu être généré. Veuillez vérifier le journal des erreurs."
+
+msgid "The FacturX PDF could not be generated. Submission has been blocked. Please check the error log."
+msgstr "Le PDF FacturX n'a pas pu être généré. La validation a été bloquée. Veuillez vérifier le journal des erreurs."
+
+msgid ""
+"The eInvoice {0} has validation errors and cannot be embedded in the PDF:\n"
+"{1}"
+msgstr ""
+"La facture électronique {0} contient des erreurs de validation et ne peut pas être intégrée dans le PDF :\n"
+"{1}"
+
+msgid "eInvoice errors"
+msgstr "Erreurs de facture électronique"
+
+msgid "eInvoice pending"
+msgstr "Facture électronique en attente"
+
+msgid "eInvoice valid"
+msgstr "Facture électronique valide"
+
+msgid "eInvoice warnings"
+msgstr "Avertissements de facture électronique"
+
+msgid "eInvoice {0} has no XML content. Save the Sales Invoice to regenerate it."
+msgstr "La facture électronique {0} n'a pas de contenu XML. Enregistrez la facture client pour la régénérer."
+
+msgid "{0} more…"
+msgstr "{0} de plus…"
