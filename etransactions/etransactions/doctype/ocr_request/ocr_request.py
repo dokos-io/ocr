@@ -106,8 +106,9 @@ class OCRRequest(Document, InvoiceEntityResolverMixin):
 
 		try:
 			return self.get_ocr_analysis()
-		except Exception:
+		except Exception as e:
 			self.log_error(_("eTransactions Analysis Error"))
+			return self.set_and_return_error(str(e))
 
 	def get_ocr_analysis(self) -> dict[str, Any] | None:
 		if self.analysis:
@@ -152,6 +153,10 @@ class OCRRequest(Document, InvoiceEntityResolverMixin):
 
 		signed_url = mistral.get_signed_url(self.job)
 		results = mistral.get_ocr_results(signed_url.url)
+
+		if not results:
+			return
+
 		self.analysis = frappe.as_json(results)
 
 		self.save()
@@ -226,11 +231,15 @@ class OCRRequest(Document, InvoiceEntityResolverMixin):
 
 	@frappe.whitelist()
 	def open_request(self) -> None:
+		self.job = None
+		self.error = None
 		self.status = "Pending"
+		self.db_set("job", None)
+		self.db_set("error", None)
 		self.set_status(True)
 
 	def get_raw_data(self) -> dict[str, Any]:
-		return frappe.parse_json(self.analysis or {})
+		return frappe.parse_json(self.analysis) or {}
 
 	def get_data_from_analysis(self) -> dict[str, Any]:
 		return self.get_parsed_data()

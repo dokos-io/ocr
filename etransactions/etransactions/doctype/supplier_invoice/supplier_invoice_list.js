@@ -111,7 +111,7 @@ class SupplierInvoiceDashboard {
 				filters: [["status", "in", ["Not Started", "In Progress"]]],
 			}),
 			frappe.db.count("OCR Request", {
-				filters: [["status", "in", ["Analysis Completed", "Error"]]],
+				filters: [["status", "in", ["Pending", "Error"]]],
 			}),
 		]);
 	}
