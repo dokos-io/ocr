@@ -380,7 +380,7 @@ class SupplierInvoice(Document):
 			query = query.where(purchase_order_dt.company == self.company)
 
 		open_orders = query.run(as_dict=True)
-		if not self.open_receipts and len(open_orders) == 1:
+		if not getattr(self, "open_receipts", []) and len(open_orders) == 1:
 			return open_orders
 
 		def find_purchase_order_correspondance(purchase_order, data):

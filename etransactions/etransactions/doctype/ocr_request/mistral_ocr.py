@@ -107,20 +107,17 @@ class MistralOCR:
 
 
 	def get_ocr_results(self, url):
-		try:
-			self.ocr_response = self.client.ocr.process(
-				model=self.model,
-				document={
-					"type": "document_url",
-					"document_url": url,
-				},
-				include_image_base64=True,
-				document_annotation_format=response_format_from_pydantic_model(Invoice)
-			)
+		self.ocr_response = self.client.ocr.process(
+			model=self.model,
+			document={
+				"type": "document_url",
+				"document_url": url,
+			},
+			include_image_base64=True,
+			document_annotation_format=response_format_from_pydantic_model(Invoice)
+		)
 
-			return self.process_response()
-		except Exception:
-			frappe.log_error("Mistral OCR Error")
+		return self.process_response()
 
 	def process_response(self):
 		if not self.ocr_response:
