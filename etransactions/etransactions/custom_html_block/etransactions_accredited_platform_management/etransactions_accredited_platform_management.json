@@ -1,7 +1,0 @@
-{
- "name": "eTransactions Accredited Platform Management",
- "doctype": "Custom HTML Block",
- "module": "eTransactions",
- "block_name": "etransactions_accredited_platform_management",
- "script": "(function () { var el = root_element.getElementById('etransactions-accredited-platform-management'); if (!el) return; el.innerHTML = '<div class=\"etransactions-platform-placeholder\">eTransactions Accredited Platform management interface will be loaded here.</div>'; })()"
-}
