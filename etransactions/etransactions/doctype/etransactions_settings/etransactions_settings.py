@@ -1,10 +1,11 @@
 # Copyright (c) 2023, Dokos SAS and contributors
 # For license information, please see license.txt
 
-# import frappe
 from erpnext.buying.doctype.buying_settings.buying_settings import BuyingSettings
 import frappe
+from frappe import _
 from frappe.model.document import Document
+
 
 class eTransactionsSettings(Document):
 	# begin: auto-generated types
@@ -21,6 +22,8 @@ class eTransactionsSettings(Document):
 		block_if_grand_total_exceeds_pending_pi: DF.Check
 		block_if_net_total_exceeds_pending_pi: DF.Check
 		block_submission_on_facturx_failure: DF.Check
+		default_purchases_platform: DF.Link | None
+		default_sales_platform: DF.Link | None
 		generate_facturx_on_submit: DF.Check
 		max_difference_amount: DF.Currency
 		max_difference_percentage_on_net_total: DF.Percent
@@ -38,3 +41,16 @@ class eTransactionsSettings(Document):
 
 			if self.max_difference_percentage_on_net_total:
 				frappe.db.set_single_value("Accounts Settings", "over_billing_allowance", self.max_difference_percentage_on_net_total + 0.01) # Hack to avoid rounding errors
+
+	@frappe.whitelist()
+	def test_connection(self, company: str):
+		"""Test the API connection for the given company's platform credentials."""
+		try:
+			from etransactions.plateforme_agreee.session import get_session
+			from pyfrctc import healthcheck
+		except ImportError:
+			frappe.throw(_("The pyfrctc library is not installed. Run 'pip install pyfrctc' or check your bench dependencies."))
+
+		session = get_session(company)
+		healthcheck(session)
+		frappe.msgprint(_("Connection to eTransactions Accredited Platform successful for {0}").format(company), alert=True, indicator="green")

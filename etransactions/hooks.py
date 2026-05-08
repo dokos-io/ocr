@@ -41,6 +41,7 @@ app_include_css = "etransactions.bundle.css"
 # include js in doctype views
 doctype_js = {
 	"Communication" : "public/js/communication.js",
+	"Customer": "public/js/customer.js",
 	"Purchase Invoice": "public/js/purchase_invoice.js",
 	"Purchase Order": "public/js/purchase_order.js",
 	"Sales Invoice": "public/js/sales_invoice.js",
@@ -193,6 +194,7 @@ doc_events = {
 		"on_close": "etransactions.etransactions.doctype.ocr_request.ocr_request.update_ocr_request_status",
 	},
 	"Sales Invoice": {
+		"on_validate": "etransactions.overrides.sales_invoice.on_validate",
 		"on_update": "etransactions.overrides.sales_invoice.on_update",
 		"on_submit": "etransactions.overrides.sales_invoice.on_submit",
 	}
@@ -206,7 +208,13 @@ scheduler_events = {
 	# 	"etransactions.tasks.all"
 	# ],
 	"hourly": [
-		"etransactions.etransactions.doctype.ocr_request.ocr_request.check_pending_analysis"
+		"etransactions.etransactions.doctype.ocr_request.ocr_request.check_pending_analysis",
+		"etransactions.plateforme_agreee.flow.poll_pending_outgoing_flows",
+		"etransactions.plateforme_agreee.flow.poll_incoming_flows",
+	],
+	"daily": [
+		"etransactions.plateforme_agreee.directory.sync_all_customers",
+		"etransactions.etransactions.doctype.einvoicing_log.einvoicing_log.vacuum_old_logs",
 	],
 	# "weekly": [
 	# 	"etransactions.tasks.weekly"
