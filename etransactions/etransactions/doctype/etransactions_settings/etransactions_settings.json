@@ -24,7 +24,12 @@
   "reconcile_with_purchase_receipts",
   "auto_submit_purchase_invoices",
   "max_difference_amount",
-  "max_difference_percentage_on_net_total"
+  "max_difference_percentage_on_net_total",
+  "accredited_platform_tab",
+  "default_sales_platform",
+  "default_purchases_platform",
+  "platform_management_section",
+  "platform_html"
  ],
  "fields": [
   {
@@ -146,13 +151,40 @@
    "fieldname": "auto_submit_purchase_invoices",
    "fieldtype": "Check",
    "label": "Auto submit purchase invoices after creation"
+  },
+  {
+   "fieldname": "accredited_platform_tab",
+   "fieldtype": "Tab Break",
+   "label": "eTransactions Accredited Platform"
+  },
+  {
+   "fieldname": "default_sales_platform",
+   "fieldtype": "Link",
+   "label": "Default Sales Accredited Platform",
+   "options": "eTransactions Accredited Platform"
+  },
+  {
+   "fieldname": "default_purchases_platform",
+   "fieldtype": "Link",
+   "label": "Default Purchases Accredited Platform",
+   "options": "eTransactions Accredited Platform"
+  },
+  {
+   "fieldname": "platform_management_section",
+   "fieldtype": "Section Break",
+   "label": "eTransactions Accredited Platform Management"
+  },
+  {
+   "fieldname": "platform_html",
+   "fieldtype": "HTML",
+   "label": "Manage Accredited Platforms"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-04-23 09:00:00.000000",
+ "modified": "2026-05-08 15:49:12.623054",
  "modified_by": "Administrator",
  "module": "eTransactions",
  "name": "eTransactions Settings",

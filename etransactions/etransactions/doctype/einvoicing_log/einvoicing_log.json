@@ -1,0 +1,91 @@
+{
+ "name": "eInvoicing Log",
+ "module": "eTransactions",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "autoname": "hash",
+ "naming_rule": "Random",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "field_order": [
+  "company",
+  "operation_type",
+  "origin",
+  "column_break_log_1",
+  "status",
+  "new_count",
+  "updated_count",
+  "logs_section",
+  "logs"
+ ],
+ "fields": [
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "operation_type",
+   "fieldtype": "Select",
+   "label": "Operation",
+   "options": "directory_all\ndirectory_single\nflow_send\nflow_status\nflow_receive",
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "origin",
+   "fieldtype": "Data",
+   "label": "Origin",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "column_break_log_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "success\nsuccess_warn\nfailure",
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "new_count",
+   "fieldtype": "Int",
+   "label": "New Records"
+  },
+  {
+   "fieldname": "updated_count",
+   "fieldtype": "Int",
+   "label": "Updated Records"
+  },
+  {
+   "fieldname": "logs_section",
+   "fieldtype": "Section Break",
+   "label": "Log Details"
+  },
+  {
+   "fieldname": "logs",
+   "fieldtype": "HTML Editor",
+   "label": "Logs",
+   "read_only": 1
+  }
+ ],
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1
+  }
+ ],
+ "creation": "2026-05-05 00:00:00.000000",
+ "modified": "2026-05-05 00:00:00.000000",
+ "modified_by": "Administrator",
+ "owner": "Administrator"
+}

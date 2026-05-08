@@ -94,7 +94,21 @@
   "payee_iban",
   "payee_bic",
   "xml_tab",
-  "einvoice_xml"
+  "einvoice_xml",
+  "pa_tab",
+  "pa_directory_line",
+  "pa_processing_rule",
+  "column_break_pa_1",
+  "pa_flow_id",
+  "pa_status",
+  "pa_section_2",
+  "pa_submitted_at",
+  "pa_updated_at",
+  "column_break_pa_2",
+  "pa_flow_type",
+  "pa_syntax",
+  "pa_error_section",
+  "pa_error_details"
  ],
  "fields": [
   {
@@ -633,6 +647,97 @@
    "label": "Payment Terms Template",
    "options": "Payment Terms Template",
    "read_only": 1
+  },
+  {
+   "fieldname": "pa_tab",
+   "fieldtype": "Tab Break",
+   "label": "Plateforme Agréée"
+  },
+  {
+   "fieldname": "pa_directory_line",
+   "fieldtype": "Link",
+   "label": "Directory Line",
+   "options": "eInvoicing Directory Line",
+   "depends_on": "eval:doc.einvoice_type==\"Outgoing\""
+  },
+  {
+   "default": "B2B",
+   "fieldname": "pa_processing_rule",
+   "fieldtype": "Select",
+   "label": "Processing Rule",
+   "options": "\nB2B\nB2G\nB2C\nOutOfScope",
+   "depends_on": "eval:doc.einvoice_type==\"Outgoing\""
+  },
+  {
+   "fieldname": "column_break_pa_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "pa_flow_id",
+   "fieldtype": "Data",
+   "label": "Flow ID (PA)",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "pa_status",
+   "fieldtype": "Select",
+   "label": "PA Status",
+   "options": "\ncreated\nsent\npending\ndone\nerror",
+   "read_only": 1,
+   "no_copy": 1,
+   "in_list_view": 0
+  },
+  {
+   "fieldname": "pa_section_2",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "pa_submitted_at",
+   "fieldtype": "Datetime",
+   "label": "Submitted At",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "pa_updated_at",
+   "fieldtype": "Datetime",
+   "label": "Last Updated At",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "column_break_pa_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "pa_flow_type",
+   "fieldtype": "Select",
+   "label": "Flow Type",
+   "options": "\nCustomerInvoice\nSupplierInvoice\nCustomerInvoiceLC\nSupplierInvoiceLC",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "pa_syntax",
+   "fieldtype": "Select",
+   "label": "Syntax",
+   "options": "\nFactur-X\nUBL\nCII",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "depends_on": "pa_error_details",
+   "fieldname": "pa_error_section",
+   "fieldtype": "Section Break",
+   "label": "Platform Errors"
+  },
+  {
+   "fieldname": "pa_error_details",
+   "fieldtype": "Text",
+   "label": "PA Error Details",
+   "read_only": 1,
+   "no_copy": 1
   }
  ],
  "in_create": 1,

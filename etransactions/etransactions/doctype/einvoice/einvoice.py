@@ -141,6 +141,140 @@ class eInvoice(Document):
 	def on_submit(self):
 		self.add_seller_product_ids_to_items()
 
+	def on_trash(self):
+		if self.pa_flow_id:
+			frappe.throw(
+				_("Cannot delete an eInvoice that has been submitted to the Plateforme Agréée (Flow ID: {0}).").format(self.pa_flow_id)
+			)
+
+	@frappe.whitelist()
+	def send_to_plateforme(self):
+		"""Submit this outgoing eInvoice to the Plateforme Agréée."""
+		if self.einvoice_type != "Outgoing":
+			frappe.throw(_("Only Outgoing eInvoices can be submitted to the Plateforme Agréée."))
+		if self.pa_flow_id:
+			frappe.throw(_("This eInvoice has already been submitted to the Plateforme Agréée (Flow ID: {0}).").format(self.pa_flow_id))
+
+		try:
+			from etransactions.plateforme_agreee.session import get_session
+			from pyfrctc import send_flow_parsed
+		except ImportError:
+			frappe.throw(_("The pyfrctc library is not installed."))
+
+		# Get customer from sales invoice for platform resolution
+		customer = None
+		if self.sales_invoice:
+			customer = frappe.db.get_value("Sales Invoice", self.sales_invoice, "customer")
+		
+		session = get_session(self.company, customer=customer)
+		file_content, filename, syntax = self._get_file_for_pa()
+		processing_rule = self.pa_processing_rule or "B2B"
+
+		res = send_flow_parsed(session, file_content, filename, syntax, processing_rule)
+
+		# Use db_set to avoid re-triggering validate() which regenerates the XML
+		self.db_set({
+			"pa_flow_id": res.get("flowId"),
+			"pa_submitted_at": res.get("submittedAt"),
+			"pa_updated_at": res.get("submittedAt"),
+			"pa_status": "sent",
+			"pa_syntax": syntax,
+			"pa_flow_type": "CustomerInvoice",
+		})
+
+	@frappe.whitelist()
+	def refresh_pa_status(self):
+		"""Poll the Plateforme Agréée for the latest flow state."""
+		if not self.pa_flow_id:
+			frappe.throw(_("This eInvoice has not been submitted to the Plateforme Agréée yet."))
+
+		try:
+			from etransactions.plateforme_agreee.session import get_session
+			from pyfrctc import get_flow_metadata_parsed
+		except ImportError:
+			frappe.throw(_("The pyfrctc library is not installed."))
+
+		# Get customer from sales invoice for platform resolution
+		customer = None
+		if self.sales_invoice:
+			customer = frappe.db.get_value("Sales Invoice", self.sales_invoice, "customer")
+		
+		session = get_session(self.company, customer=customer)
+		res = get_flow_metadata_parsed(session, self.pa_flow_id)
+
+		update = {}
+		for src_key, dest_key in (
+			("state", "pa_status"),
+			("ap_error_details", "pa_error_details"),
+			("updatedAt", "pa_updated_at"),
+		):
+			if res.get(src_key):
+				update[dest_key] = res[src_key]
+
+		if update:
+			self.db_set(update)
+
+	def _get_file_for_pa(self) -> tuple[bytes, str, str]:
+		"""Return (file_bytes, filename, syntax) for PA submission.
+
+		Prefers the already-attached FacturX PDF (einvoice_embedded_document).
+		Falls back to generating the PDF on the fly.
+		"""
+		if self.einvoice_embedded_document:
+			file_doc = frappe.get_doc("File", {"file_url": self.einvoice_embedded_document})
+			file_path = file_doc.get_full_path()
+			with open(file_path, "rb") as f:
+				file_content = f.read()
+			return file_content, file_doc.file_name or f"{self.sales_invoice}.pdf", "Factur-X"
+
+		# Generate FacturX PDF on the fly
+		from etransactions.utils.facturx_pdf import FacturXPDFGenerator
+		generator = FacturXPDFGenerator(self.sales_invoice)
+		url = generator.attach_to_invoice()
+		# Re-read the file that was just attached
+		file_doc = frappe.get_last_doc("File", filters={"attached_to_doctype": "Sales Invoice", "attached_to_name": self.sales_invoice})
+		file_path = file_doc.get_full_path()
+		with open(file_path, "rb") as f:
+			file_content = f.read()
+		return file_content, file_doc.file_name or f"{self.sales_invoice}.pdf", "Factur-X"
+
+	@classmethod
+	def create_from_plateforme_flow(cls, flow_data: dict, file_content: bytes, company: str) -> "eInvoice":
+		"""Create an Incoming eInvoice from a flow received from the Plateforme Agréée.
+
+		The existing on_update() hook automatically creates the Supplier Invoice.
+		"""
+		doc = frappe.new_doc("eInvoice")
+		doc.einvoice_type = "Incoming"
+		doc.company = company
+		doc.pa_flow_id = flow_data.get("flowId")
+		doc.pa_status = "done"
+		doc.pa_submitted_at = flow_data.get("submittedAt")
+		doc.pa_updated_at = flow_data.get("updatedAt") or flow_data.get("submittedAt")
+		doc.pa_flow_type = flow_data.get("flowType")
+		doc.pa_syntax = flow_data.get("flowSyntax")
+		doc.flags.ignore_permissions = True
+		doc.insert()
+
+		# Attach the invoice file
+		if file_content:
+			filename = f"{doc.pa_flow_id}.pdf"
+			file_doc = frappe.get_doc({
+				"doctype": "File",
+				"file_name": filename,
+				"attached_to_doctype": "eInvoice",
+				"attached_to_name": doc.name,
+				"attached_to_field": "einvoice_embedded_document",
+				"content": file_content,
+				"is_private": 1,
+			})
+			file_doc.flags.ignore_permissions = True
+			file_doc.insert()
+			doc.db_set("einvoice_embedded_document", file_doc.file_url)
+			doc.db_set("einvoice", file_doc.name)
+
+		return doc
+
 	def onload(self):
 		if self.docstatus == 0:
 			return

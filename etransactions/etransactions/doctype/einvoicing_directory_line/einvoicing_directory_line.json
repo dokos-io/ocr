@@ -1,0 +1,132 @@
+{
+ "name": "eInvoicing Directory Line",
+ "module": "eTransactions",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "autoname": "hash",
+ "naming_rule": "Random",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "field_order": [
+  "customer",
+  "identifier",
+  "column_break_dl_1",
+  "line_type",
+  "line_status",
+  "details_section",
+  "siren",
+  "siret",
+  "column_break_dl_2",
+  "routing_code",
+  "routing_code_name",
+  "column_break_dl_3",
+  "commitment_required"
+ ],
+ "fields": [
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "label": "Customer",
+   "options": "Customer",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "identifier",
+   "fieldtype": "Data",
+   "label": "Identifier",
+   "reqd": 1,
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "column_break_dl_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "line_type",
+   "fieldtype": "Select",
+   "label": "Type",
+   "options": "siren\nsiret\nrouting_code\nsuffix",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "line_status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "upcoming\nactive\ndisabled\ninactive",
+   "read_only": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "details_section",
+   "fieldtype": "Section Break",
+   "label": "Details"
+  },
+  {
+   "fieldname": "siren",
+   "fieldtype": "Data",
+   "label": "SIREN",
+   "read_only": 1
+  },
+  {
+   "fieldname": "siret",
+   "fieldtype": "Data",
+   "label": "SIRET",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_dl_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "routing_code",
+   "fieldtype": "Data",
+   "label": "Routing Code",
+   "read_only": 1
+  },
+  {
+   "fieldname": "routing_code_name",
+   "fieldtype": "Data",
+   "label": "Routing Code Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_dl_3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "commitment_required",
+   "fieldtype": "Check",
+   "label": "Commitment Required",
+   "read_only": 1
+  }
+ ],
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1
+  },
+  {
+   "role": "Sales Manager",
+   "read": 1,
+   "select": 1
+  },
+  {
+   "role": "Accounts Manager",
+   "read": 1,
+   "select": 1
+  }
+ ],
+ "creation": "2026-05-05 00:00:00.000000",
+ "modified": "2026-05-05 00:00:00.000000",
+ "modified_by": "Administrator",
+ "owner": "Administrator"
+}

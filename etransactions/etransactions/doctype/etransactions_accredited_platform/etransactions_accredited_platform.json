@@ -1,0 +1,141 @@
+{
+ "name": "eTransactions Accredited Platform",
+ "module": "eTransactions",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "is_submittable": 0,
+ "allow_rename": 1,
+ "autoname": "hash",
+ "field_order": [
+  "platform_name",
+  "platform_type",
+  "platform_code",
+  "company",
+  "transaction_type",
+  "is_active",
+  "api_base_url",
+  "description",
+  "column_break_1",
+  "auto_send_on_submit",
+  "directory_refresh_days",
+  "credentials_section",
+  "client_id",
+  "client_secret"
+ ],
+ "fields": [
+  {
+   "fieldname": "platform_name",
+   "fieldtype": "Data",
+   "label": "Platform Name",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "default": "Custom",
+   "fieldname": "platform_type",
+   "fieldtype": "Select",
+   "label": "Platform Type",
+   "options": "Custom\nSuperPDP\nEsalink",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "platform_code",
+   "fieldtype": "Data",
+   "label": "Platform Code",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "default": "Both",
+   "fieldname": "transaction_type",
+   "fieldtype": "Select",
+   "label": "Transaction Type",
+   "options": "Both\nSales\nPurchases",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "default": "1",
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "label": "Active"
+  },
+  {
+   "fieldname": "api_base_url",
+   "fieldtype": "Data",
+   "label": "API Base URL",
+   "options": "URL"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Text",
+   "label": "Description"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "auto_send_on_submit",
+   "fieldtype": "Check",
+   "label": "Send to Platform on Sales Invoice Submit"
+  },
+  {
+   "default": "15",
+   "fieldname": "directory_refresh_days",
+   "fieldtype": "Int",
+   "label": "Directory Refresh (days)"
+  },
+  {
+   "fieldname": "credentials_section",
+   "fieldtype": "Section Break",
+   "label": "Credentials"
+  },
+  {
+   "fieldname": "client_id",
+   "fieldtype": "Password",
+   "label": "Client ID",
+   "reqd": 1
+  },
+  {
+   "fieldname": "client_secret",
+   "fieldtype": "Password",
+   "label": "Client Secret",
+   "reqd": 1
+  }
+ ],
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "Desk User",
+   "select": 1
+  }
+ ],
+ "sort_field": "platform_name",
+ "sort_order": "ASC"
+}
