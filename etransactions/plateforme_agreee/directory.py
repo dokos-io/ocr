@@ -1,16 +1,15 @@
 import frappe
 from frappe import _
 
-from etransactions.plateforme_agreee.session import get_session
+from etransactions.plateforme_agreee.session import get_client
 from etransactions.etransactions.doctype.einvoicing_log.einvoicing_log import eInvoicingLog
 
 
 @frappe.whitelist()
 def sync_customer_directory(customer: str):
 	"""Sync eTransactions Accredited Platform directory lines for a customer. Called from the Customer form."""
-	company = frappe.db.get_value("Customer", customer, "default_company") \
-		or frappe.defaults.get_global_default("company")
-	session = get_session(company, customer=customer)
+	company = frappe.defaults.get_global_default("company") # TODO: Ask for a specific company
+	client = get_client(company, customer=customer)
 
 	result = {
 		"operation_type": "directory_single",
@@ -21,7 +20,7 @@ def sync_customer_directory(customer: str):
 		"logs": [],
 	}
 
-	_sync_customer_directory(customer, session, result)
+	_sync_customer_directory(customer, client, result)
 	eInvoicingLog.create_log(result)
 
 	frappe.msgprint(
@@ -33,7 +32,6 @@ def sync_customer_directory(customer: str):
 
 def sync_all_customers():
 	"""Cron entry point: sync stale directory lines for all customers across all configured companies."""
-	# Get all companies that have an active eTransactions Accredited Platform
 	companies = frappe.db.get_all(
 		"eTransactions Accredited Platform",
 		fields=["company", "directory_refresh_days"],
@@ -55,7 +53,7 @@ def sync_all_customers():
 		}
 
 		try:
-			session = get_session(company)
+			client = get_client(company)
 		except Exception as e:
 			result["logs"].append(("error", str(e)))
 			eInvoicingLog.create_log(result)
@@ -76,48 +74,42 @@ def sync_all_customers():
 
 		for customer_name in stale_customers:
 			try:
-				_sync_customer_directory(customer_name, session, result)
+				_sync_customer_directory(customer_name, client, result)
 			except Exception as e:
 				result["logs"].append(("warning", f"Failed to sync customer {customer_name}: {str(e)}"))
 
 		eInvoicingLog.create_log(result)
 
 
-def _sync_customer_directory(customer_name: str, session, result: dict):
+def _sync_customer_directory(customer_name: str, client, result: dict):
 	"""Query the PA directory for a customer and create/update/archive its directory lines."""
-	try:
-		from pyfrctc import get_directory_siren_parsed, get_directory_lines_parsed
-	except ImportError:
-		frappe.throw(_("The pyfrctc library is not installed."))
-
 	siren = frappe.db.get_value("Customer", customer_name, "tax_id")
 	if not siren:
 		result["logs"].append(("warning", f"Customer {customer_name} has no tax_id (SIREN). Skipping."))
 		return
 
-	siren_parsed = get_directory_siren_parsed(session, siren)
-	entity_type = siren_parsed.get("entity_type", "no")
+	directory_data = client.get_directory_for_siren(siren)
 
 	frappe.db.set_value("Customer", customer_name, {
-		"directory_entity_type": entity_type,
-		"directory_name": siren_parsed.get("name") or "",
-		"directory_closed": 1 if siren_parsed.get("closed") else 0,
+		"directory_entity_type": directory_data.entity_type,
+		"directory_name": directory_data.name or "",
+		"directory_closed": 1 if directory_data.closed else 0,
 		"directory_update_date": frappe.utils.nowdate(),
 		"directory_siren": siren,
 	})
 
-	if entity_type == "no" or siren_parsed.get("closed"):
-		# Disable all existing active lines
+	if directory_data.entity_type == "no" or directory_data.closed:
 		frappe.db.set_value(
 			"eInvoicing Directory Line",
 			{"customer": customer_name, "line_status": ["!=", "disabled"]},
 			"line_status",
 			"disabled",
 		)
-		result["logs"].append(("info", f"Customer {customer_name} is not in directory or closed. Lines disabled."))
+		result["logs"].append((
+			"info",
+			f"Customer {customer_name} is not in directory or closed. Lines disabled.",
+		))
 		return
-
-	api_lines = get_directory_lines_parsed(session, siren, siren_parsed)
 
 	existing = frappe.get_all(
 		"eInvoicing Directory Line",
@@ -125,16 +117,22 @@ def _sync_customer_directory(customer_name: str, session, result: dict):
 		fields=["name", "identifier", "line_status", "routing_code_name", "commitment_required"],
 	)
 	existing_by_id = {row.identifier: row for row in existing}
-	seen_identifiers = set()
+	seen_identifiers: set = set()
 
-	for identifier, line_vals in api_lines.items():
+	for identifier, line_data in directory_data.lines.items():
 		seen_identifiers.add(identifier)
+		line_vals = {
+			"line_status": line_data.line_status,
+			"routing_code_name": line_data.routing_code_name,
+			"commitment_required": line_data.commitment_required,
+		}
 		if identifier in existing_by_id:
 			existing_row = existing_by_id[identifier]
-			update = {}
-			for field in ("line_status", "routing_code_name", "commitment_required"):
-				if line_vals.get(field) != existing_row.get(field):
-					update[field] = line_vals.get(field)
+			update = {
+				field: line_vals[field]
+				for field in ("line_status", "routing_code_name", "commitment_required")
+				if line_vals.get(field) != existing_row.get(field)
+			}
 			if update:
 				frappe.db.set_value("eInvoicing Directory Line", existing_row.name, update)
 				result["updated_count"] += 1
@@ -147,7 +145,6 @@ def _sync_customer_directory(customer_name: str, session, result: dict):
 			}).insert(ignore_permissions=True)
 			result["new_count"] += 1
 
-	# Archive lines no longer returned by the API
 	for identifier, existing_row in existing_by_id.items():
 		if identifier not in seen_identifiers and existing_row.line_status != "disabled":
 			frappe.db.set_value("eInvoicing Directory Line", existing_row.name, "line_status", "disabled")

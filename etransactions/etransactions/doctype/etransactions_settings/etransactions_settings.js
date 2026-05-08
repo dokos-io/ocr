@@ -217,6 +217,11 @@ function _open_platform_dialog(frm, existing_name = null, preset_type = null) {
 			},
 			{ fieldtype: "Section Break", label: __("Credentials") },
 			{
+				fieldtype: "HTML",
+				fieldname: "redirect_url_html",
+				hidden: 1,
+			},
+			{
 				fieldtype: "Password",
 				fieldname: "client_id",
 				label: __("Client ID"),
@@ -268,6 +273,27 @@ function _open_platform_dialog(frm, existing_name = null, preset_type = null) {
 		},
 	});
 
+	function _toggle_redirect_url(type) {
+		const is_superpdp = type === "SuperPDP";
+		dialog.set_df_property("redirect_url_html", "hidden", !is_superpdp);
+		if (!is_superpdp) return;
+
+		const redirect_url = `${window.location.origin}/api/method/etransactions.plateforme_agreee.session.oauth_callback`;
+		dialog.fields_dict.redirect_url_html.$wrapper.html(`
+			<div class="form-group" style="margin-bottom: 8px;">
+				<label class="control-label text-muted small">${__("Redirect URL — copy into the SuperPDP application registration form")}</label>
+				<div class="input-group">
+					<input type="text" class="form-control" readonly value="${redirect_url}" style="font-size: 12px;">
+					<span class="input-group-btn">
+						<button class="btn btn-default btn-sm" onclick="
+							navigator.clipboard.writeText('${redirect_url}');
+							frappe.show_alert({message: __('Copied!'), indicator: 'green'});
+						">${__("Copy")}</button>
+					</span>
+				</div>
+			</div>`);
+	}
+
 	// Auto-fill platform_name suggestion and lock platform_code for pre-defined types
 	dialog.fields_dict.platform_type.df.onchange = function () {
 		const type = dialog.get_value("platform_type");
@@ -287,6 +313,7 @@ function _open_platform_dialog(frm, existing_name = null, preset_type = null) {
 		} else {
 			dialog.set_df_property("platform_code", "read_only", 0);
 		}
+		_toggle_redirect_url(type);
 	};
 
 	if (is_edit) {
@@ -295,7 +322,10 @@ function _open_platform_dialog(frm, existing_name = null, preset_type = null) {
 			callback(r) {
 				if (r.message) {
 					const p = r.message.find((x) => x.name === existing_name);
-					if (p) dialog.set_values(p);
+					if (p) {
+						dialog.set_values(p);
+						_toggle_redirect_url(p.platform_type);
+					}
 				}
 			},
 		});
@@ -303,6 +333,7 @@ function _open_platform_dialog(frm, existing_name = null, preset_type = null) {
 		dialog.set_value("platform_type", preset_type);
 		if (preset_type === "SuperPDP") dialog.set_value("platform_code", "superpdp");
 		else if (preset_type === "Esalink") dialog.set_value("platform_code", "esalink");
+		_toggle_redirect_url(preset_type);
 	}
 
 	dialog.show();

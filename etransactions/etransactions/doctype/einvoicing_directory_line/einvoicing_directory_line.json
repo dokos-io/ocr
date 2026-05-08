@@ -1,12 +1,9 @@
 {
- "name": "eInvoicing Directory Line",
- "module": "eTransactions",
+ "actions": [],
+ "autoname": "hash",
+ "creation": "2026-05-05 00:00:00",
  "doctype": "DocType",
  "engine": "InnoDB",
- "autoname": "hash",
- "naming_rule": "Random",
- "sort_field": "creation",
- "sort_order": "DESC",
  "field_order": [
   "customer",
   "identifier",
@@ -26,20 +23,19 @@
   {
    "fieldname": "customer",
    "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
    "label": "Customer",
    "options": "Customer",
    "reqd": 1,
-   "in_list_view": 1,
-   "in_standard_filter": 1,
    "search_index": 1
   },
   {
    "fieldname": "identifier",
    "fieldtype": "Data",
+   "in_list_view": 1,
    "label": "Identifier",
-   "reqd": 1,
-   "read_only": 1,
-   "in_list_view": 1
+   "reqd": 1
   },
   {
    "fieldname": "column_break_dl_1",
@@ -48,19 +44,19 @@
   {
    "fieldname": "line_type",
    "fieldtype": "Select",
+   "in_list_view": 1,
    "label": "Type",
    "options": "siren\nsiret\nrouting_code\nsuffix",
-   "read_only": 1,
-   "in_list_view": 1
+   "read_only": 1
   },
   {
    "fieldname": "line_status",
    "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
    "label": "Status",
    "options": "upcoming\nactive\ndisabled\ninactive",
-   "read_only": 1,
-   "in_list_view": 1,
-   "in_standard_filter": 1
+   "read_only": 1
   },
   {
    "fieldname": "details_section",
@@ -100,33 +96,41 @@
    "fieldtype": "Column Break"
   },
   {
+   "default": "0",
    "fieldname": "commitment_required",
    "fieldtype": "Check",
    "label": "Commitment Required",
    "read_only": 1
   }
  ],
+ "links": [],
+ "modified": "2026-05-08 17:37:00.206201",
+ "modified_by": "Administrator",
+ "module": "eTransactions",
+ "name": "eInvoicing Directory Line",
+ "naming_rule": "Random",
+ "owner": "Administrator",
  "permissions": [
   {
-   "role": "System Manager",
-   "read": 1,
-   "write": 1,
    "create": 1,
-   "delete": 1
+   "delete": 1,
+   "read": 1,
+   "role": "System Manager",
+   "write": 1
   },
   {
-   "role": "Sales Manager",
    "read": 1,
+   "role": "Sales Manager",
    "select": 1
   },
   {
-   "role": "Accounts Manager",
    "read": 1,
+   "role": "Accounts Manager",
    "select": 1
   }
  ],
- "creation": "2026-05-05 00:00:00.000000",
- "modified": "2026-05-05 00:00:00.000000",
- "modified_by": "Administrator",
- "owner": "Administrator"
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
 }

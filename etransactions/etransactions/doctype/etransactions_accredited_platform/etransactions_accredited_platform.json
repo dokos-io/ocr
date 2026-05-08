@@ -1,11 +1,10 @@
 {
- "name": "eTransactions Accredited Platform",
- "module": "eTransactions",
- "doctype": "DocType",
- "engine": "InnoDB",
- "is_submittable": 0,
+ "actions": [],
  "allow_rename": 1,
  "autoname": "hash",
+ "creation": "2026-05-08 17:15:04.665998",
+ "doctype": "DocType",
+ "engine": "InnoDB",
  "field_order": [
   "platform_name",
   "platform_type",
@@ -19,6 +18,7 @@
   "auto_send_on_submit",
   "directory_refresh_days",
   "credentials_section",
+  "redirect_url_html",
   "client_id",
   "client_secret"
  ],
@@ -26,47 +26,47 @@
   {
    "fieldname": "platform_name",
    "fieldtype": "Data",
-   "label": "Platform Name",
-   "reqd": 1,
    "in_list_view": 1,
-   "in_standard_filter": 1
+   "in_standard_filter": 1,
+   "label": "Platform Name",
+   "reqd": 1
   },
   {
    "default": "Custom",
    "fieldname": "platform_type",
    "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
    "label": "Platform Type",
    "options": "Custom\nSuperPDP\nEsalink",
-   "reqd": 1,
-   "in_list_view": 1,
-   "in_standard_filter": 1
+   "reqd": 1
   },
   {
    "fieldname": "platform_code",
    "fieldtype": "Data",
-   "label": "Platform Code",
-   "reqd": 1,
    "in_list_view": 1,
-   "in_standard_filter": 1
+   "in_standard_filter": 1,
+   "label": "Platform Code",
+   "reqd": 1
   },
   {
    "fieldname": "company",
    "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
    "label": "Company",
    "options": "Company",
-   "reqd": 1,
-   "in_list_view": 1,
-   "in_standard_filter": 1
+   "reqd": 1
   },
   {
    "default": "Both",
    "fieldname": "transaction_type",
    "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
    "label": "Transaction Type",
    "options": "Both\nSales\nPurchases",
-   "reqd": 1,
-   "in_list_view": 1,
-   "in_standard_filter": 1
+   "reqd": 1
   },
   {
    "default": "1",
@@ -107,6 +107,11 @@
    "label": "Credentials"
   },
   {
+   "fieldname": "redirect_url_html",
+   "fieldtype": "HTML",
+   "label": "Redirect URL"
+  },
+  {
    "fieldname": "client_id",
    "fieldtype": "Password",
    "label": "Client ID",
@@ -119,6 +124,12 @@
    "reqd": 1
   }
  ],
+ "links": [],
+ "modified": "2026-05-08 17:17:37.937491",
+ "modified_by": "Administrator",
+ "module": "eTransactions",
+ "name": "eTransactions Accredited Platform",
+ "owner": "Administrator",
  "permissions": [
   {
    "create": 1,
@@ -136,6 +147,10 @@
    "select": 1
   }
  ],
+ "row_format": "Dynamic",
+ "show_title_field_in_link": 1,
  "sort_field": "platform_name",
- "sort_order": "ASC"
+ "sort_order": "ASC",
+ "states": [],
+ "title_field": "platform_name"
 }
