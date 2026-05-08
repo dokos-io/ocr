@@ -19,8 +19,8 @@ class eTransactionsAccreditedPlatform(Document):
 
 		api_base_url: DF.Data | None
 		auto_send_on_submit: DF.Check
-		client_id: DF.Password | None
-		client_secret: DF.Password | None
+		client_id: DF.Password
+		client_secret: DF.Password
 		company: DF.Link
 		description: DF.Text | None
 		directory_refresh_days: DF.Int

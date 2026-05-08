@@ -155,31 +155,32 @@ class eInvoice(Document):
 		if self.pa_flow_id:
 			frappe.throw(_("This eInvoice has already been submitted to the Plateforme Agréée (Flow ID: {0}).").format(self.pa_flow_id))
 
-		try:
-			from etransactions.plateforme_agreee.session import get_session
-			from pyfrctc import send_flow_parsed
-		except ImportError:
-			frappe.throw(_("The pyfrctc library is not installed."))
+		from etransactions.plateforme_agreee.session import get_client
 
-		# Get customer from sales invoice for platform resolution
 		customer = None
 		if self.sales_invoice:
 			customer = frappe.db.get_value("Sales Invoice", self.sales_invoice, "customer")
-		
-		session = get_session(self.company, customer=customer)
+
+		client = get_client(self.company, customer=customer)
 		file_content, filename, syntax = self._get_file_for_pa()
 		processing_rule = self.pa_processing_rule or "B2B"
 
-		res = send_flow_parsed(session, file_content, filename, syntax, processing_rule)
+		result = client.submit_invoice(
+			file_content,
+			filename,
+			syntax,
+			external_id=self.sales_invoice,
+			processing_rule=processing_rule,
+		)
 
 		# Use db_set to avoid re-triggering validate() which regenerates the XML
 		self.db_set({
-			"pa_flow_id": res.get("flowId"),
-			"pa_submitted_at": res.get("submittedAt"),
-			"pa_updated_at": res.get("submittedAt"),
+			"pa_flow_id": result.flow_id,
+			"pa_submitted_at": result.submitted_at,
+			"pa_updated_at": result.submitted_at,
 			"pa_status": "sent",
-			"pa_syntax": syntax,
-			"pa_flow_type": "CustomerInvoice",
+			"pa_syntax": result.syntax,
+			"pa_flow_type": result.flow_type,
 		})
 
 	@frappe.whitelist()
@@ -188,28 +189,22 @@ class eInvoice(Document):
 		if not self.pa_flow_id:
 			frappe.throw(_("This eInvoice has not been submitted to the Plateforme Agréée yet."))
 
-		try:
-			from etransactions.plateforme_agreee.session import get_session
-			from pyfrctc import get_flow_metadata_parsed
-		except ImportError:
-			frappe.throw(_("The pyfrctc library is not installed."))
+		from etransactions.plateforme_agreee.session import get_client
 
-		# Get customer from sales invoice for platform resolution
 		customer = None
 		if self.sales_invoice:
 			customer = frappe.db.get_value("Sales Invoice", self.sales_invoice, "customer")
-		
-		session = get_session(self.company, customer=customer)
-		res = get_flow_metadata_parsed(session, self.pa_flow_id)
+
+		client = get_client(self.company, customer=customer)
+		status = client.get_invoice_status(self.pa_flow_id)
 
 		update = {}
-		for src_key, dest_key in (
-			("state", "pa_status"),
-			("ap_error_details", "pa_error_details"),
-			("updatedAt", "pa_updated_at"),
-		):
-			if res.get(src_key):
-				update[dest_key] = res[src_key]
+		if status.status:
+			update["pa_status"] = status.status
+		if status.updated_at:
+			update["pa_updated_at"] = status.updated_at
+		if status.error_details:
+			update["pa_error_details"] = status.error_details
 
 		if update:
 			self.db_set(update)
@@ -239,26 +234,27 @@ class eInvoice(Document):
 		return file_content, file_doc.file_name or f"{self.sales_invoice}.pdf", "Factur-X"
 
 	@classmethod
-	def create_from_plateforme_flow(cls, flow_data: dict, file_content: bytes, company: str) -> "eInvoice":
+	def create_from_plateforme_flow(cls, flow, file_content: bytes, company: str) -> "eInvoice":
 		"""Create an Incoming eInvoice from a flow received from the Plateforme Agréée.
 
-		The existing on_update() hook automatically creates the Supplier Invoice.
+		``flow`` is an IncomingFlow dataclass (etransactions.components.superpdp.models).
+		The on_update() hook automatically creates the Supplier Invoice.
 		"""
 		doc = frappe.new_doc("eInvoice")
 		doc.einvoice_type = "Incoming"
 		doc.company = company
-		doc.pa_flow_id = flow_data.get("flowId")
+		doc.pa_flow_id = flow.flow_id
 		doc.pa_status = "done"
-		doc.pa_submitted_at = flow_data.get("submittedAt")
-		doc.pa_updated_at = flow_data.get("updatedAt") or flow_data.get("submittedAt")
-		doc.pa_flow_type = flow_data.get("flowType")
-		doc.pa_syntax = flow_data.get("flowSyntax")
+		doc.pa_submitted_at = flow.submitted_at
+		doc.pa_updated_at = flow.updated_at or flow.submitted_at
+		doc.pa_flow_type = flow.flow_type
+		doc.pa_syntax = flow.syntax
 		doc.flags.ignore_permissions = True
 		doc.insert()
 
-		# Attach the invoice file
 		if file_content:
-			filename = f"{doc.pa_flow_id}.pdf"
+			ext = "pdf" if (flow.syntax or "") == "Factur-X" else "xml"
+			filename = f"{doc.pa_flow_id}.{ext}"
 			file_doc = frappe.get_doc({
 				"doctype": "File",
 				"file_name": filename,

@@ -1,19 +1,18 @@
 import frappe
 from frappe import _
 
-from etransactions.plateforme_agreee.session import get_session
+from etransactions.plateforme_agreee.session import get_client
 from etransactions.etransactions.doctype.einvoicing_log.einvoicing_log import eInvoicingLog
 
 
 def send_einvoice_to_plateforme(einvoice_name: str):
 	"""Send an outgoing eInvoice to the Plateforme Agréée. Called from sales_invoice.on_submit()."""
 	einvoice = frappe.get_doc("eInvoice", einvoice_name)
-	company = einvoice.company
 
 	result = {
 		"operation_type": "flow_send",
 		"origin": "Submit",
-		"company": company,
+		"company": einvoice.company,
 		"new_count": 0,
 		"updated_count": 0,
 		"logs": [],
@@ -40,20 +39,20 @@ def poll_pending_outgoing_flows():
 			"pa_flow_id": ["is", "set"],
 			"pa_status": ["in", ["sent", "pending"]],
 		},
-		fields=["name", "company"],
+		fields=["name", "company", "sales_invoice"],
 	)
 
-	sessions = {}
+	clients: dict = {}
 	for row in pending:
 		company = row.company
-		if company not in sessions:
+		if company not in clients:
 			try:
-				sessions[company] = get_session(company)
+				clients[company] = get_client(company)
 			except Exception:
-				sessions[company] = None
+				clients[company] = None
 
-		session = sessions.get(company)
-		if not session:
+		client = clients.get(company)
+		if not client:
 			continue
 
 		result = {
@@ -78,12 +77,6 @@ def poll_pending_outgoing_flows():
 
 def poll_incoming_flows():
 	"""Cron: fetch new incoming flows from the PA and create eInvoice records for each."""
-	try:
-		from pyfrctc import search_flows, get_flow
-	except ImportError:
-		frappe.log_error("pyfrctc is not installed", "PA Incoming Flow Poll")
-		return
-
 	active_platforms = frappe.get_all(
 		"eTransactions Accredited Platform",
 		filters={"is_active": 1, "transaction_type": ["in", ["Purchases", "Both"]]},
@@ -104,42 +97,40 @@ def poll_incoming_flows():
 		}
 
 		try:
-			session = get_session(company)
+			client = get_client(company, transaction_type="purchases")
 		except Exception as e:
 			result["logs"].append(("error", str(e)))
 			eInvoicingLog.create_log(result)
 			continue
 
 		try:
-			flows = search_flows(session, direction="In")
+			incoming_flows = client.list_incoming_invoices()
 		except Exception as e:
-			result["logs"].append(("error", f"Failed to search incoming flows: {str(e)}"))
+			result["logs"].append(("error", f"Failed to list incoming invoices: {str(e)}"))
 			eInvoicingLog.create_log(result)
 			continue
 
-		# Find flow IDs we already have
 		known_flow_ids = set(
 			frappe.get_all("eInvoice", filters={"pa_flow_id": ["is", "set"]}, pluck="pa_flow_id")
 		)
 
-		for flow_data in flows:
-			flow_id = flow_data.get("flowId")
-			if not flow_id or flow_id in known_flow_ids:
+		for flow in incoming_flows:
+			if not flow.flow_id or flow.flow_id in known_flow_ids:
 				continue
 
 			try:
-				file_content = get_flow(session, flow_id, doc_type="Original")
+				file_content = client.download_flow(flow.flow_id)
 			except Exception as e:
-				result["logs"].append(("warning", f"Could not download flow {flow_id}: {str(e)}"))
+				result["logs"].append(("warning", f"Could not download flow {flow.flow_id}: {str(e)}"))
 				continue
 
 			try:
 				from etransactions.etransactions.doctype.einvoice.einvoice import eInvoice
-				eInvoice.create_from_plateforme_flow(flow_data, file_content, company)
+				eInvoice.create_from_plateforme_flow(flow, file_content, company)
 				result["new_count"] += 1
-				known_flow_ids.add(flow_id)
-				result["logs"].append(("info", f"Created eInvoice from incoming flow {flow_id}"))
+				known_flow_ids.add(flow.flow_id)
+				result["logs"].append(("info", f"Created eInvoice from incoming flow {flow.flow_id}"))
 			except Exception as e:
-				result["logs"].append(("error", f"Failed to create eInvoice from flow {flow_id}: {str(e)}"))
+				result["logs"].append(("error", f"Failed to create eInvoice from flow {flow.flow_id}: {str(e)}"))
 
 		eInvoicingLog.create_log(result)
