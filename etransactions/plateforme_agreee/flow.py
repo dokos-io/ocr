@@ -6,7 +6,7 @@ from etransactions.etransactions.doctype.einvoicing_log.einvoicing_log import eI
 
 
 def send_einvoice_to_plateforme(einvoice_name: str):
-	"""Send an outgoing eInvoice to the Plateforme Agréée. Called from sales_invoice.on_submit()."""
+	"""Send an outgoing eInvoice to the accredited platform. Called from sales_invoice.on_submit()."""
 	einvoice = frappe.get_doc("eInvoice", einvoice_name)
 
 	result = {
@@ -19,7 +19,7 @@ def send_einvoice_to_plateforme(einvoice_name: str):
 	}
 
 	try:
-		einvoice.send_to_plateforme()
+		einvoice.send_to_plateform()
 		result["new_count"] = 1
 		result["logs"].append(("info", f"eInvoice {einvoice_name} submitted. Flow ID: {einvoice.pa_flow_id}"))
 	except Exception as e:

@@ -450,21 +450,28 @@ class EInvoiceGenerator:
 				break
 
 	def _set_seller_tax_id(self):
-		if not self.einvoice.seller_tax_id:
-			return
+		is_vat_added = False
 
-		try:
-			seller_tax_id = validate_vat_id(self.einvoice.seller_tax_id.strip())
-			seller_vat_scheme = "VA"
-		except ValueError:
-			seller_tax_id = self.einvoice.seller_tax_id.strip()
-			seller_vat_scheme = "FC"
+		if self.einvoice.seller_tax_id:
+			raw = self.einvoice.seller_tax_id.strip()
+			try:
+				seller_tax_id = validate_vat_id(raw)
+				self.doc.trade.agreement.seller.tax_registrations.add(
+					TaxRegistration(id=("VA", seller_tax_id))
+				)
+				is_vat_added = True
+			except ValueError:
+				self.doc.trade.agreement.seller.tax_registrations.add(
+					TaxRegistration(id=("FC", raw))
+				)
 
-		self.doc.trade.agreement.seller.tax_registrations.add(
-			TaxRegistration(
-				id=(seller_vat_scheme, seller_tax_id),
+		# Add SIREN as BT-32 (FC) when: the primary ID is a VAT number (so SIREN is separate),
+		# or when there is no Tax ID at all but a SIREN is known (satisfies BR-CO-26).
+		seller_siren = self.company.get("siren_number")
+		if seller_siren and (is_vat_added or not self.einvoice.seller_tax_id):
+			self.doc.trade.agreement.seller.tax_registrations.add(
+				TaxRegistration(id=("FC", seller_siren.strip()))
 			)
-		)
 
 	def _set_seller_address(self):
 		if not self.einvoice.seller_address_line_1:
@@ -474,9 +481,9 @@ class EInvoiceGenerator:
 		self.doc.trade.agreement.seller.address.line_two = self.einvoice.seller_address_line_2
 		self.doc.trade.agreement.seller.address.postcode = self.einvoice.seller_postcode
 		self.doc.trade.agreement.seller.address.city_name = self.einvoice.seller_city
-		self.doc.trade.agreement.seller.address.country_id = frappe.db.get_value(
-			"Country", self.einvoice.seller_country, "code"
-		).upper()
+		seller_country_code = frappe.db.get_value("Country", self.einvoice.seller_country, "code")
+		if seller_country_code:
+			self.doc.trade.agreement.seller.address.country_id = seller_country_code.upper()
 
 	def _set_seller_electronic_address(self):
 		if self.einvoice.seller_electronic_address_scheme and self.einvoice.seller_electronic_address:
@@ -525,21 +532,28 @@ class EInvoiceGenerator:
 			)
 
 	def _set_buyer_tax_id(self):
-		if not self.einvoice.buyer_tax_id:
-			return
+		is_vat_added = False
 
-		try:
-			customer_tax_id = validate_vat_id(self.einvoice.buyer_tax_id.strip())
-			customer_vat_scheme = "VA"
-		except ValueError:
-			customer_tax_id = self.einvoice.buyer_tax_id.strip()
-			customer_vat_scheme = "FC"
+		if self.einvoice.buyer_tax_id:
+			raw = self.einvoice.buyer_tax_id.strip()
+			try:
+				customer_tax_id = validate_vat_id(raw)
+				self.doc.trade.agreement.buyer.tax_registrations.add(
+					TaxRegistration(id=("VA", customer_tax_id))
+				)
+				is_vat_added = True
+			except ValueError:
+				self.doc.trade.agreement.buyer.tax_registrations.add(
+					TaxRegistration(id=("FC", raw))
+				)
 
-		self.doc.trade.agreement.buyer.tax_registrations.add(
-			TaxRegistration(
-				id=(customer_vat_scheme, customer_tax_id),
+		# Add SIREN as FC when: the primary ID is a VAT number (so SIREN is separate),
+		# or when there is no Tax ID at all but a SIREN is known.
+		buyer_siren = self.customer.get("siren_number")
+		if buyer_siren and (is_vat_added or not self.einvoice.buyer_tax_id):
+			self.doc.trade.agreement.buyer.tax_registrations.add(
+				TaxRegistration(id=("FC", buyer_siren.strip()))
 			)
-		)
 
 	def _set_buyer_address(self):
 		if not self.einvoice.buyer_address_line_1:
@@ -549,9 +563,9 @@ class EInvoiceGenerator:
 		self.doc.trade.agreement.buyer.address.line_two = self.einvoice.buyer_address_line_2
 		self.doc.trade.agreement.buyer.address.postcode = self.einvoice.buyer_postcode
 		self.doc.trade.agreement.buyer.address.city_name = self.einvoice.buyer_city
-		self.doc.trade.agreement.buyer.address.country_id = frappe.db.get_value(
-			"Country", self.einvoice.buyer_country, "code"
-		).upper()
+		buyer_country_code = frappe.db.get_value("Country", self.einvoice.buyer_country, "code")
+		if buyer_country_code:
+			self.doc.trade.agreement.buyer.address.country_id = buyer_country_code.upper()
 
 	def _set_shipping_address(self):
 		if not self.shipping_address:
@@ -564,9 +578,9 @@ class EInvoiceGenerator:
 		self.doc.trade.delivery.ship_to.address.line_two = self.shipping_address.address_line2
 		self.doc.trade.delivery.ship_to.address.postcode = self.shipping_address.pincode
 		self.doc.trade.delivery.ship_to.address.city_name = self.shipping_address.city
-		self.doc.trade.delivery.ship_to.address.country_id = frappe.db.get_value(
-			"Country", self.shipping_address.country, "code"
-		).upper()
+		shipping_country_code = frappe.db.get_value("Country", self.shipping_address.country, "code")
+		if shipping_country_code:
+			self.doc.trade.delivery.ship_to.address.country_id = shipping_country_code.upper()
 
 	def _set_buyer_contact(self):
 		if self.buyer_contact:
@@ -640,7 +654,8 @@ class EInvoiceGenerator:
 				]
 			).upper()
 
-		li.settlement.monetary_summation.total_amount = flt(item.total_amount)
+		# [BR-DEC-23]-The allowed maximum number of decimals for the Invoice line net amount (BT-131) is 2.
+		li.settlement.monetary_summation.total_amount = flt(item.total_amount, 2)
 		self.doc.trade.items.add(li)
 
 	def _add_taxes_and_charges(self):

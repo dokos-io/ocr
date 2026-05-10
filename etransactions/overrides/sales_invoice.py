@@ -17,7 +17,9 @@ def on_validate(doc, method):
 	if not doc.etransaction_profile:
 		return
 
-	# Plateforme Agréée validation warnings
+	_warn_missing_seller_data(doc)
+
+	# accredited platform validation warnings
 	from etransactions.plateforme_agreee.session import get_platform_settings
 	if get_platform_settings(doc.company):
 		customer_entity_type = frappe.db.get_value("Customer", doc.customer, "directory_entity_type")
@@ -27,7 +29,7 @@ def on_validate(doc, method):
 				einvoice_pa_line = frappe.db.get_value("eInvoice", einvoice_name, "pa_directory_line")
 				if not einvoice_pa_line:
 					frappe.msgprint(
-						_("No Plateforme Agréée directory line selected on the eInvoice. Set one before submitting."),
+						_("No accredited platform directory line selected on the eInvoice. Set one before submitting."),
 						alert=True,
 						indicator="orange",
 					)
@@ -103,7 +105,7 @@ def on_update(doc, method):
 
 
 def on_submit(doc, method):
-	"""Generate FacturX PDF and submit to Plateforme Agréée when a Sales Invoice is submitted."""
+	"""Generate FacturX PDF and submit to accredited platform when a Sales Invoice is submitted."""
 	if not doc.etransaction_profile:
 		return
 
@@ -126,7 +128,7 @@ def on_submit(doc, method):
 				indicator="orange",
 			)
 
-	# Plateforme Agréée submission
+	# accredited platform submission
 	from etransactions.plateforme_agreee.session import get_platform_settings
 	platform_settings = get_platform_settings(doc.company)
 	if platform_settings and platform_settings.auto_send_on_submit:
@@ -144,7 +146,7 @@ def on_submit(doc, method):
 				except Exception:
 					frappe.log_error(frappe.get_traceback(), _("PA Submission Failed"))
 					frappe.msgprint(
-						_("Could not submit to Plateforme Agréée. Please check the error log."),
+						_("Could not submit to accredited platform. Please check the error log."),
 						alert=True,
 						indicator="orange",
 					)
@@ -191,23 +193,100 @@ def get_facturx_pdf(sales_invoice: str) -> str:
 
 
 @frappe.whitelist(methods=["POST"])
-def send_to_plateforme(sales_invoice: str):
-	"""Manually submit the eInvoice linked to this Sales Invoice to the Plateforme Agréée."""
+def send_to_plateform(sales_invoice: str):
+	"""Manually submit the eInvoice linked to this Sales Invoice to the accredited platform."""
 	frappe.get_doc("Sales Invoice", sales_invoice).check_permission("submit")
 	einvoice_name = frappe.db.get_value("eInvoice", {"sales_invoice": sales_invoice}, "name")
 	if not einvoice_name:
 		frappe.throw(_("No eInvoice found for Sales Invoice {0}").format(sales_invoice))
-	frappe.get_doc("eInvoice", einvoice_name).send_to_plateforme()
+	frappe.get_doc("eInvoice", einvoice_name).send_to_plateform()
 
 
 @frappe.whitelist(methods=["POST"])
 def refresh_pa_status(sales_invoice: str):
-	"""Refresh the Plateforme Agréée flow status for the eInvoice linked to this Sales Invoice."""
+	"""Refresh the accredited platform flow status for the eInvoice linked to this Sales Invoice."""
 	frappe.get_doc("Sales Invoice", sales_invoice).check_permission("read")
 	einvoice_name = frappe.db.get_value("eInvoice", {"sales_invoice": sales_invoice}, "name")
 	if not einvoice_name:
 		frappe.throw(_("No eInvoice found for Sales Invoice {0}").format(sales_invoice))
 	frappe.get_doc("eInvoice", einvoice_name).refresh_pa_status()
+
+
+def _warn_missing_seller_data(doc):
+	"""Warn the user about missing company data that will cause e-invoice validation errors."""
+	if not doc.company:
+		return
+
+	if not doc.company_address:
+		frappe.msgprint(
+			_(
+				"The seller postal address is missing from the e-invoice (rules BR-08, BR-09). "
+				"Select a <b>Company Address</b> on this invoice, or add a default address to your company "
+				"in <a href='/desk/company/{0}'>Company settings</a>."
+			).format(frappe.utils.sanitize_html(doc.company)),
+			title=_("Missing seller address"),
+			indicator="orange",
+			alert=True
+		)
+
+	company_siren = frappe.db.get_value("Company", doc.company, "siren_number")
+	if not doc.company_tax_id and not company_siren:
+		frappe.msgprint(
+			_(
+				"The seller tax identification number is missing from the e-invoice (rules BR-S-02, BR-CO-26). "
+				"Add a <b>Tax ID</b> (VAT/TVA intracommunautaire) in <a href='/desk/company/{0}'>Company settings</a>, "
+				"or a <b>SIREN number</b> (numéro SIREN) in the same page."
+			).format(frappe.utils.sanitize_html(doc.company)),
+			title=_("Missing seller tax ID"),
+			indicator="orange",
+			alert=True
+		)
+
+	if doc.customer_address:
+		address_country = frappe.db.get_value("Address", doc.customer_address, "country")
+		if not address_country:
+			frappe.msgprint(
+				_(
+					"The buyer address has no country set (rule BR-09). "
+					"Add a country to the address <a href='/app/address/{0}'>{0}</a>."
+				).format(frappe.utils.sanitize_html(doc.customer_address)),
+				title=_("Missing buyer address country"),
+				indicator="orange",
+				alert=True
+			)
+
+	_has_ea = False
+	company_doc = frappe.db.get_value(
+		"Company",
+		doc.company,
+		["etransactions_electronic_address_scheme", "etransactions_electronic_address", "email"],
+		as_dict=True,
+	)
+	if company_doc:
+		if company_doc.etransactions_electronic_address_scheme and company_doc.etransactions_electronic_address:
+			_has_ea = True
+		elif company_doc.email:
+			_has_ea = True
+	if not _has_ea and doc.company_contact_person:
+		contact_email = frappe.db.get_value("Contact", doc.company_contact_person, "email_id")
+		if contact_email:
+			_has_ea = True
+	if not _has_ea:
+		frappe.msgprint(
+			_(
+				"The seller electronic address (BT-34) will be missing from the e-invoice, "
+				"which is required by the accredited platform (e.g. SuperPDP). "
+				"Fix this by doing one of the following:<br><br>"
+				"<b>Option 1</b> — Add an <b>Email</b> to your company in "
+				"<a href='/app/company/{0}'>Company settings</a>.<br>"
+				"<b>Option 2</b> — Set a <b>Company Contact</b> on this invoice with an email address.<br>"
+				"<b>Option 3</b> — Configure <b>Electronic Address Scheme</b> and <b>Electronic Address</b> "
+				"on the Company record (e.g. SIREN with scheme 0002)."
+			).format(frappe.utils.sanitize_html(doc.company)),
+			title=_("Missing seller electronic address"),
+			indicator="orange",
+			alert=True
+		)
 
 
 def _create_update_einvoice(doc):

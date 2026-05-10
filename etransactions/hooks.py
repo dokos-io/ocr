@@ -12,7 +12,7 @@ add_to_apps_screen = [
 		"logo": "/assets/etransactions/images/etransactions_solid.svg",
 		"title": "eTransactions",
 		"route": "/app/supplier-invoice",
-        "has_permission": "etransactions.check_app_permission",
+		"has_permission": "etransactions.check_app_permission",
 	},
 ]
 
@@ -194,7 +194,7 @@ doc_events = {
 		"on_close": "etransactions.etransactions.doctype.ocr_request.ocr_request.update_ocr_request_status",
 	},
 	"Sales Invoice": {
-		"on_validate": "etransactions.overrides.sales_invoice.on_validate",
+		"validate": "etransactions.overrides.sales_invoice.on_validate",
 		"on_update": "etransactions.overrides.sales_invoice.on_update",
 		"on_submit": "etransactions.overrides.sales_invoice.on_submit",
 	}

@@ -3,11 +3,17 @@ from erpnext.setup.utils import identity as _
 
 customer_fields = [
 	{
+		"fieldname": "siren_number",
+		"label": _("SIREN Number"),
+		"fieldtype": "Data",
+		"insert_after": "tax_id",
+		"length": 9,
+	},
+	{
 		"fieldname": "etransactions_tab",
 		"fieldtype": "Tab Break",
 		"label": _("eTransactions"),
 		"insert_after": "selling_party_html",
-		"hidden": 1
 	},
 	{
 		"fieldname": "etransaction_profile",
@@ -36,10 +42,10 @@ customer_fields = [
 		"fieldtype": "Data",
 		"depends_on": "etransactions_electronic_address_scheme",
 	},
-	# Plateforme Agréée directory fields
+	# Accredited platform directory fields
 	{
 		"fieldname": "pa_directory_section",
-		"label": _("Plateforme Agréée Directory"),
+		"label": _("Accredited Platform Directory"),
 		"fieldtype": "Section Break",
 		"insert_after": "etransactions_electronic_address",
 		"collapsible": 1,

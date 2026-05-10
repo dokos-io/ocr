@@ -69,17 +69,17 @@ function _add_pa_buttons(frm) {
 			const pa_flow_id = data.pa_flow_id;
 
 			if (!pa_flow_id || ["created", ""].includes(pa_status || "")) {
-				frm.add_custom_button(__("Send to Plateforme Agréée"), () => {
+				frm.add_custom_button(__("Send to the accredited platform"), () => {
 					frappe.call({
-						method: "etransactions.overrides.sales_invoice.send_to_plateforme",
+						method: "etransactions.overrides.sales_invoice.send_to_plateform",
 						args: { sales_invoice: frm.doc.name },
 						freeze: true,
-						freeze_message: __("Submitting to Plateforme Agréée…"),
+						freeze_message: __("Submitting to accredited platform…"),
 						callback() {
 							frm.reload_doc();
 						},
 					});
-				}, __("Plateforme Agréée"));
+				}, __("Accredited platform"));
 			}
 
 			if (pa_flow_id) {
@@ -93,7 +93,7 @@ function _add_pa_buttons(frm) {
 							frm.reload_doc();
 						},
 					});
-				}, __("Plateforme Agréée"));
+				}, __("Accredited platform"));
 			}
 		},
 	});

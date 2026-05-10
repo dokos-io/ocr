@@ -14,7 +14,7 @@ frappe.ui.form.on("Customer", {
 						frm.reload_doc();
 					},
 				});
-			}, __("Plateforme Agréée"));
+			}, __("Accredited Platform"));
 		}
 	},
 });
