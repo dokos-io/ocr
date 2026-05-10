@@ -114,6 +114,20 @@ class SuperPDPClient:
             msg = body.get("message") or body.get("error") or resp.text[:300]
         except Exception:
             msg = resp.text[:300]
+
+        if "Seller.LegalRegistrationIdentifier" in msg:
+            frappe.throw(
+                _(
+                    "The seller's legal registration identifier (SIREN/SIRET) is missing from the e-invoice. "
+                    "To fix this: <br>"
+                    "1. Go to your <a href='/app/company'>Company settings</a>.<br>"
+                    "2. Ensure the <b>SIREN Number</b> field is filled.<br>"
+                    "3. Re-save the invoice to regenerate the XML before trying again."
+                ),
+                frappe.ValidationError,
+                title=_("Missing Seller Identifier")
+            )
+
         frappe.throw(
             _("SuperPDP API error {0}: {1}").format(resp.status_code, msg),
             frappe.ValidationError,
