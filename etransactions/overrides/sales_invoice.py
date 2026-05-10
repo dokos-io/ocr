@@ -278,7 +278,7 @@ def _warn_missing_seller_data(doc):
 				"which is required by the accredited platform (e.g. SuperPDP). "
 				"Fix this by doing one of the following:<br><br>"
 				"<b>Option 1</b> — Add an <b>Email</b> to your company in "
-				"<a href='/app/company/{0}'>Company settings</a>.<br>"
+				"<a href='/desk/company/{0}'>Company settings</a>.<br>"
 				"<b>Option 2</b> — Set a <b>Company Contact</b> on this invoice with an email address.<br>"
 				"<b>Option 3</b> — Configure <b>Electronic Address Scheme</b> and <b>Electronic Address</b> "
 				"on the Company record (e.g. SIREN with scheme 0002)."
