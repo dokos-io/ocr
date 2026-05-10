@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 
 from drafthorse.models.accounting import ApplicableTradeTax, AppliedTradeTax
 from drafthorse.models.document import Document, IncludedNote
-from drafthorse.models.party import TaxRegistration
+from drafthorse.models.party import LegalOrganization, TaxRegistration
 from drafthorse.models.payment import PaymentTerms
 from drafthorse.models.references import AdditionalReferencedDocument
 from drafthorse.models.trade import LogisticsServiceCharge
@@ -440,6 +440,7 @@ class EInvoiceGenerator:
 			self._set_seller_contact()
 
 		self._set_seller_id()
+		self._set_seller_legal_organization()
 		self._set_seller_electronic_address()
 		self._set_seller_address()
 
@@ -448,6 +449,11 @@ class EInvoiceGenerator:
 			if row.company == self.einvoice.company and row.supplier_number:
 				self.doc.trade.agreement.seller.id = row.supplier_number
 				break
+
+	def _set_seller_legal_organization(self):
+		seller_siren = self.company.get("siren_number")
+		if seller_siren:
+			self.doc.trade.agreement.seller.legal_organization.id = ("0002", seller_siren.strip())
 
 	def _set_seller_tax_id(self):
 		is_vat_added = False
@@ -522,6 +528,7 @@ class EInvoiceGenerator:
 			self._set_buyer_contact()
 
 		self._set_buyer_electronic_address()
+		self._set_buyer_legal_organization()
 		self._set_buyer_tax_id()
 
 	def _set_buyer_electronic_address(self):
@@ -530,6 +537,11 @@ class EInvoiceGenerator:
 				self.einvoice.buyer_electronic_address_scheme,
 				self.einvoice.buyer_electronic_address,
 			)
+
+	def _set_buyer_legal_organization(self):
+		buyer_siren = self.customer.get("siren_number")
+		if buyer_siren:
+			self.doc.trade.agreement.buyer.legal_organization.id = ("0002", buyer_siren.strip())
 
 	def _set_buyer_tax_id(self):
 		is_vat_added = False
