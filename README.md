@@ -34,7 +34,7 @@ Cependant, ce module réutilise plusieurs composants provenant d'application tie
 
 - **Intégration multi-formats** — Prise en charge des factures fournisseurs aux formats **Factur-X**, **CII** et **UBL**.
 - **Émission de factures électroniques** — Génération et émission de factures dans l'un des trois formats précités.
-- **Connexion à une Plateforme Agréee (PA)** — Envoi et réception sécurisés des factures électroniques via une plateforme agréée (en cours de sélection).
+- **Connexion à une Plateforme Agréee (PA)** — Envoi et réception sécurisés des factures électroniques via une plateforme agréée.
 
 ## Compatibilité
 

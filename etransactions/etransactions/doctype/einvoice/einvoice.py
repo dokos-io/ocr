@@ -144,16 +144,26 @@ class eInvoice(Document):
 	def on_trash(self):
 		if self.pa_flow_id:
 			frappe.throw(
-				_("Cannot delete an eInvoice that has been submitted to the Plateforme Agréée (Flow ID: {0}).").format(self.pa_flow_id)
+				_("Cannot delete an eInvoice that has been submitted to the accredited platform (Flow ID: {0}).").format(self.pa_flow_id)
 			)
 
 	@frappe.whitelist()
-	def send_to_plateforme(self):
-		"""Submit this outgoing eInvoice to the Plateforme Agréée."""
+	def send_to_plateform(self):
+		"""Submit this outgoing eInvoice to the accredited platform."""
 		if self.einvoice_type != "Outgoing":
-			frappe.throw(_("Only Outgoing eInvoices can be submitted to the Plateforme Agréée."))
+			frappe.throw(_("Only Outgoing eInvoices can be submitted to the accredited platform."))
 		if self.pa_flow_id:
-			frappe.throw(_("This eInvoice has already been submitted to the Plateforme Agréée (Flow ID: {0}).").format(self.pa_flow_id))
+			frappe.throw(_("This eInvoice has already been submitted to the accredited platform (Flow ID: {0}).").format(self.pa_flow_id))
+
+		if not self.seller_electronic_address:
+			frappe.throw(
+				_(
+					"The seller's electronic address (BT-34) is missing from this eInvoice. "
+					"Set an email on the Company record, or configure the Electronic Address fields "
+					"(etransactions_electronic_address_scheme / etransactions_electronic_address) "
+					"on the Company, then re-save the Sales Invoice to regenerate the eInvoice."
+				)
+			)
 
 		from etransactions.plateforme_agreee.session import get_client
 
@@ -185,9 +195,9 @@ class eInvoice(Document):
 
 	@frappe.whitelist()
 	def refresh_pa_status(self):
-		"""Poll the Plateforme Agréée for the latest flow state."""
+		"""Poll the accredited platform for the latest flow state."""
 		if not self.pa_flow_id:
-			frappe.throw(_("This eInvoice has not been submitted to the Plateforme Agréée yet."))
+			frappe.throw(_("This eInvoice has not been submitted to the accredited platform yet."))
 
 		from etransactions.plateforme_agreee.session import get_client
 
@@ -235,7 +245,7 @@ class eInvoice(Document):
 
 	@classmethod
 	def create_from_plateforme_flow(cls, flow, file_content: bytes, company: str) -> "eInvoice":
-		"""Create an Incoming eInvoice from a flow received from the Plateforme Agréée.
+		"""Create an Incoming eInvoice from a flow received from the accredited platform.
 
 		``flow`` is an IncomingFlow dataclass (etransactions.components.superpdp.models).
 		The on_update() hook automatically creates the Supplier Invoice.

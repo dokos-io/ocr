@@ -651,7 +651,7 @@
   {
    "fieldname": "pa_tab",
    "fieldtype": "Tab Break",
-   "label": "Plateforme Agréée"
+   "label": "Accredited Platform"
   },
   {
    "fieldname": "pa_directory_line",

@@ -16,6 +16,42 @@ def after_install():
 	add_custom_fields()
 	rename_ocr_to_etransactions()
 	frappe.delete_doc("Workspace", "Data Extraction", ignore_missing=True, force=True)
+	import_peppol_participant_identifier_schemes()
+
+
+def import_peppol_participant_identifier_schemes():
+	import os
+	from erpnext.edi.doctype.code_list.code_list_import import import_genericode_content, process_genericode_import
+
+	file_path = frappe.get_app_path("etransactions", "data", "peppol_participant_identifier_schemes.xml")
+	if not os.path.exists(file_path):
+		return
+
+	with open(file_path, "rb") as f:
+		content = f.read()
+
+	frappe.set_user("Administrator")
+	result = import_genericode_content(
+		doctype="Code List",
+		docname=None,
+		content=content,
+		file_name="peppol_participant_identifier_schemes.xml"
+	)
+
+	code_list_name = result["code_list"]
+	file_doc_name = result["file"]
+
+	if frappe.db.exists("Common Code", {"code_list": code_list_name}):
+		return
+
+	process_genericode_import(
+		code_list_name=code_list_name,
+		file_name=file_doc_name,
+		code_column="iso6523",
+		title_column="scheme-name",
+		description_column="usage",
+		filters=None
+	)
 
 
 def rename_ocr_to_etransactions():
