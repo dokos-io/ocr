@@ -100,6 +100,22 @@ frappe.ui.form.on("Supplier Invoice", {
 		frm.trigger("check_tax_id");
 		frm.trigger("check_supplier_id");
 		frm.trigger("check_po_exists");
+		frm.trigger("show_match_confidence");
+	},
+
+	show_match_confidence(frm) {
+		const field = frm.get_field("supplier");
+		if (!field) return;
+		const config = {
+			medium: { color: "orange", label: __("Medium confidence") },
+			low:    { color: "red",    label: __("Low confidence") },
+			high:   { color: "green",    label: __("High confidence") },
+		};
+		const cfg = config[frm.doc.match_confidence];
+		field.set_description(cfg
+			? `<span class="indicator-pill ${cfg.color} no-indicator-dot" style="font-size:var(--text-xs);">${cfg.label}</span>`
+			: ""
+		);
 	},
 
 	async show_preview(frm) {
@@ -220,6 +236,7 @@ frappe.ui.form.on("Supplier Invoice", {
 
 	supplier(frm) {
 		erpnext.utils.get_party_details(frm);
+		frm.get_field("supplier")?.set_description("");
 	},
 
 	tax_category(frm) {

@@ -323,6 +323,7 @@ class IncomingInvoiceDataTransformer(InvoiceEntityResolverMixin):
 		data = {
 			"company": self.get_company(),
 			"supplier": self.get_supplier(),
+			"match_confidence": getattr(self, "_match_confidence", None) or "low",
 			"supplier_name": self.invoice_doc.seller_name,
 			"bill_no": self.invoice_doc.id,
 			"bill_date": self.invoice_doc.issue_date,
@@ -333,6 +334,7 @@ class IncomingInvoiceDataTransformer(InvoiceEntityResolverMixin):
 			"supplier_grand_total": self.invoice_doc.grand_total,
 			"vendor_address": self.get_seller_address(),
 			"tax_id": self.invoice_doc.seller_tax_id,
+			"vendor_iban": self.invoice_doc.payee_iban,
 			"einvoice": self.invoice_doc.name,
 			"ocr_basket": self.invoice_doc.supplier_invoices_basket,
 			"items": []
@@ -374,7 +376,8 @@ class IncomingInvoiceDataTransformer(InvoiceEntityResolverMixin):
 	def get_supplier(self):
 		return self.resolve_supplier(
 			seller_name=self.invoice_doc.seller_name,
-			tax_id=self.invoice_doc.seller_tax_id
+			tax_id=self.invoice_doc.seller_tax_id,
+			iban=self.invoice_doc.payee_iban,
 		)
 
 	def get_company(self):

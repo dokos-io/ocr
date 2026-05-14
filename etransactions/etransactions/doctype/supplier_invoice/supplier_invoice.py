@@ -30,6 +30,7 @@ if TYPE_CHECKING:
 	from erpnext.accounts.doctype.purchase_invoice_item.purchase_invoice_item import PurchaseInvoiceItem
 	from erpnext.buying.doctype.purchase_order.purchase_order import PurchaseOrder
 	from etransactions.etransactions.doctype.etransactions_settings.etransactions_settings import eTransactionsSettings
+	from etransactions.etransactions.doctype.etransactions_supplier_name_alias.etransactions_supplier_name_alias import eTransactionsSupplierNameAlias
 
 ItemDetailsCtx = frappe._dict
 ItemDetails = frappe._dict
@@ -63,6 +64,7 @@ class SupplierInvoice(Document):
 		grand_total: DF.Currency
 		is_return: DF.Check
 		items: DF.Table[SupplierInvoiceItem]
+		match_confidence: DF.Literal["", "high", "medium", "low"] | None
 		name: DF.Int | None
 		net_total: DF.Currency
 		ocr_basket: DF.Link | None
@@ -82,9 +84,11 @@ class SupplierInvoice(Document):
 		taxes_and_charges: DF.Link | None
 		title: DF.Data | None
 		vendor_address: DF.SmallText | None
+		vendor_iban: DF.Data | None
 	# end: auto-generated types
 
 	def validate(self):
+		self._detect_manual_supplier_change()
 		self.get_supplier()
 		self.set_tax_category()
 		self.set_tax_template()
@@ -110,24 +114,111 @@ class SupplierInvoice(Document):
 
 	def on_update(self):
 		self.auto_reconcile()
+		if getattr(self, "_supplier_manually_set", False):
+			self._learn_from_manual_match()
+			self._maybe_update_supplier_tax_id()
+
+	def _detect_manual_supplier_change(self):
+		if self.is_new():
+			return
+		db_supplier = frappe.db.get_value("Supplier Invoice", self.name, "supplier")
+		if db_supplier != self.supplier and self.supplier:
+			self._supplier_manually_set = True
+			self.match_confidence = "high"
+
+	def _learn_from_manual_match(self):
+		if not self.ocr_request:
+			return
+		raw_data = frappe.db.get_value("OCR Request", self.ocr_request, "analysis")
+		if not raw_data:
+			return
+		vendor_name = (frappe.parse_json(raw_data) or {}).get("VENDOR_NAME")
+		if not vendor_name or vendor_name == self.supplier_name:
+			return
+		if frappe.db.exists("eTransactions Supplier Name Alias", {"vendor_name": vendor_name, "supplier": self.supplier}):
+			return
+		alias: eTransactionsSupplierNameAlias = frappe.new_doc("eTransactions Supplier Name Alias")
+		alias.supplier = self.supplier
+		alias.vendor_name = vendor_name
+		alias.insert(ignore_permissions=True)
+
+	def _maybe_update_supplier_tax_id(self):
+		if not self.supplier or not self.tax_id:
+			return
+		existing_tax_id = frappe.db.get_value("Supplier", self.supplier, "tax_id")
+		if not existing_tax_id:
+			normalized = re.sub(r"[\s\-\.]", "", self.tax_id).upper()
+			frappe.db.set_value("Supplier", self.supplier, "tax_id", normalized)
 
 	def get_supplier(self):
 		if self.supplier:
 			return
 
-		# 1. Get from previous invoices with same address
-		if self.vendor_address:
-			invoices = frappe.get_all("Supplier Invoice", filters={"vendor_address": ("like", f"{self.vendor_address[:5]}%"), "status": "Completed", "name": ("!=", self.name), "supplier": ("is", "set")}, fields=["supplier", "vendor_address"])
-			if invoices and (best_match := get_best_match_from_list_of_dicts(invoices, self.vendor_address, "vendor_address")):
-				self.supplier = best_match.get("supplier")
+		# 1. Match by IBAN
+		if self.vendor_iban:
+			normalized_iban = re.sub(r"\s", "", self.vendor_iban).upper()
+			bank_account = frappe.db.get_value(
+				"Bank Account",
+				{"iban": normalized_iban, "party_type": "Supplier"},
+				"party",
+			)
+			if bank_account:
+				self.supplier = bank_account
+				self.match_confidence = "high"
+				return
 
-		# 2.Get from OCR Request
-		if not self.supplier and self.ocr_request:
+		# 2. Previous invoices with same vendor address (improved: 20-char prefix + similarity ≥ 0.75)
+		if self.vendor_address:
+			invoices = frappe.get_all(
+				"Supplier Invoice",
+				filters={
+					"vendor_address": ("like", f"{self.vendor_address[:20]}%"),
+					"status": "Completed",
+					"name": ("!=", self.name),
+					"supplier": ("is", "set"),
+				},
+				fields=["supplier", "vendor_address"],
+			)
+			if invoices:
+				best = max(
+					invoices,
+					key=lambda i: difflib.SequenceMatcher(
+						None,
+						(i.vendor_address or "").lower(),
+						self.vendor_address.lower(),
+					).ratio(),
+				)
+				if (
+					difflib.SequenceMatcher(
+						None,
+						(best.vendor_address or "").lower(),
+						self.vendor_address.lower(),
+					).ratio()
+					>= 0.75
+				):
+					self.supplier = best.get("supplier")
+					self.match_confidence = "medium"
+					return
+
+		# 3. Previous OCR requests sharing the same VENDOR_URL
+		if self.ocr_request:
 			ocr_data = self.get_ocr_analysis()
-			# 2.1 Find VENDOR_URL
 			if ocr_data.get("VENDOR_URL"):
-				if matching_ocr_requests := frappe.get_all("OCR Request", filters={"analysis": ("like", f"%{ocr_data.get('VENDOR_URL')}%"), "name": ("!=", self.ocr_request)}, limit=1, pluck="name"):
-					self.supplier = frappe.db.get_value("Supplier Invoice", dict(ocr_request=matching_ocr_requests[0]), "supplier")
+				if matching_ocr_requests := frappe.get_all(
+					"OCR Request",
+					filters={
+						"analysis": ("like", f"%{ocr_data.get('VENDOR_URL')}%"),
+						"name": ("!=", self.ocr_request),
+					},
+					limit=1,
+					pluck="name",
+				):
+					matched_supplier = frappe.db.get_value(
+						"Supplier Invoice", dict(ocr_request=matching_ocr_requests[0]), "supplier"
+					)
+					if matched_supplier:
+						self.supplier = matched_supplier
+						self.match_confidence = "medium"
 
 
 	def calculate_due_date(self):
@@ -926,6 +1017,44 @@ def create_purchase_invoice(docname: str, submit: bool | str | None = False):
 @frappe.whitelist()
 def create_purchase_order(docname: str, transaction_date: str | None = None, submit: bool | str | None = False):
 	return frappe.get_doc("Supplier Invoice", docname).run_method("create_purchase_order", transaction_date=transaction_date, submit=sbool(submit))
+
+
+@frappe.whitelist()
+def retry_supplier_match(invoices: list | str) -> int:
+	from etransactions.controllers.entity_resolver import InvoiceEntityResolverMixin
+
+	if isinstance(invoices, str):
+		invoices = frappe.parse_json(invoices)
+
+	resolver = InvoiceEntityResolverMixin()
+	matched = 0
+
+	for name in invoices:
+		doc: SupplierInvoice = frappe.get_doc("Supplier Invoice", name) # type: ignore
+
+		vendor_name = None
+		if doc.ocr_request:
+			raw = frappe.db.get_value("OCR Request", doc.ocr_request, "analysis")
+			vendor_name = (frappe.parse_json(raw) or {}).get("VENDOR_NAME") if raw else None
+
+		supplier = resolver.resolve_supplier(
+			seller_name=vendor_name,
+			tax_id=doc.tax_id,
+			iban=doc.vendor_iban,
+		)
+
+		if supplier:
+			doc.supplier = supplier
+			doc.match_confidence = getattr(resolver, "_match_confidence", None) or "low"
+		else:
+			doc.get_supplier()
+
+		if doc.supplier:
+			doc.flags.ignore_permissions = True
+			doc.save()
+			matched += 1
+
+	return matched
 
 
 @frappe.whitelist()

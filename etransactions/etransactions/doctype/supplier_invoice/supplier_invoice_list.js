@@ -22,6 +22,30 @@ frappe.listview_settings["Supplier Invoice"] = {
 			});
 		}, null, "primary");
 
+		listview.page.add_menu_item(__("Retry Supplier Match"), () => {
+			const pending = listview.get_checked_items();
+
+			if (!pending.length) {
+				frappe.show_alert({ message: __("No unmatched invoices selected"), indicator: "orange" }, 4);
+				return;
+			}
+			frappe.call({
+				method: "etransactions.etransactions.doctype.supplier_invoice.supplier_invoice.retry_supplier_match",
+				args: { invoices: pending.map(d => d.name) },
+				freeze: true,
+				freeze_message: __("Retrying supplier match…"),
+			}).then(r => {
+				const count = r.message || 0;
+				frappe.show_alert({
+					message: count
+						? __("{0} of {1} invoice(s) matched", [count, pending.length])
+						: __("No new matches found"),
+					indicator: count > 0 ? "green" : "orange",
+				}, 5);
+				listview.refresh();
+			});
+		});
+
 		listview.etransactions_dashboard = new SupplierInvoiceDashboard(listview);
 	},
 
