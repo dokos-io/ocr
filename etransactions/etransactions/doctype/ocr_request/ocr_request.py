@@ -31,7 +31,8 @@ PURCHASE_INVOICE_MAPPING = {
 	"TAX_PAYER_ID": "tax_id",
 	"VENDOR_VAT_NUMBER": "tax_id",
 	"DUE_DATE": "due_date",
-	"VENDOR_ADDRESS": "vendor_address"
+	"VENDOR_ADDRESS": "vendor_address",
+	"VENDOR_IBAN": "vendor_iban",
 }
 
 PURCHASE_INVOICE_TOTALS = dict(
@@ -213,7 +214,8 @@ class OCRRequest(Document, InvoiceEntityResolverMixin):
 		header = self.get_raw_data()
 		self.supplier = self.resolve_supplier(
 			seller_name=header.get("VENDOR_NAME"),
-			tax_id=header.get("VENDOR_VAT_NUMBER") or header.get("TAX_PAYER_ID")
+			tax_id=header.get("VENDOR_VAT_NUMBER") or header.get("TAX_PAYER_ID"),
+			iban=header.get("VENDOR_IBAN"),
 		)
 		return self.supplier
 
@@ -307,6 +309,8 @@ class OCRRequest(Document, InvoiceEntityResolverMixin):
 		doc.file = self.file
 		doc.vendor_address = data.get("vendor_address")
 		doc.tax_id = data.get("tax_id")
+		doc.vendor_iban = data.get("vendor_iban")
+		doc.match_confidence = getattr(self, "_match_confidence", None) or "low"
 		doc.ocr_basket = self.ocr_basket
 
 		return doc.insert(ignore_mandatory=True, ignore_links=True)

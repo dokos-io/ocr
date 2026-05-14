@@ -54,6 +54,7 @@ class Invoice(BaseModel):
 	VENDOR_PHONE: str | None = Field(description="Vendor Phone")
 	RECEIVER_PHONE: str | None = Field(description="Receiver Phone")
 	VENDOR_URL: str | None = Field(description="Vendor URL")
+	VENDOR_IBAN: str | None = Field(description="Vendor IBAN (bank account number for payment)")
 	ADDRESS: str | None = Field(description="Address (Bill To, Ship To, Remit To, Supplier)")
 	NAME: str | None = Field(description="Name (Bill To, Ship To, Remit To, Supplier)")
 	ADDRESS_BLOCK: str | None = Field(description="Core Address (Vendor, Receiver, Bill To, Ship To, Remit To, Supplier)")

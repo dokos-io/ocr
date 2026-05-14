@@ -11,8 +11,10 @@
   "status",
   "company",
   "supplier",
+  "match_confidence",
   "supplier_name",
   "tax_id",
+  "vendor_iban",
   "update_supplier_tax_id",
   "create_supplier",
   "currency",
@@ -308,9 +310,25 @@
    "read_only": 1
   },
   {
+   "fieldname": "match_confidence",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "in_standard_filter": 1,
+   "label": "Match Confidence",
+   "options": "\nhigh\nmedium\nlow",
+   "read_only": 1
+  },
+  {
    "fieldname": "tax_id",
    "fieldtype": "Data",
    "label": "Tax ID"
+  },
+  {
+   "fieldname": "vendor_iban",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "IBAN",
+   "read_only": 1
   },
   {
    "fieldname": "update_supplier_tax_id",
