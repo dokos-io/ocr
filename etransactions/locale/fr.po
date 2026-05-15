@@ -2112,3 +2112,45 @@ msgstr "La facture électronique {0} n'a pas de contenu XML. Enregistrez la fact
 
 msgid "{0} more…"
 msgstr "{0} de plus…"
+
+msgid "High confidence"
+msgstr "Haute confiance"
+
+msgid "Low confidence"
+msgstr "Faible confiance"
+
+msgid "Match Confidence"
+msgstr "Niveau de confiance"
+
+msgid "Medium confidence"
+msgstr "Confiance moyenne"
+
+msgid "No new matches found"
+msgstr "Aucune nouvelle correspondance trouvée"
+
+msgid "No unmatched invoices selected"
+msgstr "Aucune facture non rapprochée sélectionnée"
+
+msgid "Retry Supplier Match"
+msgstr "Relancer la correspondance fournisseur"
+
+msgid "Retrying supplier match…"
+msgstr "Relance de la correspondance fournisseur en cours…"
+
+msgid "Vendor Name"
+msgstr "Nom du fournisseur"
+
+msgid "eTransactions Supplier Name Alias"
+msgstr "Alias du nom de fournisseur eTransactions"
+
+msgid "high"
+msgstr "élevée"
+
+msgid "low"
+msgstr "faible"
+
+msgid "medium"
+msgstr "moyenne"
+
+msgid "{0} of {1} invoice(s) matched"
+msgstr "{0} facture(s) sur {1} rapprochée(s)"
