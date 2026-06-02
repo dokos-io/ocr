@@ -6,9 +6,10 @@ from etransactions.etransactions.doctype.einvoicing_log.einvoicing_log import eI
 
 
 @frappe.whitelist()
-def sync_customer_directory(customer: str):
+def sync_customer_directory(customer: str, company: str = None):
 	"""Sync eTransactions Accredited Platform directory lines for a customer. Called from the Customer form."""
-	company = frappe.defaults.get_global_default("company") # TODO: Ask for a specific company
+	if not company:
+		company = frappe.defaults.get_global_default("company")
 	client = get_client(company, customer=customer)
 
 	result = {
