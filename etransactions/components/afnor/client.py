@@ -25,8 +25,11 @@ from etransactions.components.superpdp.models import (
     DirectoryLineData,
     FlowResult,
     IncomingFlow,
+    LifecycleEvent,
+    LifecycleResult,
     StatusResult,
 )
+from etransactions.plateforme_agreee.cdar import generate_cdar_flow
 
 try:
     import requests
@@ -348,6 +351,57 @@ class AFNORClient:
                 )
 
         return DirectoryData(entity_type=entity_type, name=name, closed=closed, lines=lines)
+
+    # -------------------------------------------------------------------------
+    # Lifecycle status (unified interface)
+    # -------------------------------------------------------------------------
+
+    def submit_lifecycle_status(
+        self,
+        *,
+        flow_id: str,
+        status: str,
+        einvoice,
+        details: list[dict] = None,
+        attachments: list[dict] = None,
+        processing_rule: str = None,
+    ) -> LifecycleResult:
+        """Report a lifecycle status by submitting a CDAR flow."""
+        cdar_bytes, filename = generate_cdar_flow(einvoice, status, details, attachments)
+        res = self.submit_flow(
+            cdar_bytes,
+            filename,
+            "CDAR",
+            tracking_id=einvoice.id,
+            processing_rule=processing_rule,
+        )
+        return LifecycleResult(
+            state="sent",
+            flow_id=res.get("flowId"),
+            submitted_at=res.get("submittedAt"),
+        )
+
+    def list_incoming_lifecycle_flows(self) -> list[IncomingFlow]:
+        """Return incoming lifecycle (CDAR) flows from the last 30 days."""
+        results = self.search_flows(
+            directions=["In"],
+            flow_types=["CustomerInvoiceLC", "SupplierInvoiceLC"],
+        )
+        return [
+            IncomingFlow(
+                flow_id=f.get("flowId", ""),
+                submitted_at=f.get("submittedAt"),
+                updated_at=f.get("updatedAt"),
+                flow_type=f.get("flowType", "CustomerInvoiceLC"),
+                syntax=f.get("flowSyntax"),
+            )
+            for f in results
+        ]
+
+    def get_lifecycle_events(self, flow_id: str) -> list[LifecycleEvent]:
+        """No-op for AFNOR: lifecycle CDARs arrive as separate ``*InvoiceLC``
+        flows and are processed by ``flow.poll_incoming_lifecycle_flows()``."""
+        return []
 
     # -------------------------------------------------------------------------
     # Internal helpers

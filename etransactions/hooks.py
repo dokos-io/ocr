@@ -176,6 +176,7 @@ doc_events = {
 		"on_submit": [
 			"etransactions.etransactions.doctype.ocr_request.ocr_request.update_ocr_request_status",
 			"etransactions.etransactions.doctype.supplier_invoice.supplier_invoice.set_pending_purchase_order_status",
+			"etransactions.plateforme_agreee.auto_status.on_purchase_invoice_submit",
 		],
 		"on_cancel": [
 			"etransactions.etransactions.doctype.ocr_request.ocr_request.update_ocr_request_status",
@@ -185,6 +186,9 @@ doc_events = {
 			"etransactions.overrides.purchase_invoice.after_mapping",
 		]
 	},
+	"Payment Entry": {
+		"on_submit": "etransactions.plateforme_agreee.auto_status.on_payment_entry_submit",
+	},
 	"Purchase Receipt": {
 		"on_submit": "etransactions.etransactions.doctype.supplier_invoice.supplier_invoice.auto_match_with_purchase_receipt",
 		"on_cancel": "etransactions.etransactions.doctype.supplier_invoice.supplier_invoice.remove_link_with_supplier_invoices",
@@ -192,6 +196,7 @@ doc_events = {
 	},
 	"Supplier Invoice": {
 		"on_close": "etransactions.etransactions.doctype.ocr_request.ocr_request.update_ocr_request_status",
+		"after_insert": "etransactions.plateforme_agreee.auto_status.on_supplier_invoice_after_insert",
 	},
 	"Sales Invoice": {
 		"validate": "etransactions.overrides.sales_invoice.on_validate",
@@ -211,6 +216,8 @@ scheduler_events = {
 		"etransactions.etransactions.doctype.ocr_request.ocr_request.check_pending_analysis",
 		"etransactions.plateforme_agreee.flow.poll_pending_outgoing_flows",
 		"etransactions.plateforme_agreee.flow.poll_incoming_flows",
+		"etransactions.plateforme_agreee.flow.poll_outgoing_lifecycle_events",
+		"etransactions.plateforme_agreee.flow.poll_incoming_lifecycle_flows",
 	],
 	"daily": [
 		"etransactions.plateforme_agreee.directory.sync_all_customers",

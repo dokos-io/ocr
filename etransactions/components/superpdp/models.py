@@ -42,3 +42,36 @@ class DirectoryData:
     name: str
     closed: bool
     lines: dict = field(default_factory=dict)  # identifier -> DirectoryLineData
+
+
+@dataclass
+class LifecycleResult:
+    """Normalized result after submitting a lifecycle status to any platform.
+
+    ``event_id`` is set for platforms with a native event endpoint (SuperPDP);
+    ``flow_id`` is set for platforms that carry the status as a CDAR flow
+    (Esalink / AFNOR). Exactly one of the two is populated.
+    """
+    state: str  # created | sent | done | error
+    event_id: str | None = None
+    flow_id: str | None = None
+    submitted_at: str | None = None
+
+
+@dataclass
+class LifecycleEvent:
+    """Normalized lifecycle status event read from any platform."""
+    status: str  # canonical status (etransactions.plateforme_agreee.lifecycle_status)
+    status_label: str
+    direction: str  # in | out
+    datetime: str | None = None
+    reason_code: str | None = None
+    reason_text: str | None = None
+    action_code: str | None = None
+    action_text: str | None = None
+    comment: str | None = None
+    amount: float | None = None
+    currency: str | None = None
+    payment_date: str | None = None
+    pa_event_id: str | None = None
+    attachments: list = field(default_factory=list)

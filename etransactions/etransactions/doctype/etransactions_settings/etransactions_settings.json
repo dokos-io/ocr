@@ -28,6 +28,10 @@
   "accredited_platform_tab",
   "default_sales_platform",
   "default_purchases_platform",
+  "lifecycle_status_section",
+  "auto_send_in_hand",
+  "auto_send_approved",
+  "auto_send_payment",
   "platform_management_section",
   "platform_html"
  ],
@@ -168,6 +172,32 @@
    "fieldtype": "Link",
    "label": "Default Purchases Accredited Platform",
    "options": "eTransactions Accredited Platform"
+  },
+  {
+   "fieldname": "lifecycle_status_section",
+   "fieldtype": "Section Break",
+   "label": "Automatic Lifecycle Statuses"
+  },
+  {
+   "default": "0",
+   "description": "Send 'In Hand' (prise en charge) when a supplier invoice is created from an incoming e-invoice.",
+   "fieldname": "auto_send_in_hand",
+   "fieldtype": "Check",
+   "label": "Auto-send 'In Hand' on supplier invoice creation"
+  },
+  {
+   "default": "0",
+   "description": "Send 'Approved' (approuvée) when a purchase invoice linked to an incoming e-invoice is submitted.",
+   "fieldname": "auto_send_approved",
+   "fieldtype": "Check",
+   "label": "Auto-send 'Approved' on purchase invoice submission"
+  },
+  {
+   "default": "0",
+   "description": "Send payment statuses ('Payment Sent' / 'Payment Received') when a payment is submitted against a linked invoice.",
+   "fieldname": "auto_send_payment",
+   "fieldtype": "Check",
+   "label": "Auto-send payment statuses on payment submission"
   },
   {
    "fieldname": "platform_management_section",

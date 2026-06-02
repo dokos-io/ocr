@@ -1,0 +1,196 @@
+{
+ "actions": [],
+ "autoname": "hash",
+ "creation": "2026-06-02 00:00:00",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "einvoice",
+  "direction",
+  "status",
+  "status_label",
+  "status_datetime",
+  "column_break_ee_1",
+  "state",
+  "pa_event_id",
+  "pa_flow_id",
+  "error_details",
+  "details_section",
+  "reason_code",
+  "reason_text",
+  "column_break_ee_2",
+  "action_code",
+  "action_text",
+  "comment",
+  "payment_section",
+  "amount",
+  "currency",
+  "column_break_ee_3",
+  "payment_date"
+ ],
+ "fields": [
+  {
+   "fieldname": "einvoice",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "eInvoice",
+   "options": "eInvoice",
+   "reqd": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "direction",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Direction",
+   "options": "out\nin",
+   "reqd": 1
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Data",
+   "in_standard_filter": 1,
+   "label": "Status",
+   "read_only": 1
+  },
+  {
+   "fieldname": "status_label",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Status Label",
+   "read_only": 1
+  },
+  {
+   "fieldname": "status_datetime",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
+   "label": "Status Date/Time"
+  },
+  {
+   "fieldname": "column_break_ee_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "created",
+   "fieldname": "state",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "State",
+   "options": "created\nsent\ndone\nerror"
+  },
+  {
+   "fieldname": "pa_event_id",
+   "fieldtype": "Data",
+   "label": "PA Event ID",
+   "read_only": 1
+  },
+  {
+   "fieldname": "pa_flow_id",
+   "fieldtype": "Data",
+   "label": "PA Flow ID",
+   "read_only": 1
+  },
+  {
+   "fieldname": "error_details",
+   "fieldtype": "Small Text",
+   "label": "Error Details",
+   "read_only": 1
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "details_section",
+   "fieldtype": "Section Break",
+   "label": "Details"
+  },
+  {
+   "fieldname": "reason_code",
+   "fieldtype": "Data",
+   "label": "Reason Code"
+  },
+  {
+   "fieldname": "reason_text",
+   "fieldtype": "Data",
+   "label": "Reason"
+  },
+  {
+   "fieldname": "column_break_ee_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "action_code",
+   "fieldtype": "Data",
+   "label": "Action Code"
+  },
+  {
+   "fieldname": "action_text",
+   "fieldtype": "Data",
+   "label": "Action"
+  },
+  {
+   "fieldname": "comment",
+   "fieldtype": "Small Text",
+   "label": "Comment"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "payment_section",
+   "fieldtype": "Section Break",
+   "label": "Payment"
+  },
+  {
+   "fieldname": "amount",
+   "fieldtype": "Currency",
+   "label": "Amount",
+   "options": "currency"
+  },
+  {
+   "fieldname": "currency",
+   "fieldtype": "Link",
+   "label": "Currency",
+   "options": "Currency"
+  },
+  {
+   "fieldname": "column_break_ee_3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "payment_date",
+   "fieldtype": "Date",
+   "label": "Payment Date"
+  }
+ ],
+ "links": [],
+ "modified": "2026-06-02 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "eTransactions",
+ "name": "eInvoice Event",
+ "naming_rule": "Random",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "read": 1,
+   "role": "System Manager",
+   "write": 1
+  },
+  {
+   "create": 1,
+   "read": 1,
+   "role": "Accounts Manager",
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "Accounts User"
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "status_datetime",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "status_label"
+}
