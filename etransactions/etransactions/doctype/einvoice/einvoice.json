@@ -28,6 +28,7 @@
   "column_break_metg",
   "company",
   "purchase_order",
+  "contract_reference",
   "section_break_oyba",
   "buyer_electronic_address_scheme",
   "column_break_remv",
@@ -537,6 +538,12 @@
    "fieldname": "buyer_reference",
    "fieldtype": "Data",
    "label": "Buyer Reference"
+  },
+  {
+   "description": "Contract / public-procurement reference (numéro de marché, BT-12).",
+   "fieldname": "contract_reference",
+   "fieldtype": "Data",
+   "label": "Contract Reference"
   },
   {
    "default": "Incoming",

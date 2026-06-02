@@ -55,6 +55,15 @@ selling_fields = [
 		"fetch_from": "customer.etransactions_buyer_reference",
 		"fetch_if_empty": 1,
 	},
+	{
+		"fieldname": "etransactions_contract_reference",
+		"label": _("Contract Reference"),
+		"description": _("Public-procurement contract number (numéro de marché, BT-12). Used for B2G / Chorus Pro."),
+		"insert_after": "etransactions_buyer_reference",
+		"fieldtype": "Data",
+		"fetch_from": "customer.etransactions_contract_reference",
+		"fetch_if_empty": 1,
+	},
 ]
 
 sales_invoicing_fields = [

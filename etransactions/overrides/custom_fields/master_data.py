@@ -29,9 +29,16 @@ customer_fields = [
 		"fieldtype": "Data",
 	},
 	{
+		"fieldname": "etransactions_contract_reference",
+		"label": _("Contract Reference"),
+		"description": _("Default public-procurement contract number (numéro de marché) for B2G invoices."),
+		"insert_after": "etransactions_buyer_reference",
+		"fieldtype": "Data",
+	},
+	{
 		"fieldname": "etransactions_electronic_address_scheme",
 		"label": _("Electronic Address Scheme"),
-		"insert_after": "etransactions_buyer_reference",
+		"insert_after": "etransactions_contract_reference",
 		"fieldtype": "Link",
 		"options": "Common Code",
 	},

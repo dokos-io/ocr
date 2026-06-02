@@ -40,6 +40,9 @@ def on_validate(doc, method):
 						indicator="orange",
 					)
 
+		if customer_entity_type == "public":
+			_apply_b2g(doc)
+
 	for tax_row in doc.taxes:
 		if tax_row.charge_type == "On Item Quantity":
 			frappe.msgprint(
@@ -212,6 +215,34 @@ def refresh_pa_status(sales_invoice: str):
 	frappe.get_doc("eInvoice", einvoice_name).refresh_pa_status()
 
 
+def _apply_b2g(doc):
+	"""Apply B2G (public-sector / Chorus Pro) handling to a Sales Invoice.
+
+	When the buyer is a public entity, the invoice must carry the French CTC-FR
+	profile and the mandatory public-procurement references. We upgrade the
+	profile (only from the French regulated profiles) and warn when the code
+	service (BT-10 Buyer Reference) is missing.
+	"""
+	current = doc.etransaction_profile
+	if current in (EInvoiceProfile.EN16931.value, EInvoiceProfile.EXTENDED.value):
+		doc.etransaction_profile = EInvoiceProfile.CTC_FR.value
+		frappe.msgprint(
+			_("This customer is a public entity (B2G): the e-invoice profile has been set to "
+			  "<b>EXTENDED CTC-FR</b> to comply with Chorus Pro / PPF requirements."),
+			alert=True,
+			indicator="blue",
+		)
+
+	if not doc.etransactions_buyer_reference:
+		frappe.msgprint(
+			_("This is a B2G invoice (public entity). The <b>service code</b> (code service exécutant, "
+			  "BT-10 Buyer Reference) is usually required by Chorus Pro. Set it on the invoice or on the customer."),
+			title=_("Missing B2G service code"),
+			alert=True,
+			indicator="orange",
+		)
+
+
 def _warn_missing_seller_data(doc):
 	"""Warn the user about missing company data that will cause e-invoice validation errors."""
 	if not doc.company:
@@ -309,6 +340,12 @@ def _create_update_einvoice(doc):
 	einvoice.profile = doc.etransaction_profile
 	einvoice.country = country
 	einvoice.company = doc.company
+
+	# B2G (public-entity buyer) → set the B2G processing rule for the platform.
+	customer_entity_type = frappe.db.get_value("Customer", doc.customer, "directory_entity_type")
+	if customer_entity_type == "public":
+		einvoice.pa_processing_rule = "B2G"
+
 	einvoice.flags.ignore_permissions = True
 	einvoice.save()
 
