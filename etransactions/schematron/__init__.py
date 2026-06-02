@@ -10,6 +10,9 @@ PROFILE_TO_XSL = {
 	EInvoiceProfile.EN16931: "EN16931-CII-validation-preprocessed.xsl",
 	EInvoiceProfile.EXTENDED: "Factur-X_1.07.2_EXTENDED.xsl",
 	EInvoiceProfile.XRECHNUNG: "XRechnung-CII-validation.xsl",
+	# CTC-FR is Extended-based; validate with the Factur-X EXTENDED schematron.
+	# (the cpro.gouv.fr CTC-FR Schematron is not bundled; the PA validates on submit.)
+	EInvoiceProfile.CTC_FR: "Factur-X_1.07.2_EXTENDED.xsl",
 }
 
 

@@ -184,6 +184,9 @@ class EInvoiceProfile(Enum):
 	EN16931 = "EN16931"
 	EXTENDED = "EXTENDED"
 	XRECHNUNG = "FACTUR-X"
+	# French CTC profile (Extended CIUS with the cpro.gouv.fr guideline), required
+	# for the French e-invoicing reform / B2G flows. Extended-based.
+	CTC_FR = "EXTENDED CTC-FR"
 
 	def __lt__(self, other):
 		# https://stackoverflow.com/a/39269589
@@ -194,6 +197,7 @@ class EInvoiceProfile(Enum):
 			EInvoiceProfile.EN16931,
 			EInvoiceProfile.XRECHNUNG,
 			EInvoiceProfile.EXTENDED,
+			EInvoiceProfile.CTC_FR,
 		]
 		return order.index(self) < order.index(other)
 
@@ -206,6 +210,7 @@ PROFILE_TO_SCHEMA = {
 	EInvoiceProfile.EN16931: "FACTUR-X_EN16931",
 	EInvoiceProfile.XRECHNUNG: "FACTUR-X_EN16931",
 	EInvoiceProfile.EXTENDED: "FACTUR-X_EXTENDED",
+	EInvoiceProfile.CTC_FR: "FACTUR-X_EXTENDED",
 }
 
 # Map of EInvoiceProfile to GuidelineSpecifiedDocumentContextParameter
@@ -216,6 +221,7 @@ PROFILE_TO_GUIDELINE = {
 	EInvoiceProfile.EN16931: "urn:cen.eu:en16931:2017",
 	EInvoiceProfile.XRECHNUNG: "urn:cen.eu:en16931:2017#compliant#urn:xeinkauf.de:kosit:xrechnung_3.0",
 	EInvoiceProfile.EXTENDED: "urn:cen.eu:en16931:2017#conformant#urn:factur-x.eu:1p0:extended",
+	EInvoiceProfile.CTC_FR: "urn.cpro.gouv.fr:1p0:extended-ctc-fr",
 }
 GUIDELINE_TO_PROFILE = {v: k for k, v in PROFILE_TO_GUIDELINE.items()}
 

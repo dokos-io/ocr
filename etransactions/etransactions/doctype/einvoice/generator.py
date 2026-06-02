@@ -86,6 +86,7 @@ class EInvoiceMapper:
 		self.einvoice.purchase_order = self.sales_invoice.po_no
 		self.einvoice.po_date = self.sales_invoice.po_date
 		self.einvoice.buyer_reference = self.sales_invoice.etransactions_buyer_reference
+		self.einvoice.contract_reference = self.sales_invoice.get("etransactions_contract_reference")
 		self.einvoice.company = self.sales_invoice.company
 		self.einvoice.profile = self.sales_invoice.etransaction_profile
 		self.einvoice.einvoice_embedded_document = self.sales_invoice.get("einvoice_embedded_document")
@@ -321,6 +322,10 @@ class EInvoiceGenerator:
 
 		if self.einvoice.buyer_reference:
 			self.doc.trade.agreement.buyer_reference = self.einvoice.buyer_reference
+
+		# Numéro de marché (BT-12 ContractReferencedDocument) — required for B2G / Chorus Pro.
+		if self.einvoice.get("contract_reference"):
+			self.doc.trade.agreement.contract.issuer_assigned_id = self.einvoice.contract_reference
 
 		if self.einvoice.purchase_order:
 			self.doc.trade.agreement.buyer_order.issuer_assigned_id = self.einvoice.purchase_order
