@@ -2125,6 +2125,40 @@ msgstr "Niveau de confiance"
 msgid "Medium confidence"
 msgstr "Confiance moyenne"
 
+msgid "Missing buyer address country"
+msgstr "Pays de l'adresse de l'acheteur manquant"
+
+msgid ""
+"The buyer address has no country set (rule BR-09). "
+"Add a country to the address <a href='/app/address/{0}'>{0}</a>."
+msgstr ""
+"L'adresse de l'acheteur n'a pas de pays défini (règle BR-09). "
+"Ajoutez un pays à l'adresse <a href='/app/address/{0}'>{0}</a>."
+
+msgid "Missing seller address"
+msgstr "Adresse du vendeur manquante"
+
+msgid ""
+"The seller postal address is missing from the e-invoice (rules BR-08, BR-09). "
+"Select a <b>Company Address</b> on this invoice, or add a default address to your company "
+"in <a href='/app/company/{0}'>Company settings</a>."
+msgstr ""
+"L'adresse postale du vendeur est manquante dans la facture électronique (règles BR-08, BR-09). "
+"Sélectionnez une <b>Adresse de la société</b> sur cette facture, ou ajoutez une adresse par défaut à votre société "
+"dans les <a href='/app/company/{0}'>Paramètres de la société</a>."
+
+msgid "Missing seller tax ID"
+msgstr "Numéro d'identification fiscale du vendeur manquant"
+
+msgid ""
+"The seller tax identification number is missing from the e-invoice (rules BR-S-02, BR-CO-26). "
+"Add a <b>Tax ID</b> (VAT/TVA intracommunautaire) in <a href='/app/company/{0}'>Company settings</a>, "
+"or a <b>SIREN number</b> (numéro SIREN) in the same page."
+msgstr ""
+"Le numéro d'identification fiscale du vendeur est manquant dans la facture électronique (règles BR-S-02, BR-CO-26). "
+"Ajoutez un <b>N° fiscal</b> (TVA intracommunautaire) dans les <a href='/app/company/{0}'>Paramètres de la société</a>, "
+"ou un <b>numéro SIREN</b> dans la même page."
+
 msgid "No new matches found"
 msgstr "Aucune nouvelle correspondance trouvée"
 

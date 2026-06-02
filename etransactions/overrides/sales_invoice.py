@@ -222,7 +222,7 @@ def _warn_missing_seller_data(doc):
 			_(
 				"The seller postal address is missing from the e-invoice (rules BR-08, BR-09). "
 				"Select a <b>Company Address</b> on this invoice, or add a default address to your company "
-				"in <a href='/desk/company/{0}'>Company settings</a>."
+				"in <a href='/app/company/{0}'>Company settings</a>."
 			).format(frappe.utils.sanitize_html(doc.company)),
 			title=_("Missing seller address"),
 			indicator="orange",
@@ -234,7 +234,7 @@ def _warn_missing_seller_data(doc):
 		frappe.msgprint(
 			_(
 				"The seller tax identification number is missing from the e-invoice (rules BR-S-02, BR-CO-26). "
-				"Add a <b>Tax ID</b> (VAT/TVA intracommunautaire) in <a href='/desk/company/{0}'>Company settings</a>, "
+				"Add a <b>Tax ID</b> (VAT/TVA intracommunautaire) in <a href='/app/company/{0}'>Company settings</a>, "
 				"or a <b>SIREN number</b> (numéro SIREN) in the same page."
 			).format(frappe.utils.sanitize_html(doc.company)),
 			title=_("Missing seller tax ID"),
