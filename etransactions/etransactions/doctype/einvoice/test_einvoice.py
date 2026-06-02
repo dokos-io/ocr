@@ -3,8 +3,12 @@
 
 import os
 import datetime
+import unittest
 import frappe
+from drafthorse.models.document import Document
 from etransactions.tests.utils import eTransactionsTestSuite
+from etransactions.etransactions.doctype.einvoice.generator import EInvoiceGenerator
+from etransactions.utils import EInvoiceProfile
 from etransactions.etransactions.doctype.einvoice.test_data import (
 	MINIMUM_INVOICES,
 	BASIC_WL_INVOICES,
@@ -306,3 +310,141 @@ class TesteInvoice(eTransactionsTestSuite):
 		self.assertEqual(einvoice.items[1].product_name, "_Test Item 2")
 		self.assertEqual(einvoice.items[1].billed_quantity, 1)
 		self.assertEqual(einvoice.items[1].net_rate, 100.0)
+
+
+# ---------------------------------------------------------------------------
+# Helpers for the SIREN unit tests below
+# ---------------------------------------------------------------------------
+
+def _tax_regs(party):
+	"""Return [(scheme_id, text), ...] for all tax registrations on a party."""
+	return [(tr.id._scheme_id, tr.id._text) for tr in party.tax_registrations.children]
+
+
+def _legal_org_id(party):
+	"""Return (scheme_id, text) if legal_organization.id was set, else None."""
+	lo_id = party.legal_organization.id
+	return (lo_id._scheme_id, lo_id._text) if lo_id._text else None
+
+
+class TestGeneratorSirenLogic(unittest.TestCase):
+	"""Unit tests for the SIREN identifier logic in EInvoiceGenerator.
+
+	These tests call the private _set_*_tax_id and _set_*_legal_organization
+	methods directly on a bare EInvoiceGenerator instance so they run without
+	a Frappe site or database.
+	"""
+
+	def _make(self, seller_tax_id="", buyer_tax_id="", seller_siren="", buyer_siren=""):
+		gen = EInvoiceGenerator.__new__(EInvoiceGenerator)
+		gen.profile = EInvoiceProfile.EN16931
+		gen.einvoice = frappe._dict(seller_tax_id=seller_tax_id, buyer_tax_id=buyer_tax_id)
+		gen.company = frappe._dict(siren_number=seller_siren)
+		gen.customer = frappe._dict(siren_number=buyer_siren)
+		gen.doc = Document()
+		return gen
+
+	# -------------------------------------------------------------------------
+	# Seller — tax registrations
+	# -------------------------------------------------------------------------
+
+	def test_seller_vat_only(self):
+		"""A valid VAT number produces one VA registration, no FC."""
+		gen = self._make(seller_tax_id="FR12345678901")
+		gen._set_seller_tax_id()
+		self.assertEqual(_tax_regs(gen.doc.trade.agreement.seller), [("VA", "FR12345678901")])
+
+	def test_seller_siren_only(self):
+		"""No Tax ID but a company SIREN produces one FC registration (satisfies BR-CO-26)."""
+		gen = self._make(seller_siren="123456789")
+		gen._set_seller_tax_id()
+		self.assertEqual(_tax_regs(gen.doc.trade.agreement.seller), [("FC", "123456789")])
+
+	def test_seller_vat_and_siren(self):
+		"""VAT + SIREN produces two registrations: VA first, then FC."""
+		gen = self._make(seller_tax_id="FR12345678901", seller_siren="123456789")
+		gen._set_seller_tax_id()
+		self.assertEqual(
+			_tax_regs(gen.doc.trade.agreement.seller),
+			[("VA", "FR12345678901"), ("FC", "123456789")],
+		)
+
+	def test_seller_non_vat_tax_id_without_siren(self):
+		"""A Tax ID that is not a valid VAT number falls back to FC; SIREN is not duplicated."""
+		gen = self._make(seller_tax_id="123456789")
+		gen._set_seller_tax_id()
+		self.assertEqual(_tax_regs(gen.doc.trade.agreement.seller), [("FC", "123456789")])
+
+	def test_seller_no_ids(self):
+		"""No Tax ID and no SIREN → no registrations."""
+		gen = self._make()
+		gen._set_seller_tax_id()
+		self.assertEqual(_tax_regs(gen.doc.trade.agreement.seller), [])
+
+	def test_seller_siren_stripped(self):
+		"""Whitespace around the SIREN is stripped before emitting FC."""
+		gen = self._make(seller_siren="  123456789  ")
+		gen._set_seller_tax_id()
+		self.assertEqual(_tax_regs(gen.doc.trade.agreement.seller), [("FC", "123456789")])
+
+	# -------------------------------------------------------------------------
+	# Seller — legal organization
+	# -------------------------------------------------------------------------
+
+	def test_seller_legal_org_set_from_siren(self):
+		"""Company SIREN is written to legal_organization.id with scheme 0002."""
+		gen = self._make(seller_siren="123456789")
+		gen._set_seller_legal_organization()
+		self.assertEqual(_legal_org_id(gen.doc.trade.agreement.seller), ("0002", "123456789"))
+
+	def test_seller_legal_org_strips_whitespace(self):
+		gen = self._make(seller_siren="  123456789  ")
+		gen._set_seller_legal_organization()
+		self.assertEqual(_legal_org_id(gen.doc.trade.agreement.seller), ("0002", "123456789"))
+
+	def test_seller_legal_org_not_set_without_siren(self):
+		"""No SIREN → legal_organization.id is left empty."""
+		gen = self._make()
+		gen._set_seller_legal_organization()
+		self.assertIsNone(_legal_org_id(gen.doc.trade.agreement.seller))
+
+	# -------------------------------------------------------------------------
+	# Buyer — tax registrations
+	# -------------------------------------------------------------------------
+
+	def test_buyer_vat_only(self):
+		gen = self._make(buyer_tax_id="DE123456789")
+		gen._set_buyer_tax_id()
+		self.assertEqual(_tax_regs(gen.doc.trade.agreement.buyer), [("VA", "DE123456789")])
+
+	def test_buyer_siren_only(self):
+		gen = self._make(buyer_siren="987654321")
+		gen._set_buyer_tax_id()
+		self.assertEqual(_tax_regs(gen.doc.trade.agreement.buyer), [("FC", "987654321")])
+
+	def test_buyer_vat_and_siren(self):
+		gen = self._make(buyer_tax_id="FR98765432101", buyer_siren="987654321")
+		gen._set_buyer_tax_id()
+		self.assertEqual(
+			_tax_regs(gen.doc.trade.agreement.buyer),
+			[("VA", "FR98765432101"), ("FC", "987654321")],
+		)
+
+	def test_buyer_no_ids(self):
+		gen = self._make()
+		gen._set_buyer_tax_id()
+		self.assertEqual(_tax_regs(gen.doc.trade.agreement.buyer), [])
+
+	# -------------------------------------------------------------------------
+	# Buyer — legal organization
+	# -------------------------------------------------------------------------
+
+	def test_buyer_legal_org_set_from_siren(self):
+		gen = self._make(buyer_siren="987654321")
+		gen._set_buyer_legal_organization()
+		self.assertEqual(_legal_org_id(gen.doc.trade.agreement.buyer), ("0002", "987654321"))
+
+	def test_buyer_legal_org_not_set_without_siren(self):
+		gen = self._make()
+		gen._set_buyer_legal_organization()
+		self.assertIsNone(_legal_org_id(gen.doc.trade.agreement.buyer))
