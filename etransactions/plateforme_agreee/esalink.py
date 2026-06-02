@@ -13,8 +13,11 @@ from etransactions.components.superpdp.models import (
     DirectoryLineData,
     FlowResult,
     IncomingFlow,
+    LifecycleEvent,
+    LifecycleResult,
     StatusResult,
 )
+from etransactions.plateforme_agreee.cdar import generate_cdar_flow
 
 
 class ESALINKClient:
@@ -87,6 +90,64 @@ class ESALINKClient:
             frappe.throw(_("The pyfrctc library is not installed."))
 
         return get_flow(self._session, flow_id, doc_type="Original")
+
+    def submit_lifecycle_status(
+        self,
+        *,
+        flow_id: str,
+        status: str,
+        einvoice,
+        details: list[dict] = None,
+        attachments: list[dict] = None,
+        processing_rule: str = "B2B",
+    ) -> LifecycleResult:
+        """Report a lifecycle status by submitting a CDAR flow via pyfrctc."""
+        try:
+            from pyfrctc import send_flow_parsed
+        except ImportError:
+            frappe.throw(_("The pyfrctc library is not installed."))
+
+        cdar_bytes, filename = generate_cdar_flow(einvoice, status, details, attachments)
+        res = send_flow_parsed(self._session, cdar_bytes, filename, "CDAR", processing_rule)
+        return LifecycleResult(
+            state="sent",
+            flow_id=res.get("flowId"),
+            submitted_at=res.get("submittedAt"),
+        )
+
+    def list_incoming_lifecycle_flows(self) -> list[IncomingFlow]:
+        """Return incoming lifecycle (CDAR) flows from the last 30 days."""
+        try:
+            from pyfrctc import search_flows_parsed
+        except ImportError:
+            frappe.throw(_("The pyfrctc library is not installed."))
+
+        import datetime as _dt
+
+        updated_after = (
+            _dt.datetime.now(_dt.timezone.utc) - _dt.timedelta(days=30)
+        ).strftime("%Y-%m-%dT%H:%M:%SZ")
+        raw_flows = search_flows_parsed(
+            self._session,
+            updated_after,
+            flow_direction="in",
+            flow_type=["CustomerInvoiceLC", "SupplierInvoiceLC"],
+        ) or []
+        return [
+            IncomingFlow(
+                flow_id=f.get("flowId", ""),
+                submitted_at=f.get("submittedAt"),
+                updated_at=f.get("updatedAt") or f.get("submittedAt"),
+                flow_type=f.get("flowType", "CustomerInvoiceLC"),
+                syntax=f.get("flowSyntax"),
+            )
+            for f in raw_flows
+        ]
+
+    def get_lifecycle_events(self, flow_id: str) -> list[LifecycleEvent]:
+        """No-op for Esalink: lifecycle CDARs arrive as separate ``*InvoiceLC``
+        flows and are processed by ``flow.poll_incoming_lifecycle_flows()``."""
+        return []
 
     def get_directory_for_siren(self, siren: str) -> DirectoryData:
         try:

@@ -17,8 +17,11 @@ from etransactions.components.superpdp.models import (
     DirectoryLineData,
     FlowResult,
     IncomingFlow,
+    LifecycleEvent,
+    LifecycleResult,
     StatusResult,
 )
+from etransactions.plateforme_agreee import lifecycle_status
 
 try:
     import requests
@@ -397,6 +400,62 @@ class SuperPDPClient:
             closed=all_inactive,
             lines=lines,
         )
+
+    # -------------------------------------------------------------------------
+    # Lifecycle status (unified interface)
+    # -------------------------------------------------------------------------
+
+    def submit_lifecycle_status(
+        self,
+        *,
+        flow_id: str,
+        status: str,
+        einvoice=None,
+        details: list[dict] = None,
+        attachments: list[dict] = None,
+    ) -> LifecycleResult:
+        """Report a lifecycle status via SuperPDP's native event endpoint."""
+        status_code = lifecycle_status.to_superpdp_code(status)
+        res = self.create_invoice_event(
+            int(flow_id),
+            status_code,
+            details=details,
+            attachments=attachments,
+        )
+        return LifecycleResult(
+            state="sent",
+            event_id=str(res.get("id")) if res.get("id") is not None else None,
+            submitted_at=res.get("created_at"),
+        )
+
+    def list_incoming_lifecycle_flows(self) -> list[IncomingFlow]:
+        """No separate lifecycle flows: SuperPDP exposes events inline on each
+        invoice, read via ``get_lifecycle_events()``."""
+        return []
+
+    def get_lifecycle_events(self, flow_id: str) -> list[LifecycleEvent]:
+        """Return the lifecycle events recorded on one of our outgoing invoices."""
+        invoice = self.get_invoice(flow_id)
+        events: list[LifecycleEvent] = []
+        for ev in invoice.get("events", []):
+            canonical = lifecycle_status.from_superpdp_code(ev.get("status_code", ""))
+            if not canonical:
+                continue
+            comment = None
+            details = ev.get("details") or []
+            if details:
+                comment = details[0].get("reason")
+            events.append(
+                LifecycleEvent(
+                    status=canonical,
+                    status_label=lifecycle_status.label(canonical),
+                    direction="in",
+                    datetime=ev.get("created_at"),
+                    comment=comment,
+                    pa_event_id=str(ev.get("id")) if ev.get("id") is not None else None,
+                )
+            )
+        return events
 
     # -------------------------------------------------------------------------
     # Internal helpers

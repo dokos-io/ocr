@@ -49,6 +49,7 @@ class eInvoice(Document):
 		buyer_reference: DF.Data | None
 		charge_total: DF.Currency
 		company: DF.Link | None
+		contract_reference: DF.Data | None
 		currency: DF.Link | None
 		due_date: DF.Date | None
 		due_payable: DF.Currency
@@ -218,6 +219,95 @@ class eInvoice(Document):
 
 		if update:
 			self.db_set(update)
+
+	@frappe.whitelist()
+	def submit_lifecycle_status(
+		self,
+		status: str,
+		comment: str | None = None,
+		reason_code: str | None = None,
+		reason_text: str | None = None,
+		amount: float | None = None,
+		currency: str | None = None,
+		payment_date: str | None = None,
+	):
+		"""Report an invoice lifecycle status to the accredited platform.
+
+		``status`` is a canonical status (etransactions.plateforme_agreee.lifecycle_status).
+		"""
+		from etransactions.plateforme_agreee import lifecycle_status
+		from etransactions.plateforme_agreee.session import get_client
+		from etransactions.etransactions.doctype.einvoice_event.einvoice_event import record_event
+		from etransactions.etransactions.doctype.einvoicing_log.einvoicing_log import eInvoicingLog
+
+		if not self.pa_flow_id:
+			frappe.throw(_("This eInvoice has not been submitted to the accredited platform yet."))
+		if status not in lifecycle_status.STATUSES:
+			frappe.throw(_("Unknown lifecycle status '{0}'.").format(status))
+
+		if lifecycle_status.reason_required(status):
+			if not reason_code:
+				frappe.throw(_("A reason code is required to report the status '{0}'.").format(lifecycle_status.label(status)))
+			if reason_code not in lifecycle_status.reason_codes(status):
+				frappe.throw(_("'{0}' is not a valid reason code for the status '{1}'.").format(reason_code, lifecycle_status.label(status)))
+			reason_text = reason_text or reason_code
+
+		details = None
+		if reason_code or reason_text or comment or amount is not None:
+			details = [{
+				"reason_code": reason_code,
+				"reason_text": reason_text,
+				"comment": comment,
+				"amount": amount,
+				"currency": currency,
+				"payment_date": payment_date,
+			}]
+
+		customer = None
+		if self.sales_invoice:
+			customer = frappe.db.get_value("Sales Invoice", self.sales_invoice, "customer")
+		transaction_type = "sales" if self.einvoice_type == "Outgoing" else "purchases"
+		client = get_client(self.company, customer=customer, transaction_type=transaction_type)
+
+		result = {
+			"operation_type": "lifecycle_send",
+			"origin": "Manual",
+			"company": self.company,
+			"new_count": 0,
+			"updated_count": 0,
+			"logs": [],
+		}
+
+		try:
+			res = client.submit_lifecycle_status(
+				flow_id=self.pa_flow_id,
+				status=status,
+				einvoice=self,
+				details=details,
+			)
+		except Exception as e:
+			result["logs"].append(("error", f"Failed to send status '{status}' for eInvoice {self.name}: {str(e)}"))
+			eInvoicingLog.create_log(result)
+			raise
+
+		record_event(
+			self.name,
+			direction="out",
+			status=status,
+			state=res.state,
+			pa_event_id=res.event_id,
+			pa_flow_id=res.flow_id or self.pa_flow_id,
+			reason_code=reason_code,
+			reason_text=reason_text,
+			comment=comment,
+			amount=amount,
+			currency=currency,
+			payment_date=payment_date,
+		)
+		result["new_count"] = 1
+		result["logs"].append(("info", f"Lifecycle status '{status}' sent for eInvoice {self.name}"))
+		eInvoicingLog.create_log(result)
+		return lifecycle_status.label(status)
 
 	def _get_file_for_pa(self) -> tuple[bytes, str, str]:
 		"""Return (file_bytes, filename, syntax) for PA submission.
@@ -407,6 +497,13 @@ class eInvoice(Document):
 
 		return doc.insert(ignore_mandatory=True, ignore_links=True)
 
+
+
+@frappe.whitelist()
+def get_lifecycle_reason_codes(status: str) -> list[str]:
+	"""Return the allowed MDT-113 reason codes for a lifecycle status (for the UI)."""
+	from etransactions.plateforme_agreee import lifecycle_status
+	return lifecycle_status.reason_codes(status)
 
 
 @frappe.whitelist()
