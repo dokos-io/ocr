@@ -25,6 +25,18 @@ class TestDirectorySync(IntegrationTestCase):
 	# Fixtures
 	# ------------------------------------------------------------------
 
+	def _non_group_customer_group(self):
+		"""Return a leaf (non-group) Customer Group; the root group is rejected on validate."""
+		group = frappe.db.get_value("Customer Group", {"is_group": 0}, "name")
+		if not group:
+			group = frappe.get_doc({
+				"doctype": "Customer Group",
+				"customer_group_name": "_Test PA Customer Group",
+				"parent_customer_group": "All Customer Groups",
+				"is_group": 0,
+			}).insert(ignore_permissions=True).name
+		return group
+
 	def _make_customer(self, suffix, siren_number="", tax_id=""):
 		"""Insert a minimal Customer and register a cleanup."""
 		name = f"_Test PA Dir {suffix}"
@@ -35,7 +47,7 @@ class TestDirectorySync(IntegrationTestCase):
 		frappe.get_doc({
 			"doctype": "Customer",
 			"customer_name": name,
-			"customer_group": "All Customer Groups",
+			"customer_group": self._non_group_customer_group(),
 			"territory": "All Territories",
 		}).insert(ignore_permissions=True)
 
