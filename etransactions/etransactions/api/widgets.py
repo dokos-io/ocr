@@ -260,7 +260,9 @@ def get_vat_configuration_status() -> dict:
 	workspace widget, with a link to the France VAT Migration Tool.
 
 	Checks:
-	  1. Tax Rules        — every active tax category has a Sales and a Purchase rule.
+	  1. Determination    — every active tax category selects a Sales and a Purchase
+	                        taxes template, either through a Tax Rule or through the
+	                        tax category set on the template itself.
 	  2. Customers        — active customers with a tax category.
 	  3. Suppliers        — active suppliers with a tax category.
 	  4. Addresses        — active addresses with a tax category.
@@ -270,7 +272,7 @@ def get_vat_configuration_status() -> dict:
 	categories = frappe.get_all("Tax Category", filters={"disabled": 0}, pluck="name")
 
 	checks = [
-		_tax_rule_check(categories),
+		_determination_check(categories),
 		_party_tax_category_check("Customer", "customers", _("Customers with Tax Category")),
 		_party_tax_category_check("Supplier", "suppliers", _("Suppliers with Tax Category")),
 		_party_tax_category_check("Address", "addresses", _("Addresses with Tax Category")),
@@ -281,28 +283,39 @@ def get_vat_configuration_status() -> dict:
 		"categories": len(categories),
 		"configured": bool(categories) and all(c["pct"] == 100 for c in checks),
 		"checks": checks,
-		"tool_route": "/app/france-vat-migration-tool",
+		"tool_route": "/app/vat-configuration-tool",
 	}
 
 
-def _tax_rule_check(categories: list) -> dict:
-	rules = (
-		frappe.get_all(
+def _determination_check(categories: list) -> dict:
+	"""A category is covered per tax type by a Tax Rule or a tagged taxes template."""
+	covered = set()
+	if categories:
+		for rule in frappe.get_all(
 			"Tax Rule",
-			filters={"tax_category": ("in", categories)},
+			filters={"tax_category": ("in", categories), "use_for_shopping_cart": 0},
 			fields=["tax_type", "tax_category"],
-		)
-		if categories
-		else []
-	)
-	ruled = {(r.tax_category, r.tax_type) for r in rules}
+		):
+			covered.add((rule.tax_category, rule.tax_type))
+
+		for tax_type, doctype in (
+			("Sales", "Sales Taxes and Charges Template"),
+			("Purchase", "Purchase Taxes and Charges Template"),
+		):
+			for tax_category in frappe.get_all(
+				doctype,
+				filters={"disabled": 0, "tax_category": ("in", categories)},
+				pluck="tax_category",
+			):
+				covered.add((tax_category, tax_type))
+
 	complete = sum(
-		1 for c in categories if (c, "Sales") in ruled and (c, "Purchase") in ruled
+		1 for c in categories if (c, "Sales") in covered and (c, "Purchase") in covered
 	)
 	total = len(categories)
 	return {
-		"key": "tax_rules",
-		"label": _("Tax Rules per Category"),
+		"key": "determination",
+		"label": _("Determination per Category"),
 		"complete": complete,
 		"missing": total - complete,
 		"total": total,
