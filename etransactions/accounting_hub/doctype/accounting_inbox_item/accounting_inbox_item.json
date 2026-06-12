@@ -1,0 +1,181 @@
+{
+ "actions": [],
+ "autoname": "format:ACC-INB-{YYYY}-{#####}",
+ "creation": "2026-06-12 18:00:00.000000",
+ "doctype": "DocType",
+ "email_append_to": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "title",
+  "sender",
+  "subject",
+  "column_break_main",
+  "status",
+  "source",
+  "company",
+  "section_break_links",
+  "created_request",
+  "column_break_links",
+  "created_invoices_basket"
+ ],
+ "fields": [
+  {
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "label": "Title"
+  },
+  {
+   "fieldname": "sender",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Sender",
+   "options": "Email",
+   "read_only": 1
+  },
+  {
+   "fieldname": "subject",
+   "fieldtype": "Small Text",
+   "in_list_view": 1,
+   "label": "Subject",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_main",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "To Triage",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Status",
+   "options": "To Triage\nIn Progress\nProcessed\nArchived"
+  },
+  {
+   "fieldname": "source",
+   "fieldtype": "Select",
+   "in_standard_filter": 1,
+   "label": "Source",
+   "options": "\nEmail\nManual Upload\nSupplier Portal\nAPI",
+   "read_only": 1
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_break_links",
+   "fieldtype": "Section Break",
+   "label": "Created Documents"
+  },
+  {
+   "fieldname": "created_request",
+   "fieldtype": "Link",
+   "label": "Created Request",
+   "options": "Accounting Request",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_links",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "created_invoices_basket",
+   "fieldtype": "Link",
+   "label": "Created Invoices Basket",
+   "options": "Supplier Invoices Basket",
+   "read_only": 1
+  }
+ ],
+ "links": [
+  {
+   "group": "Collaboration",
+   "link_doctype": "Accounting Request",
+   "link_fieldname": "inbox_item"
+  }
+ ],
+ "modified": "2026-06-12 18:40:00.000000",
+ "modified_by": "Administrator",
+ "module": "Accounting Hub",
+ "name": "Accounting Inbox Item",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "select": 1,
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Accounts Manager",
+   "select": 1,
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Accounts User",
+   "select": 1,
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Accounting Collaborator",
+   "select": 1,
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sender_field": "sender",
+ "show_title_field_in_link": 1,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [
+  {
+   "color": "Blue",
+   "title": "To Triage"
+  },
+  {
+   "color": "Orange",
+   "title": "In Progress"
+  },
+  {
+   "color": "Green",
+   "title": "Processed"
+  },
+  {
+   "color": "Gray",
+   "title": "Archived"
+  }
+ ],
+ "subject_field": "subject",
+ "title_field": "title",
+ "track_changes": 1
+}

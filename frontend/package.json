@@ -1,0 +1,27 @@
+{
+  "name": "accounting-hub",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build --base=/assets/etransactions/accounting_hub/ && yarn copy-html-entry",
+    "preview": "vite preview",
+    "copy-html-entry": "cp ../etransactions/public/accounting_hub/index.html ../etransactions/www/accounting_hub.html"
+  },
+  "dependencies": {
+    "feather-icons": "^4.29.2",
+    "frappe-ui": "0.1.192",
+    "lucide-vue-next": "^0.542.0",
+    "socket.io-client": "^4.7.2",
+    "vue": "^3.5.13",
+    "vue-router": "^4.5.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.1.4",
+    "autoprefixer": "^10.4.2",
+    "postcss": "^8.4.5",
+    "tailwindcss": "^3.4.15",
+    "vite": "^5.4.10"
+  }
+}

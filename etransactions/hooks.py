@@ -44,6 +44,8 @@ doctype_js = {
 	"Purchase Invoice": "public/js/purchase_invoice.js",
 	"Purchase Order": "public/js/purchase_order.js",
 	"Sales Invoice": "public/js/sales_invoice.js",
+	"Bank Transaction": "public/js/bank_transaction.js",
+	"Journal Entry": "public/js/journal_entry.js",
 }
 
 doctype_list_js = {
@@ -75,6 +77,14 @@ doctype_list_js = {
 
 # automatically create page for each record of this doctype
 # website_generators = ["Web Page"]
+
+# Website routes
+# --------------
+
+website_route_rules = [
+	{"from_route": "/accounting-hub", "to_route": "accounting_hub"},
+	{"from_route": "/accounting-hub/<path:app_path>", "to_route": "accounting_hub"},
+]
 
 # Jinja
 # ----------
@@ -208,6 +218,9 @@ scheduler_events = {
 	"hourly": [
 		"etransactions.etransactions.doctype.ocr_request.ocr_request.check_pending_analysis"
 	],
+	"daily": [
+		"etransactions.accounting_hub.doctype.accounting_request.accounting_request.notify_overdue_requests"
+	],
 	# "weekly": [
 	# 	"etransactions.tasks.weekly"
 	# ],
@@ -231,9 +244,14 @@ override_whitelisted_methods = {
 # each overriding function accepts a `data` argument;
 # generated from the base implementation of the doctype dashboard,
 # along with any modifications made in other Frappe apps
-# override_doctype_dashboards = {
-#	"Task": "etransactions.task.get_dashboard_data"
-# }
+override_doctype_dashboards = {
+	"Bank Transaction": "etransactions.accounting_hub.dashboards.get_dashboard_data",
+	"Journal Entry": "etransactions.accounting_hub.dashboards.get_dashboard_data",
+	"Purchase Invoice": "etransactions.accounting_hub.dashboards.get_dashboard_data",
+	"Payment Entry": "etransactions.accounting_hub.dashboards.get_dashboard_data",
+	"Supplier Invoice": "etransactions.accounting_hub.dashboards.get_dashboard_data",
+	"Expense Claim": "etransactions.accounting_hub.dashboards.get_dashboard_data",
+}
 
 # exempt linked doctypes from being automatically cancelled
 #

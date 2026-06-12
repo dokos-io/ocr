@@ -57,6 +57,37 @@ def add_suppliers():
 
 
 
+def minimal_pdf_content() -> bytes:
+	"""Return the bytes of a minimal but structurally valid one-page PDF.
+
+	Needed because File creation hooks parse PDF attachments with pypdf,
+	which rejects arbitrary placeholder bytes.
+	"""
+	header = b"%PDF-1.4\n"
+	objects = [
+		b"1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n",
+		b"2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n",
+		b"3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 595 842]>>endobj\n",
+	]
+
+	offsets = []
+	body = b""
+	position = len(header)
+	for pdf_object in objects:
+		offsets.append(position)
+		body += pdf_object
+		position += len(pdf_object)
+
+	xref = b"xref\n0 4\n0000000000 65535 f \n"
+	for offset in offsets:
+		xref += f"{offset:010d} 00000 n \n".encode()
+
+	trailer = (
+		b"trailer<</Size 4/Root 1 0 R>>\nstartxref\n" + str(position).encode() + b"\n%%EOF\n"
+	)
+	return header + body + xref + trailer
+
+
 class eTransactionsTestSuite(ERPNextTestSuite):
 	"""Base class for eTransactions integration test suites"""
 
