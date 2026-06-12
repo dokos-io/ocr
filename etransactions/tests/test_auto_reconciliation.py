@@ -8,7 +8,8 @@ from frappe.utils.make_random import get_random
 
 from erpnext import get_default_company
 
-from erpnext.buying.doctype.purchase_order.purchase_order import PurchaseOrder, make_purchase_receipt
+from erpnext.buying.doctype.purchase_order.mapper import make_purchase_receipt
+from erpnext.buying.doctype.purchase_order.purchase_order import PurchaseOrder
 from etransactions.etransactions.doctype.etransactions_settings.etransactions_settings import eTransactionsSettings
 from etransactions.tests.utils import add_items, add_suppliers
 from etransactions.etransactions.doctype.supplier_invoice.supplier_invoice import SupplierInvoice

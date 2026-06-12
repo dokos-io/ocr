@@ -9,7 +9,7 @@ import frappe
 from frappe.utils.data import nowdate
 
 from erpnext.buying.doctype.purchase_order.test_purchase_order import create_purchase_order
-from erpnext.buying.doctype.purchase_order.purchase_order import make_purchase_receipt
+from erpnext.buying.doctype.purchase_order.mapper import make_purchase_receipt
 
 if TYPE_CHECKING:
 	from etransactions.etransactions.doctype.supplier_invoice.supplier_invoice import SupplierInvoice
