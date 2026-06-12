@@ -2,7 +2,7 @@
  "app": "etransactions",
  "charts": [],
  "color": "#3b82f6",
- "content": "[{\"id\":\"fxWarnBlock01\",\"type\":\"custom_block\",\"data\":{\"custom_block_name\":\"FacturX Warning\",\"col\":12}},{\"id\":\"fxReadiness02\",\"type\":\"custom_block\",\"data\":{\"custom_block_name\":\"Customer Readiness Widget\",\"col\":12}},{\"id\":\"ZeihuDTZbM\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"fxTaxReady03\",\"type\":\"custom_block\",\"data\":{\"custom_block_name\":\"Item Tax Readiness Widget\",\"col\":12}}]",
+ "content": "[{\"id\":\"fxWarnBlock01\",\"type\":\"custom_block\",\"data\":{\"custom_block_name\":\"FacturX Warning\",\"col\":12}},{\"id\":\"fxReadiness02\",\"type\":\"custom_block\",\"data\":{\"custom_block_name\":\"Customer Readiness Widget\",\"col\":12}},{\"id\":\"ZeihuDTZbM\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"fxTaxReady03\",\"type\":\"custom_block\",\"data\":{\"custom_block_name\":\"Item Tax Readiness Widget\",\"col\":12}},{\"id\":\"fxVatSpacer04\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"fxVatConfig05\",\"type\":\"custom_block\",\"data\":{\"custom_block_name\":\"VAT Configuration Widget\",\"col\":12}}]",
  "creation": "2026-03-15 00:00:00",
  "custom_blocks": [
   {
@@ -16,6 +16,10 @@
   {
    "custom_block_name": "Item Tax Readiness Widget",
    "label": "Item Tax Readiness Widget"
+  },
+  {
+   "custom_block_name": "VAT Configuration Widget",
+   "label": "VAT Configuration Widget"
   }
  ],
  "docstatus": 0,
@@ -59,9 +63,20 @@
    "link_type": "Report",
    "onboard": 0,
    "type": "Link"
+  },
+  {
+   "columns": 0,
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "France VAT Migration Tool",
+   "link_count": 0,
+   "link_to": "France VAT Migration Tool",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
   }
  ],
- "modified": "2026-03-15 15:46:12.278328",
+ "modified": "2026-06-12 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "eTransactions",
  "name": "FacturX Readiness",
