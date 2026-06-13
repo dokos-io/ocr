@@ -5,22 +5,22 @@
 		:href="href || undefined"
 		:target="href ? '_blank' : undefined"
 		:rel="href ? 'noopener' : undefined"
-		class="flex items-start gap-3 rounded-lg border border-l-4 border-gray-200 bg-white p-5"
-		:class="[accentClass, clickable ? 'transition-shadow hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500' : '']"
+		class="flex flex-col rounded-xl bg-white p-5 shadow-sm ring-1 ring-inset ring-gray-200"
+		:class="clickable ? 'transition duration-150 hover:-translate-y-0.5 hover:shadow-md hover:ring-gray-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500' : ''"
 	>
-		<div
-			v-if="icon"
-			class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg"
-			:class="iconWrapClass"
-		>
-			<component :is="icon" class="h-5 w-5" aria-hidden="true" />
+		<div class="flex items-start justify-between gap-3">
+			<p class="min-w-0 text-xs font-medium uppercase tracking-wide text-gray-500">{{ title }}</p>
+			<div
+				v-if="icon"
+				class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg"
+				:class="iconWrapClass"
+			>
+				<component :is="icon" class="h-5 w-5" aria-hidden="true" />
+			</div>
 		</div>
-		<div class="min-w-0">
-			<p class="text-xs font-medium uppercase tracking-wide text-gray-500">{{ title }}</p>
-			<p class="mt-1 text-2xl font-semibold" :class="valueClass">{{ value }}</p>
-			<p v-if="sublabel" class="mt-0.5 truncate text-xs text-gray-600">{{ sublabel }}</p>
-			<slot />
-		</div>
+		<p class="mt-3 text-3xl font-semibold tracking-tight" :class="valueClass">{{ value }}</p>
+		<p v-if="sublabel" class="mt-1 truncate text-xs text-gray-600">{{ sublabel }}</p>
+		<slot />
 	</component>
 </template>
 
@@ -38,17 +38,6 @@ const props = defineProps({
 })
 
 const clickable = computed(() => !!props.to || !!props.href)
-
-const accentClass = computed(
-	() =>
-		({
-			brand: "border-l-brand-500",
-			success: "border-l-green-500",
-			warning: "border-l-orange-400",
-			danger: "border-l-red-500",
-			default: "border-l-gray-300",
-		})[props.theme] || "border-l-brand-500"
-)
 
 const iconWrapClass = computed(
 	() =>
