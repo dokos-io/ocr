@@ -8,6 +8,8 @@ from collections import defaultdict
 import re
 import difflib
 from erpnext.accounts.doctype.sales_invoice.sales_invoice import SalesInvoice
+from erpnext.accounts.services.payment_schedule import PaymentScheduleService
+from erpnext.accounts.services.taxes import TaxService
 from erpnext.controllers.accounts_controller import merge_taxes
 from frappe.model.document import Document
 from frappe.model.mapper import get_mapped_doc
@@ -267,9 +269,9 @@ class SupplierInvoice(Document):
 				# append taxes
 				doc.set("taxes", [])
 				if doc.taxes_and_charges:
-					doc.append_taxes_from_master()
+					TaxService(doc).append_taxes_from_master()
 				else:
-					doc.append_taxes_from_item_tax_template()
+					TaxService(doc).append_taxes_from_item_tax_template()
 
 				doc.run_method("calculate_taxes_and_totals")
 
@@ -314,7 +316,7 @@ class SupplierInvoice(Document):
 		return result
 
 	def get_purchase_invoice(self, purchase_order_is_mandatory=True):
-		from erpnext.buying.doctype.purchase_order.purchase_order import make_purchase_invoice as make_purchase_invoice_from_po
+		from erpnext.buying.doctype.purchase_order.mapper import make_purchase_invoice as make_purchase_invoice_from_po
 
 		doc: PurchaseInvoice = frappe.new_doc("Purchase Invoice") # type: ignore
 		doc.ignore_pricing_rule = 1
@@ -376,9 +378,9 @@ class SupplierInvoice(Document):
 		doc.run_method("set_missing_values")
 		doc.set("taxes", [])
 		if doc.taxes_and_charges:
-			doc.append_taxes_from_master()
+			TaxService(doc).append_taxes_from_master()
 		else:
-			doc.append_taxes_from_item_tax_template()
+			TaxService(doc).append_taxes_from_item_tax_template()
 
 		doc.run_method("calculate_taxes_and_totals")
 
@@ -805,7 +807,7 @@ def get_best_match_from_list_of_dicts(data, matching_element, key):
 
 def make_purchase_order(source_name, target_doc=None, ignore_permissions=False):
 	from frappe.model.mapper import get_mapped_doc
-	from erpnext.buying.doctype.purchase_order.purchase_order import set_missing_values
+	from erpnext.buying.doctype.purchase_order.mapper import set_missing_values
 
 	def purchase_invoice_item_condition(doc):
 		if not doc.reference_doctype:
@@ -829,9 +831,9 @@ def make_purchase_order(source_name, target_doc=None, ignore_permissions=False):
 
 		# append taxes
 		if target_doc.taxes_and_charges:
-			target_doc.append_taxes_from_master()
+			TaxService(target_doc).append_taxes_from_master()
 		else:
-			target_doc.append_taxes_from_item_tax_template()
+			TaxService(target_doc).append_taxes_from_item_tax_template()
 
 		target_doc.run_method("set_missing_values")
 		target_doc.run_method("calculate_taxes_and_totals")
@@ -1067,7 +1069,7 @@ def get_settings():
 
 @frappe.whitelist()
 def make_purchase_invoice_from_pr(source_name: str, target_doc: "PurchaseInvoice | None" = None, args: str | None = None): # TODO: find a better way to handle this in ERPNext directly
-	from erpnext.stock.doctype.purchase_receipt.purchase_receipt import get_returned_qty_map, get_invoiced_qty_map
+	from erpnext.stock.doctype.purchase_receipt.mapper import get_invoiced_qty_map, get_returned_qty_map
 
 	if args is None:
 		args = {}
@@ -1093,7 +1095,7 @@ def make_purchase_invoice_from_pr(source_name: str, target_doc: "PurchaseInvoice
 			merge_taxes(source.get("taxes") or [], doc)
 
 		doc.run_method("calculate_taxes_and_totals")
-		doc.set_payment_schedule()
+		PaymentScheduleService(doc).set_payment_schedule()
 
 	def update_item(source_doc, target_doc, source_parent):
 		target_doc.qty, returned_qty = get_pending_qty(source_doc)
