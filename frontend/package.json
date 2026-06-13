@@ -10,8 +10,10 @@
     "copy-html-entry": "cp ../etransactions/public/ehub/index.html ../etransactions/www/ehub.html"
   },
   "dependencies": {
+    "@vueuse/core": "^11.0.0",
+    "dokos-ui": "link:../../../../dokos-ui",
     "feather-icons": "^4.29.2",
-    "frappe-ui": "0.1.192",
+    "frappe-ui": "1.0.0-beta.7",
     "lucide-vue-next": "^0.542.0",
     "socket.io-client": "^4.7.2",
     "vue": "^3.5.13",

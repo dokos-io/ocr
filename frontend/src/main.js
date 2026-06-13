@@ -18,9 +18,11 @@ import {
 	resourcesPlugin,
 	setConfig,
 } from "frappe-ui"
+import { registerDokosUi } from "./dokos-ui"
 
 import "./index.css"
 
+// Keep frappe-ui primitives available during the migration to dokos-ui.
 const globalComponents = {
 	Button,
 	TextInput,
@@ -40,6 +42,9 @@ app.use(router)
 app.use(resourcesPlugin)
 app.use(pageMetaPlugin)
 app.use(translationPlugin)
+
+// Register the curated dokos-ui B* components globally.
+registerDokosUi(app)
 
 for (const key in globalComponents) {
 	app.component(key, globalComponents[key])

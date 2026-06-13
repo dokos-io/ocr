@@ -1,4 +1,5 @@
-@import "frappe-ui/src/style.css";
+@import "frappe-ui/style.css";
+@import "dokos-ui/src/style.css";
 
 html,
 body,

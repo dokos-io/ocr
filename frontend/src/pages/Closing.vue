@@ -1,5 +1,6 @@
 <template>
-	<div class="mx-auto max-w-3xl p-6">
+	<BPage>
+		<div class="mx-auto w-full max-w-3xl">
 		<div class="mb-4 flex items-center justify-between">
 			<h1 class="flex items-center gap-2 text-lg font-semibold text-gray-900">
 				<ClipboardCheck class="h-5 w-5 text-brand-600" aria-hidden="true" />
@@ -127,7 +128,8 @@
 		<ClosingPeriodDialog v-model="periodDialogOpen" :period="periodToEdit" @saved="onPeriodSaved" />
 		<ClosingTaskDialog v-model="taskDialogOpen" :period="period?.name" :task="taskToEdit" @saved="onTaskSaved" />
 		<ChecklistTemplateDialog v-model="templateDialogOpen" @saved="onTemplateSaved" />
-	</div>
+		</div>
+	</BPage>
 </template>
 
 <script setup>
@@ -158,7 +160,14 @@ const canManageTemplates = computed(() => closingMeta.data?.can_manage_templates
 const metaError = computed(() => {
 	const error = closingMeta.error
 	if (!error) return ""
-	return error.messages?.join("\n") || error.message || ""
+	const raw = error.messages?.join("\n") || error.message || ""
+	// A non-JSON body (login page, 404, server error page) surfaces as a
+	// "Unexpected token '<'" JSON.parse error. Show an actionable message
+	// instead of leaking the parser internals to the accountant.
+	if (/Unexpected token '<'|<!DOCTYPE|is not valid JSON/i.test(raw)) {
+		return __("Please reload the page or sign in again.")
+	}
+	return raw
 })
 
 const tasks = createListResource({

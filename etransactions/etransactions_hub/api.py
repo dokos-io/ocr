@@ -365,23 +365,37 @@ def get_requests(scope: str = "mine") -> list[dict]:
 
 @frappe.whitelist()
 def get_closing_meta() -> dict:
-	"""Permission flags and template list for the in-app closing management UI."""
-	can_manage_periods = bool(frappe.has_permission("Closing Period", "create"))
-	can_manage_templates = bool(frappe.has_permission("Closing Checklist Template", "create"))
+	"""Permission flags and template list for the in-app closing management UI.
 
-	templates = []
-	if frappe.has_permission("Closing Checklist Template"):
-		templates = frappe.get_all(
-			"Closing Checklist Template",
-			fields=["name", "template_name", "company", "frequency"],
-			order_by="template_name asc",
-		)
+	Always returns a well-formed dict. Any unexpected failure (e.g. a doctype not
+	yet migrated on the site) is logged and degrades to "no management actions"
+	rather than escaping into an HTML error page, which the SPA can't parse as JSON.
+	The backend re-checks permissions on every write, so failing closed here is safe.
+	"""
+	try:
+		can_manage_periods = bool(frappe.has_permission("Closing Period", "create"))
+		can_manage_templates = bool(frappe.has_permission("Closing Checklist Template", "create"))
 
-	return {
-		"can_manage_periods": can_manage_periods,
-		"can_manage_templates": can_manage_templates,
-		"templates": templates,
-	}
+		templates = []
+		if frappe.has_permission("Closing Checklist Template"):
+			templates = frappe.get_all(
+				"Closing Checklist Template",
+				fields=["name", "template_name", "company", "frequency"],
+				order_by="template_name asc",
+			)
+
+		return {
+			"can_manage_periods": can_manage_periods,
+			"can_manage_templates": can_manage_templates,
+			"templates": templates,
+		}
+	except Exception:
+		frappe.log_error(title="get_closing_meta failed")
+		return {
+			"can_manage_periods": False,
+			"can_manage_templates": False,
+			"templates": [],
+		}
 
 
 @frappe.whitelist()
