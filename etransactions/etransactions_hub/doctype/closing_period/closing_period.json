@@ -89,7 +89,7 @@
  ],
  "modified": "2026-06-12 18:00:00.000000",
  "modified_by": "Administrator",
- "module": "Accounting Hub",
+ "module": "eTransactions Hub",
  "name": "Closing Period",
  "owner": "Administrator",
  "permissions": [

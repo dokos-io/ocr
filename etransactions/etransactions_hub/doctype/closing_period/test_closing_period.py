@@ -4,7 +4,7 @@
 import frappe
 from frappe.utils import add_days, getdate
 
-from etransactions.accounting_hub.doctype.closing_period.closing_period import (
+from etransactions.etransactions_hub.doctype.closing_period.closing_period import (
 	create_period_from_template,
 )
 from etransactions.tests.utils import eTransactionsTestSuite

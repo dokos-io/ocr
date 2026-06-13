@@ -1,9 +1,9 @@
 // Copyright (c) 2026, Dokos SAS and contributors
 // For license information, please see license.txt
 
-frappe.provide("etransactions.accounting_hub");
+frappe.provide("etransactions.hub");
 
-etransactions.accounting_hub.make_accounting_request = function (frm, request_type) {
+etransactions.hub.make_accounting_request = function (frm, request_type) {
 	const dialog = new frappe.ui.Dialog({
 		title: __("New Accounting Request"),
 		fields: [
@@ -93,19 +93,19 @@ etransactions.accounting_hub.make_accounting_request = function (frm, request_ty
 	dialog.show();
 };
 
-etransactions.accounting_hub.add_request_buttons = function (frm) {
+etransactions.hub.add_request_buttons = function (frm) {
 	if (frm.is_new()) {
 		return;
 	}
 
 	frm.add_custom_button(
 		__("Request justificative"),
-		() => etransactions.accounting_hub.make_accounting_request(frm, "Missing Justificative"),
-		__("Accounting Hub")
+		() => etransactions.hub.make_accounting_request(frm, "Missing Justificative"),
+		__("eTransactions Hub")
 	);
 	frm.add_custom_button(
 		__("Ask a question"),
-		() => etransactions.accounting_hub.make_accounting_request(frm, "Question"),
-		__("Accounting Hub")
+		() => etransactions.hub.make_accounting_request(frm, "Question"),
+		__("eTransactions Hub")
 	);
 };

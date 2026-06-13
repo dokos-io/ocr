@@ -5,7 +5,7 @@ import frappe
 from frappe import _
 from frappe.model.document import Document
 
-from etransactions.accounting_hub.utils import copy_file_to_document, get_files_for_document
+from etransactions.etransactions_hub.utils import copy_file_to_document, get_files_for_document
 
 PROCESSABLE_FILE_TYPES = ["PDF", "XML"]
 

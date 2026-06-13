@@ -1,13 +1,13 @@
 {
-  "name": "accounting-hub",
+  "name": "ehub",
   "private": true,
   "version": "0.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build --base=/assets/etransactions/accounting_hub/ && yarn copy-html-entry",
+    "build": "vite build --base=/assets/etransactions/ehub/ && yarn copy-html-entry",
     "preview": "vite preview",
-    "copy-html-entry": "cp ../etransactions/public/accounting_hub/index.html ../etransactions/www/accounting_hub.html"
+    "copy-html-entry": "cp ../etransactions/public/ehub/index.html ../etransactions/www/ehub.html"
   },
   "dependencies": {
     "feather-icons": "^4.29.2",

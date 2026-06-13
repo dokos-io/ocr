@@ -11,8 +11,8 @@ export default defineConfig({
 			jinjaBootData: true,
 			lucideIcons: true,
 			buildConfig: {
-				outDir: "../etransactions/public/accounting_hub",
-				indexHtmlPath: "../etransactions/www/accounting_hub.html",
+				outDir: "../etransactions/public/ehub",
+				indexHtmlPath: "../etransactions/www/ehub.html",
 				emptyOutDir: true,
 				sourcemap: true,
 			},
@@ -21,7 +21,7 @@ export default defineConfig({
 	],
 	build: {
 		chunkSizeWarningLimit: 1500,
-		outDir: "../etransactions/public/accounting_hub",
+		outDir: "../etransactions/public/ehub",
 		emptyOutDir: true,
 		target: "es2015",
 		sourcemap: true,

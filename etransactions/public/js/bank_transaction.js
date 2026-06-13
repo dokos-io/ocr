@@ -3,6 +3,6 @@
 
 frappe.ui.form.on("Bank Transaction", {
 	refresh(frm) {
-		etransactions.accounting_hub.add_request_buttons(frm);
+		etransactions.hub.add_request_buttons(frm);
 	},
 });

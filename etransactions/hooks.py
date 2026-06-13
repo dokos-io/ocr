@@ -82,8 +82,8 @@ doctype_list_js = {
 # --------------
 
 website_route_rules = [
-	{"from_route": "/accounting-hub", "to_route": "accounting_hub"},
-	{"from_route": "/accounting-hub/<path:app_path>", "to_route": "accounting_hub"},
+	{"from_route": "/ehub", "to_route": "ehub"},
+	{"from_route": "/ehub/<path:app_path>", "to_route": "ehub"},
 ]
 
 # Jinja
@@ -219,7 +219,7 @@ scheduler_events = {
 		"etransactions.etransactions.doctype.ocr_request.ocr_request.check_pending_analysis"
 	],
 	"daily": [
-		"etransactions.accounting_hub.doctype.accounting_request.accounting_request.notify_overdue_requests"
+		"etransactions.etransactions_hub.doctype.accounting_request.accounting_request.notify_overdue_requests"
 	],
 	# "weekly": [
 	# 	"etransactions.tasks.weekly"
@@ -245,12 +245,12 @@ override_whitelisted_methods = {
 # generated from the base implementation of the doctype dashboard,
 # along with any modifications made in other Frappe apps
 override_doctype_dashboards = {
-	"Bank Transaction": "etransactions.accounting_hub.dashboards.get_dashboard_data",
-	"Journal Entry": "etransactions.accounting_hub.dashboards.get_dashboard_data",
-	"Purchase Invoice": "etransactions.accounting_hub.dashboards.get_dashboard_data",
-	"Payment Entry": "etransactions.accounting_hub.dashboards.get_dashboard_data",
-	"Supplier Invoice": "etransactions.accounting_hub.dashboards.get_dashboard_data",
-	"Expense Claim": "etransactions.accounting_hub.dashboards.get_dashboard_data",
+	"Bank Transaction": "etransactions.etransactions_hub.dashboards.get_dashboard_data",
+	"Journal Entry": "etransactions.etransactions_hub.dashboards.get_dashboard_data",
+	"Purchase Invoice": "etransactions.etransactions_hub.dashboards.get_dashboard_data",
+	"Payment Entry": "etransactions.etransactions_hub.dashboards.get_dashboard_data",
+	"Supplier Invoice": "etransactions.etransactions_hub.dashboards.get_dashboard_data",
+	"Expense Claim": "etransactions.etransactions_hub.dashboards.get_dashboard_data",
 }
 
 # exempt linked doctypes from being automatically cancelled

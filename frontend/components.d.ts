@@ -8,8 +8,18 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    AgingBar: typeof import('./src/components/AgingBar.vue')['default']
+    ChecklistTemplateDialog: typeof import('./src/components/ChecklistTemplateDialog.vue')['default']
+    ClosingPeriodDialog: typeof import('./src/components/ClosingPeriodDialog.vue')['default']
+    ClosingTaskDialog: typeof import('./src/components/ClosingTaskDialog.vue')['default']
+    InboxDetailDrawer: typeof import('./src/components/InboxDetailDrawer.vue')['default']
+    KpiCard: typeof import('./src/components/KpiCard.vue')['default']
+    LinkField: typeof import('./src/components/LinkField.vue')['default']
+    RequestDetailDrawer: typeof import('./src/components/RequestDetailDrawer.vue')['default']
     RequestDialog: typeof import('./src/components/RequestDialog.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
+    SectionHeader: typeof import('./src/components/SectionHeader.vue')['default']
+    UserPicker: typeof import('./src/components/UserPicker.vue')['default']
   }
 }

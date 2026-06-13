@@ -1,2 +1,2 @@
 eTransactions
-Accounting Hub
+eTransactions Hub

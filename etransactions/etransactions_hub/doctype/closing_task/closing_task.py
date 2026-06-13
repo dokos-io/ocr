@@ -7,7 +7,7 @@ import frappe
 from frappe.model.document import Document
 
 if TYPE_CHECKING:
-	from etransactions.accounting_hub.doctype.closing_period.closing_period import ClosingPeriod
+	from etransactions.etransactions_hub.doctype.closing_period.closing_period import ClosingPeriod
 
 
 class ClosingTask(Document):

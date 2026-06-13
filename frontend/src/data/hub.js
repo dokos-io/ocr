@@ -1,14 +1,19 @@
 import { createResource } from "frappe-ui"
 
 export const counts = createResource({
-	url: "etransactions.accounting_hub.api.get_counts",
+	url: "etransactions.etransactions_hub.api.get_counts",
 	cache: "hub-counts",
 	auto: true,
 })
 
 export const assignableUsers = createResource({
-	url: "etransactions.accounting_hub.api.get_assignable_users",
+	url: "etransactions.etransactions_hub.api.get_assignable_users",
 	cache: "hub-assignable-users",
+	auto: true,
+})
+
+export const closingMeta = createResource({
+	url: "etransactions.etransactions_hub.api.get_closing_meta",
 	auto: true,
 })
 

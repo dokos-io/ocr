@@ -2,9 +2,9 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" href="/favicon.png" />
+    <link rel="icon" type="image/svg+xml" href="/assets/etransactions/images/etransactions_solid.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Accounting Hub</title>
+    <title>Hub</title>
   </head>
   <body>
     <div id="app"></div>
@@ -12,13 +12,6 @@
     <script>
       window.csrf_token = "{{ csrf_token }}";
       window.site_name = "{{ site_name }}";
-      window.favicon = "{{ favicon }}";
-
-      if (window.favicon) {
-        document.querySelectorAll("link[rel='icon']").forEach((link) => {
-          link.href = window.favicon;
-        });
-      }
     </script>
   </body>
 </html>

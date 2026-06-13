@@ -13,7 +13,7 @@ class ClosingChecklistTemplate(Document):
 	if TYPE_CHECKING:
 		from frappe.types import DF
 
-		from etransactions.accounting_hub.doctype.closing_checklist_template_item.closing_checklist_template_item import (
+		from etransactions.etransactions_hub.doctype.closing_checklist_template_item.closing_checklist_template_item import (
 			ClosingChecklistTemplateItem,
 		)
 

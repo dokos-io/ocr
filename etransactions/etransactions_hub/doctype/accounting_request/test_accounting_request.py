@@ -9,7 +9,7 @@ from erpnext.accounts.doctype.bank_transaction.test_bank_transaction import (
 	create_gl_account,
 )
 
-from etransactions.accounting_hub.doctype.accounting_request.accounting_request import (
+from etransactions.etransactions_hub.doctype.accounting_request.accounting_request import (
 	notify_overdue_requests,
 )
 from etransactions.tests.utils import eTransactionsTestSuite, minimal_pdf_content

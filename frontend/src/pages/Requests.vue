@@ -19,43 +19,42 @@
 			{{ feedback }}
 		</p>
 
-		<div class="flex flex-1 gap-4 overflow-x-auto p-4">
+		<div class="flex flex-1 gap-4 overflow-x-auto bg-gray-50 p-5">
 			<section
 				v-for="column in columns"
 				:key="column.status"
 				:aria-label="column.label"
-				class="flex w-72 flex-shrink-0 flex-col rounded border border-gray-200 bg-white"
+				class="flex w-72 flex-shrink-0 flex-col rounded-lg border border-gray-200 bg-white shadow-sm"
 			>
-				<h2 class="flex items-center justify-between border-b border-gray-200 px-3 py-2 text-sm font-semibold text-gray-900">
-					{{ column.label }}
-					<Badge variant="subtle">{{ column.requests.length }}</Badge>
+				<h2 class="flex items-center justify-between gap-2 rounded-t-lg border-b border-gray-200 px-3 py-2 text-sm font-semibold text-gray-900">
+					<span class="flex items-center gap-2">
+						<span class="h-2 w-2 rounded-full" :class="column.dotClass"></span>
+						{{ column.label }}
+					</span>
+					<Badge :theme="column.theme" variant="subtle">{{ column.requests.length }}</Badge>
 				</h2>
-				<ul role="list" class="flex-1 space-y-2 overflow-y-auto p-2">
+				<ul role="list" class="flex-1 space-y-2 overflow-y-auto p-3">
 					<li v-for="request in column.requests" :key="request.name">
-						<article class="rounded border border-gray-200 p-2">
-							<div class="flex items-start justify-between gap-2">
-								<span class="text-sm font-medium text-gray-900">{{ request.subject }}</span>
-								<Badge v-if="isOverdue(request)" theme="red" variant="subtle">{{ __("Overdue") }}</Badge>
-							</div>
-							<p class="mt-1 text-xs text-gray-600">
-								{{ __(request.request_type) }}
-								<template v-if="request.context_party"> · {{ request.context_party }}</template>
-								<template v-if="request.context_amount"> · {{ formatAmount(request.context_amount) }}</template>
-							</p>
-							<p v-if="request.due_date" class="mt-0.5 text-xs text-gray-600">
-								{{ __("Due {0}", [request.due_date]) }}
-							</p>
-							<div class="mt-2 flex gap-1">
-								<a
-									:href="`/app/accounting-request/${request.name}`"
-									target="_blank"
-									rel="noopener"
-									class="rounded px-2 py-1 text-xs text-gray-700 underline hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-500"
-								>
-									{{ __("Open") }}
-								</a>
+						<article
+							class="rounded-md border border-l-4 border-gray-200 p-3 transition-shadow hover:shadow-sm focus-within:ring-2 focus-within:ring-brand-500"
+							:class="column.borderClass"
+						>
+							<button class="w-full text-left" @click="openDetail(request)">
+								<div class="flex items-start justify-between gap-2">
+									<span class="text-sm font-medium text-gray-900">{{ request.subject }}</span>
+									<Badge v-if="isOverdue(request)" theme="red" variant="subtle">{{ __("Overdue") }}</Badge>
+								</div>
+								<p class="mt-1 text-xs text-gray-600">
+									{{ __(request.request_type) }}
+									<template v-if="request.context_party"> · {{ request.context_party }}</template>
+									<template v-if="request.context_amount"> · {{ formatAmount(request.context_amount) }}</template>
+								</p>
+								<p v-if="request.due_date" class="mt-0.5 text-xs text-gray-600">
+									{{ __("Due {0}", [request.due_date]) }}
+								</p>
+							</button>
+							<div v-if="canResolve(request)" class="mt-2 flex gap-1">
 								<Button
-									v-if="canResolve(request)"
 									size="sm"
 									variant="ghost"
 									:loading="resolving === request.name"
@@ -74,6 +73,7 @@
 		</div>
 
 		<RequestDialog v-model="requestDialogOpen" @created="onRequestCreated" />
+		<RequestDetailDrawer v-model="detailOpen" :request="detailRequest" @resolved="onResolved" />
 	</div>
 </template>
 
@@ -81,12 +81,15 @@
 import { computed, ref } from "vue"
 import { createResource } from "frappe-ui"
 import RequestDialog from "@/components/RequestDialog.vue"
+import RequestDetailDrawer from "@/components/RequestDetailDrawer.vue"
 import { counts, runDocMethod } from "@/data/hub"
 
 const scope = ref("mine")
 const feedback = ref("")
 const resolving = ref("")
 const requestDialogOpen = ref(false)
+const detailOpen = ref(false)
+const detailRequest = ref({})
 
 const scopeOptions = [
 	{ label: __("Waiting on me"), value: "mine" },
@@ -95,17 +98,29 @@ const scopeOptions = [
 ]
 
 const requests = createResource({
-	url: "etransactions.accounting_hub.api.get_requests",
+	url: "etransactions.etransactions_hub.api.get_requests",
 	method: "GET",
 	makeParams: () => ({ scope: scope.value }),
 	auto: true,
 })
 
 const statuses = [
-	{ status: "Open", label: __("Open") },
-	{ status: "Awaiting Response", label: __("Awaiting Response") },
-	{ status: "Response Received", label: __("Response Received") },
-	{ status: "Resolved", label: __("Resolved") },
+	{ status: "Open", label: __("Open"), theme: "blue", dotClass: "bg-blue-500", borderClass: "border-l-blue-500" },
+	{
+		status: "Awaiting Response",
+		label: __("Awaiting Response"),
+		theme: "orange",
+		dotClass: "bg-orange-400",
+		borderClass: "border-l-orange-400",
+	},
+	{
+		status: "Response Received",
+		label: __("Response Received"),
+		theme: "green",
+		dotClass: "bg-green-500",
+		borderClass: "border-l-green-500",
+	},
+	{ status: "Resolved", label: __("Resolved"), theme: "gray", dotClass: "bg-gray-400", borderClass: "border-l-gray-300" },
 ]
 
 const columns = computed(() =>
@@ -118,6 +133,11 @@ const columns = computed(() =>
 function setScope(value) {
 	scope.value = value
 	requests.reload()
+}
+
+function openDetail(request) {
+	detailRequest.value = request
+	detailOpen.value = true
 }
 
 function isOverdue(request) {
@@ -143,6 +163,13 @@ async function resolve(request) {
 	} finally {
 		resolving.value = ""
 	}
+}
+
+function onResolved(name) {
+	feedback.value = __("Request {0} resolved.", [name])
+	detailOpen.value = false
+	requests.reload()
+	counts.reload()
 }
 
 function onRequestCreated(name) {

@@ -3,6 +3,6 @@
 
 frappe.ui.form.on("Journal Entry", {
 	refresh(frm) {
-		etransactions.accounting_hub.add_request_buttons(frm);
+		etransactions.hub.add_request_buttons(frm);
 	},
 });

@@ -10,7 +10,7 @@ from frappe.model.document import Document
 from frappe.utils import add_days, flt, formatdate, get_first_day, get_last_day, getdate, nowdate
 
 if TYPE_CHECKING:
-	from etransactions.accounting_hub.doctype.closing_checklist_template.closing_checklist_template import (
+	from etransactions.etransactions_hub.doctype.closing_checklist_template.closing_checklist_template import (
 		ClosingChecklistTemplate,
 	)
 

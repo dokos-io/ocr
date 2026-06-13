@@ -37,7 +37,7 @@ function translate(message, replace, context = null) {
 
 function fetchTranslations() {
 	createResource({
-		url: "etransactions.accounting_hub.api.get_translations",
+		url: "etransactions.etransactions_hub.api.get_translations",
 		cache: "translations",
 		auto: true,
 		transform: (data) => {

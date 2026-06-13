@@ -15,13 +15,15 @@
 					:label="__('Request Type')"
 					:options="requestTypes"
 				/>
-				<FormControl
-					v-model="form.assign_to"
-					type="select"
-					:label="__('Assign To')"
-					:options="userOptions"
-				/>
-				<FormControl v-model="form.due_date" type="date" :label="__('Due Date')" />
+				<UserPicker v-model="form.assign_to" :label="__('Assign To')" />
+				<div class="space-y-1.5">
+					<label class="block text-xs text-gray-600">{{ __("Due Date") }}</label>
+					<DatePicker
+						:modelValue="form.due_date"
+						:placeholder="__('Select date')"
+						@update:modelValue="(value) => (form.due_date = value)"
+					/>
+				</div>
 				<FormControl v-model="form.description" type="textarea" :label="__('Description')" />
 				<ErrorMessage :message="error" />
 			</form>
@@ -37,8 +39,9 @@
 
 <script setup>
 import { computed, reactive, ref, watch } from "vue"
-import { createResource } from "frappe-ui"
-import { assignableUsers, counts } from "@/data/hub"
+import { createResource, DatePicker } from "frappe-ui"
+import UserPicker from "@/components/UserPicker.vue"
+import { counts } from "@/data/hub"
 
 const props = defineProps({
 	modelValue: { type: Boolean, default: false },
@@ -81,15 +84,8 @@ const requestTypes = [
 	{ label: __("Information"), value: "Information" },
 ]
 
-const userOptions = computed(() => {
-	const users = assignableUsers.data || []
-	return [{ label: __("Nobody yet"), value: "" }].concat(
-		users.map((user) => ({ label: user.full_name || user.name, value: user.name }))
-	)
-})
-
 const requestCreator = createResource({
-	url: "etransactions.accounting_hub.api.create_request",
+	url: "etransactions.etransactions_hub.api.create_request",
 	method: "POST",
 })
 

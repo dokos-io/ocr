@@ -11,7 +11,7 @@ from frappe.utils import flt, now_datetime
 
 from erpnext import get_default_company
 
-from etransactions.accounting_hub.utils import copy_file_to_document, get_files_for_document
+from etransactions.etransactions_hub.utils import copy_file_to_document, get_files_for_document
 
 if TYPE_CHECKING:
 	from frappe.core.doctype.communication.communication import Communication
