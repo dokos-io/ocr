@@ -1,6 +1,6 @@
 <template>
-	<div class="h-full overflow-y-auto bg-gray-50">
-		<div class="mx-auto max-w-6xl space-y-8 p-6">
+	<BPage>
+		<div class="mx-auto w-full max-w-6xl space-y-8">
 			<div class="flex items-center justify-between gap-4">
 				<h1 class="text-lg font-semibold text-gray-900">{{ __("Overview") }}</h1>
 				<div class="w-64">
@@ -135,11 +135,11 @@
 
 			<p v-else-if="overview.loading" class="text-sm text-gray-600">{{ __("Loading…") }}</p>
 		</div>
-	</div>
+	</BPage>
 </template>
 
 <script setup>
-import { computed, ref, watch } from "vue"
+import { computed, ref } from "vue"
 import { createResource } from "frappe-ui"
 import {
 	AlertTriangle,
@@ -170,20 +170,17 @@ const overview = createResource({
 	method: "GET",
 	makeParams: () => ({ company: selectedCompany.value || null }),
 	auto: true,
+	// Preselect the company the backend resolved (the user's default) so the
+	// selector reflects it on first paint instead of rendering blank.
+	onSuccess: (result) => {
+		if (result?.company && !selectedCompany.value) {
+			selectedCompany.value = result.company
+		}
+	},
 })
 
 const data = computed(() => overview.data)
 const currency = computed(() => overview.data?.treasury?.currency)
-
-// Sync the selector with the company the backend resolved on first load.
-watch(
-	() => overview.data?.company,
-	(company) => {
-		if (company && !selectedCompany.value) {
-			selectedCompany.value = company
-		}
-	}
-)
 
 function onCompanyChange(company) {
 	selectedCompany.value = company

@@ -1,58 +1,65 @@
 <template>
-	<div class="flex h-full flex-col">
-		<div class="flex flex-wrap items-end gap-3 border-b border-gray-200 bg-white px-5 py-3">
+	<BPage>
+		<div class="flex flex-wrap items-center gap-2">
 			<FormControl
 				v-model="filters.status"
 				type="select"
-				:label="__('Status')"
+				size="sm"
+				:aria-label="__('Status')"
 				:options="statusOptions"
 				@change="inbox.reload()"
 			/>
 			<FormControl
 				v-model="filters.source"
 				type="select"
-				:label="__('Source')"
+				size="sm"
+				:aria-label="__('Source')"
 				:options="sourceOptions"
 				@change="inbox.reload()"
 			/>
-			<div class="w-48">
+			<div class="w-44">
 				<LinkField
 					doctype="Company"
 					:modelValue="filters.company"
-					:label="__('Company')"
 					:placeholder="__('All companies')"
 					@update:modelValue="onCompanyChange"
 				/>
 			</div>
-			<div class="space-y-1.5">
-				<label class="block text-xs text-gray-600">{{ __("Received between") }}</label>
-				<DateRangePicker
-					:modelValue="dateRange"
-					:placeholder="__('Any date')"
-					@update:modelValue="onDateRange"
-				/>
-			</div>
+			<DateRangePicker
+				:modelValue="dateRange"
+				:placeholder="__('Any date')"
+				:aria-label="__('Received between')"
+				@update:modelValue="onDateRange"
+			/>
 			<div class="ml-auto w-56">
 				<FormControl
 					v-model="filters.search"
 					type="text"
-					:label="__('Search')"
-					:placeholder="__('Subject or sender')"
+					size="sm"
+					:aria-label="__('Search')"
+					:placeholder="__('Search subject or sender')"
 					@input="onSearch"
 				/>
 			</div>
 		</div>
 
-		<ListView
-			class="flex-1"
-			:columns="columns"
-			:rows="rows"
-			row-key="name"
-			:options="{ selectable: false, showTooltip: false, onRowClick: openDetail }"
+		<EhubEmptyState
+			v-if="!rows.length && !inbox.loading"
+			icon="inbox"
+			:title="__('Nothing to triage')"
+			:description="__('Inbox items matching these filters will show up here.')"
 		/>
+		<div v-else class="min-h-0 flex-1 overflow-auto">
+			<ListView
+				:columns="columns"
+				:rows="rows"
+				row-key="name"
+				:options="{ selectable: false, showTooltip: false, onRowClick: openDetail }"
+			/>
+		</div>
 
 		<InboxDetailDrawer v-model="drawerOpen" :name="selected" @changed="inbox.reload()" />
-	</div>
+	</BPage>
 </template>
 
 <script setup>
@@ -60,6 +67,7 @@ import { computed, reactive, ref } from "vue"
 import { createResource, DateRangePicker, ListView } from "frappe-ui"
 import InboxDetailDrawer from "@/components/InboxDetailDrawer.vue"
 import LinkField from "@/components/LinkField.vue"
+import EhubEmptyState from "@/components/EhubEmptyState.vue"
 
 const selected = ref(null)
 const drawerOpen = ref(false)

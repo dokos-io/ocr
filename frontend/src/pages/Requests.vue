@@ -1,6 +1,6 @@
 <template>
-	<div class="flex h-full flex-col">
-		<div class="flex items-center justify-between border-b border-gray-200 bg-white px-4 py-2">
+	<BPage>
+		<div class="flex items-center justify-between rounded-lg border border-gray-200 bg-white px-4 py-2 shadow-sm">
 			<fieldset class="flex gap-1" :aria-label="__('Request scope')">
 				<Button
 					v-for="option in scopeOptions"
@@ -15,11 +15,17 @@
 			<Button variant="solid" @click="requestDialogOpen = true">{{ __("New Request") }}</Button>
 		</div>
 
-		<p v-if="feedback" class="border-b border-gray-200 bg-green-50 px-4 py-2 text-sm text-green-800" aria-live="polite">
+		<p v-if="feedback" class="rounded-lg border border-gray-200 bg-green-50 px-4 py-2 text-sm text-green-800" aria-live="polite">
 			{{ feedback }}
 		</p>
 
-		<div class="flex flex-1 gap-4 overflow-x-auto bg-gray-50 p-5">
+		<EhubEmptyState
+			v-if="!hasRequests && !requests.loading"
+			icon="inbox"
+			:title="__('No requests')"
+			:description="emptyDescription"
+		/>
+		<div v-else class="flex min-h-0 flex-1 gap-4 overflow-x-auto">
 			<section
 				v-for="column in columns"
 				:key="column.status"
@@ -65,7 +71,7 @@
 							</div>
 						</article>
 					</li>
-					<li v-if="!column.requests.length" class="p-2 text-xs text-gray-500">
+					<li v-if="!column.requests.length" class="px-2 py-6 text-center text-xs text-gray-400">
 						{{ __("No request") }}
 					</li>
 				</ul>
@@ -74,7 +80,7 @@
 
 		<RequestDialog v-model="requestDialogOpen" @created="onRequestCreated" />
 		<RequestDetailDrawer v-model="detailOpen" :request="detailRequest" @resolved="onResolved" />
-	</div>
+	</BPage>
 </template>
 
 <script setup>
@@ -82,6 +88,7 @@ import { computed, ref } from "vue"
 import { createResource } from "frappe-ui"
 import RequestDialog from "@/components/RequestDialog.vue"
 import RequestDetailDrawer from "@/components/RequestDetailDrawer.vue"
+import EhubEmptyState from "@/components/EhubEmptyState.vue"
 import { counts, runDocMethod } from "@/data/hub"
 
 const scope = ref("mine")
@@ -129,6 +136,14 @@ const columns = computed(() =>
 		requests: (requests.data || []).filter((request) => request.status === column.status),
 	}))
 )
+
+const hasRequests = computed(() => (requests.data || []).length > 0)
+
+const emptyDescription = computed(() => {
+	if (scope.value === "raised") return __("Requests you raise will appear here.")
+	if (scope.value === "all") return __("Accounting requests will appear here.")
+	return __("Requests waiting on you will appear here.")
+})
 
 function setScope(value) {
 	scope.value = value
