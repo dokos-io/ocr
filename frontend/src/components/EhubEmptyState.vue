@@ -1,9 +1,9 @@
 <script setup>
-// eTransactions Hub empty-state wrapper: dokos-ui BEmptyList with a black title.
-// BEmptyList renders its title in `text-primary`; overriding the colour on a
-// child <span> keeps every empty state on a clean black title. Mirrors the
-// cockpit app's CockpitEmptyState.
-import { BEmptyList } from "dokos-ui"
+// eTransactions Hub compact empty-state placeholder. Replaces dokos-ui BEmptyList
+// (whose 128px triple icon + 2rem title dwarfed section headings) with a small,
+// contained figure that reads cleanly inside a section. Same props as before so
+// every caller keeps working. Mirrors the cockpit app's CockpitEmptyState.
+import { BIcon } from "dokos-ui"
 
 defineProps({
 	title: { type: String, default: "" },
@@ -13,10 +13,10 @@ defineProps({
 </script>
 
 <template>
-	<BEmptyList :description="description" :icon="icon">
-		<template #title>
-			<span class="text-gray-900">{{ title }}</span>
-		</template>
+	<div class="flex flex-col items-center justify-center gap-2 py-8 text-center">
+		<BIcon v-if="icon" :name="icon" class="h-8 w-8 text-gray-400" />
+		<p v-if="title" class="text-sm font-medium text-gray-900">{{ title }}</p>
+		<p v-if="description" class="text-xs text-gray-500">{{ description }}</p>
 		<slot />
-	</BEmptyList>
+	</div>
 </template>
