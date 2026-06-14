@@ -253,6 +253,130 @@ def get_item_tax_readiness_data() -> dict:
 	}
 
 
+@frappe.whitelist()
+def get_vat_configuration_status() -> dict:
+	"""
+	Status of the tax-category based VAT configuration for the FacturX Readiness
+	workspace widget, with a link to the France VAT Migration Tool.
+
+	Checks:
+	  1. Determination    — every active tax category selects a Sales and a Purchase
+	                        taxes template, either through a Tax Rule or through the
+	                        tax category set on the template itself.
+	  2. Customers        — active customers with a tax category.
+	  3. Suppliers        — active suppliers with a tax category.
+	  4. Addresses        — active addresses with a tax category.
+	  5. Item Groups      — item groups (with active items) carrying an item tax
+	                        template for every active tax category.
+	"""
+	categories = frappe.get_all("Tax Category", filters={"disabled": 0}, pluck="name")
+
+	checks = [
+		_determination_check(categories),
+		_party_tax_category_check("Customer", "customers", _("Customers with Tax Category")),
+		_party_tax_category_check("Supplier", "suppliers", _("Suppliers with Tax Category")),
+		_party_tax_category_check("Address", "addresses", _("Addresses with Tax Category")),
+		_item_group_coverage_check(categories),
+	]
+
+	return {
+		"categories": len(categories),
+		"configured": bool(categories) and all(c["pct"] == 100 for c in checks),
+		"checks": checks,
+		"tool_route": "/app/vat-configuration-tool",
+	}
+
+
+def _determination_check(categories: list) -> dict:
+	"""A category is covered per tax type by a Tax Rule or a tagged taxes template."""
+	covered = set()
+	if categories:
+		for rule in frappe.get_all(
+			"Tax Rule",
+			filters={"tax_category": ("in", categories), "use_for_shopping_cart": 0},
+			fields=["tax_type", "tax_category"],
+		):
+			covered.add((rule.tax_category, rule.tax_type))
+
+		for tax_type, doctype in (
+			("Sales", "Sales Taxes and Charges Template"),
+			("Purchase", "Purchase Taxes and Charges Template"),
+		):
+			for tax_category in frappe.get_all(
+				doctype,
+				filters={"disabled": 0, "tax_category": ("in", categories)},
+				pluck="tax_category",
+			):
+				covered.add((tax_category, tax_type))
+
+	complete = sum(
+		1 for c in categories if (c, "Sales") in covered and (c, "Purchase") in covered
+	)
+	total = len(categories)
+	return {
+		"key": "determination",
+		"label": _("Determination per Category"),
+		"complete": complete,
+		"missing": total - complete,
+		"total": total,
+		"pct": _pct(complete, total),
+		"blocking": True,
+	}
+
+
+def _party_tax_category_check(doctype: str, key: str, label: str) -> dict:
+	total = frappe.db.count(doctype, {"disabled": 0})
+	complete = frappe.db.count(doctype, {"disabled": 0, "tax_category": ("is", "set")})
+	return {
+		"key": key,
+		"label": label,
+		"complete": complete,
+		"missing": total - complete,
+		"total": total,
+		"pct": _pct(complete, total),
+		"blocking": doctype != "Address",
+	}
+
+
+def _item_group_coverage_check(categories: list) -> dict:
+	Item = frappe.qb.DocType("Item")
+	groups = {
+		row[0]
+		for row in (
+			frappe.qb.from_(Item)
+			.select(Item.item_group)
+			.distinct()
+			.where(Item.disabled == 0)
+			.run()
+		)
+		if row[0]
+	}
+
+	ItemTax = frappe.qb.DocType("Item Tax")
+	covered_rows = (
+		frappe.qb.from_(ItemTax)
+		.select(ItemTax.parent, ItemTax.tax_category)
+		.where((ItemTax.parenttype == "Item Group") & (ItemTax.item_tax_template.isnotnull()))
+		.run()
+	)
+	covered: dict = {}
+	for parent, tax_category in covered_rows:
+		covered.setdefault(parent, set()).add(tax_category or "")
+
+	required = set(categories)
+	complete = sum(1 for group in groups if required.issubset(covered.get(group, set())))
+	total = len(groups)
+	return {
+		"key": "item_groups",
+		"label": _("Item Groups fully covered"),
+		"complete": complete,
+		"missing": total - complete,
+		"total": total,
+		"pct": _pct(complete, total),
+		"blocking": True,
+	}
+
+
 # ---------------------------------------------------------------------------
 # Private data-fetching helpers
 # ---------------------------------------------------------------------------
