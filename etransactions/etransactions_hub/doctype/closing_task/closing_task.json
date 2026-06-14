@@ -1,0 +1,161 @@
+{
+ "actions": [],
+ "autoname": "format:CLT-{YYYY}-{#####}",
+ "creation": "2026-06-12 18:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "subject",
+  "closing_period",
+  "company",
+  "column_break_main",
+  "status",
+  "due_date",
+  "section_break_details",
+  "description",
+  "route"
+ ],
+ "fields": [
+  {
+   "fieldname": "subject",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Subject",
+   "reqd": 1
+  },
+  {
+   "fieldname": "closing_period",
+   "fieldtype": "Link",
+   "label": "Closing Period",
+   "options": "Closing Period",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "closing_period.company",
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_main",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Pending",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Status",
+   "options": "Pending\nIn Progress\nBlocked\nDone\nNot Applicable"
+  },
+  {
+   "fieldname": "due_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Due Date"
+  },
+  {
+   "fieldname": "section_break_details",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Description"
+  },
+  {
+   "description": "Desk route or URL of the tool used for this task",
+   "fieldname": "route",
+   "fieldtype": "Data",
+   "label": "Route"
+  }
+ ],
+ "links": [
+  {
+   "group": "Collaboration",
+   "link_doctype": "Accounting Request",
+   "link_fieldname": "closing_task"
+  }
+ ],
+ "modified": "2026-06-12 18:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "eTransactions Hub",
+ "name": "Closing Task",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "select": 1,
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Accounts Manager",
+   "select": 1,
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Accounts User",
+   "select": 1,
+   "share": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "report": 1,
+   "role": "Accounting Collaborator",
+   "select": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "due_date",
+ "sort_order": "ASC",
+ "states": [
+  {
+   "color": "Blue",
+   "title": "Pending"
+  },
+  {
+   "color": "Orange",
+   "title": "In Progress"
+  },
+  {
+   "color": "Red",
+   "title": "Blocked"
+  },
+  {
+   "color": "Green",
+   "title": "Done"
+  },
+  {
+   "color": "Gray",
+   "title": "Not Applicable"
+  }
+ ],
+ "title_field": "subject",
+ "track_changes": 1
+}

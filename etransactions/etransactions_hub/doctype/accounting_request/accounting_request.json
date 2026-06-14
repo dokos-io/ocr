@@ -1,0 +1,295 @@
+{
+ "actions": [],
+ "autoname": "naming_series:",
+ "creation": "2026-06-12 18:00:00.000000",
+ "doctype": "DocType",
+ "email_append_to": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "subject",
+  "raised_by",
+  "column_break_main",
+  "request_type",
+  "status",
+  "priority",
+  "due_date",
+  "section_break_reference",
+  "reference_doctype",
+  "reference_name",
+  "column_break_context",
+  "context_party",
+  "context_amount",
+  "context_date",
+  "section_break_description",
+  "description",
+  "section_break_resolution",
+  "justificative_file",
+  "column_break_resolution",
+  "resolved_by",
+  "resolved_on",
+  "section_break_links",
+  "company",
+  "column_break_links",
+  "inbox_item",
+  "closing_task"
+ ],
+ "fields": [
+  {
+   "default": "ACC-REQ-.YYYY.-",
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Naming Series",
+   "options": "ACC-REQ-.YYYY.-"
+  },
+  {
+   "fieldname": "subject",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Subject",
+   "reqd": 1
+  },
+  {
+   "fieldname": "raised_by",
+   "fieldtype": "Data",
+   "label": "Raised By",
+   "options": "Email",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_main",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Missing Justificative",
+   "fieldname": "request_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Request Type",
+   "options": "Missing Justificative\nQuestion\nCorrection Needed\nInformation",
+   "reqd": 1
+  },
+  {
+   "default": "Open",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Status",
+   "options": "Open\nAwaiting Response\nResponse Received\nResolved\nClosed\nCancelled"
+  },
+  {
+   "default": "Medium",
+   "fieldname": "priority",
+   "fieldtype": "Select",
+   "label": "Priority",
+   "options": "Low\nMedium\nHigh"
+  },
+  {
+   "fieldname": "due_date",
+   "fieldtype": "Date",
+   "label": "Due Date"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_break_reference",
+   "fieldtype": "Section Break",
+   "label": "Reference"
+  },
+  {
+   "fieldname": "reference_doctype",
+   "fieldtype": "Link",
+   "label": "Reference DocType",
+   "options": "DocType"
+  },
+  {
+   "fieldname": "reference_name",
+   "fieldtype": "Dynamic Link",
+   "in_list_view": 1,
+   "label": "Reference Name",
+   "options": "reference_doctype"
+  },
+  {
+   "fieldname": "column_break_context",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "context_party",
+   "fieldtype": "Data",
+   "label": "Party",
+   "read_only": 1
+  },
+  {
+   "fieldname": "context_amount",
+   "fieldtype": "Currency",
+   "label": "Amount",
+   "read_only": 1
+  },
+  {
+   "fieldname": "context_date",
+   "fieldtype": "Date",
+   "label": "Date",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_description",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Text Editor",
+   "label": "Description"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_break_resolution",
+   "fieldtype": "Section Break",
+   "label": "Resolution"
+  },
+  {
+   "fieldname": "justificative_file",
+   "fieldtype": "Attach",
+   "label": "Justificative File"
+  },
+  {
+   "fieldname": "column_break_resolution",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "resolved_by",
+   "fieldtype": "Link",
+   "label": "Resolved By",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "resolved_on",
+   "fieldtype": "Datetime",
+   "label": "Resolved On",
+   "read_only": 1
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_break_links",
+   "fieldtype": "Section Break",
+   "label": "Links"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "fieldname": "column_break_links",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "inbox_item",
+   "fieldtype": "Link",
+   "label": "Inbox Item",
+   "options": "Accounting Inbox Item",
+   "read_only": 1
+  },
+  {
+   "fieldname": "closing_task",
+   "fieldtype": "Link",
+   "label": "Closing Task",
+   "options": "Closing Task",
+   "read_only": 1
+  }
+ ],
+ "links": [],
+ "modified": "2026-06-12 18:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "eTransactions Hub",
+ "name": "Accounting Request",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "select": 1,
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Accounts Manager",
+   "select": 1,
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Accounts User",
+   "select": 1,
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Accounting Collaborator",
+   "select": 1,
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sender_field": "raised_by",
+ "show_title_field_in_link": 1,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [
+  {
+   "color": "Blue",
+   "title": "Open"
+  },
+  {
+   "color": "Orange",
+   "title": "Awaiting Response"
+  },
+  {
+   "color": "Purple",
+   "title": "Response Received"
+  },
+  {
+   "color": "Green",
+   "title": "Resolved"
+  },
+  {
+   "color": "Gray",
+   "title": "Closed"
+  },
+  {
+   "color": "Red",
+   "title": "Cancelled"
+  }
+ ],
+ "subject_field": "subject",
+ "title_field": "subject",
+ "track_changes": 1
+}

@@ -1,0 +1,8 @@
+@import "frappe-ui/style.css";
+@import "dokos-ui/src/style.css";
+
+html,
+body,
+#app {
+	height: 100%;
+}
