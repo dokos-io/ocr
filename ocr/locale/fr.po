@@ -504,7 +504,7 @@ msgstr "Veuillez sélectionner au moins une commande fournisseur"
 
 #: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.py:200
 msgid "Please select at least one purchase receipt"
-msgstr "Veuillez sélectionner au moins un reçu d'achats"
+msgstr "Veuillez sélectionner au moins une réception"
 
 #: ocr/ocr/doctype/pending_purchase_invoice/pending_purchase_invoice.py:206
 msgid "Please select documents linked to the same company"
