@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: eTransactions VERSION\n"
 "Report-Msgid-Bugs-To: hello@dokos.io\n"
-"POT-Creation-Date: 2026-04-20 06:42+0000\n"
+"POT-Creation-Date: 2026-06-15 01:40+0000\n"
 "PO-Revision-Date: 2025-04-02 14:52+0200\n"
 "Last-Translator: hello@dokos.io\n"
 "Language-Team: hello@dokos.io\n"
@@ -16,7 +16,7 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
-"Generated-By: Babel 2.16.0\n"
+"Generated-By: Babel 2.18.0\n"
 
 #: etransactions/etransactions/api/widgets.py:136
 #: etransactions/etransactions/api/widgets.py:211
@@ -28,13 +28,24 @@ msgstr "(Sans groupe)"
 msgid ") and this"
 msgstr ") et cette"
 
-#: etransactions/overrides/sales_invoice.py:66
+#: etransactions/overrides/sales_invoice.py:67
 msgid "A document level discount is currently not supported in the e-invoice."
 msgstr "Une remise au niveau du document n'est actuellement pas prise en charge dans la facture électronique."
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:173
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:189
 msgid "A draft purchase invoice exists already for this supplier invoice."
 msgstr "Une facture d'achat en brouillon existe déjà pour cette facture fournisseur."
+
+#. Default value of the naming_series (Select) field in DocType 'Accounting
+#. Request'
+#: etransactions/etransactions_hub/doctype/accounting_request/accounting_request.json
+msgid "ACC-REQ-.YYYY.-"
+msgstr "ACC-REQ-.YYYY.-"
+
+#. Option for the 'Source' (Select) field in DocType 'Accounting Inbox Item'
+#: etransactions/etransactions_hub/doctype/accounting_inbox_item/accounting_inbox_item.json
+msgid "API"
+msgstr "API"
 
 #. Label of the aws_textract_key (Data) field in DocType 'eTransactions
 #. Settings'
@@ -54,17 +65,62 @@ msgid "Account Name"
 msgstr "Nom du compte"
 
 #. Name of a role
+#: etransactions/etransactions_hub/doctype/accounting_inbox_item/accounting_inbox_item.json
+#: etransactions/etransactions_hub/doctype/accounting_request/accounting_request.json
+#: etransactions/etransactions_hub/doctype/closing_period/closing_period.json
+#: etransactions/etransactions_hub/doctype/closing_task/closing_task.json
+msgid "Accounting Collaborator"
+msgstr "Collaborateur comptable"
+
+#. Name of a DocType
+#: etransactions/etransactions_hub/doctype/accounting_inbox_item/accounting_inbox_item.json
+msgid "Accounting Inbox Item"
+msgstr "Élément de boîte de réception comptable"
+
+#. Name of a DocType
+#: etransactions/etransactions_hub/doctype/accounting_request/accounting_request.json
+msgid "Accounting Request"
+msgstr "Demande comptable"
+
+#: etransactions/public/js/accounting_request_dialog.js:83
+#, python-brace-format
+msgid "Accounting Request {0} created"
+msgstr "Demande comptable {0} créée"
+
+#: frontend/src/components/InboxDetailDrawer.vue:160
+#: frontend/src/pages/Requests.vue:191
+#, python-brace-format
+msgid "Accounting Request {0} created."
+msgstr "Demande comptable {0} créée."
+
+#: frontend/src/pages/Requests.vue:144
+msgid "Accounting requests will appear here."
+msgstr "Les demandes comptables apparaîtront ici."
+
+#. Name of a role
 #: etransactions/etransactions/doctype/einvoice/einvoice.json
 #: etransactions/etransactions/doctype/etransaction_profile/etransaction_profile.json
+#: etransactions/etransactions/doctype/etransactions_supplier_name_alias/etransactions_supplier_name_alias.json
 #: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json
+#: etransactions/etransactions_hub/doctype/accounting_inbox_item/accounting_inbox_item.json
+#: etransactions/etransactions_hub/doctype/accounting_request/accounting_request.json
+#: etransactions/etransactions_hub/doctype/closing_checklist_template/closing_checklist_template.json
+#: etransactions/etransactions_hub/doctype/closing_period/closing_period.json
+#: etransactions/etransactions_hub/doctype/closing_task/closing_task.json
 msgid "Accounts Manager"
 msgstr "Responsable Comptabilité"
 
 #. Name of a role
 #: etransactions/etransactions/doctype/etransaction_profile/etransaction_profile.json
+#: etransactions/etransactions/doctype/etransactions_supplier_name_alias/etransactions_supplier_name_alias.json
 #: etransactions/etransactions/doctype/ocr_request/ocr_request.json
 #: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json
 #: etransactions/etransactions/doctype/supplier_invoices_basket/supplier_invoices_basket.json
+#: etransactions/etransactions_hub/doctype/accounting_inbox_item/accounting_inbox_item.json
+#: etransactions/etransactions_hub/doctype/accounting_request/accounting_request.json
+#: etransactions/etransactions_hub/doctype/closing_checklist_template/closing_checklist_template.json
+#: etransactions/etransactions_hub/doctype/closing_period/closing_period.json
+#: etransactions/etransactions_hub/doctype/closing_task/closing_task.json
 msgid "Accounts User"
 msgstr "Comptable"
 
@@ -82,6 +138,23 @@ msgstr "Actions"
 msgid "Actual Amount"
 msgstr "Montant réel"
 
+#: frontend/src/components/ClosingTaskDialog.vue:35
+msgid "Add"
+msgstr "Ajouter"
+
+#: frontend/src/components/ClosingTaskDialog.vue:2
+msgid "Add Task"
+msgstr "Ajouter une tâche"
+
+#: frontend/src/components/ChecklistTemplateDialog.vue:203
+msgid "Add at least one task"
+msgstr "Ajoutez au moins une tâche"
+
+#: frontend/src/components/ChecklistTemplateDialog.vue:44
+#: frontend/src/pages/Closing.vue:62
+msgid "Add task"
+msgstr "Ajouter une tâche"
+
 #: etransactions/etransactions/api/widgets.py:100
 msgid "Address Fields"
 msgstr "Champs d'adresse"
@@ -91,17 +164,29 @@ msgstr "Champs d'adresse"
 msgid "Address Line 1"
 msgstr "Adresse ligne 1"
 
+#: etransactions/etransactions/api/widgets.py:278
+msgid "Addresses with Tax Category"
+msgstr "Adresses avec catégorie de taxe"
+
 #. Label of the agreement_section (Section Break) field in DocType 'eInvoice
 #. Item'
 #: etransactions/etransactions/doctype/einvoice_item/einvoice_item.json
 msgid "Agreement"
 msgstr "Accord"
 
+#: frontend/src/pages/Requests.vue:104
+msgid "All"
+msgstr "Tous"
+
 #: etransactions/etransactions/api/widgets.py:229
 msgid "All Rows Complete"
 msgstr "Toutes les lignes sont complètes"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:956
+#: frontend/src/pages/Inbox.vue:24
+msgid "All companies"
+msgstr "Toutes les sociétés"
+
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:1087
 msgid "All items have already been Invoiced/Returned"
 msgstr "Tous les articles ont déjà été facturés/retournés"
 
@@ -109,12 +194,18 @@ msgstr "Tous les articles ont déjà été facturés/retournés"
 msgid "All purchase invoice rows must be linked with a purchase receipt"
 msgstr "Toutes les lignes de facture d'achat doivent être liées à une réception"
 
+#: frontend/src/pages/Inbox.vue:113
+msgid "All sources"
+msgstr "Toutes les sources"
+
 #. Label of the allowance_total (Currency) field in DocType 'eInvoice'
 #: etransactions/etransactions/doctype/einvoice/einvoice.json
 msgid "Allowance Total"
 msgstr "Total des remises"
 
 #. Option for the 'OCR Service' (Select) field in DocType 'eTransactions
+#. Settings'
+#. Default value of the ocr_service (Select) field in DocType 'eTransactions
 #. Settings'
 #: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.json
 msgid "Amazon Textract"
@@ -126,8 +217,10 @@ msgid "Amended From"
 msgstr "Modifié depuis"
 
 #. Label of the amount (Currency) field in DocType 'Supplier Invoice Item'
+#. Label of the context_amount (Currency) field in DocType 'Accounting Request'
 #: etransactions/etransactions/doctype/supplier_invoice_item/supplier_invoice_item.json
-#: etransactions/public/dist/js/ocr_dashboard.bundle.RKBXDGUE.js:136
+#: etransactions/etransactions_hub/doctype/accounting_request/accounting_request.json
+#: frontend/src/components/RequestDetailDrawer.vue:37
 msgid "Amount"
 msgstr "Montant"
 
@@ -141,9 +234,37 @@ msgstr "Analyse"
 msgid "Analysis Completed"
 msgstr "Analyse terminée"
 
+#: frontend/src/pages/Inbox.vue:30
+msgid "Any date"
+msgstr "N'importe quelle date"
+
+#: frontend/src/components/InboxDetailDrawer.vue:27
+msgid "Archive"
+msgstr "Archiver"
+
+#. Option for the 'Status' (Select) field in DocType 'Accounting Inbox Item'
+#: etransactions/etransactions_hub/doctype/accounting_inbox_item/accounting_inbox_item.json
+#: frontend/src/pages/Inbox.vue:89
+msgid "Archived"
+msgstr "Archivé"
+
 #: etransactions/public/js/communication.js:11
+#, python-brace-format
 msgid "Are you sure you want to create {0} from this email ?"
 msgstr "Êtes-vous certain de vouloir créer {0} depuis cet email ?"
+
+#: etransactions/public/js/accounting_request_dialog.js:107
+msgid "Ask a question"
+msgstr "Poser une question"
+
+#: etransactions/public/js/accounting_request_dialog.js:28
+#: frontend/src/components/RequestDialog.vue:18
+msgid "Assign To"
+msgstr "Assigner à"
+
+#: frontend/src/components/RequestDetailDrawer.vue:46
+msgid "Assigned to"
+msgstr "Assigné à"
 
 #: etransactions/etransactions/doctype/supplier_invoices_basket/supplier_invoices_basket.js:78
 msgid "Attach your invoice files, then click 'Create purchase invoices'."
@@ -160,6 +281,10 @@ msgstr "Lié au type de document"
 #: etransactions/etransactions/doctype/ocr_generic_text_transcription/ocr_generic_text_transcription.json
 msgid "Attached To Name"
 msgstr "Lié au document"
+
+#: frontend/src/components/InboxDetailDrawer.vue:61
+msgid "Attached files"
+msgstr "Fichiers joints"
 
 #. Label of the auto_reconciliation_section (Section Break) field in DocType
 #. 'eTransactions Settings'
@@ -179,14 +304,24 @@ msgstr "Rapprocher automatiquement les factures fournisseur avec les reçus d'ac
 msgid "Auto submit purchase invoices after creation"
 msgstr "Valider automatiquement les factures d'achat après création"
 
+#. Option for the 'Status' (Select) field in DocType 'Accounting Request'
+#: etransactions/etransactions_hub/doctype/accounting_request/accounting_request.json
+#: frontend/src/pages/Requests.vue:118
+msgid "Awaiting Response"
+msgstr "En attente de réponse"
+
 #. Label of the payee_bic (Data) field in DocType 'eInvoice'
 #: etransactions/etransactions/doctype/einvoice/einvoice.json
 msgid "BIC"
 msgstr "BIC"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:702
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:719
 msgid "Back to list"
 msgstr "Retour à la liste"
+
+#: frontend/src/pages/Overview.vue:24
+msgid "Bank balance"
+msgstr "Solde bancaire"
 
 #. Label of the basis_amount (Currency) field in DocType 'eInvoice Trade Tax'
 #: etransactions/etransactions/doctype/einvoice_trade_tax/einvoice_trade_tax.json
@@ -206,10 +341,6 @@ msgstr "Panier créé"
 #: etransactions/etransactions/doctype/supplier_invoices_basket/supplier_invoices_basket.py:41
 msgid "Basket n°"
 msgstr "Banette n°"
-
-#: etransactions/public/dist/js/ocr_dashboard.bundle.RKBXDGUE.js:7281
-msgid "Billed %"
-msgstr "% facturé"
 
 #. Label of the billed_quantity (Float) field in DocType 'eInvoice Item'
 #: etransactions/etransactions/doctype/einvoice_item/einvoice_item.json
@@ -237,6 +368,12 @@ msgstr "Fin de période de facturation"
 msgid "Billing Period Start"
 msgstr "Début de période de facturation"
 
+#. Label of the block_submission_on_facturx_failure (Check) field in DocType
+#. 'eTransactions Settings'
+#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.json
+msgid "Block submission if FacturX PDF generation fails"
+msgstr "Bloquer la validation si la génération du PDF FacturX échoue"
+
 #. Label of the block_if_grand_total_exceeds_pending_pi (Check) field in
 #. DocType 'eTransactions Settings'
 #: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.json
@@ -248,6 +385,12 @@ msgstr "Bloquer la création de factures d'achat dont le total TTC dépasse la f
 #: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.json
 msgid "Block the creation of purchase invoices with a net total exceeding the supplier invoice "
 msgstr "Bloquer la création de factures d'achat dont le total HT dépasse la facture fournisseur "
+
+#. Option for the 'Status' (Select) field in DocType 'Closing Task'
+#: etransactions/etransactions_hub/doctype/closing_task/closing_task.json
+#: frontend/src/pages/Closing.vue:185
+msgid "Blocked"
+msgstr "Bloqué"
 
 #. Label of the buyer_tab (Tab Break) field in DocType 'eInvoice'
 #: etransactions/etransactions/doctype/einvoice/einvoice.json
@@ -307,6 +450,16 @@ msgstr "Référence de l'acheteur"
 msgid "Buyer Tax ID"
 msgstr "Numéro de TVA de l'acheteur"
 
+#. In Custom HTML Block 'Customer Readiness Widget' (script)
+#: etransactions/etransactions/custom_html_block/customer_readiness_widget/customer_readiness_widget.json:43
+msgid "By Customer Group"
+msgstr "Par groupe de clients"
+
+#. In Custom HTML Block 'Item Tax Readiness Widget' (script)
+#: etransactions/etransactions/custom_html_block/item_tax_readiness_widget/item_tax_readiness_widget.json:44
+msgid "By Item Group"
+msgstr "Par groupe d'articles"
+
 #. Label of the calculated_amount (Currency) field in DocType 'eInvoice Trade
 #. Tax'
 #: etransactions/etransactions/doctype/einvoice_trade_tax/einvoice_trade_tax.json
@@ -318,6 +471,17 @@ msgstr "Montant calculé"
 #: etransactions/etransactions/doctype/einvoice_payment_term/einvoice_payment_term.json
 msgid "Calculation Percent"
 msgstr "Pourcentage de calcul"
+
+#: frontend/src/components/ClosingPeriodDialog.vue:35
+#: frontend/src/components/ClosingTaskDialog.vue:33
+#: frontend/src/components/RequestDialog.vue:33
+msgid "Cancel"
+msgstr "Annuler"
+
+#. Option for the 'Status' (Select) field in DocType 'Accounting Request'
+#: etransactions/etransactions_hub/doctype/accounting_request/accounting_request.json
+msgid "Cancelled"
+msgstr "Annulé"
 
 #: etransactions/etransactions/doctype/einvoice/einvoice.py:236
 msgid "Cannot create E Invoice."
@@ -332,6 +496,16 @@ msgstr "Impossible de valider le schématron de la facture électronique."
 msgid "Charge Total"
 msgstr "Total des frais"
 
+#. Label of the checklist_template (Link) field in DocType 'Closing Period'
+#: etransactions/etransactions_hub/doctype/closing_period/closing_period.json
+#: frontend/src/components/ClosingPeriodDialog.vue:6
+msgid "Checklist Template"
+msgstr "Modèle de liste de contrôle"
+
+#: frontend/src/pages/Closing.vue:278
+msgid "Checklist template saved."
+msgstr "Modèle de liste de contrôle sauvegardé."
+
 #: etransactions/etransactions/report/customer_einvoice_readiness/customer_einvoice_readiness.py:88
 #: etransactions/etransactions/report/customer_einvoice_readiness/customer_einvoice_readiness.py:260
 msgid "City"
@@ -343,23 +517,100 @@ msgstr "Cliquez sur 'Créer des factures d'achat' pour commencer le traitement d
 
 #: etransactions/etransactions/doctype/ocr_request/ocr_request.js:8
 #: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:91
+#: frontend/src/components/ChecklistTemplateDialog.vue:89
+#: frontend/src/components/InboxDetailDrawer.vue:18
+#: frontend/src/components/RequestDetailDrawer.vue:13
 msgid "Close"
 msgstr "Fermer"
+
+#: frontend/src/pages/Overview.vue:66
+#: frontend/src/pages/Overview.vue:67
+msgid "Close readiness"
+msgstr "Clôturer la préparation"
 
 #. Option for the 'Status' (Select) field in DocType 'OCR Request'
 #. Option for the 'Status' (Select) field in DocType 'Supplier Invoice'
 #. Option for the 'Status' (Select) field in DocType 'Supplier Invoices Basket'
+#. Option for the 'Status' (Select) field in DocType 'Accounting Request'
 #: etransactions/etransactions/doctype/ocr_request/ocr_request.json
 #: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json
 #: etransactions/etransactions/doctype/supplier_invoices_basket/supplier_invoices_basket.json
+#: etransactions/etransactions_hub/doctype/accounting_request/accounting_request.json
 msgid "Closed"
 msgstr "Fermée"
 
+#: frontend/src/components/EhubSidebar.vue:26
+msgid "Closing"
+msgstr "Clôture"
+
+#. Name of a DocType
+#: etransactions/etransactions_hub/doctype/closing_checklist_template/closing_checklist_template.json
+msgid "Closing Checklist Template"
+msgstr "Modèle de liste de contrôle de clôture"
+
+#. Name of a DocType
+#: etransactions/etransactions_hub/doctype/closing_checklist_template_item/closing_checklist_template_item.json
+msgid "Closing Checklist Template Item"
+msgstr "Élément de modèle de liste de contrôle de clôture"
+
+#. Name of a DocType
+#. Label of the closing_period (Link) field in DocType 'Closing Task'
+#: etransactions/etransactions_hub/doctype/closing_period/closing_period.json
+#: etransactions/etransactions_hub/doctype/closing_task/closing_task.json
+msgid "Closing Period"
+msgstr "Période de clôture"
+
+#: etransactions/etransactions_hub/doctype/closing_period/closing_period.py:57
+#, python-brace-format
+msgid "Closing Period {0} already exists for this template and period"
+msgstr "La période de clôture {0} existe déjà pour ce modèle et cette période"
+
+#. Label of the closing_task (Link) field in DocType 'Accounting Request'
+#. Name of a DocType
+#: etransactions/etransactions_hub/doctype/accounting_request/accounting_request.json
+#: etransactions/etransactions_hub/doctype/closing_task/closing_task.json
+msgid "Closing Task"
+msgstr "Tâche de clôture"
+
+#: frontend/src/pages/Closing.vue:288
+msgid "Closing period deleted."
+msgstr "Période de clôture supprimée."
+
+#: frontend/src/pages/Closing.vue:232
+msgid "Closing period saved."
+msgstr "Période de clôture sauvegardée."
+
+#: frontend/src/pages/Closing.vue:41
+#: frontend/src/pages/Overview.vue:72
+msgid "Closing progress"
+msgstr "Avancement de la clôture"
+
+#. Group in Accounting Inbox Item's connections
+#. Group in Closing Task's connections
+#: etransactions/etransactions_hub/dashboards.py:11
+#: etransactions/etransactions_hub/doctype/accounting_inbox_item/accounting_inbox_item.json
+#: etransactions/etransactions_hub/doctype/closing_task/closing_task.json
+#: frontend/src/pages/Overview.vue:108
+#: frontend/src/pages/Overview.vue:109
+msgid "Collaboration"
+msgstr "Collaboration"
+
 #. Label of the company (Link) field in DocType 'eInvoice'
 #. Label of the company (Link) field in DocType 'Supplier Invoice'
+#. Label of the company (Link) field in DocType 'Accounting Inbox Item'
+#. Label of the company (Link) field in DocType 'Accounting Request'
+#. Label of the company (Link) field in DocType 'Closing Checklist Template'
+#. Label of the company (Link) field in DocType 'Closing Period'
+#. Label of the company (Link) field in DocType 'Closing Task'
 #: etransactions/etransactions/doctype/einvoice/einvoice.json
 #: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json
-#: etransactions/public/dist/js/ocr_dashboard.bundle.RKBXDGUE.js:7513
+#: etransactions/etransactions_hub/doctype/accounting_inbox_item/accounting_inbox_item.json
+#: etransactions/etransactions_hub/doctype/accounting_request/accounting_request.json
+#: etransactions/etransactions_hub/doctype/closing_checklist_template/closing_checklist_template.json
+#: etransactions/etransactions_hub/doctype/closing_period/closing_period.json
+#: etransactions/etransactions_hub/doctype/closing_task/closing_task.json
+#: frontend/src/components/ChecklistTemplateDialog.vue:35
+#: frontend/src/pages/Overview.vue:10
 msgid "Company"
 msgstr "Société"
 
@@ -368,22 +619,35 @@ msgstr "Société"
 #. Option for the 'Status' (Select) field in DocType 'OCR Request'
 #. Option for the 'Status' (Select) field in DocType 'Supplier Invoice'
 #. Option for the 'Status' (Select) field in DocType 'Supplier Invoices Basket'
+#. Option for the 'Status' (Select) field in DocType 'Closing Period'
 #: etransactions/etransactions/doctype/ocr_generic_text_transcription/ocr_generic_text_transcription.json
 #: etransactions/etransactions/doctype/ocr_request/ocr_request.json
 #: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json
 #: etransactions/etransactions/doctype/supplier_invoices_basket/supplier_invoices_basket.json
+#: etransactions/etransactions_hub/doctype/closing_period/closing_period.json
 msgid "Completed"
 msgstr "Complétée"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:439
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:456
 msgctxt "Title of confirmation dialog"
 msgid "Confirm"
 msgstr "Confirmer"
+
+#. Option for the 'Request Type' (Select) field in DocType 'Accounting Request'
+#: etransactions/etransactions_hub/doctype/accounting_request/accounting_request.json
+#: frontend/src/components/RequestDialog.vue:83
+msgid "Correction Needed"
+msgstr "Correction nécessaire"
 
 #. Label of the cost_center (Link) field in DocType 'Supplier Invoice Item'
 #: etransactions/etransactions/doctype/supplier_invoice_item/supplier_invoice_item.json
 msgid "Cost Center"
 msgstr "Centre de coûts"
+
+#: frontend/src/pages/Closing.vue:15
+#, python-brace-format
+msgid "Could not load your permissions, management actions may be unavailable: {0}"
+msgstr "Impossible de charger vos permissions, les actions de gestion peuvent être indisponibles : {0}"
 
 #: etransactions/etransactions/doctype/einvoice/parser.py:125
 msgid "Could not validate E Invoice schematron. See Error Log for details."
@@ -394,7 +658,9 @@ msgstr "Impossible de valider le schématron de la facture électronique. Consul
 msgid "Country"
 msgstr "Pays"
 
+#: etransactions/public/js/accounting_request_dialog.js:43
 #: etransactions/public/js/communication.js:20
+#: frontend/src/components/RequestDialog.vue:34
 msgid "Create"
 msgstr "Créer"
 
@@ -406,7 +672,7 @@ msgstr "Créer un article"
 #. Label of the create_purchase_invoice (Button) field in DocType 'Supplier
 #. Invoice'
 #: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:65
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:169
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:185
 #: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json
 msgid "Create Purchase Invoice"
 msgstr "Créer une facture d'achats"
@@ -415,34 +681,38 @@ msgstr "Créer une facture d'achats"
 msgid "Create Purchase Order"
 msgstr "Créer une commande fournisseur"
 
+#: frontend/src/components/InboxDetailDrawer.vue:25
+msgid "Create Request"
+msgstr "Créer une demande"
+
 #. Label of the create_supplier (Button) field in DocType 'Supplier Invoice'
 #: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json
 msgid "Create Supplier"
 msgstr "Créer un fournisseur"
 
-#: etransactions/public/dist/js/ocr_dashboard.bundle.RKBXDGUE.js:7382
-msgid "Create a Purchase Invoice"
-msgstr "Créer une facture d'achat"
+#: frontend/src/components/InboxDetailDrawer.vue:23
+msgid "Create Supplier Invoice"
+msgstr "Créer une facture fournisseur"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:178
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:194
 msgid "Create a new invoice"
 msgstr "Créer une nouvelle facture"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:366
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:383
 msgid "Create a new purchase order with all item lines without purchase order ?"
 msgstr "Créer une nouvelle commande fournisseur avec toutes les lignes qui ne sont pas déjà liées à une commande existante ?"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:378
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:386
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:395
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:403
 msgid "Create and keep in draft"
 msgstr "Créer et garder en brouillon"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:377
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:385
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:394
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:402
 msgid "Create and submit"
 msgstr "Créer et valider"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:381
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:398
 msgid "Create and submit a new purchase invoice ?"
 msgstr "Créer et valider une nouvelle facture d'achat ?"
 
@@ -460,9 +730,22 @@ msgstr "Créer des factures d'achat sans commandes fournisseur ou reçus d'achat
 msgid "Created"
 msgstr "Créé"
 
-#: etransactions/public/dist/js/ocr_dashboard.bundle.RKBXDGUE.js:106
-msgid "Creation Date"
-msgstr "Date de création"
+#. Label of the section_break_links (Section Break) field in DocType
+#. 'Accounting Inbox Item'
+#: etransactions/etransactions_hub/doctype/accounting_inbox_item/accounting_inbox_item.json
+msgid "Created Documents"
+msgstr "Documents créés"
+
+#. Label of the created_invoices_basket (Link) field in DocType 'Accounting
+#. Inbox Item'
+#: etransactions/etransactions_hub/doctype/accounting_inbox_item/accounting_inbox_item.json
+msgid "Created Invoices Basket"
+msgstr "Panier de factures créées"
+
+#. Label of the created_request (Link) field in DocType 'Accounting Inbox Item'
+#: etransactions/etransactions_hub/doctype/accounting_inbox_item/accounting_inbox_item.json
+msgid "Created Request"
+msgstr "Demande créée"
 
 #. Label of the currency (Link) field in DocType 'eInvoice'
 #. Label of the currency (Link) field in DocType 'Supplier Invoice'
@@ -470,6 +753,10 @@ msgstr "Date de création"
 #: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json
 msgid "Currency"
 msgstr "Devise"
+
+#: frontend/src/components/AgingBar.vue:31
+msgid "Current"
+msgstr "En cours"
 
 #. Label of a Link in the FacturX Readiness Workspace
 #: etransactions/etransactions/report/customer_einvoice_readiness/customer_einvoice_readiness.py:29
@@ -485,12 +772,21 @@ msgstr "Groupe de clients"
 msgid "Customer Name"
 msgstr "Nom du client"
 
+#. In Custom HTML Block 'Customer Readiness Widget' (script)
+#: etransactions/etransactions/custom_html_block/customer_readiness_widget/customer_readiness_widget.json:84
+msgid "Customer Readiness"
+msgstr "Préparation des clients"
+
 #. Name of a report
 #. Label of a Link in the FacturX Readiness Workspace
 #: etransactions/etransactions/report/customer_einvoice_readiness/customer_einvoice_readiness.json
 #: etransactions/etransactions/workspace/facturx_readiness/facturx_readiness.json
 msgid "Customer eInvoice Readiness"
 msgstr "Préparation à la facturation électronique du client"
+
+#: etransactions/etransactions/api/widgets.py:276
+msgid "Customers with Tax Category"
+msgstr "Clients avec catégorie de taxe"
 
 #. Label of the task_results (JSON) field in DocType 'OCR Generic Text
 #. Transcription'
@@ -500,10 +796,41 @@ msgstr "Préparation à la facturation électronique du client"
 msgid "Data"
 msgstr "Données"
 
-#: etransactions/public/dist/js/ocr_dashboard.bundle.RKBXDGUE.js:146
-#: etransactions/public/dist/js/ocr_dashboard.bundle.RKBXDGUE.js:7257
+#. Label of the context_date (Date) field in DocType 'Accounting Request'
+#: etransactions/etransactions_hub/doctype/accounting_request/accounting_request.json
 msgid "Date"
 msgstr "Date"
+
+#. Label of the day_offset (Int) field in DocType 'Closing Checklist Template
+#. Item'
+#: etransactions/etransactions_hub/doctype/closing_checklist_template_item/closing_checklist_template_item.json
+#: frontend/src/components/ChecklistTemplateDialog.vue:51
+msgid "Day Offset"
+msgstr "Décalage en jours"
+
+#. Label of the default_assignee (Link) field in DocType 'Closing Checklist
+#. Template Item'
+#: etransactions/etransactions_hub/doctype/closing_checklist_template_item/closing_checklist_template_item.json
+#: frontend/src/components/ChecklistTemplateDialog.vue:50
+msgid "Default Assignee"
+msgstr "Responsable par défaut"
+
+#: frontend/src/pages/Closing.vue:37
+msgid "Delete"
+msgstr "Supprimer"
+
+#: frontend/src/pages/Closing.vue:282
+msgid "Delete this closing period and all its tasks?"
+msgstr "Supprimer cette période de clôture et toutes ses tâches ?"
+
+#: frontend/src/pages/Closing.vue:254
+msgid "Delete this task?"
+msgstr "Supprimer cette tâche ?"
+
+#: frontend/src/pages/Closing.vue:109
+#, python-brace-format
+msgid "Delete {0}"
+msgstr "Supprimer {0}"
 
 #. Label of the delivery_tab (Tab Break) field in DocType 'eInvoice'
 #. Label of the delivery_section (Section Break) field in DocType 'eInvoice
@@ -515,7 +842,18 @@ msgstr "Livraison"
 
 #. Label of the description (Text Editor) field in DocType 'Supplier Invoice
 #. Item'
+#. Label of the description (Text Editor) field in DocType 'Accounting Request'
+#. Label of the description (Small Text) field in DocType 'Closing Checklist
+#. Template Item'
+#. Label of the description (Small Text) field in DocType 'Closing Task'
 #: etransactions/etransactions/doctype/supplier_invoice_item/supplier_invoice_item.json
+#: etransactions/etransactions_hub/doctype/accounting_request/accounting_request.json
+#: etransactions/etransactions_hub/doctype/closing_checklist_template_item/closing_checklist_template_item.json
+#: etransactions/etransactions_hub/doctype/closing_task/closing_task.json
+#: etransactions/public/js/accounting_request_dialog.js:40
+#: frontend/src/components/ClosingTaskDialog.vue:20
+#: frontend/src/components/RequestDetailDrawer.vue:63
+#: frontend/src/components/RequestDialog.vue:27
 msgid "Description"
 msgstr "Description"
 
@@ -524,7 +862,27 @@ msgstr "Description"
 msgid "Desk User"
 msgstr "Utilisateur bureau"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:211
+#. Description of the 'Route' (Data) field in DocType 'Closing Task'
+#: etransactions/etransactions_hub/doctype/closing_task/closing_task.json
+msgid "Desk route or URL of the tool used for this task"
+msgstr "Route Desk ou URL de l'outil utilisé pour cette tâche"
+
+#. Description of the 'Route' (Data) field in DocType 'Closing Checklist
+#. Template Item'
+#: etransactions/etransactions_hub/doctype/closing_checklist_template_item/closing_checklist_template_item.json
+msgid "Desk route or URL of the tool used for this task (e.g. /app/bank-reconciliation-tool)"
+msgstr "Route Desk ou URL de l'outil utilisé pour cette tâche (ex. /app/bank-reconciliation-tool)"
+
+#: etransactions/etransactions/api/widgets.py:318
+msgid "Determination per Category"
+msgstr "Détermination par catégorie"
+
+#. In Custom HTML Block 'FacturX Warning' (script)
+#: etransactions/etransactions/custom_html_block/facturx_warning/facturx_warning.json:14
+msgid "Development is underway for Factur-X/UBL e-invoicing and connectivity to approved PA (Plateforme de Dématérialisation Partenaire) platforms."
+msgstr "Le développement de la facturation électronique Factur-X/UBL et de la connectivité aux plateformes de dématérialisation partenaires (PDP) agréées est en cours."
+
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:227
 msgid "Difference:"
 msgstr "Différence:"
 
@@ -544,9 +902,15 @@ msgstr "Document"
 msgid "Document HTML"
 msgstr "HTML du Document"
 
-#: etransactions/public/dist/js/ocr_dashboard.bundle.RKBXDGUE.js:7241
-msgid "Document Name"
-msgstr "Nom du document"
+#. Option for the 'Status' (Select) field in DocType 'Closing Task'
+#: etransactions/etransactions_hub/doctype/closing_task/closing_task.json
+#: frontend/src/pages/Closing.vue:186
+msgid "Done"
+msgstr "Terminé"
+
+#: etransactions/public/js/sales_invoice.js:7
+msgid "Download FacturX Invoice"
+msgstr "Télécharger la facture FacturX"
 
 #: etransactions/overrides/custom_fields/transactions.py:16
 msgid "Drop a file"
@@ -559,9 +923,15 @@ msgstr "Échu"
 
 #. Label of the due_date (Date) field in DocType 'eInvoice'
 #. Label of the due_date (Date) field in DocType 'Supplier Invoice'
+#. Label of the due_date (Date) field in DocType 'Accounting Request'
+#. Label of the due_date (Date) field in DocType 'Closing Task'
 #: etransactions/etransactions/doctype/einvoice/einvoice.json
 #: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json
-#: etransactions/public/dist/js/ocr_dashboard.bundle.RKBXDGUE.js:7562
+#: etransactions/etransactions_hub/doctype/accounting_request/accounting_request.json
+#: etransactions/etransactions_hub/doctype/closing_task/closing_task.json
+#: etransactions/public/js/accounting_request_dialog.js:34
+#: frontend/src/components/ClosingTaskDialog.vue:13
+#: frontend/src/components/RequestDialog.vue:20
 msgid "Due Date"
 msgstr "Date d'échéance"
 
@@ -570,10 +940,43 @@ msgstr "Date d'échéance"
 msgid "Due Payable"
 msgstr "Montant dû"
 
+#: frontend/src/components/RequestDetailDrawer.vue:41
+msgid "Due date"
+msgstr "Date d'échéance"
+
+#. Description of the 'Day Offset' (Int) field in DocType 'Closing Checklist
+#. Template Item'
+#: etransactions/etransactions_hub/doctype/closing_checklist_template_item/closing_checklist_template_item.json
+msgid "Due date = period end date + N days"
+msgstr "Date d'échéance = date de fin de période + N jours"
+
+#: frontend/src/pages/Closing.vue:75
+#: frontend/src/pages/Requests.vue:59
+#, python-brace-format
+msgid "Due {0}"
+msgstr "Échéance {0}"
+
 #. Label of the einvoice (Link) field in DocType 'eInvoice'
 #: etransactions/etransactions/doctype/einvoice/einvoice.json
 msgid "EInvoice File"
 msgstr "Fichier de facture électronique"
+
+#: frontend/src/components/ClosingPeriodDialog.vue:2
+msgid "Edit Closing Period"
+msgstr "Modifier la période de clôture"
+
+#: frontend/src/components/ClosingTaskDialog.vue:2
+msgid "Edit Task"
+msgstr "Modifier la tâche"
+
+#: frontend/src/pages/Closing.vue:27
+msgid "Edit dates"
+msgstr "Modifier les dates"
+
+#: frontend/src/pages/Closing.vue:100
+#, python-brace-format
+msgid "Edit {0}"
+msgstr "Modifier {0}"
 
 #: etransactions/overrides/custom_fields/master_data.py:34
 #: etransactions/overrides/custom_fields/master_data.py:63
@@ -585,11 +988,18 @@ msgstr "Adresse électronique"
 msgid "Electronic Address Scheme"
 msgstr "Schéma d'adresse électronique"
 
+#. Option for the 'Source' (Select) field in DocType 'Accounting Inbox Item'
 #: etransactions/etransactions/api/widgets.py:87
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:698
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:715
 #: etransactions/etransactions/report/customer_einvoice_readiness/customer_einvoice_readiness.py:63
+#: etransactions/etransactions_hub/doctype/accounting_inbox_item/accounting_inbox_item.json
 msgid "Email"
 msgstr "E-mail"
+
+#: frontend/src/components/InboxDetailDrawer.vue:52
+#, python-brace-format
+msgid "Email content from {0}"
+msgstr "Contenu de l'e-mail provenant de {0}"
 
 #. Label of the einvoice_embedded_document (Attach) field in DocType 'eInvoice'
 #: etransactions/etransactions/doctype/einvoice/einvoice.json
@@ -632,6 +1042,21 @@ msgstr "Données extraites"
 msgid "Extraction in progress"
 msgstr "Extraction en cours"
 
+#. In Custom HTML Block 'FacturX Warning' (script)
+#: etransactions/etransactions/custom_html_block/facturx_warning/facturx_warning.json:13
+msgid "FacturX / Electronic Invoicing — Feature in Progress"
+msgstr "FacturX / Facturation électronique — Fonctionnalité en cours de développement"
+
+#. Label of the facturx_section (Section Break) field in DocType 'eTransactions
+#. Settings'
+#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.json
+msgid "FacturX PDF"
+msgstr "PDF FacturX"
+
+#: etransactions/overrides/sales_invoice.py:99
+msgid "FacturX PDF Generation Failed"
+msgstr "Échec de la génération du PDF FacturX"
+
 #. Name of a Workspace
 #. Label of a Workspace Sidebar Item
 #: etransactions/etransactions/workspace/facturx_readiness/facturx_readiness.json
@@ -642,10 +1067,6 @@ msgstr "Préparation FacturX"
 #: etransactions/etransactions/doctype/supplier_invoices_basket/supplier_invoices_basket.js:156
 msgid "Failed to load processing status. Please refresh."
 msgstr "Impossible de charger le statut de traitement. Veuillez actualiser."
-
-#: etransactions/public/dist/js/ocr_dashboard.bundle.RKBXDGUE.js:45
-msgid "Fetching Bank Transactions"
-msgstr "Récupération des transactions bancaires"
 
 #. Label of the field (Data) field in DocType 'OCR Header Mapping'
 #: etransactions/etransactions/doctype/ocr_header_mapping/ocr_header_mapping.json
@@ -687,6 +1108,17 @@ msgstr "HTML de téléchargement de fichier"
 msgid "Filename"
 msgstr "Nom du fichier"
 
+#: frontend/src/components/InboxDetailDrawer.vue:64
+msgid "Files"
+msgstr "Fichiers"
+
+#. Label of the frequency (Select) field in DocType 'Closing Checklist
+#. Template'
+#: etransactions/etransactions_hub/doctype/closing_checklist_template/closing_checklist_template.json
+#: frontend/src/components/ChecklistTemplateDialog.vue:29
+msgid "Frequency"
+msgstr "Fréquence"
+
 #: etransactions/etransactions/api/widgets.py:238
 msgid "Full Category Coverage"
 msgstr "Couverture complète des catégories"
@@ -697,16 +1129,31 @@ msgstr "Couverture complète des catégories"
 msgid "General Settings"
 msgstr "Paramètres généraux"
 
+#. Label of the generate_facturx_on_submit (Check) field in DocType
+#. 'eTransactions Settings'
+#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.json
+msgid "Generate FacturX PDF automatically when a Sales Invoice is submitted"
+msgstr "Générer automatiquement le PDF FacturX lors de la validation d'une facture client"
+
+#: etransactions/public/js/sales_invoice.js:12
+msgid "Generating FacturX PDF…"
+msgstr "Génération du PDF FacturX en cours…"
+
 #. Label of the grand_total (Currency) field in DocType 'eInvoice'
 #. Label of the supplier_grand_total (Currency) field in DocType 'Supplier
 #. Invoice'
 #. Label of the grand_total (Currency) field in DocType 'Supplier Invoice'
 #: etransactions/etransactions/doctype/einvoice/einvoice.json
 #: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json
-#: etransactions/public/dist/js/ocr_dashboard.bundle.RKBXDGUE.js:7273
-#: etransactions/public/dist/js/ocr_dashboard.bundle.RKBXDGUE.js:7596
 msgid "Grand Total"
 msgstr "Total TTC"
+
+#. In Custom HTML Block 'Customer Readiness Widget' (script)
+#. In Custom HTML Block 'Item Tax Readiness Widget' (script)
+#: etransactions/etransactions/custom_html_block/customer_readiness_widget/customer_readiness_widget.json:52
+#: etransactions/etransactions/custom_html_block/item_tax_readiness_widget/item_tax_readiness_widget.json:53
+msgid "Group"
+msgstr "Groupe"
 
 #: etransactions/etransactions/api/widgets.py:220
 msgid "Has Tax Template"
@@ -717,8 +1164,19 @@ msgstr "A un modèle de taxes"
 msgid "Header"
 msgstr "En-tête"
 
+#. Option for the 'Priority' (Select) field in DocType 'Accounting Request'
+#: etransactions/etransactions_hub/doctype/accounting_request/accounting_request.json
+msgid "High"
+msgstr "Haute"
+
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:112
+msgid "High confidence"
+msgstr "Haute confiance"
+
 #. Label of the payee_iban (Data) field in DocType 'eInvoice'
+#. Label of the vendor_iban (Data) field in DocType 'Supplier Invoice'
 #: etransactions/etransactions/doctype/einvoice/einvoice.json
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json
 msgid "IBAN"
 msgstr "IBAN"
 
@@ -733,17 +1191,48 @@ msgstr "Importé"
 
 #. Option for the 'Status' (Select) field in DocType 'Supplier Invoice'
 #. Option for the 'Status' (Select) field in DocType 'Supplier Invoices Basket'
+#. Option for the 'Status' (Select) field in DocType 'Accounting Inbox Item'
+#. Option for the 'Status' (Select) field in DocType 'Closing Period'
+#. Option for the 'Status' (Select) field in DocType 'Closing Task'
 #: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json
 #: etransactions/etransactions/doctype/supplier_invoices_basket/supplier_invoices_basket.json
+#: etransactions/etransactions_hub/doctype/accounting_inbox_item/accounting_inbox_item.json
+#: etransactions/etransactions_hub/doctype/closing_period/closing_period.json
+#: etransactions/etransactions_hub/doctype/closing_task/closing_task.json
+#: frontend/src/pages/Closing.vue:184
+#: frontend/src/pages/Inbox.vue:87
 msgid "In Progress"
 msgstr "En cours"
 
+#: frontend/src/components/EhubSidebar.vue:20
+msgid "Inbox"
+msgstr "Boîte de réception"
+
+#. Label of the inbox_item (Link) field in DocType 'Accounting Request'
+#: etransactions/etransactions_hub/doctype/accounting_request/accounting_request.json
+msgid "Inbox Item"
+msgstr "Élément de boîte de réception"
+
+#: etransactions/etransactions_hub/doctype/accounting_inbox_item/accounting_inbox_item.py:38
+msgid "Inbox item"
+msgstr "Élément de boîte de réception"
+
+#: frontend/src/pages/Inbox.vue:50
+msgid "Inbox items matching these filters will show up here."
+msgstr "Les éléments de boîte de réception correspondant à ces filtres s'afficheront ici."
+
+#: frontend/src/pages/Overview.vue:128
+msgid "Inbox to triage"
+msgstr "Boîte de réception à trier"
+
 #. Option for the 'eInvoice Type' (Select) field in DocType 'eInvoice'
+#. Default value of the einvoice_type (Select) field in DocType 'eInvoice'
 #: etransactions/etransactions/doctype/einvoice/einvoice.json
 msgid "Incoming"
 msgstr "Entrant"
 
 #: etransactions/etransactions/report/customer_einvoice_readiness/customer_einvoice_readiness.py:268
+#, python-brace-format
 msgid "Incomplete billing address: {0}"
 msgstr "Adresse de facturation incomplète : {0}"
 
@@ -751,6 +1240,12 @@ msgstr "Adresse de facturation incomplète : {0}"
 #: etransactions/etransactions/doctype/einvoice/einvoice.json
 msgid "Incoterm"
 msgstr "Incoterm"
+
+#. Option for the 'Request Type' (Select) field in DocType 'Accounting Request'
+#: etransactions/etransactions_hub/doctype/accounting_request/accounting_request.json
+#: frontend/src/components/RequestDialog.vue:84
+msgid "Information"
+msgstr "Information"
 
 #: etransactions/utils/xml.py:51
 msgid "Invalid XML"
@@ -761,22 +1256,13 @@ msgstr "XML invalide"
 msgid "Invoice"
 msgstr "Facture"
 
-#: etransactions/public/dist/js/ocr_dashboard.bundle.RKBXDGUE.js:7551
-msgid "Invoice Date"
-msgstr "Date de facture"
-
 #. Label of the id (Data) field in DocType 'eInvoice'
 #: etransactions/etransactions/doctype/einvoice/einvoice.json
 msgid "Invoice ID"
 msgstr "Identifiant de facture"
 
-#: etransactions/public/dist/js/ocr_dashboard.bundle.RKBXDGUE.js:7540
-msgid "Invoice Number"
-msgstr "N° de facture"
-
 #. Label of the invoice_preview (HTML) field in DocType 'Supplier Invoice'
 #: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json
-#: etransactions/public/dist/js/ocr_dashboard.bundle.RKBXDGUE.js:7626
 msgid "Invoice Preview"
 msgstr "Prévisualisation de la facture"
 
@@ -820,12 +1306,18 @@ msgstr "Code article"
 msgid "Item Group"
 msgstr "Groupe d'articles"
 
+#: etransactions/etransactions/api/widgets.py:371
+msgid "Item Groups fully covered"
+msgstr "Groupes d'articles entièrement couverts"
+
 #: etransactions/etransactions/report/item_tax_readiness/item_tax_readiness.py:33
 msgid "Item Name"
 msgstr "Désignation de l'article"
 
+#. In Custom HTML Block 'Item Tax Readiness Widget' (script)
 #. Name of a report
 #. Label of a Link in the FacturX Readiness Workspace
+#: etransactions/etransactions/custom_html_block/item_tax_readiness_widget/item_tax_readiness_widget.json:86
 #: etransactions/etransactions/report/item_tax_readiness/item_tax_readiness.json
 #: etransactions/etransactions/workspace/facturx_readiness/facturx_readiness.json
 msgid "Item Tax Readiness"
@@ -837,18 +1329,39 @@ msgstr "Préparation à la taxe sur l'article"
 msgid "Item Tax Template"
 msgstr "Modèle de taxes sur l'article"
 
+#: frontend/src/components/InboxDetailDrawer.vue:150
+msgid "Item archived."
+msgstr "Élément archivé."
+
+#: frontend/src/components/InboxDetailDrawer.vue:5
+msgid "Item detail"
+msgstr "Détail de l'élément"
+
 #. Label of the items (Table) field in DocType 'eInvoice'
 #. Label of the items_tab (Tab Break) field in DocType 'eInvoice'
 #. Label of the items (Table) field in DocType 'Supplier Invoice'
+#. Label of the items (Table) field in DocType 'Closing Checklist Template'
 #: etransactions/etransactions/doctype/einvoice/einvoice.json
 #: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json
+#: etransactions/etransactions_hub/doctype/closing_checklist_template/closing_checklist_template.json
 msgid "Items"
 msgstr "Articles"
+
+#: frontend/src/pages/Overview.vue:99
+#, python-brace-format
+msgid "Items {0}%"
+msgstr "Articles {0}%"
 
 #. Label of the job (Small Text) field in DocType 'OCR Request'
 #: etransactions/etransactions/doctype/ocr_request/ocr_request.json
 msgid "Job"
 msgstr "Tâche"
+
+#. Label of the justificative_file (Attach) field in DocType 'Accounting
+#. Request'
+#: etransactions/etransactions_hub/doctype/accounting_request/accounting_request.json
+msgid "Justificative File"
+msgstr "Fichier justificatif"
 
 #. Label of the key (Data) field in DocType 'OCR Header Mapping'
 #: etransactions/etransactions/doctype/ocr_header_mapping/ocr_header_mapping.json
@@ -866,9 +1379,60 @@ msgstr "Laisser vide pour la détermination des taxes par lignes"
 msgid "Line Total"
 msgstr "Total ligne"
 
+#. Label of the section_break_links (Section Break) field in DocType
+#. 'Accounting Request'
+#: etransactions/etransactions_hub/doctype/accounting_request/accounting_request.json
+msgid "Links"
+msgstr "Liens"
+
+#. In Custom HTML Block 'Customer Readiness Widget' (script)
+#. In Custom HTML Block 'Item Tax Readiness Widget' (script)
+#. In Custom HTML Block 'VAT Configuration Widget' (script)
+#: etransactions/etransactions/custom_html_block/customer_readiness_widget/customer_readiness_widget.json:4
+#: etransactions/etransactions/custom_html_block/item_tax_readiness_widget/item_tax_readiness_widget.json:4
+#: etransactions/etransactions/custom_html_block/vat_configuration_widget/vat_configuration_widget.json:4
+msgid "Loading"
+msgstr "Chargement"
+
 #: etransactions/etransactions/doctype/supplier_invoices_basket/supplier_invoices_basket.js:86
 msgid "Loading status..."
 msgstr "Chargement du statut..."
+
+#: frontend/src/components/InboxDetailDrawer.vue:83
+#: frontend/src/pages/Overview.vue:136
+msgid "Loading…"
+msgstr "Chargement…"
+
+#. Option for the 'Priority' (Select) field in DocType 'Accounting Request'
+#: etransactions/etransactions_hub/doctype/accounting_request/accounting_request.json
+msgid "Low"
+msgstr "Basse"
+
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:111
+msgid "Low confidence"
+msgstr "Faible confiance"
+
+#: frontend/src/pages/Overview.vue:88
+msgid "Low-confidence invoices"
+msgstr "Factures à faible confiance"
+
+#: frontend/src/components/ChecklistTemplateDialog.vue:2
+msgid "Manage Checklist Templates"
+msgstr "Gérer les modèles de checklist"
+
+#: frontend/src/pages/Closing.vue:10
+msgid "Manage templates"
+msgstr "Gérer les modèles"
+
+#. Option for the 'Source' (Select) field in DocType 'Accounting Inbox Item'
+#: etransactions/etransactions_hub/doctype/accounting_inbox_item/accounting_inbox_item.json
+msgid "Manual Upload"
+msgstr "Téléversement manuel"
+
+#. Label of the match_confidence (Select) field in DocType 'Supplier Invoice'
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json
+msgid "Match Confidence"
+msgstr "Niveau de confiance"
 
 #. Label of the max_difference_amount (Currency) field in DocType
 #. 'eTransactions Settings'
@@ -882,9 +1446,27 @@ msgstr "Différence maximale en montant sur le total HT"
 msgid "Max difference percentage on net total"
 msgstr "Différence maximale en pourcentage sur le total HT"
 
+#. Option for the 'Priority' (Select) field in DocType 'Accounting Request'
+#. Default value of the priority (Select) field in DocType 'Accounting Request'
+#: etransactions/etransactions_hub/doctype/accounting_request/accounting_request.json
+msgid "Medium"
+msgstr "Moyenne"
+
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:110
+msgid "Medium confidence"
+msgstr "Confiance moyenne"
+
 #: etransactions/etransactions/report/item_tax_readiness/item_tax_readiness.py:52
 msgid "Missing Coverage"
 msgstr "Couverture manquante"
+
+#. Option for the 'Request Type' (Select) field in DocType 'Accounting Request'
+#. Default value of the request_type (Select) field in DocType 'Accounting
+#. Request'
+#: etransactions/etransactions_hub/doctype/accounting_request/accounting_request.json
+#: frontend/src/components/RequestDialog.vue:81
+msgid "Missing Justificative"
+msgstr "Justificatif manquant"
 
 #: etransactions/etransactions/report/customer_einvoice_readiness/customer_einvoice_readiness.py:238
 msgid "Missing SIREN Number"
@@ -894,13 +1476,17 @@ msgstr "Numéro SIREN manquant"
 msgid "Missing SIRET Number on billing address"
 msgstr "Numéro SIRET manquant sur l'adresse de facturation"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:96
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:102
 msgid "Missing Supplier"
 msgstr "Fournisseur manquant"
 
 #: etransactions/etransactions/report/customer_einvoice_readiness/customer_einvoice_readiness.py:241
 msgid "Missing Tax ID"
 msgstr "Numéro de taxe manquant"
+
+#: frontend/src/pages/Overview.vue:80
+msgid "Missing justificatives"
+msgstr "Justificatifs manquants"
 
 #. Label of the mistral_api_key (Password) field in DocType 'eTransactions
 #. Settings'
@@ -920,10 +1506,24 @@ msgstr "OCR Mistral"
 msgid "Monetary Summation"
 msgstr "Récapitulatif monétaire"
 
+#. Option for the 'Frequency' (Select) field in DocType 'Closing Checklist
+#. Template'
+#. Default value of the frequency (Select) field in DocType 'Closing Checklist
+#. Template'
+#: etransactions/etransactions_hub/doctype/closing_checklist_template/closing_checklist_template.json
+#: frontend/src/components/ChecklistTemplateDialog.vue:129
+msgid "Monthly"
+msgstr "Mensuel"
+
 #. Label of the named_place (Data) field in DocType 'eInvoice'
 #: etransactions/etransactions/doctype/einvoice/einvoice.json
 msgid "Named Place"
 msgstr "Lieu désigné"
+
+#. Label of the naming_series (Select) field in DocType 'Accounting Request'
+#: etransactions/etransactions_hub/doctype/accounting_request/accounting_request.json
+msgid "Naming Series"
+msgstr "Série de nommage"
 
 #. Label of the supplier_net_amount (Currency) field in DocType 'Supplier
 #. Invoice'
@@ -938,16 +1538,27 @@ msgstr "Taux net"
 
 #. Label of the net_total (Currency) field in DocType 'Supplier Invoice'
 #: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json
-#: etransactions/public/dist/js/ocr_dashboard.bundle.RKBXDGUE.js:7265
-#: etransactions/public/dist/js/ocr_dashboard.bundle.RKBXDGUE.js:7577
 msgid "Net Total"
 msgstr "Total HT"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:694
+#: etransactions/public/js/accounting_request_dialog.js:8
+#: frontend/src/components/RequestDialog.vue:2
+msgid "New Accounting Request"
+msgstr "Nouvelle demande comptable"
+
+#: frontend/src/pages/Requests.vue:15
+msgid "New Request"
+msgstr "Nouvelle demande"
+
+#: frontend/src/components/ChecklistTemplateDialog.vue:15
+msgid "New Template"
+msgstr "Nouveau modèle"
+
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:711
 msgid "Next"
 msgstr "Suivant"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:447
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:464
 msgctxt "Dismiss confirmation dialog"
 msgid "No"
 msgstr "Non"
@@ -968,19 +1579,58 @@ msgstr "Pas d'adresse de facturation principale"
 msgid "No Primary Contact"
 msgstr "Pas de contact principal"
 
+#. In Custom HTML Block 'Customer Readiness Widget' (script)
+#: etransactions/etransactions/custom_html_block/customer_readiness_widget/customer_readiness_widget.json:94
+msgid "No active customers found."
+msgstr "Aucun client actif trouvé."
+
+#. In Custom HTML Block 'Item Tax Readiness Widget' (script)
+#: etransactions/etransactions/custom_html_block/item_tax_readiness_widget/item_tax_readiness_widget.json:97
+msgid "No active sales items found."
+msgstr "Aucun article de vente actif trouvé."
+
+#: frontend/src/pages/Closing.vue:117
+msgid "No closing period in progress."
+msgstr "Aucune période de clôture en cours."
+
 #: etransactions/etransactions/doctype/supplier_invoices_basket/supplier_invoices_basket.js:118
 msgid "No documents found yet. Processing may still be starting..."
 msgstr "Aucun document trouvé pour l'instant. Le traitement est peut-être encore en cours de démarrage..."
 
-#: etransactions/etransactions/doctype/ocr_request/mistral_ocr.py:83
+#: etransactions/utils/facturx_pdf.py:92
+#, python-brace-format
+msgid "No eInvoice found for Sales Invoice {0}. Save the Sales Invoice with an eTransaction Profile first."
+msgstr "Aucune facture électronique trouvée pour la facture client {0}. Enregistrez la facture client avec un profil de transaction électronique d'abord."
+
+#: etransactions/public/js/sales_invoice.js:40
+msgid "No eInvoice generated yet."
+msgstr "Aucune facture électronique générée pour l'instant."
+
+#: frontend/src/components/InboxDetailDrawer.vue:57
+msgid "No email content for this item."
+msgstr "Aucun contenu d'e-mail pour cet élément."
+
+#: etransactions/etransactions/doctype/ocr_request/mistral_ocr.py:84
 msgid "No encoded file found"
 msgstr "Aucun fichier encodé trouvé"
+
+#: frontend/src/components/InboxDetailDrawer.vue:78
+msgid "No file attached."
+msgstr "Aucun fichier joint."
+
+#: etransactions/etransactions_hub/doctype/accounting_request/accounting_request.py:161
+msgid "No file to attach. Collect a justificative first."
+msgstr ""
+
+#: etransactions/etransactions_hub/doctype/accounting_request/accounting_request.py:177
+msgid "No file to process. Collect a justificative first."
+msgstr ""
 
 #: etransactions/etransactions/report/item_tax_readiness/item_tax_readiness.py:181
 msgid "No item tax template assigned"
 msgstr "Aucun modèle de taxe article assigné"
 
-#: etransactions/utils/xml.py:85
+#: etransactions/utils/xml.py:86
 msgid "No machine-readable data was found in the PDF file. You can create a regular Purchase Invoice manually instead."
 msgstr "Aucune donnée lisible par machine n'a été trouvée dans le fichier PDF. Vous pouvez créer une facture d'achat classique manuellement à la place."
 
@@ -988,11 +1638,61 @@ msgstr "Aucune donnée lisible par machine n'a été trouvée dans le fichier PD
 msgid "No matching supplier format file (PDF, XML) found in this basket"
 msgstr "Aucun fichier au format fournisseur (PDF, XML) trouvé dans cette corbeille"
 
-#: etransactions/public/dist/js/ocr_dashboard.bundle.RKBXDGUE.js:71
-msgid "No more pending invoices to reconcile."
-msgstr "Plus aucune facture en attente à rapprocher."
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice_list.js:42
+msgid "No new matches found"
+msgstr "Aucune nouvelle correspondance trouvée"
+
+#: etransactions/public/js/sales_invoice.js:94
+msgid "No payment IBAN configured."
+msgstr "Aucun IBAN de paiement configuré."
+
+#: frontend/src/pages/Overview.vue:73
+msgid "No period"
+msgstr ""
+
+#: etransactions/etransactions_hub/doctype/accounting_inbox_item/accounting_inbox_item.py:67
+msgid "No processable file (PDF, XML) is attached to this inbox item"
+msgstr ""
+
+#: frontend/src/pages/Requests.vue:75
+msgid "No request"
+msgstr ""
+
+#: frontend/src/pages/Requests.vue:25
+msgid "No requests"
+msgstr ""
+
+#: frontend/src/components/ChecklistTemplateDialog.vue:76
+msgid "No task yet. Add one."
+msgstr ""
+
+#. In Custom HTML Block 'VAT Configuration Widget' (script)
+#: etransactions/etransactions/custom_html_block/vat_configuration_widget/vat_configuration_widget.json:56
+msgid "No tax category is configured yet. Use the configuration tool to set up item level VAT determination."
+msgstr ""
+
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice_list.js:29
+msgid "No unmatched invoices selected"
+msgstr "Aucune facture non rapprochée sélectionnée"
+
+#: frontend/src/components/RequestDetailDrawer.vue:58
+#: frontend/src/components/UserPicker.vue:6
+msgid "Nobody yet"
+msgstr ""
+
+#: frontend/src/components/ChecklistTemplateDialog.vue:36
+msgid "None"
+msgstr ""
+
+#. Option for the 'Status' (Select) field in DocType 'Closing Task'
+#: etransactions/etransactions_hub/doctype/closing_task/closing_task.json
+#: frontend/src/pages/Closing.vue:187
+msgid "Not Applicable"
+msgstr ""
 
 #. Option for the 'Status' (Select) field in DocType 'Supplier Invoices Basket'
+#. Default value of the status (Select) field in DocType 'Supplier Invoices
+#. Basket'
 #: etransactions/etransactions/doctype/supplier_invoices_basket/supplier_invoices_basket.json
 msgid "Not Started"
 msgstr "Non démarré"
@@ -1000,6 +1700,14 @@ msgstr "Non démarré"
 #: etransactions/utils/xml.py:88
 msgid "Not an E-Invoice"
 msgstr "Pas une facture électronique"
+
+#: etransactions/etransactions_hub/api.py:420
+msgid "Not permitted to create checklist templates"
+msgstr ""
+
+#: frontend/src/pages/Inbox.vue:49
+msgid "Nothing to triage"
+msgstr ""
 
 #. Name of a DocType
 #: etransactions/etransactions/doctype/ocr_generic_text_transcription/ocr_generic_text_transcription.json
@@ -1011,7 +1719,7 @@ msgstr "Transcription générique OCR"
 msgid "OCR Header Mapping"
 msgstr "Correspondance d'en-tête OCR"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice_list.js:65
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice_list.js:89
 msgctxt "Supplier Invoice List"
 msgid "OCR In Progress"
 msgstr "OCR en cours"
@@ -1031,7 +1739,7 @@ msgstr "Correspondance des lignes OCR"
 msgid "OCR Request"
 msgstr "Demande OCR"
 
-#: etransactions/overrides/custom_fields/transactions.py:88
+#: etransactions/overrides/custom_fields/transactions.py:92
 msgid "OCR Request Line Item"
 msgstr "Ligne de demande OCR"
 
@@ -1052,9 +1760,36 @@ msgstr "Afficher uniquement les clients avec des problèmes"
 msgid "Only Show Items with Issues"
 msgstr "Afficher uniquement les articles avec des problèmes"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:177
+#. Option for the 'Status' (Select) field in DocType 'Accounting Request'
+#. Default value of the status (Select) field in DocType 'Accounting Request'
+#. Option for the 'Status' (Select) field in DocType 'Closing Period'
+#. Default value of the status (Select) field in DocType 'Closing Period'
+#: etransactions/etransactions_hub/doctype/accounting_request/accounting_request.json
+#: etransactions/etransactions_hub/doctype/closing_period/closing_period.json
+#: frontend/src/pages/Requests.vue:115
+msgid "Open"
+msgstr ""
+
+#: frontend/src/components/EhubTopBar.vue:23
+msgid "Open Desk"
+msgstr ""
+
+#. In Custom HTML Block 'VAT Configuration Widget' (script)
+#: etransactions/etransactions/custom_html_block/vat_configuration_widget/vat_configuration_widget.json:72
+msgid "Open configuration tool"
+msgstr ""
+
+#: etransactions/public/js/sales_invoice.js:104
+msgid "Open eInvoice →"
+msgstr "Ouvrir la facture électronique →"
+
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:193
 msgid "Open the draft invoice"
 msgstr "Ouvrir la facture brouillon"
+
+#: frontend/src/pages/Overview.vue:32
+msgid "Open the reconciliation tool"
+msgstr ""
 
 #: etransactions/overrides/custom_fields/transactions.py:32
 msgid "Original File"
@@ -1076,6 +1811,24 @@ msgstr "Autre"
 msgid "Outgoing"
 msgstr "Sortant"
 
+#: frontend/src/pages/Requests.vue:51
+msgid "Overdue"
+msgstr ""
+
+#: etransactions/etransactions_hub/doctype/accounting_request/accounting_request.py:191
+#, python-brace-format
+msgid "Overdue accounting request {0}: {1}"
+msgstr ""
+
+#: frontend/src/pages/Overview.vue:121
+msgid "Overdue requests"
+msgstr ""
+
+#: frontend/src/components/EhubSidebar.vue:17
+#: frontend/src/pages/Overview.vue:5
+msgid "Overview"
+msgstr ""
+
 #. Label of the po_date (Date) field in DocType 'eInvoice'
 #: etransactions/etransactions/doctype/einvoice/einvoice.json
 msgid "PO Date"
@@ -1086,6 +1839,16 @@ msgstr "Date BC"
 #: etransactions/etransactions/doctype/einvoice_payment_term/einvoice_payment_term.json
 msgid "Partial Amount"
 msgstr "Montant partiel"
+
+#. Label of the context_party (Data) field in DocType 'Accounting Request'
+#: etransactions/etransactions_hub/doctype/accounting_request/accounting_request.json
+#: frontend/src/components/RequestDetailDrawer.vue:33
+msgid "Party"
+msgstr ""
+
+#: frontend/src/pages/Overview.vue:56
+msgid "Payables outstanding"
+msgstr ""
 
 #. Label of the payment_means_section (Section Break) field in DocType
 #. 'eInvoice'
@@ -1106,10 +1869,15 @@ msgstr "Modèle de conditions de paiement"
 #. Option for the 'Status' (Select) field in DocType 'OCR Generic Text
 #. Transcription'
 #. Option for the 'Status' (Select) field in DocType 'OCR Request'
+#. Default value of the status (Select) field in DocType 'OCR Request'
 #. Option for the 'Status' (Select) field in DocType 'Supplier Invoice'
+#. Option for the 'Status' (Select) field in DocType 'Closing Task'
+#. Default value of the status (Select) field in DocType 'Closing Task'
 #: etransactions/etransactions/doctype/ocr_generic_text_transcription/ocr_generic_text_transcription.json
 #: etransactions/etransactions/doctype/ocr_request/ocr_request.json
 #: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json
+#: etransactions/etransactions_hub/doctype/closing_task/closing_task.json
+#: frontend/src/pages/Closing.vue:183
 msgid "Pending"
 msgstr "En attente"
 
@@ -1118,36 +1886,69 @@ msgstr "En attente"
 msgid "Pending Invoices"
 msgstr "Factures en attente"
 
+#: frontend/src/pages/Closing.vue:7
+msgid "Period Closing"
+msgstr ""
+
+#. Label of the period_end (Date) field in DocType 'Closing Period'
+#: etransactions/etransactions_hub/doctype/closing_period/closing_period.json
+#: frontend/src/components/ClosingPeriodDialog.vue:23
+msgid "Period End"
+msgstr ""
+
+#. Label of the period_start (Date) field in DocType 'Closing Period'
+#: etransactions/etransactions_hub/doctype/closing_period/closing_period.json
+#: frontend/src/components/ClosingPeriodDialog.vue:15
+msgid "Period Start"
+msgstr ""
+
+#: etransactions/etransactions_hub/doctype/closing_period/closing_period.py:43
+msgid "Period start date cannot be after period end date"
+msgstr ""
+
 #: etransactions/etransactions/report/customer_einvoice_readiness/customer_einvoice_readiness.py:94
 #: etransactions/etransactions/report/customer_einvoice_readiness/customer_einvoice_readiness.py:261
 msgid "Pincode"
 msgstr "Code PIN"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:547
+#: frontend/src/pages/Closing.vue:168
+msgid "Please reload the page or sign in again."
+msgstr ""
+
+#: frontend/src/components/ClosingPeriodDialog.vue:104
+msgid "Please select a checklist template"
+msgstr ""
+
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:564
 msgid "Please select at least one purchase order"
 msgstr "Veuillez sélectionner au moins une commande fournisseur"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:547
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:564
 msgid "Please select at least one purchase receipt"
 msgstr "Veuillez sélectionner au moins une réception"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:208
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:301
 msgid "Please select documents linked to the same company"
 msgstr "Veuillez sélectionner des documents associés à la même société"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:211
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:304
 msgid "Please select documents linked to the same supplier"
 msgstr "Veuillez sélectionner des documents associés au même fournisseur"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:553
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:570
 msgid "Please select orders linked to the same supplier"
 msgstr "Veuillez sélectionner des commandes liées au même fournisseur"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:553
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:570
 msgid "Please select receipts linked to the same supplier"
 msgstr "Veuillez sélectionner des reçus liés au même fournisseur"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:300
+#: frontend/src/components/ClosingPeriodDialog.vue:108
+msgid "Please set the period start and end dates"
+msgstr ""
+
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:393
+#, python-brace-format
 msgid "Please submit {0}: {1} before trying to create the corresponding invoice"
 msgstr "Veuillez valider {0}: {1} avant d'essayer de créer la facture correspondante"
 
@@ -1166,9 +1967,17 @@ msgstr "Prix"
 msgid "Primary Contact"
 msgstr "Contact principal"
 
+#. Label of the priority (Select) field in DocType 'Accounting Request'
+#: etransactions/etransactions_hub/doctype/accounting_request/accounting_request.json
+msgid "Priority"
+msgstr ""
+
 #. Option for the 'Status' (Select) field in DocType 'OCR Generic Text
 #. Transcription'
+#. Option for the 'Status' (Select) field in DocType 'Accounting Inbox Item'
 #: etransactions/etransactions/doctype/ocr_generic_text_transcription/ocr_generic_text_transcription.json
+#: etransactions/etransactions_hub/doctype/accounting_inbox_item/accounting_inbox_item.json
+#: frontend/src/pages/Inbox.vue:88
 msgid "Processed"
 msgstr "Traitée"
 
@@ -1208,21 +2017,24 @@ msgstr "Nom du produit"
 msgid "Profile"
 msgstr "Profil"
 
+#. Label of the progress (Percent) field in DocType 'Closing Period'
+#: etransactions/etransactions_hub/doctype/closing_period/closing_period.json
+msgid "Progress"
+msgstr ""
+
 #. Label of the project (Link) field in DocType 'Supplier Invoice Item'
 #: etransactions/etransactions/doctype/supplier_invoice_item/supplier_invoice_item.json
 msgid "Project"
 msgstr "Projet"
 
 #. Option for the 'Transaction Type' (Select) field in DocType 'OCR Request'
+#. Default value of the transaction_type (Select) field in DocType 'OCR
+#. Request'
 #. Group in OCR Request's connections
 #: etransactions/etransactions/doctype/ocr_request/ocr_request.json
 #: etransactions/public/js/communication.js:14
 msgid "Purchase Invoice"
 msgstr "Facture d'achat"
-
-#: etransactions/public/dist/js/ocr_dashboard.bundle.RKBXDGUE.js:7340
-msgid "Purchase Invoice Created"
-msgstr "Facture d'achat créée"
 
 #. Label of the purchase_invoices_section (Section Break) field in DocType
 #. 'eTransactions Settings'
@@ -1247,11 +2059,10 @@ msgstr "Gestionnaire principal des achats"
 
 #. Label of the purchase_order (Link) field in DocType 'eInvoice'
 #: etransactions/etransactions/doctype/einvoice/einvoice.json
-#: etransactions/public/dist/js/ocr_dashboard.bundle.RKBXDGUE.js:7360
 msgid "Purchase Order"
 msgstr "Commande fournisseur"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:371
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:388
 msgid "Purchase Order Date"
 msgstr "Date de la commande fournisseur"
 
@@ -1273,24 +2084,21 @@ msgstr "Ligne de commande fournisseur"
 msgid "Purchase Orders"
 msgstr "Commandes fournisseur"
 
-#: etransactions/public/dist/js/ocr_dashboard.bundle.RKBXDGUE.js:7364
-msgid "Purchase Receipt"
-msgstr "Réception"
-
 #. Label of the taxes_and_charges (Link) field in DocType 'Supplier Invoice'
 #: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json
 msgid "Purchase Taxes Template"
 msgstr "Modèle de taxes à l'achat"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:414
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:431
 msgid "Purchase invoice created"
 msgstr "Facture d'achat créée"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:646
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:739
+#, python-brace-format
 msgid "Purchase invoice {0} has been automatically created for this invoice."
 msgstr "La facture d'achat {0} a été automatiquement créée pour cette facture."
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:432
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:449
 msgid "Purchase order created"
 msgstr "Commande fournisseur créée"
 
@@ -1307,6 +2115,37 @@ msgstr "Achats"
 msgid "Quantity"
 msgstr "Quantité"
 
+#. Option for the 'Frequency' (Select) field in DocType 'Closing Checklist
+#. Template'
+#: etransactions/etransactions_hub/doctype/closing_checklist_template/closing_checklist_template.json
+#: frontend/src/components/ChecklistTemplateDialog.vue:130
+msgid "Quarterly"
+msgstr ""
+
+#. Option for the 'Request Type' (Select) field in DocType 'Accounting Request'
+#: etransactions/etransactions_hub/doctype/accounting_request/accounting_request.json
+#: frontend/src/components/RequestDialog.vue:82
+msgid "Question"
+msgstr ""
+
+#: frontend/src/pages/Closing.vue:92
+#, python-brace-format
+msgid "Raise request for {0}"
+msgstr ""
+
+#. Label of the raised_by (Data) field in DocType 'Accounting Request'
+#: etransactions/etransactions_hub/doctype/accounting_request/accounting_request.json
+msgid "Raised By"
+msgstr ""
+
+#: frontend/src/components/RequestDetailDrawer.vue:44
+msgid "Raised by"
+msgstr ""
+
+#: frontend/src/pages/Requests.vue:103
+msgid "Raised by me"
+msgstr ""
+
 #. Label of the rate_applicable_percent (Percent) field in DocType 'eInvoice
 #. Trade Tax'
 #: etransactions/etransactions/doctype/einvoice_trade_tax/einvoice_trade_tax.json
@@ -1317,7 +2156,11 @@ msgstr "Pourcentage de taux applicable"
 msgid "Re-open"
 msgstr "Rouvrir"
 
+#. In Custom HTML Block 'Customer Readiness Widget' (script)
+#. In Custom HTML Block 'Item Tax Readiness Widget' (script)
 #. Option for the 'Status' (Select) field in DocType 'Supplier Invoice'
+#: etransactions/etransactions/custom_html_block/customer_readiness_widget/customer_readiness_widget.json:54
+#: etransactions/etransactions/custom_html_block/item_tax_readiness_widget/item_tax_readiness_widget.json:55
 #: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json
 msgid "Ready"
 msgstr "Prête"
@@ -1326,7 +2169,34 @@ msgstr "Prête"
 msgid "Ready to process"
 msgstr "Prêt à traiter"
 
-#: etransactions/public/dist/js/ocr_dashboard.bundle.RKBXDGUE.js:7233
+#: frontend/src/pages/Overview.vue:40
+msgid "Receivables & Payables"
+msgstr ""
+
+#: frontend/src/pages/Overview.vue:39
+msgid "Receivables and payables"
+msgstr ""
+
+#: frontend/src/pages/Overview.vue:46
+msgid "Receivables outstanding"
+msgstr ""
+
+#: frontend/src/pages/Inbox.vue:121
+msgid "Received"
+msgstr ""
+
+#: frontend/src/pages/Inbox.vue:31
+msgid "Received between"
+msgstr ""
+
+#. Label of the section_break_reference (Section Break) field in DocType
+#. 'Accounting Request'
+#: etransactions/etransactions_hub/doctype/accounting_request/accounting_request.json
+msgid "Reference"
+msgstr ""
+
+#. Label of the reference_doctype (Link) field in DocType 'Accounting Request'
+#: etransactions/etransactions_hub/doctype/accounting_request/accounting_request.json
 msgid "Reference DocType"
 msgstr "DocType de référence"
 
@@ -1347,28 +2217,140 @@ msgstr "DocType de référence"
 msgid "Reference Documents"
 msgstr "Documents de référence"
 
+#. Label of the reference_name (Dynamic Link) field in DocType 'Accounting
+#. Request'
+#: etransactions/etransactions_hub/doctype/accounting_request/accounting_request.json
+msgid "Reference Name"
+msgstr ""
+
+#: etransactions/etransactions_hub/doctype/accounting_request/accounting_request.py:78
+#, python-brace-format
+msgid "Reference {0} {1} does not exist"
+msgstr ""
+
 #. Label of the references_tab (Tab Break) field in DocType 'Supplier Invoice'
 #: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json
 msgid "References"
 msgstr "Références"
+
+#: frontend/src/components/ChecklistTemplateDialog.vue:71
+msgid "Remove task"
+msgstr ""
 
 #: etransactions/etransactions/doctype/ocr_request/ocr_request.js:12
 #: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:95
 msgid "Reopen"
 msgstr "Rouvrir"
 
+#. Label of the request_type (Select) field in DocType 'Accounting Request'
+#: etransactions/etransactions_hub/doctype/accounting_request/accounting_request.json
+#: etransactions/public/js/accounting_request_dialog.js:20
+#: frontend/src/components/RequestDialog.vue:15
+msgid "Request Type"
+msgstr ""
+
+#: frontend/src/pages/Closing.vue:270
+#, python-brace-format
+msgid "Request created for {0}."
+msgstr ""
+
 #: etransactions/etransactions/doctype/supplier_invoices_basket/supplier_invoices_basket.js:31
 msgid "Request creation in progress"
 msgstr "Création de la demande d'analyse en cours"
+
+#: frontend/src/components/RequestDetailDrawer.vue:5
+msgid "Request detail"
+msgstr ""
+
+#: etransactions/public/js/accounting_request_dialog.js:102
+msgid "Request justificative"
+msgstr ""
+
+#: frontend/src/pages/Requests.vue:4
+msgid "Request scope"
+msgstr ""
+
+#: frontend/src/components/RequestDetailDrawer.vue:143
+#: frontend/src/pages/Requests.vue:173
+#: frontend/src/pages/Requests.vue:184
+#, python-brace-format
+msgid "Request {0} resolved."
+msgstr ""
+
+#: frontend/src/components/EhubSidebar.vue:23
+msgid "Requests"
+msgstr ""
+
+#: frontend/src/pages/Requests.vue:145
+msgid "Requests waiting on you will appear here."
+msgstr ""
+
+#: frontend/src/pages/Requests.vue:143
+msgid "Requests you raise will appear here."
+msgstr ""
 
 #: etransactions/etransactions/doctype/ocr_request/ocr_request.js:18
 msgid "Reset"
 msgstr "Réinitialiser"
 
+#. Label of the section_break_resolution (Section Break) field in DocType
+#. 'Accounting Request'
+#: etransactions/etransactions_hub/doctype/accounting_request/accounting_request.json
+msgid "Resolution"
+msgstr ""
+
+#: frontend/src/components/RequestDetailDrawer.vue:69
+#: frontend/src/pages/Requests.vue:69
+msgid "Resolve"
+msgstr ""
+
+#. Option for the 'Status' (Select) field in DocType 'Accounting Request'
+#: etransactions/etransactions_hub/doctype/accounting_request/accounting_request.json
+#: frontend/src/pages/Requests.vue:130
+msgid "Resolved"
+msgstr ""
+
+#. Label of the resolved_by (Link) field in DocType 'Accounting Request'
+#: etransactions/etransactions_hub/doctype/accounting_request/accounting_request.json
+msgid "Resolved By"
+msgstr ""
+
+#. Label of the resolved_on (Datetime) field in DocType 'Accounting Request'
+#: etransactions/etransactions_hub/doctype/accounting_request/accounting_request.json
+msgid "Resolved On"
+msgstr ""
+
+#. Option for the 'Status' (Select) field in DocType 'Accounting Request'
+#: etransactions/etransactions_hub/doctype/accounting_request/accounting_request.json
+#: frontend/src/pages/Requests.vue:125
+msgid "Response Received"
+msgstr ""
+
+#: etransactions/etransactions_hub/doctype/accounting_request/accounting_request.py:138
+#, python-brace-format
+msgid "Response received on {0}: {1}"
+msgstr ""
+
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice_list.js:25
+msgid "Retry Supplier Match"
+msgstr "Relancer la correspondance fournisseur"
+
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice_list.js:36
+msgid "Retrying supplier match…"
+msgstr "Relance de la correspondance fournisseur en cours…"
+
 #. Label of the return_against (Link) field in DocType 'eInvoice'
 #: etransactions/etransactions/doctype/einvoice/einvoice.json
 msgid "Return Against"
 msgstr "Retour sur"
+
+#. Label of the route (Data) field in DocType 'Closing Checklist Template Item'
+#. Label of the route (Data) field in DocType 'Closing Task'
+#: etransactions/etransactions_hub/doctype/closing_checklist_template_item/closing_checklist_template_item.json
+#: etransactions/etransactions_hub/doctype/closing_task/closing_task.json
+#: frontend/src/components/ChecklistTemplateDialog.vue:52
+msgid "Route"
+msgstr ""
 
 #. Label of the row (Data) field in DocType 'Supplier Invoice Item'
 #: etransactions/etransactions/doctype/supplier_invoice_item/supplier_invoice_item.json
@@ -1376,6 +2358,7 @@ msgid "Row"
 msgstr "Ligne"
 
 #: etransactions/etransactions/doctype/einvoice/einvoice.py:287
+#, python-brace-format
 msgid "Row {0}"
 msgstr "Ligne {0}"
 
@@ -1391,6 +2374,12 @@ msgstr "Numéro SIRET"
 #: etransactions/etransactions/api/widgets.py:99
 msgid "SIRET on Address"
 msgstr "SIRET de l'adresse"
+
+#. Label of the sales_invoices_tab (Tab Break) field in DocType 'eTransactions
+#. Settings'
+#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.json
+msgid "Sales"
+msgstr "Ventes"
 
 #. Label of the sales_invoice (Link) field in DocType 'eInvoice'
 #: etransactions/etransactions/doctype/einvoice/einvoice.json
@@ -1409,9 +2398,22 @@ msgid "Sales Master Manager"
 msgstr "Gestionnaire principal des ventes"
 
 #: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:62
-#: etransactions/public/dist/js/ocr_dashboard.bundle.RKBXDGUE.js:7615
+#: frontend/src/components/ClosingPeriodDialog.vue:37
+#: frontend/src/components/ClosingTaskDialog.vue:35
 msgid "Save"
 msgstr "Enregistrer"
+
+#: frontend/src/components/ChecklistTemplateDialog.vue:91
+msgid "Save Template"
+msgstr ""
+
+#: frontend/src/pages/Inbox.vue:39
+msgid "Search"
+msgstr ""
+
+#: frontend/src/pages/Inbox.vue:40
+msgid "Search subject or sender"
+msgstr ""
 
 #. Label of the select_purchase_orders (Button) field in DocType 'Supplier
 #. Invoice'
@@ -1425,14 +2427,26 @@ msgstr "Sélectionner des commandes fournisseur"
 msgid "Select Purchase Receipts"
 msgstr "Sélectionner des reçus d'achat"
 
-#: etransactions/public/dist/js/ocr_dashboard.bundle.RKBXDGUE.js:7371
-#: etransactions/public/dist/js/ocr_dashboard.bundle.RKBXDGUE.js:7377
-msgid "Select matching documents"
-msgstr "Sélectionner les documents correspondants"
+#: frontend/src/components/ChecklistTemplateDialog.vue:11
+#: frontend/src/components/ClosingPeriodDialog.vue:10
+msgid "Select a template"
+msgstr ""
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:532
+#: frontend/src/components/ClosingPeriodDialog.vue:18
+#: frontend/src/components/ClosingPeriodDialog.vue:26
+#: frontend/src/components/ClosingTaskDialog.vue:16
+#: frontend/src/components/RequestDialog.vue:23
+msgid "Select date"
+msgstr ""
+
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:549
 msgid "Select one or more purchase orders"
 msgstr "Sélectionner une ou plusieurs commandes fournisseur"
+
+#: frontend/src/components/LinkField.vue:6
+#, python-brace-format
+msgid "Select {0}"
+msgstr ""
 
 #. Label of the seller_tab (Tab Break) field in DocType 'eInvoice'
 #: etransactions/etransactions/doctype/einvoice/einvoice.json
@@ -1495,9 +2509,16 @@ msgid "Seller Tax ID"
 msgstr "Numéro de TVA du vendeur"
 
 #. Label of the sender (Data) field in DocType 'Supplier Invoices Basket'
+#. Label of the sender (Data) field in DocType 'Accounting Inbox Item'
 #: etransactions/etransactions/doctype/supplier_invoices_basket/supplier_invoices_basket.json
+#: etransactions/etransactions_hub/doctype/accounting_inbox_item/accounting_inbox_item.json
+#: frontend/src/pages/Inbox.vue:118
 msgid "Sender"
 msgstr "Expéditeur"
+
+#: etransactions/public/js/sales_invoice.js:93
+msgid "Set up payment IBAN →"
+msgstr "Configurer l'IBAN de paiement →"
 
 #. Label of the settlement_tab (Tab Break) field in DocType 'eInvoice'
 #. Label of the settlement_section (Section Break) field in DocType 'eInvoice
@@ -1507,34 +2528,84 @@ msgstr "Expéditeur"
 msgid "Settlement"
 msgstr "Règlement"
 
-#: etransactions/public/dist/js/ocr_dashboard.bundle.RKBXDGUE.js:96
-msgid "Sort By"
-msgstr "Trier par"
+#. Label of the source (Select) field in DocType 'Accounting Inbox Item'
+#: etransactions/etransactions_hub/doctype/accounting_inbox_item/accounting_inbox_item.json
+#: frontend/src/pages/Inbox.vue:16
+#: frontend/src/pages/Inbox.vue:119
+msgid "Source"
+msgstr ""
+
+#: frontend/src/components/ClosingPeriodDialog.vue:37
+msgid "Start"
+msgstr ""
+
+#: frontend/src/components/ClosingPeriodDialog.vue:2
+msgid "Start a Closing Period"
+msgstr ""
+
+#: frontend/src/pages/Closing.vue:124
+msgid "Start a closing period"
+msgstr ""
+
+#: frontend/src/pages/Overview.vue:74
+msgid "Start one in Closing"
+msgstr ""
 
 #. Label of the status (Select) field in DocType 'OCR Generic Text
 #. Transcription'
 #. Label of the status (Select) field in DocType 'OCR Request'
 #. Label of the status (Select) field in DocType 'Supplier Invoice'
 #. Label of the status (Select) field in DocType 'Supplier Invoices Basket'
+#. Label of the status (Select) field in DocType 'Accounting Inbox Item'
+#. Label of the status (Select) field in DocType 'Accounting Request'
+#. Label of the status (Select) field in DocType 'Closing Period'
+#. Label of the status (Select) field in DocType 'Closing Task'
 #: etransactions/etransactions/doctype/ocr_generic_text_transcription/ocr_generic_text_transcription.json
 #: etransactions/etransactions/doctype/ocr_request/ocr_request.json
 #: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json
 #: etransactions/etransactions/doctype/supplier_invoices_basket/supplier_invoices_basket.json
+#: etransactions/etransactions_hub/doctype/accounting_inbox_item/accounting_inbox_item.json
+#: etransactions/etransactions_hub/doctype/accounting_request/accounting_request.json
+#: etransactions/etransactions_hub/doctype/closing_period/closing_period.json
+#: etransactions/etransactions_hub/doctype/closing_task/closing_task.json
+#: frontend/src/components/RequestDetailDrawer.vue:26
+#: frontend/src/pages/Inbox.vue:8
+#: frontend/src/pages/Inbox.vue:120
 msgid "Status"
 msgstr "Statut"
 
+#: frontend/src/pages/Closing.vue:83
+#, python-brace-format
+msgid "Status of {0}"
+msgstr ""
+
 #. Label of the subject (Small Text) field in DocType 'Supplier Invoices
 #. Basket'
+#. Label of the subject (Small Text) field in DocType 'Accounting Inbox Item'
+#. Label of the subject (Data) field in DocType 'Accounting Request'
+#. Label of the subject (Data) field in DocType 'Closing Task'
 #: etransactions/etransactions/doctype/supplier_invoices_basket/supplier_invoices_basket.json
+#: etransactions/etransactions_hub/doctype/accounting_inbox_item/accounting_inbox_item.json
+#: etransactions/etransactions_hub/doctype/accounting_request/accounting_request.json
+#: etransactions/etransactions_hub/doctype/closing_task/closing_task.json
+#: etransactions/public/js/accounting_request_dialog.js:13
+#: frontend/src/components/ClosingTaskDialog.vue:8
+#: frontend/src/components/RequestDialog.vue:8
+#: frontend/src/pages/Inbox.vue:117
 msgid "Subject"
 msgstr "Objet"
 
+#: frontend/src/components/ClosingTaskDialog.vue:93
+#: frontend/src/components/RequestDialog.vue:94
+msgid "Subject is required"
+msgstr ""
+
+#. Label of the supplier (Link) field in DocType 'eTransactions Supplier Name
+#. Alias'
 #. Label of the supplier (Link) field in DocType 'Supplier Invoice'
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:521
+#: etransactions/etransactions/doctype/etransactions_supplier_name_alias/etransactions_supplier_name_alias.json
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:538
 #: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json
-#: etransactions/public/dist/js/ocr_dashboard.bundle.RKBXDGUE.js:128
-#: etransactions/public/dist/js/ocr_dashboard.bundle.RKBXDGUE.js:7249
-#: etransactions/public/dist/js/ocr_dashboard.bundle.RKBXDGUE.js:7525
 msgid "Supplier"
 msgstr "Fournisseur"
 
@@ -1564,7 +2635,7 @@ msgstr "Date de la facture fournisseur"
 
 #. Name of a DocType
 #: etransactions/etransactions/doctype/supplier_invoice_item/supplier_invoice_item.json
-#: etransactions/overrides/custom_fields/transactions.py:97
+#: etransactions/overrides/custom_fields/transactions.py:101
 msgid "Supplier Invoice Item"
 msgstr "Article de facture fournisseur"
 
@@ -1603,14 +2674,33 @@ msgstr "Code article du fournisseur"
 msgid "Supplier Name"
 msgstr "Désignation"
 
+#. Option for the 'Source' (Select) field in DocType 'Accounting Inbox Item'
+#: etransactions/etransactions_hub/doctype/accounting_inbox_item/accounting_inbox_item.json
+msgid "Supplier Portal"
+msgstr ""
+
+#: frontend/src/components/InboxDetailDrawer.vue:137
+msgid "Supplier invoice creation started. Find it in the invoices basket."
+msgstr ""
+
+#: etransactions/etransactions/api/widgets.py:277
+msgid "Suppliers with Tax Category"
+msgstr ""
+
 #. Name of a role
 #: etransactions/etransactions/doctype/einvoice/einvoice.json
 #: etransactions/etransactions/doctype/etransaction_profile/etransaction_profile.json
 #: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.json
+#: etransactions/etransactions/doctype/etransactions_supplier_name_alias/etransactions_supplier_name_alias.json
 #: etransactions/etransactions/doctype/ocr_generic_text_transcription/ocr_generic_text_transcription.json
 #: etransactions/etransactions/doctype/ocr_request/ocr_request.json
 #: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json
 #: etransactions/etransactions/doctype/supplier_invoices_basket/supplier_invoices_basket.json
+#: etransactions/etransactions_hub/doctype/accounting_inbox_item/accounting_inbox_item.json
+#: etransactions/etransactions_hub/doctype/accounting_request/accounting_request.json
+#: etransactions/etransactions_hub/doctype/closing_checklist_template/closing_checklist_template.json
+#: etransactions/etransactions_hub/doctype/closing_period/closing_period.json
+#: etransactions/etransactions_hub/doctype/closing_task/closing_task.json
 msgid "System Manager"
 msgstr "Responsable Système"
 
@@ -1618,6 +2708,35 @@ msgstr "Responsable Système"
 #: etransactions/etransactions/doctype/ocr_generic_text_transcription/ocr_generic_text_transcription.json
 msgid "Task"
 msgstr "Tâche"
+
+#. Label of the task_subject (Data) field in DocType 'Closing Checklist
+#. Template Item'
+#: etransactions/etransactions_hub/doctype/closing_checklist_template_item/closing_checklist_template_item.json
+#: frontend/src/components/ChecklistTemplateDialog.vue:49
+msgid "Task Subject"
+msgstr ""
+
+#: frontend/src/pages/Closing.vue:259
+msgid "Task deleted."
+msgstr ""
+
+#: frontend/src/pages/Closing.vue:248
+msgid "Task saved."
+msgstr ""
+
+#: frontend/src/pages/Closing.vue:213
+msgid "Task updated."
+msgstr ""
+
+#. Label of the section_break_items (Section Break) field in DocType 'Closing
+#. Checklist Template'
+#. Group in Closing Period's connections
+#: etransactions/etransactions_hub/doctype/closing_checklist_template/closing_checklist_template.json
+#: etransactions/etransactions_hub/doctype/closing_period/closing_period.json
+#: frontend/src/components/ChecklistTemplateDialog.vue:43
+#: frontend/src/pages/Closing.vue:60
+msgid "Tasks"
+msgstr ""
 
 #. Label of the tax_account (Link) field in DocType 'eInvoice Trade Tax'
 #: etransactions/etransactions/doctype/einvoice_trade_tax/einvoice_trade_tax.json
@@ -1662,7 +2781,6 @@ msgstr "Modèles de taxes"
 #. Label of the tax_total (Currency) field in DocType 'Supplier Invoice'
 #: etransactions/etransactions/doctype/einvoice/einvoice.json
 #: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json
-#: etransactions/public/dist/js/ocr_dashboard.bundle.RKBXDGUE.js:7585
 msgid "Tax Total"
 msgstr "Total TVA"
 
@@ -1685,40 +2803,75 @@ msgstr "Taxes et frais"
 msgid "Technical Documents"
 msgstr "Documents techniques"
 
+#: frontend/src/components/ChecklistTemplateDialog.vue:7
+msgid "Template"
+msgstr ""
+
+#. Label of the template_name (Data) field in DocType 'Closing Checklist
+#. Template'
+#: etransactions/etransactions_hub/doctype/closing_checklist_template/closing_checklist_template.json
+#: frontend/src/components/ChecklistTemplateDialog.vue:23
+msgid "Template Name"
+msgstr ""
+
+#: frontend/src/components/ChecklistTemplateDialog.vue:199
+msgid "Template name is required"
+msgstr ""
+
 #. Label of the terms (Text Editor) field in DocType 'eInvoice'
 #: etransactions/etransactions/doctype/einvoice/einvoice.json
 msgid "Terms"
 msgstr "Conditions"
 
-#: etransactions/utils/xml.py:66
+#: etransactions/overrides/sales_invoice.py:105
+msgid "The FacturX PDF could not be generated. Please check the error log."
+msgstr "Le PDF FacturX n'a pas pu être généré. Veuillez vérifier le journal des erreurs."
+
+#: etransactions/overrides/sales_invoice.py:102
+msgid "The FacturX PDF could not be generated. Submission has been blocked. Please check the error log."
+msgstr "Le PDF FacturX n'a pas pu être généré. La validation a été bloquée. Veuillez vérifier le journal des erreurs."
+
+#: etransactions/utils/xml.py:67
 msgid "The XML document format is not supported. Only FacturX/CII and UBL 2.x invoices are accepted."
 msgstr "Le format du document XML n'est pas pris en charge. Seules les factures FacturX/CII et UBL 2.x sont acceptées."
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:656
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:749
+#, python-brace-format
 msgid "The automatic reconciliation has failed because the net total is higher than {0}"
 msgstr "Le rapprochement automatique a échoué car le total net est supérieur à {0}"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:651
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:744
 msgid "The automatic reconciliation has failed because the totals do not match"
 msgstr "Le rapprochement automatique a échoué car les totaux ne correspondent pas"
 
-#: etransactions/utils/xml.py:95
+#: etransactions/utils/facturx_pdf.py:103
+#, python-brace-format
+msgid ""
+"The eInvoice {0} has validation errors and cannot be embedded in the PDF:\n"
+"{1}"
+msgstr ""
+"La facture électronique {0} contient des erreurs de validation et ne peut pas être intégrée dans le PDF :\n"
+"{1}"
+
+#: etransactions/utils/xml.py:96
+#, python-brace-format
 msgid "The format of the uploaded file ({0}) is not supported for E-Invoices. Please upload a valid E-Invoice file or create a regular Purchase Invoice manually instead."
 msgstr "Le format du fichier téléversé ({0}) n'est pas pris en charge pour les factures électroniques. Veuillez téléverser un fichier de facture électronique valide ou créer manuellement une facture d'achat classique."
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:914
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:1007
 msgid "The invoice grand total exceeds the supplier provided grand total. You are not allowed to create this purchase invoice."
 msgstr "Le total TTC de cette facture dépasse le total TTC fourni par le fournisseur. Vous n'êtes pas autorisé à créer cette facture fournisseur."
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:918
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:1011
 msgid "The invoice net total exceeds the supplier provided net total. You are not allowed to create this purchase invoice."
 msgstr "Le total HT de cette facture dépasse le total HT fourni par le fournisseur. Vous n'êtes pas autorisé à créer cette facture fournisseur."
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:215
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:231
 msgid "The net amount of the invoice and the selected purchase receipts don't match.<br>Please select another purchase receipt or adjust the unit rate to match the amount of this invoice."
 msgstr "Le montant HT de la facture et des reçus d'achat sélectionnés ne correspondent pas.<br>Veuillez sélectionner un autre réception ou ajuster le prix unitaire pour correspondre au montant de cette facture."
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:319
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:336
+#, python-brace-format
 msgid "The selected supplier ({0}) is different from the purchase order supplier ({1})"
 msgstr "Le fournisseur sélectionné ({0}) est différent du fournisseur de la commande d'achat ({1})"
 
@@ -1727,6 +2880,7 @@ msgid "The uploaded file does not contain valid XML data or could not be parsed 
 msgstr "Le fichier téléversé ne contient pas de données XML valides ou n'a pas pu être analysé par le moteur de facturation électronique."
 
 #: etransactions/utils/xml.py:50
+#, python-brace-format
 msgid "The uploaded file does not contain valid XML data: {0}"
 msgstr "Le fichier téléversé ne contient pas de données XML valides : {0}"
 
@@ -1743,15 +2897,48 @@ msgid "This document must be linked to sales invoice in order to generate an eIn
 msgstr "Ce document doit être lié à une facture de vente pour pouvoir générer une facture électronique"
 
 #: etransactions/overrides/purchase_invoice.py:40
+#, python-brace-format
 msgid "This purchase invoice can not be submitted because the net total is higher than {0}"
 msgstr "Cette facture d'achat ne peut pas être validée car le total HT est supérieur à {0}"
 
+#: etransactions/etransactions_hub/doctype/accounting_request/accounting_request.py:157
+msgid "This request has no reference document"
+msgstr ""
+
+#: etransactions/etransactions_hub/doctype/accounting_request/accounting_request.py:146
+#, python-brace-format
+msgid "This request is already {0}"
+msgstr ""
+
 #. Label of the title (Data) field in DocType 'Supplier Invoice'
 #. Label of the title (Data) field in DocType 'Supplier Invoices Basket'
+#. Label of the title (Data) field in DocType 'Accounting Inbox Item'
+#. Label of the title (Data) field in DocType 'Closing Period'
 #: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json
 #: etransactions/etransactions/doctype/supplier_invoices_basket/supplier_invoices_basket.json
+#: etransactions/etransactions_hub/doctype/accounting_inbox_item/accounting_inbox_item.json
+#: etransactions/etransactions_hub/doctype/closing_period/closing_period.json
 msgid "Title"
 msgstr "Titre"
+
+#. Option for the 'Status' (Select) field in DocType 'Accounting Inbox Item'
+#. Default value of the status (Select) field in DocType 'Accounting Inbox
+#. Item'
+#: etransactions/etransactions_hub/doctype/accounting_inbox_item/accounting_inbox_item.json
+#: frontend/src/pages/Inbox.vue:86
+msgid "To Triage"
+msgstr ""
+
+#: frontend/src/components/ClosingTaskDialog.vue:24
+msgid "Tool route"
+msgstr ""
+
+#. In Custom HTML Block 'Customer Readiness Widget' (script)
+#. In Custom HTML Block 'Item Tax Readiness Widget' (script)
+#: etransactions/etransactions/custom_html_block/customer_readiness_widget/customer_readiness_widget.json:53
+#: etransactions/etransactions/custom_html_block/item_tax_readiness_widget/item_tax_readiness_widget.json:54
+msgid "Total"
+msgstr "Total"
 
 #. Label of the total_amount (Currency) field in DocType 'eInvoice Item'
 #: etransactions/etransactions/doctype/einvoice_item/einvoice_item.json
@@ -1784,6 +2971,15 @@ msgstr "Transcrite"
 msgid "Transcribing"
 msgstr "Transcription en cours"
 
+#: frontend/src/pages/Overview.vue:18
+#: frontend/src/pages/Overview.vue:19
+msgid "Treasury"
+msgstr ""
+
+#: frontend/src/components/RequestDetailDrawer.vue:30
+msgid "Type"
+msgstr ""
+
 #. Label of the uom (Link) field in DocType 'eInvoice Item'
 #: etransactions/etransactions/doctype/einvoice_item/einvoice_item.json
 msgid "UOM"
@@ -1804,6 +3000,10 @@ msgstr "Prix unitaire"
 msgid "Unit Rate"
 msgstr "Prix unitaire"
 
+#: frontend/src/pages/Overview.vue:30
+msgid "Unreconciled transactions"
+msgstr ""
+
 #: etransactions/utils/xml.py:69
 msgid "Unsupported XML format"
 msgstr "Format XML non pris en charge"
@@ -1811,6 +3011,11 @@ msgstr "Format XML non pris en charge"
 #: etransactions/utils/xml.py:98
 msgid "Unsupported file format"
 msgstr "Format de fichier non pris en charge"
+
+#. Label in OCR Generic Text Transcription's actions
+#: etransactions/etransactions/doctype/ocr_generic_text_transcription/ocr_generic_text_transcription.json
+msgid "Update"
+msgstr "Mettre à jour"
 
 #. Label of the update_supplier_tax_id (Button) field in DocType 'Supplier
 #. Invoice'
@@ -1830,10 +3035,27 @@ msgstr "Téléverser une facture fournisseur"
 msgid "Upload files to get started"
 msgstr "Téléversez des fichiers pour commencer"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice_list.js:55
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice_list.js:79
 msgctxt "Supplier Invoice List"
 msgid "Uploads Pending Analysis"
 msgstr "Téléversements en attente d'analyse"
+
+#. In Custom HTML Block 'FacturX Warning' (script)
+#: etransactions/etransactions/custom_html_block/facturx_warning/facturx_warning.json:15
+msgid "Utilize these reports to refine your data quality and ensure your organization is fully prepared for the upcoming feature deployment."
+msgstr "Utilisez ces rapports pour améliorer la qualité de vos données et vous assurer que votre organisation est entièrement prête pour le déploiement de la fonctionnalité à venir."
+
+#. In Custom HTML Block 'VAT Configuration Widget' (script)
+#. Label of a Workspace Sidebar Item
+#: etransactions/etransactions/custom_html_block/vat_configuration_widget/vat_configuration_widget.json:47
+#: etransactions/workspace_sidebar/etransactions.json
+msgid "VAT Configuration"
+msgstr ""
+
+#. Label of a Link in the FacturX Readiness Workspace
+#: etransactions/etransactions/workspace/facturx_readiness/facturx_readiness.json
+msgid "VAT Configuration Tool"
+msgstr ""
 
 #. Label of the validation_details_section (Section Break) field in DocType
 #. 'eInvoice'
@@ -1856,15 +3078,36 @@ msgstr "Avertissements de validation"
 msgid "Value"
 msgstr "Valeur"
 
+#. Label of the vendor_name (Data) field in DocType 'eTransactions Supplier
+#. Name Alias'
+#: etransactions/etransactions/doctype/etransactions_supplier_name_alias/etransactions_supplier_name_alias.json
+msgid "Vendor Name"
+msgstr "Nom du fournisseur"
+
+#. In Custom HTML Block 'Customer Readiness Widget' (script)
+#. In Custom HTML Block 'Item Tax Readiness Widget' (script)
+#: etransactions/etransactions/custom_html_block/customer_readiness_widget/customer_readiness_widget.json:114
+#: etransactions/etransactions/custom_html_block/item_tax_readiness_widget/item_tax_readiness_widget.json:118
+msgid "View full report"
+msgstr "Voir le rapport complet"
+
 #: etransactions/etransactions/doctype/ocr_request/ocr_request_list.js:11
+#, python-brace-format
 msgid "View {0}"
 msgstr "Vue {0}"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:688
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:705
+#, python-brace-format
 msgid "View {}"
 msgstr "Voir {}"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:330
+#: frontend/src/pages/Overview.vue:114
+#: frontend/src/pages/Requests.vue:102
+msgid "Waiting on me"
+msgstr ""
+
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:347
+#, python-brace-format
 msgid "We are not able to find any purchase order with number {0}."
 msgstr "Nous ne parvenons pas à trouver de commande fournisseur avec le numéro {0}."
 
@@ -1877,37 +3120,67 @@ msgstr "Sera rempli automatiquement à partir du contact principal dès que le c
 msgid "XML"
 msgstr "XML"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:441
+#. Option for the 'Frequency' (Select) field in DocType 'Closing Checklist
+#. Template'
+#: etransactions/etransactions_hub/doctype/closing_checklist_template/closing_checklist_template.json
+#: frontend/src/components/ChecklistTemplateDialog.vue:131
+msgid "Yearly"
+msgstr ""
+
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:458
 msgctxt "Approve confirmation dialog"
 msgid "Yes"
 msgstr "Oui"
 
 #: etransactions/etransactions/doctype/ocr_request/ocr_request.js:69
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:143
-#: etransactions/public/dist/js/ocr_dashboard.bundle.RKBXDGUE.js:7667
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:159
 #: etransactions/public/js/file_preview.js:66
 msgid "Your browser does not support the audio element."
 msgstr "Votre navigateur ne supporte pas cet élément audio."
 
 #: etransactions/etransactions/doctype/ocr_request/ocr_request.js:51
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:125
-#: etransactions/public/dist/js/ocr_dashboard.bundle.RKBXDGUE.js:7649
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:141
 #: etransactions/public/js/file_preview.js:48
 msgid "Your browser does not support the video element."
 msgstr "Votre navigateur ne supporte pas cet élément vidéo."
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:240
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:257
 msgid "Your supplier Tax ID is currently empty"
 msgstr "Le n° de TVA de votre fournisseur est actuellement vide"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:243
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:260
+#, python-brace-format
 msgid "Your supplier's current Tax ID is {0}"
 msgstr "Le n° de TVA de votre fournisseur est {0}"
+
+#. In Custom HTML Block 'Customer Readiness Widget' (script)
+#: etransactions/etransactions/custom_html_block/customer_readiness_widget/customer_readiness_widget.json:86
+msgid "active customers"
+msgstr "clients actifs"
+
+#. In Custom HTML Block 'Item Tax Readiness Widget' (script)
+#: etransactions/etransactions/custom_html_block/item_tax_readiness_widget/item_tax_readiness_widget.json:88
+msgid "active sales items"
+msgstr "articles de vente actifs"
+
+#. In Custom HTML Block 'VAT Configuration Widget' (script)
+#: etransactions/etransactions/custom_html_block/vat_configuration_widget/vat_configuration_widget.json:49
+msgid "active tax categories"
+msgstr ""
+
+#: frontend/src/pages/Overview.vue:95
+msgid "e-Invoicing readiness"
+msgstr ""
+
+#: frontend/src/components/ClosingTaskDialog.vue:25
+msgid "e.g. /app/bank-reconciliation-tool"
+msgstr ""
 
 #. Name of a DocType
 #. Label of the einvoice (Link) field in DocType 'Supplier Invoice'
 #: etransactions/etransactions/doctype/einvoice/einvoice.json
 #: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json
+#: etransactions/public/js/sales_invoice.js:17
 msgid "eInvoice"
 msgstr "Facture électronique"
 
@@ -1941,6 +3214,27 @@ msgstr "Type de facture électronique"
 msgid "eInvoice XML"
 msgstr "XML de la facture électronique"
 
+#: etransactions/public/js/sales_invoice.js:67
+msgid "eInvoice errors"
+msgstr "Erreurs de facture électronique"
+
+#: etransactions/public/js/sales_invoice.js:67
+msgid "eInvoice pending"
+msgstr "Facture électronique en attente"
+
+#: etransactions/public/js/sales_invoice.js:67
+msgid "eInvoice valid"
+msgstr "Facture électronique valide"
+
+#: etransactions/public/js/sales_invoice.js:67
+msgid "eInvoice warnings"
+msgstr "Avertissements de facture électronique"
+
+#: etransactions/utils/facturx_pdf.py:110
+#, python-brace-format
+msgid "eInvoice {0} has no XML content. Save the Sales Invoice to regenerate it."
+msgstr "La facture électronique {0} n'a pas de contenu XML. Enregistrez la facture client pour la régénérer."
+
 #: etransactions/etransactions/doctype/supplier_invoices_basket/supplier_invoices_basket.js:133
 msgid "eInvoices"
 msgstr "Factures électroniques"
@@ -1955,18 +3249,24 @@ msgstr "Profil de transaction électronique"
 #: etransactions/desktop_icon/etransactions.json
 #: etransactions/overrides/custom_fields/master_data.py:8
 #: etransactions/overrides/custom_fields/master_data.py:45
-#: etransactions/overrides/custom_fields/transactions.py:65
+#: etransactions/overrides/custom_fields/transactions.py:64
 #: etransactions/workspace_sidebar/etransactions.json
 msgid "eTransactions"
 msgstr "Transactions électroniques"
 
-#: etransactions/etransactions/doctype/ocr_request/ocr_request.py:110
+#: etransactions/etransactions/doctype/ocr_request/ocr_request.py:111
 msgid "eTransactions Analysis Error"
 msgstr "Erreur d'analyse des eTransactions"
 
-#: etransactions/etransactions/doctype/ocr_request/ocr_request.py:172
+#: etransactions/etransactions/doctype/ocr_request/ocr_request.py:178
 msgid "eTransactions File Deletion Error"
 msgstr "Erreur de suppression du fichier eTransactions"
+
+#: etransactions/public/js/accounting_request_dialog.js:104
+#: etransactions/public/js/accounting_request_dialog.js:109
+#: frontend/src/components/EhubTopBar.vue:13
+msgid "eTransactions Hub"
+msgstr ""
 
 #. Name of a DocType
 #. Label of a Workspace Sidebar Item
@@ -1975,182 +3275,104 @@ msgstr "Erreur de suppression du fichier eTransactions"
 msgid "eTransactions Settings"
 msgstr "Paramètres eTransactions"
 
-#: etransactions/overrides/sales_invoice.py:45
+#. Name of a DocType
+#: etransactions/etransactions/doctype/etransactions_supplier_name_alias/etransactions_supplier_name_alias.json
+msgid "eTransactions Supplier Name Alias"
+msgstr "Alias du nom de fournisseur eTransactions"
+
+#. In Custom HTML Block 'Customer Readiness Widget' (script)
+#. In Custom HTML Block 'Item Tax Readiness Widget' (script)
+#: etransactions/etransactions/custom_html_block/customer_readiness_widget/customer_readiness_widget.json:87
+#: etransactions/etransactions/custom_html_block/item_tax_readiness_widget/item_tax_readiness_widget.json:89
+msgid "fully ready"
+msgstr "entièrement prêt"
+
+#. Option for the 'Match Confidence' (Select) field in DocType 'Supplier
+#. Invoice'
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json
+msgid "high"
+msgstr "élevée"
+
+#. Option for the 'Match Confidence' (Select) field in DocType 'Supplier
+#. Invoice'
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json
+msgid "low"
+msgstr "faible"
+
+#. Option for the 'Match Confidence' (Select) field in DocType 'Supplier
+#. Invoice'
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json
+msgid "medium"
+msgstr "moyenne"
+
+#. In Custom HTML Block 'Customer Readiness Widget' (script)
+#. In Custom HTML Block 'Item Tax Readiness Widget' (script)
+#. In Custom HTML Block 'VAT Configuration Widget' (script)
+#: etransactions/etransactions/custom_html_block/customer_readiness_widget/customer_readiness_widget.json:21
+#: etransactions/etransactions/custom_html_block/item_tax_readiness_widget/item_tax_readiness_widget.json:21
+#: etransactions/etransactions/custom_html_block/vat_configuration_widget/vat_configuration_widget.json:21
+msgid "optional"
+msgstr "optionnel"
+
+#: frontend/src/components/InboxDetailDrawer.vue:175
+#: frontend/src/pages/Inbox.vue:159
+#, python-brace-format
+msgid "{0} d ago"
+msgstr ""
+
+#: frontend/src/components/InboxDetailDrawer.vue:174
+#: frontend/src/pages/Inbox.vue:158
+#, python-brace-format
+msgid "{0} h ago"
+msgstr ""
+
+#: frontend/src/components/InboxDetailDrawer.vue:173
+#: frontend/src/pages/Inbox.vue:157
+#, python-brace-format
+msgid "{0} min ago"
+msgstr ""
+
+#: etransactions/public/js/sales_invoice.js:82
+#, python-brace-format
+msgid "{0} more…"
+msgstr "{0} de plus…"
+
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice_list.js:41
+#, python-brace-format
+msgid "{0} of {1} invoice(s) matched"
+msgstr "{0} facture(s) sur {1} rapprochée(s)"
+
+#: etransactions/overrides/sales_invoice.py:46
+#, python-brace-format
 msgid "{0} row #{1}: Discount Date should be after Posting Date"
 msgstr "{0} ligne n°{1} : La date d'escompte doit être postérieure à la date de comptabilisation"
 
-#: etransactions/overrides/sales_invoice.py:34
+#: etransactions/overrides/sales_invoice.py:36
+#, python-brace-format
 msgid "{0} row #{1}: The charge type 'Actual' is only supported in the eInvoice profiles 'EXTENDED' and 'FACTUR-X'."
 msgstr "{0} ligne n°{1} : Le type de frais 'Réel' n'est pris en charge que dans les profils de facturation électronique 'EXTENDED' et 'FACTUR-X'."
 
-#: etransactions/overrides/sales_invoice.py:22
+#: etransactions/overrides/sales_invoice.py:23
+#, python-brace-format
 msgid "{0} row #{1}: Type '{2}' is not supported in e-invoice"
 msgstr "{0} ligne n°{1} : Le type '{2}' n'est pas pris en charge dans la facture électronique"
 
 #: etransactions/etransactions/report/item_tax_readiness/item_tax_readiness.py:189
+#, python-brace-format
 msgid "{0} tax category / company combination(s) not covered"
 msgstr "{0} combinaison(s) catégorie de taxe / société non couvertes"
 
-#: etransactions/overrides/sales_invoice.py:57
+#: frontend/src/pages/Closing.vue:50
+#, python-brace-format, python-format
+msgid "{0}% complete"
+msgstr ""
+
+#: etransactions/overrides/sales_invoice.py:58
+#, python-brace-format
 msgid "{0}: Only one mode of payment will be considered in the e-invoice."
 msgstr "{0} : Un seul mode de paiement sera pris en compte dans la facture électronique."
 
-msgid "By Customer Group"
-msgstr "Par groupe de clients"
-
-msgid "By Item Group"
-msgstr "Par groupe d'articles"
-
-msgid "Customer Readiness"
-msgstr "Préparation des clients"
-
-msgid "Development is underway for Factur-X/UBL e-invoicing and connectivity to approved PA (Plateforme de Dématérialisation Partenaire) platforms."
-msgstr "Le développement de la facturation électronique Factur-X/UBL et de la connectivité aux plateformes de dématérialisation partenaires (PDP) agréées est en cours."
-
-msgid "FacturX / Electronic Invoicing — Feature in Progress"
-msgstr "FacturX / Facturation électronique — Fonctionnalité en cours de développement"
-
-msgid "Group"
-msgstr "Groupe"
-
-msgid "Loading"
-msgstr "Chargement"
-
-msgid "No active customers found."
-msgstr "Aucun client actif trouvé."
-
-msgid "No active sales items found."
-msgstr "Aucun article de vente actif trouvé."
-
-msgid "Total"
-msgstr "Total"
-
-msgid "Update"
-msgstr "Mettre à jour"
-
-msgid "Utilize these reports to refine your data quality and ensure your organization is fully prepared for the upcoming feature deployment."
-msgstr "Utilisez ces rapports pour améliorer la qualité de vos données et vous assurer que votre organisation est entièrement prête pour le déploiement de la fonctionnalité à venir."
-
-msgid "View full report"
-msgstr "Voir le rapport complet"
-
-msgid "active customers"
-msgstr "clients actifs"
-
-msgid "active sales items"
-msgstr "articles de vente actifs"
-
-msgid "fully ready"
-msgstr "entièrement prêt"
-
-msgid "optional"
-msgstr "optionnel"
-
-msgid "Block submission if FacturX PDF generation fails"
-msgstr "Bloquer la validation si la génération du PDF FacturX échoue"
-
-msgid "Download FacturX Invoice"
-msgstr "Télécharger la facture FacturX"
-
-msgid "FacturX PDF"
-msgstr "PDF FacturX"
-
-msgid "FacturX PDF Generation Failed"
-msgstr "Échec de la génération du PDF FacturX"
-
-msgid "Generate FacturX PDF automatically when a Sales Invoice is submitted"
-msgstr "Générer automatiquement le PDF FacturX lors de la validation d'une facture client"
-
-msgid "Generating FacturX PDF…"
-msgstr "Génération du PDF FacturX en cours…"
-
-msgid "No eInvoice found for Sales Invoice {0}. Save the Sales Invoice with an eTransaction Profile first."
-msgstr "Aucune facture électronique trouvée pour la facture client {0}. Enregistrez la facture client avec un profil de transaction électronique d'abord."
-
-msgid "No eInvoice generated yet."
-msgstr "Aucune facture électronique générée pour l'instant."
-
-msgid "No payment IBAN configured."
-msgstr "Aucun IBAN de paiement configuré."
-
-msgid "Open eInvoice →"
-msgstr "Ouvrir la facture électronique →"
-
-msgid "Sales"
-msgstr "Ventes"
-
-msgid "Set up payment IBAN →"
-msgstr "Configurer l'IBAN de paiement →"
-
-msgid "The FacturX PDF could not be generated. Please check the error log."
-msgstr "Le PDF FacturX n'a pas pu être généré. Veuillez vérifier le journal des erreurs."
-
-msgid "The FacturX PDF could not be generated. Submission has been blocked. Please check the error log."
-msgstr "Le PDF FacturX n'a pas pu être généré. La validation a été bloquée. Veuillez vérifier le journal des erreurs."
-
-msgid ""
-"The eInvoice {0} has validation errors and cannot be embedded in the PDF:\n"
-"{1}"
+#: etransactions/public/js/accounting_request_dialog.js:15
+#, python-brace-format
+msgid "{0}: {1}"
 msgstr ""
-"La facture électronique {0} contient des erreurs de validation et ne peut pas être intégrée dans le PDF :\n"
-"{1}"
-
-msgid "eInvoice errors"
-msgstr "Erreurs de facture électronique"
-
-msgid "eInvoice pending"
-msgstr "Facture électronique en attente"
-
-msgid "eInvoice valid"
-msgstr "Facture électronique valide"
-
-msgid "eInvoice warnings"
-msgstr "Avertissements de facture électronique"
-
-msgid "eInvoice {0} has no XML content. Save the Sales Invoice to regenerate it."
-msgstr "La facture électronique {0} n'a pas de contenu XML. Enregistrez la facture client pour la régénérer."
-
-msgid "{0} more…"
-msgstr "{0} de plus…"
-
-msgid "High confidence"
-msgstr "Haute confiance"
-
-msgid "Low confidence"
-msgstr "Faible confiance"
-
-msgid "Match Confidence"
-msgstr "Niveau de confiance"
-
-msgid "Medium confidence"
-msgstr "Confiance moyenne"
-
-msgid "No new matches found"
-msgstr "Aucune nouvelle correspondance trouvée"
-
-msgid "No unmatched invoices selected"
-msgstr "Aucune facture non rapprochée sélectionnée"
-
-msgid "Retry Supplier Match"
-msgstr "Relancer la correspondance fournisseur"
-
-msgid "Retrying supplier match…"
-msgstr "Relance de la correspondance fournisseur en cours…"
-
-msgid "Vendor Name"
-msgstr "Nom du fournisseur"
-
-msgid "eTransactions Supplier Name Alias"
-msgstr "Alias du nom de fournisseur eTransactions"
-
-msgid "high"
-msgstr "élevée"
-
-msgid "low"
-msgstr "faible"
-
-msgid "medium"
-msgstr "moyenne"
-
-msgid "{0} of {1} invoice(s) matched"
-msgstr "{0} facture(s) sur {1} rapprochée(s)"
