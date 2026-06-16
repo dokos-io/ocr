@@ -20,6 +20,10 @@ CDAR_GUIDELINE = "urn.cpro.gouv.fr:1p0:CDV:invoice"
 _DT_LONG = "%Y%m%d%H%M%S"  # date format 204
 _DT_SHORT = "%Y%m%d"       # date format 102
 
+# ISO 6523 scheme identifiers used in the CDAR party blocks.
+_SCHEME_SIREN = "0002"   # legal registration (SIREN) for GlobalID
+_SCHEME_SIRET = "0225"   # routing address (SIRET) for the recipient URIID
+
 
 def _siren(doctype: str, name: str, *, what: str) -> str:
 	siren = frappe.db.get_value(doctype, name, "siren_number")
@@ -104,13 +108,14 @@ def build_cdar_data(einvoice, status: str, details: list[dict] | None = None,
 		"MDT-4": identifier,
 		"MDT-8": now_str,
 		"MDT-21": sender_role,
-		"MDT-38": company_siren,
+		"MDT-38": {_SCHEME_SIREN: company_siren},
 		"MDT-39": company_name,
 		"MDT-40": sender_role,
-		"MDT-57": partner_siren,
+		"MDT-57": {_SCHEME_SIREN: partner_siren},
 		"MDT-58": partner_name,
 		"MDT-59": recipient_role,
 		"MDT-73": recipient_routing or "",
+		"MDT-73-1": _SCHEME_SIRET,
 		"MDT-74": False,
 		"MDT-77": 23,  # Information — for statuses after transmission
 		"MDT-78": now_str,
@@ -121,7 +126,7 @@ def build_cdar_data(einvoice, status: str, details: list[dict] | None = None,
 		"MDT-100": inv_date_str,
 		"MDT-105": mdt105,
 		"MDT-106": label,
-		"MDT-129": issuer_siren,
+		"MDT-129": {_SCHEME_SIREN: issuer_siren},
 		"MDG-37": [],
 	}
 
