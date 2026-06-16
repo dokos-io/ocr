@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: eTransactions VERSION\n"
 "Report-Msgid-Bugs-To: hello@dokos.io\n"
-"POT-Creation-Date: 2026-06-15 01:40+0000\n"
+"POT-Creation-Date: 2026-06-16 01:42+0000\n"
 "PO-Revision-Date: 2025-04-02 14:52+0200\n"
 "Last-Translator: hello@dokos.io\n"
 "Language-Team: hello@dokos.io\n"
@@ -1620,11 +1620,11 @@ msgstr "Aucun fichier joint."
 
 #: etransactions/etransactions_hub/doctype/accounting_request/accounting_request.py:161
 msgid "No file to attach. Collect a justificative first."
-msgstr ""
+msgstr "Aucun fichier à joindre. Collectez d'abord un justificatif."
 
 #: etransactions/etransactions_hub/doctype/accounting_request/accounting_request.py:177
 msgid "No file to process. Collect a justificative first."
-msgstr ""
+msgstr "Aucun fichier à traiter. Collectez d'abord un justificatif."
 
 #: etransactions/etransactions/report/item_tax_readiness/item_tax_readiness.py:181
 msgid "No item tax template assigned"
@@ -1648,28 +1648,28 @@ msgstr "Aucun IBAN de paiement configuré."
 
 #: frontend/src/pages/Overview.vue:73
 msgid "No period"
-msgstr ""
+msgstr "Aucune période"
 
 #: etransactions/etransactions_hub/doctype/accounting_inbox_item/accounting_inbox_item.py:67
 msgid "No processable file (PDF, XML) is attached to this inbox item"
-msgstr ""
+msgstr "Aucun fichier traitable (PDF, XML) n'est joint à cet élément de boîte de réception"
 
 #: frontend/src/pages/Requests.vue:75
 msgid "No request"
-msgstr ""
+msgstr "Aucune demande"
 
 #: frontend/src/pages/Requests.vue:25
 msgid "No requests"
-msgstr ""
+msgstr "Aucune demande"
 
 #: frontend/src/components/ChecklistTemplateDialog.vue:76
 msgid "No task yet. Add one."
-msgstr ""
+msgstr "Aucune tâche pour l'instant. Ajoutez-en une."
 
 #. In Custom HTML Block 'VAT Configuration Widget' (script)
 #: etransactions/etransactions/custom_html_block/vat_configuration_widget/vat_configuration_widget.json:56
 msgid "No tax category is configured yet. Use the configuration tool to set up item level VAT determination."
-msgstr ""
+msgstr "Aucune catégorie de taxe n'est encore configurée. Utilisez l'outil de configuration pour paramétrer la détermination de la TVA au niveau des articles."
 
 #: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice_list.js:29
 msgid "No unmatched invoices selected"
@@ -1678,17 +1678,17 @@ msgstr "Aucune facture non rapprochée sélectionnée"
 #: frontend/src/components/RequestDetailDrawer.vue:58
 #: frontend/src/components/UserPicker.vue:6
 msgid "Nobody yet"
-msgstr ""
+msgstr "Personne pour l'instant"
 
 #: frontend/src/components/ChecklistTemplateDialog.vue:36
 msgid "None"
-msgstr ""
+msgstr "Aucun"
 
 #. Option for the 'Status' (Select) field in DocType 'Closing Task'
 #: etransactions/etransactions_hub/doctype/closing_task/closing_task.json
 #: frontend/src/pages/Closing.vue:187
 msgid "Not Applicable"
-msgstr ""
+msgstr "Non applicable"
 
 #. Option for the 'Status' (Select) field in DocType 'Supplier Invoices Basket'
 #. Default value of the status (Select) field in DocType 'Supplier Invoices
@@ -1703,11 +1703,11 @@ msgstr "Pas une facture électronique"
 
 #: etransactions/etransactions_hub/api.py:420
 msgid "Not permitted to create checklist templates"
-msgstr ""
+msgstr "Non autorisé à créer des modèles de liste de contrôle"
 
 #: frontend/src/pages/Inbox.vue:49
 msgid "Nothing to triage"
-msgstr ""
+msgstr "Rien à trier"
 
 #. Name of a DocType
 #: etransactions/etransactions/doctype/ocr_generic_text_transcription/ocr_generic_text_transcription.json
@@ -1768,16 +1768,16 @@ msgstr "Afficher uniquement les articles avec des problèmes"
 #: etransactions/etransactions_hub/doctype/closing_period/closing_period.json
 #: frontend/src/pages/Requests.vue:115
 msgid "Open"
-msgstr ""
+msgstr "Ouvert"
 
 #: frontend/src/components/EhubTopBar.vue:23
 msgid "Open Desk"
-msgstr ""
+msgstr "Ouvrir le bureau"
 
 #. In Custom HTML Block 'VAT Configuration Widget' (script)
 #: etransactions/etransactions/custom_html_block/vat_configuration_widget/vat_configuration_widget.json:72
 msgid "Open configuration tool"
-msgstr ""
+msgstr "Ouvrir l'outil de configuration"
 
 #: etransactions/public/js/sales_invoice.js:104
 msgid "Open eInvoice →"
@@ -1789,7 +1789,7 @@ msgstr "Ouvrir la facture brouillon"
 
 #: frontend/src/pages/Overview.vue:32
 msgid "Open the reconciliation tool"
-msgstr ""
+msgstr "Ouvrir l'outil de rapprochement"
 
 #: etransactions/overrides/custom_fields/transactions.py:32
 msgid "Original File"
@@ -1813,21 +1813,21 @@ msgstr "Sortant"
 
 #: frontend/src/pages/Requests.vue:51
 msgid "Overdue"
-msgstr ""
+msgstr "En retard"
 
 #: etransactions/etransactions_hub/doctype/accounting_request/accounting_request.py:191
 #, python-brace-format
 msgid "Overdue accounting request {0}: {1}"
-msgstr ""
+msgstr "Demande comptable en retard {0} : {1}"
 
 #: frontend/src/pages/Overview.vue:121
 msgid "Overdue requests"
-msgstr ""
+msgstr "Demandes en retard"
 
 #: frontend/src/components/EhubSidebar.vue:17
 #: frontend/src/pages/Overview.vue:5
 msgid "Overview"
-msgstr ""
+msgstr "Vue d'ensemble"
 
 #. Label of the po_date (Date) field in DocType 'eInvoice'
 #: etransactions/etransactions/doctype/einvoice/einvoice.json
@@ -1844,11 +1844,11 @@ msgstr "Montant partiel"
 #: etransactions/etransactions_hub/doctype/accounting_request/accounting_request.json
 #: frontend/src/components/RequestDetailDrawer.vue:33
 msgid "Party"
-msgstr ""
+msgstr "Tiers"
 
 #: frontend/src/pages/Overview.vue:56
 msgid "Payables outstanding"
-msgstr ""
+msgstr "Fournisseurs impayés"
 
 #. Label of the payment_means_section (Section Break) field in DocType
 #. 'eInvoice'
@@ -1888,23 +1888,23 @@ msgstr "Factures en attente"
 
 #: frontend/src/pages/Closing.vue:7
 msgid "Period Closing"
-msgstr ""
+msgstr "Clôture de période"
 
 #. Label of the period_end (Date) field in DocType 'Closing Period'
 #: etransactions/etransactions_hub/doctype/closing_period/closing_period.json
 #: frontend/src/components/ClosingPeriodDialog.vue:23
 msgid "Period End"
-msgstr ""
+msgstr "Fin de période"
 
 #. Label of the period_start (Date) field in DocType 'Closing Period'
 #: etransactions/etransactions_hub/doctype/closing_period/closing_period.json
 #: frontend/src/components/ClosingPeriodDialog.vue:15
 msgid "Period Start"
-msgstr ""
+msgstr "Début de période"
 
 #: etransactions/etransactions_hub/doctype/closing_period/closing_period.py:43
 msgid "Period start date cannot be after period end date"
-msgstr ""
+msgstr "La date de début de période ne peut pas être postérieure à la date de fin de période"
 
 #: etransactions/etransactions/report/customer_einvoice_readiness/customer_einvoice_readiness.py:94
 #: etransactions/etransactions/report/customer_einvoice_readiness/customer_einvoice_readiness.py:261
@@ -1913,11 +1913,11 @@ msgstr "Code PIN"
 
 #: frontend/src/pages/Closing.vue:168
 msgid "Please reload the page or sign in again."
-msgstr ""
+msgstr "Veuillez recharger la page ou vous reconnecter."
 
 #: frontend/src/components/ClosingPeriodDialog.vue:104
 msgid "Please select a checklist template"
-msgstr ""
+msgstr "Veuillez sélectionner un modèle de liste de contrôle"
 
 #: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:564
 msgid "Please select at least one purchase order"
@@ -1945,7 +1945,7 @@ msgstr "Veuillez sélectionner des reçus liés au même fournisseur"
 
 #: frontend/src/components/ClosingPeriodDialog.vue:108
 msgid "Please set the period start and end dates"
-msgstr ""
+msgstr "Veuillez définir les dates de début et de fin de période"
 
 #: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:393
 #, python-brace-format
@@ -1970,7 +1970,7 @@ msgstr "Contact principal"
 #. Label of the priority (Select) field in DocType 'Accounting Request'
 #: etransactions/etransactions_hub/doctype/accounting_request/accounting_request.json
 msgid "Priority"
-msgstr ""
+msgstr "Priorité"
 
 #. Option for the 'Status' (Select) field in DocType 'OCR Generic Text
 #. Transcription'
@@ -2020,7 +2020,7 @@ msgstr "Profil"
 #. Label of the progress (Percent) field in DocType 'Closing Period'
 #: etransactions/etransactions_hub/doctype/closing_period/closing_period.json
 msgid "Progress"
-msgstr ""
+msgstr "Avancement"
 
 #. Label of the project (Link) field in DocType 'Supplier Invoice Item'
 #: etransactions/etransactions/doctype/supplier_invoice_item/supplier_invoice_item.json
@@ -2120,31 +2120,31 @@ msgstr "Quantité"
 #: etransactions/etransactions_hub/doctype/closing_checklist_template/closing_checklist_template.json
 #: frontend/src/components/ChecklistTemplateDialog.vue:130
 msgid "Quarterly"
-msgstr ""
+msgstr "Trimestriel"
 
 #. Option for the 'Request Type' (Select) field in DocType 'Accounting Request'
 #: etransactions/etransactions_hub/doctype/accounting_request/accounting_request.json
 #: frontend/src/components/RequestDialog.vue:82
 msgid "Question"
-msgstr ""
+msgstr "Question"
 
 #: frontend/src/pages/Closing.vue:92
 #, python-brace-format
 msgid "Raise request for {0}"
-msgstr ""
+msgstr "Créer une demande pour {0}"
 
 #. Label of the raised_by (Data) field in DocType 'Accounting Request'
 #: etransactions/etransactions_hub/doctype/accounting_request/accounting_request.json
 msgid "Raised By"
-msgstr ""
+msgstr "Créé par"
 
 #: frontend/src/components/RequestDetailDrawer.vue:44
 msgid "Raised by"
-msgstr ""
+msgstr "Créé par"
 
 #: frontend/src/pages/Requests.vue:103
 msgid "Raised by me"
-msgstr ""
+msgstr "Créé par moi"
 
 #. Label of the rate_applicable_percent (Percent) field in DocType 'eInvoice
 #. Trade Tax'
@@ -2171,29 +2171,29 @@ msgstr "Prêt à traiter"
 
 #: frontend/src/pages/Overview.vue:40
 msgid "Receivables & Payables"
-msgstr ""
+msgstr "Clients & Fournisseurs"
 
 #: frontend/src/pages/Overview.vue:39
 msgid "Receivables and payables"
-msgstr ""
+msgstr "Clients et fournisseurs"
 
 #: frontend/src/pages/Overview.vue:46
 msgid "Receivables outstanding"
-msgstr ""
+msgstr "Clients impayés"
 
 #: frontend/src/pages/Inbox.vue:121
 msgid "Received"
-msgstr ""
+msgstr "Reçu"
 
 #: frontend/src/pages/Inbox.vue:31
 msgid "Received between"
-msgstr ""
+msgstr "Reçu entre"
 
 #. Label of the section_break_reference (Section Break) field in DocType
 #. 'Accounting Request'
 #: etransactions/etransactions_hub/doctype/accounting_request/accounting_request.json
 msgid "Reference"
-msgstr ""
+msgstr "Référence"
 
 #. Label of the reference_doctype (Link) field in DocType 'Accounting Request'
 #: etransactions/etransactions_hub/doctype/accounting_request/accounting_request.json
@@ -2221,12 +2221,12 @@ msgstr "Documents de référence"
 #. Request'
 #: etransactions/etransactions_hub/doctype/accounting_request/accounting_request.json
 msgid "Reference Name"
-msgstr ""
+msgstr "Nom de la référence"
 
 #: etransactions/etransactions_hub/doctype/accounting_request/accounting_request.py:78
 #, python-brace-format
 msgid "Reference {0} {1} does not exist"
-msgstr ""
+msgstr "La référence {0} {1} n'existe pas"
 
 #. Label of the references_tab (Tab Break) field in DocType 'Supplier Invoice'
 #: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json
@@ -2235,7 +2235,7 @@ msgstr "Références"
 
 #: frontend/src/components/ChecklistTemplateDialog.vue:71
 msgid "Remove task"
-msgstr ""
+msgstr "Supprimer la tâche"
 
 #: etransactions/etransactions/doctype/ocr_request/ocr_request.js:12
 #: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:95
@@ -2247,12 +2247,12 @@ msgstr "Rouvrir"
 #: etransactions/public/js/accounting_request_dialog.js:20
 #: frontend/src/components/RequestDialog.vue:15
 msgid "Request Type"
-msgstr ""
+msgstr "Type de demande"
 
 #: frontend/src/pages/Closing.vue:270
 #, python-brace-format
 msgid "Request created for {0}."
-msgstr ""
+msgstr "Demande créée pour {0}."
 
 #: etransactions/etransactions/doctype/supplier_invoices_basket/supplier_invoices_basket.js:31
 msgid "Request creation in progress"
@@ -2260,34 +2260,34 @@ msgstr "Création de la demande d'analyse en cours"
 
 #: frontend/src/components/RequestDetailDrawer.vue:5
 msgid "Request detail"
-msgstr ""
+msgstr "Détail de la demande"
 
 #: etransactions/public/js/accounting_request_dialog.js:102
 msgid "Request justificative"
-msgstr ""
+msgstr "Justificatif demandé"
 
 #: frontend/src/pages/Requests.vue:4
 msgid "Request scope"
-msgstr ""
+msgstr "Périmètre de la demande"
 
 #: frontend/src/components/RequestDetailDrawer.vue:143
 #: frontend/src/pages/Requests.vue:173
 #: frontend/src/pages/Requests.vue:184
 #, python-brace-format
 msgid "Request {0} resolved."
-msgstr ""
+msgstr "Demande {0} résolue."
 
 #: frontend/src/components/EhubSidebar.vue:23
 msgid "Requests"
-msgstr ""
+msgstr "Demandes"
 
 #: frontend/src/pages/Requests.vue:145
 msgid "Requests waiting on you will appear here."
-msgstr ""
+msgstr "Les demandes en attente de votre part apparaîtront ici."
 
 #: frontend/src/pages/Requests.vue:143
 msgid "Requests you raise will appear here."
-msgstr ""
+msgstr "Les demandes que vous créez apparaîtront ici."
 
 #: etransactions/etransactions/doctype/ocr_request/ocr_request.js:18
 msgid "Reset"
@@ -2297,39 +2297,39 @@ msgstr "Réinitialiser"
 #. 'Accounting Request'
 #: etransactions/etransactions_hub/doctype/accounting_request/accounting_request.json
 msgid "Resolution"
-msgstr ""
+msgstr "Résolution"
 
 #: frontend/src/components/RequestDetailDrawer.vue:69
 #: frontend/src/pages/Requests.vue:69
 msgid "Resolve"
-msgstr ""
+msgstr "Résoudre"
 
 #. Option for the 'Status' (Select) field in DocType 'Accounting Request'
 #: etransactions/etransactions_hub/doctype/accounting_request/accounting_request.json
 #: frontend/src/pages/Requests.vue:130
 msgid "Resolved"
-msgstr ""
+msgstr "Résolu"
 
 #. Label of the resolved_by (Link) field in DocType 'Accounting Request'
 #: etransactions/etransactions_hub/doctype/accounting_request/accounting_request.json
 msgid "Resolved By"
-msgstr ""
+msgstr "Résolu par"
 
 #. Label of the resolved_on (Datetime) field in DocType 'Accounting Request'
 #: etransactions/etransactions_hub/doctype/accounting_request/accounting_request.json
 msgid "Resolved On"
-msgstr ""
+msgstr "Résolu le"
 
 #. Option for the 'Status' (Select) field in DocType 'Accounting Request'
 #: etransactions/etransactions_hub/doctype/accounting_request/accounting_request.json
 #: frontend/src/pages/Requests.vue:125
 msgid "Response Received"
-msgstr ""
+msgstr "Réponse reçue"
 
 #: etransactions/etransactions_hub/doctype/accounting_request/accounting_request.py:138
 #, python-brace-format
 msgid "Response received on {0}: {1}"
-msgstr ""
+msgstr "Réponse reçue le {0} : {1}"
 
 #: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice_list.js:25
 msgid "Retry Supplier Match"
@@ -2350,7 +2350,7 @@ msgstr "Retour sur"
 #: etransactions/etransactions_hub/doctype/closing_task/closing_task.json
 #: frontend/src/components/ChecklistTemplateDialog.vue:52
 msgid "Route"
-msgstr ""
+msgstr "Route"
 
 #. Label of the row (Data) field in DocType 'Supplier Invoice Item'
 #: etransactions/etransactions/doctype/supplier_invoice_item/supplier_invoice_item.json
@@ -2405,15 +2405,15 @@ msgstr "Enregistrer"
 
 #: frontend/src/components/ChecklistTemplateDialog.vue:91
 msgid "Save Template"
-msgstr ""
+msgstr "Enregistrer le modèle"
 
 #: frontend/src/pages/Inbox.vue:39
 msgid "Search"
-msgstr ""
+msgstr "Rechercher"
 
 #: frontend/src/pages/Inbox.vue:40
 msgid "Search subject or sender"
-msgstr ""
+msgstr "Rechercher un sujet ou un expéditeur"
 
 #. Label of the select_purchase_orders (Button) field in DocType 'Supplier
 #. Invoice'
@@ -2430,14 +2430,14 @@ msgstr "Sélectionner des reçus d'achat"
 #: frontend/src/components/ChecklistTemplateDialog.vue:11
 #: frontend/src/components/ClosingPeriodDialog.vue:10
 msgid "Select a template"
-msgstr ""
+msgstr "Sélectionner un modèle"
 
 #: frontend/src/components/ClosingPeriodDialog.vue:18
 #: frontend/src/components/ClosingPeriodDialog.vue:26
 #: frontend/src/components/ClosingTaskDialog.vue:16
 #: frontend/src/components/RequestDialog.vue:23
 msgid "Select date"
-msgstr ""
+msgstr "Sélectionner une date"
 
 #: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:549
 msgid "Select one or more purchase orders"
@@ -2446,7 +2446,7 @@ msgstr "Sélectionner une ou plusieurs commandes fournisseur"
 #: frontend/src/components/LinkField.vue:6
 #, python-brace-format
 msgid "Select {0}"
-msgstr ""
+msgstr "Sélectionner {0}"
 
 #. Label of the seller_tab (Tab Break) field in DocType 'eInvoice'
 #: etransactions/etransactions/doctype/einvoice/einvoice.json
@@ -2533,23 +2533,23 @@ msgstr "Règlement"
 #: frontend/src/pages/Inbox.vue:16
 #: frontend/src/pages/Inbox.vue:119
 msgid "Source"
-msgstr ""
+msgstr "Source"
 
 #: frontend/src/components/ClosingPeriodDialog.vue:37
 msgid "Start"
-msgstr ""
+msgstr "Démarrer"
 
 #: frontend/src/components/ClosingPeriodDialog.vue:2
 msgid "Start a Closing Period"
-msgstr ""
+msgstr "Démarrer une période de clôture"
 
 #: frontend/src/pages/Closing.vue:124
 msgid "Start a closing period"
-msgstr ""
+msgstr "Démarrer une période de clôture"
 
 #: frontend/src/pages/Overview.vue:74
 msgid "Start one in Closing"
-msgstr ""
+msgstr "En démarrer une dans Clôture"
 
 #. Label of the status (Select) field in DocType 'OCR Generic Text
 #. Transcription'
@@ -2577,7 +2577,7 @@ msgstr "Statut"
 #: frontend/src/pages/Closing.vue:83
 #, python-brace-format
 msgid "Status of {0}"
-msgstr ""
+msgstr "Statut de {0}"
 
 #. Label of the subject (Small Text) field in DocType 'Supplier Invoices
 #. Basket'
@@ -2598,7 +2598,7 @@ msgstr "Objet"
 #: frontend/src/components/ClosingTaskDialog.vue:93
 #: frontend/src/components/RequestDialog.vue:94
 msgid "Subject is required"
-msgstr ""
+msgstr "L'objet est requis"
 
 #. Label of the supplier (Link) field in DocType 'eTransactions Supplier Name
 #. Alias'
@@ -2677,15 +2677,15 @@ msgstr "Désignation"
 #. Option for the 'Source' (Select) field in DocType 'Accounting Inbox Item'
 #: etransactions/etransactions_hub/doctype/accounting_inbox_item/accounting_inbox_item.json
 msgid "Supplier Portal"
-msgstr ""
+msgstr "Portail fournisseur"
 
 #: frontend/src/components/InboxDetailDrawer.vue:137
 msgid "Supplier invoice creation started. Find it in the invoices basket."
-msgstr ""
+msgstr "Création de la facture fournisseur lancée. Retrouvez-la dans le panier des factures."
 
 #: etransactions/etransactions/api/widgets.py:277
 msgid "Suppliers with Tax Category"
-msgstr ""
+msgstr "Fournisseurs avec catégorie de taxe"
 
 #. Name of a role
 #: etransactions/etransactions/doctype/einvoice/einvoice.json
@@ -2714,19 +2714,19 @@ msgstr "Tâche"
 #: etransactions/etransactions_hub/doctype/closing_checklist_template_item/closing_checklist_template_item.json
 #: frontend/src/components/ChecklistTemplateDialog.vue:49
 msgid "Task Subject"
-msgstr ""
+msgstr "Objet de la tâche"
 
 #: frontend/src/pages/Closing.vue:259
 msgid "Task deleted."
-msgstr ""
+msgstr "Tâche supprimée."
 
 #: frontend/src/pages/Closing.vue:248
 msgid "Task saved."
-msgstr ""
+msgstr "Tâche enregistrée."
 
 #: frontend/src/pages/Closing.vue:213
 msgid "Task updated."
-msgstr ""
+msgstr "Tâche mise à jour."
 
 #. Label of the section_break_items (Section Break) field in DocType 'Closing
 #. Checklist Template'
@@ -2736,7 +2736,7 @@ msgstr ""
 #: frontend/src/components/ChecklistTemplateDialog.vue:43
 #: frontend/src/pages/Closing.vue:60
 msgid "Tasks"
-msgstr ""
+msgstr "Tâches"
 
 #. Label of the tax_account (Link) field in DocType 'eInvoice Trade Tax'
 #: etransactions/etransactions/doctype/einvoice_trade_tax/einvoice_trade_tax.json
@@ -2805,18 +2805,18 @@ msgstr "Documents techniques"
 
 #: frontend/src/components/ChecklistTemplateDialog.vue:7
 msgid "Template"
-msgstr ""
+msgstr "Modèle"
 
 #. Label of the template_name (Data) field in DocType 'Closing Checklist
 #. Template'
 #: etransactions/etransactions_hub/doctype/closing_checklist_template/closing_checklist_template.json
 #: frontend/src/components/ChecklistTemplateDialog.vue:23
 msgid "Template Name"
-msgstr ""
+msgstr "Nom du modèle"
 
 #: frontend/src/components/ChecklistTemplateDialog.vue:199
 msgid "Template name is required"
-msgstr ""
+msgstr "Le nom du modèle est requis"
 
 #. Label of the terms (Text Editor) field in DocType 'eInvoice'
 #: etransactions/etransactions/doctype/einvoice/einvoice.json
@@ -2903,12 +2903,12 @@ msgstr "Cette facture d'achat ne peut pas être validée car le total HT est sup
 
 #: etransactions/etransactions_hub/doctype/accounting_request/accounting_request.py:157
 msgid "This request has no reference document"
-msgstr ""
+msgstr "Cette demande n'a pas de document de référence"
 
 #: etransactions/etransactions_hub/doctype/accounting_request/accounting_request.py:146
 #, python-brace-format
 msgid "This request is already {0}"
-msgstr ""
+msgstr "Cette demande est déjà {0}"
 
 #. Label of the title (Data) field in DocType 'Supplier Invoice'
 #. Label of the title (Data) field in DocType 'Supplier Invoices Basket'
@@ -2927,11 +2927,11 @@ msgstr "Titre"
 #: etransactions/etransactions_hub/doctype/accounting_inbox_item/accounting_inbox_item.json
 #: frontend/src/pages/Inbox.vue:86
 msgid "To Triage"
-msgstr ""
+msgstr "À trier"
 
 #: frontend/src/components/ClosingTaskDialog.vue:24
 msgid "Tool route"
-msgstr ""
+msgstr "Route de l'outil"
 
 #. In Custom HTML Block 'Customer Readiness Widget' (script)
 #. In Custom HTML Block 'Item Tax Readiness Widget' (script)
@@ -2974,11 +2974,11 @@ msgstr "Transcription en cours"
 #: frontend/src/pages/Overview.vue:18
 #: frontend/src/pages/Overview.vue:19
 msgid "Treasury"
-msgstr ""
+msgstr "Trésorerie"
 
 #: frontend/src/components/RequestDetailDrawer.vue:30
 msgid "Type"
-msgstr ""
+msgstr "Type"
 
 #. Label of the uom (Link) field in DocType 'eInvoice Item'
 #: etransactions/etransactions/doctype/einvoice_item/einvoice_item.json
@@ -3002,7 +3002,7 @@ msgstr "Prix unitaire"
 
 #: frontend/src/pages/Overview.vue:30
 msgid "Unreconciled transactions"
-msgstr ""
+msgstr "Transactions non rapprochées"
 
 #: etransactions/utils/xml.py:69
 msgid "Unsupported XML format"
@@ -3050,12 +3050,12 @@ msgstr "Utilisez ces rapports pour améliorer la qualité de vos données et vou
 #: etransactions/etransactions/custom_html_block/vat_configuration_widget/vat_configuration_widget.json:47
 #: etransactions/workspace_sidebar/etransactions.json
 msgid "VAT Configuration"
-msgstr ""
+msgstr "Configuration TVA"
 
 #. Label of a Link in the FacturX Readiness Workspace
 #: etransactions/etransactions/workspace/facturx_readiness/facturx_readiness.json
 msgid "VAT Configuration Tool"
-msgstr ""
+msgstr "Outil de configuration TVA"
 
 #. Label of the validation_details_section (Section Break) field in DocType
 #. 'eInvoice'
@@ -3104,7 +3104,7 @@ msgstr "Voir {}"
 #: frontend/src/pages/Overview.vue:114
 #: frontend/src/pages/Requests.vue:102
 msgid "Waiting on me"
-msgstr ""
+msgstr "En attente de moi"
 
 #: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:347
 #, python-brace-format
@@ -3125,7 +3125,7 @@ msgstr "XML"
 #: etransactions/etransactions_hub/doctype/closing_checklist_template/closing_checklist_template.json
 #: frontend/src/components/ChecklistTemplateDialog.vue:131
 msgid "Yearly"
-msgstr ""
+msgstr "Annuel"
 
 #: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:458
 msgctxt "Approve confirmation dialog"
@@ -3166,7 +3166,7 @@ msgstr "articles de vente actifs"
 #. In Custom HTML Block 'VAT Configuration Widget' (script)
 #: etransactions/etransactions/custom_html_block/vat_configuration_widget/vat_configuration_widget.json:49
 msgid "active tax categories"
-msgstr ""
+msgstr "catégories de taxes actives"
 
 #: frontend/src/pages/Overview.vue:95
 msgid "e-Invoicing readiness"
