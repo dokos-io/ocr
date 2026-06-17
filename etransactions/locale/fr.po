@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: eTransactions VERSION\n"
 "Report-Msgid-Bugs-To: hello@dokos.io\n"
-"POT-Creation-Date: 2026-06-16 01:42+0000\n"
+"POT-Creation-Date: 2026-06-17 02:14+0000\n"
 "PO-Revision-Date: 2025-04-02 14:52+0200\n"
 "Last-Translator: hello@dokos.io\n"
 "Language-Team: hello@dokos.io\n"
@@ -3170,11 +3170,11 @@ msgstr "catégories de taxes actives"
 
 #: frontend/src/pages/Overview.vue:95
 msgid "e-Invoicing readiness"
-msgstr ""
+msgstr "Préparation à la facturation électronique"
 
 #: frontend/src/components/ClosingTaskDialog.vue:25
 msgid "e.g. /app/bank-reconciliation-tool"
-msgstr ""
+msgstr "ex. /app/bank-reconciliation-tool"
 
 #. Name of a DocType
 #. Label of the einvoice (Link) field in DocType 'Supplier Invoice'
@@ -3266,7 +3266,7 @@ msgstr "Erreur de suppression du fichier eTransactions"
 #: etransactions/public/js/accounting_request_dialog.js:109
 #: frontend/src/components/EhubTopBar.vue:13
 msgid "eTransactions Hub"
-msgstr ""
+msgstr "Hub de transactions électroniques"
 
 #. Name of a DocType
 #. Label of a Workspace Sidebar Item
@@ -3318,19 +3318,19 @@ msgstr "optionnel"
 #: frontend/src/pages/Inbox.vue:159
 #, python-brace-format
 msgid "{0} d ago"
-msgstr ""
+msgstr "il y a {0} j"
 
 #: frontend/src/components/InboxDetailDrawer.vue:174
 #: frontend/src/pages/Inbox.vue:158
 #, python-brace-format
 msgid "{0} h ago"
-msgstr ""
+msgstr "il y a {0} h"
 
 #: frontend/src/components/InboxDetailDrawer.vue:173
 #: frontend/src/pages/Inbox.vue:157
 #, python-brace-format
 msgid "{0} min ago"
-msgstr ""
+msgstr "il y a {0} min"
 
 #: etransactions/public/js/sales_invoice.js:82
 #, python-brace-format
@@ -3365,7 +3365,7 @@ msgstr "{0} combinaison(s) catégorie de taxe / société non couvertes"
 #: frontend/src/pages/Closing.vue:50
 #, python-brace-format, python-format
 msgid "{0}% complete"
-msgstr ""
+msgstr "{0}% terminé"
 
 #: etransactions/overrides/sales_invoice.py:58
 #, python-brace-format
@@ -3375,4 +3375,4 @@ msgstr "{0} : Un seul mode de paiement sera pris en compte dans la facture élec
 #: etransactions/public/js/accounting_request_dialog.js:15
 #, python-brace-format
 msgid "{0}: {1}"
-msgstr ""
+msgstr "{0} : {1}"
