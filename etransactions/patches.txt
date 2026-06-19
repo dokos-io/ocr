@@ -8,3 +8,4 @@ etransactions.patches.set_default_ocr_service
 etransactions.patches.check_ocr_request_links
 etransactions.patches.update_communication_reference_doctype # 20260415
 etransactions.patches.rename_accounting_hub_module # 20260613
+etransactions.patches.resync_supplier_invoice_sequence # 20260619
