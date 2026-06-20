@@ -148,9 +148,33 @@ class SupplierInvoice(Document):
 		if not self.supplier or not self.tax_id:
 			return
 		existing_tax_id = frappe.db.get_value("Supplier", self.supplier, "tax_id")
-		if not existing_tax_id:
-			normalized = re.sub(r"[\s\-\.]", "", self.tax_id).upper()
-			frappe.db.set_value("Supplier", self.supplier, "tax_id", normalized)
+		if existing_tax_id:
+			return
+
+		normalized = re.sub(r"[\s\-\.]", "", self.tax_id).upper()
+		if not normalized:
+			return
+
+		# Never propagate a buyer's own VAT onto a supplier master.
+		company_tax_ids = {
+			re.sub(r"[\s\-\.]", "", t).upper()
+			for t in frappe.get_all("Company", filters={"tax_id": ("is", "set")}, pluck="tax_id")
+			if t
+		}
+		if normalized in company_tax_ids:
+			return
+
+		# Don't write a tax_id already held by another supplier — that ambiguity is exactly
+		# what breaks tax_id-based matching.
+		for other_tax_id in frappe.get_all(
+			"Supplier",
+			filters={"name": ("!=", self.supplier), "tax_id": ("is", "set")},
+			pluck="tax_id",
+		):
+			if re.sub(r"[\s\-\.]", "", other_tax_id).upper() == normalized:
+				return
+
+		frappe.db.set_value("Supplier", self.supplier, "tax_id", normalized)
 
 	def get_supplier(self):
 		if self.supplier:

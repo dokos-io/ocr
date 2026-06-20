@@ -28,7 +28,8 @@ PURCHASE_INVOICE_MAPPING = {
 	"INVOICE_RECEIPT_DATE": "bill_date",
 	"VENDOR_NAME": "supplier",
 	"RECEIVER_NAME": "company",
-	"TAX_PAYER_ID": "tax_id",
+	# NB: TAX_PAYER_ID is the *payer* (buyer) tax id, not the seller's — never map it to
+	# the supplier tax_id. Only the vendor VAT identifies the supplier.
 	"VENDOR_VAT_NUMBER": "tax_id",
 	"DUE_DATE": "due_date",
 	"VENDOR_ADDRESS": "vendor_address",
@@ -212,9 +213,20 @@ class OCRRequest(Document, InvoiceEntityResolverMixin):
 
 	def get_supplier_name(self) -> str | None:
 		header = self.get_raw_data()
+		vendor_tax_id = header.get("VENDOR_VAT_NUMBER")
+		# Discard a "vendor" VAT that is in fact the buyer's own VAT — a frequent OCR
+		# confusion that otherwise resolves every invoice to whichever supplier happens
+		# to share that VAT.
+		buyer_vat = header.get("RECEIVER_VAT_NUMBER")
+		if (
+			vendor_tax_id
+			and buyer_vat
+			and self._normalize_tax_id(vendor_tax_id) == self._normalize_tax_id(buyer_vat)
+		):
+			vendor_tax_id = None
 		self.supplier = self.resolve_supplier(
 			seller_name=header.get("VENDOR_NAME"),
-			tax_id=header.get("VENDOR_VAT_NUMBER") or header.get("TAX_PAYER_ID"),
+			tax_id=vendor_tax_id,
 			iban=header.get("VENDOR_IBAN"),
 		)
 		return self.supplier
@@ -295,10 +307,18 @@ class OCRRequest(Document, InvoiceEntityResolverMixin):
 
 	def create_supplier_invoice(self) -> Document:
 		data: dict = self.get_data_from_analysis()
+		header = self.get_raw_data()
+
+		# Never store the buyer's own VAT as the supplier tax_id.
+		tax_id = data.get("tax_id")
+		buyer_vat = header.get("RECEIVER_VAT_NUMBER")
+		if tax_id and buyer_vat and self._normalize_tax_id(tax_id) == self._normalize_tax_id(buyer_vat):
+			tax_id = None
 
 		doc: SupplierInvoice = frappe.new_doc("Supplier Invoice") # type: ignore
 		doc.company = data.get("company")
 		doc.supplier = data.get("supplier")
+		doc.supplier_name = header.get("VENDOR_NAME")
 		doc.bill_no = data.get("bill_no")
 		doc.bill_date = data.get("bill_date")
 		doc.due_date = data.get("due_date")
@@ -308,7 +328,7 @@ class OCRRequest(Document, InvoiceEntityResolverMixin):
 		doc.ocr_request = self.name
 		doc.file = self.file
 		doc.vendor_address = data.get("vendor_address")
-		doc.tax_id = data.get("tax_id")
+		doc.tax_id = tax_id
 		doc.vendor_iban = data.get("vendor_iban")
 		doc.match_confidence = getattr(self, "_match_confidence", None) or "low"
 		doc.ocr_basket = self.ocr_basket
