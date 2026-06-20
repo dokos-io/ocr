@@ -101,6 +101,33 @@ frappe.ui.form.on("Supplier Invoice", {
 		frm.trigger("check_supplier_id");
 		frm.trigger("check_po_exists");
 		frm.trigger("show_match_confidence");
+		frm.trigger("check_unbilled_purchase_orders");
+	},
+
+	async check_unbilled_purchase_orders(frm) {
+		const field = frm.get_field("select_purchase_orders");
+		if (!field) return;
+		field.set_description("");
+
+		if (!frm.doc.supplier || frm.doc.is_return || frm.doc.items?.length) return;
+
+		const reconcile_with_purchase_receipts = await frappe.db.get_single_value("eTransactions Settings", "reconcile_with_purchase_receipts");
+		if (reconcile_with_purchase_receipts) return;
+
+		const count = await frappe.db.count("Purchase Order", {
+			company: frm.doc.company,
+			supplier: frm.doc.supplier,
+			docstatus: 1,
+			per_billed: ["<", 100.0],
+			status: ["!=", "Closed"],
+		});
+
+		if (count > 0) {
+			const message = count === 1
+				? __("{0} unbilled purchase order for this supplier", [count])
+				: __("{0} unbilled purchase orders for this supplier", [count]);
+			field.set_description(`<span class="text-muted" style="font-size:var(--text-xs);">${message}</span>`);
+		}
 	},
 
 	show_match_confidence(frm) {
