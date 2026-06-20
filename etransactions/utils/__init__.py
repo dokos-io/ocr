@@ -138,6 +138,23 @@ def parse_number(text):
 	return None
 
 
+CURRENCY_SYMBOLS = {"€": "EUR", "$": "USD", "£": "GBP", "¥": "JPY", "₹": "INR"}
+
+
+def parse_currency_symbol(text: str | None) -> str | None:
+	"""Best-effort ISO currency from an OCR amount like "$ 54.09" or "EUR 100,00"."""
+	if not text:
+		return None
+	text = str(text)
+	# explicit 3-letter ISO code present in the string
+	for code in set(CURRENCY_SYMBOLS.values()):
+		if code in text.upper():
+			return code
+	for symbol, code in CURRENCY_SYMBOLS.items():
+		if symbol in text:
+			return code
+	return None
+
 
 # Don't use Dokos standard function for compatibility with Frappe
 def time_diff_in_minutes(

@@ -14,7 +14,7 @@ from frappe.model.document import Document
 
 from etransactions.etransactions.doctype.ocr_request.aws_textract import AWSTextractExpense
 from etransactions.etransactions.doctype.ocr_request.mistral_ocr import MistralOCR
-from etransactions.utils import parse_number, date_parser
+from etransactions.utils import parse_number, parse_currency_symbol, date_parser
 from etransactions.controllers.entity_resolver import InvoiceEntityResolverMixin
 
 if TYPE_CHECKING:
@@ -305,6 +305,22 @@ class OCRRequest(Document, InvoiceEntityResolverMixin):
 			case _:
 				return fieldname or key, value
 
+	def resolve_currency(self, supplier: str | None, header: dict[str, Any]) -> str | None:
+		"""Resolve the invoice currency: supplier default, then OCR symbol, else None.
+
+		Returning None leaves the Supplier Invoice ``currency`` empty so its
+		``fetch_if_empty`` fallback fills the company default currency.
+		"""
+		if supplier:
+			currency = frappe.db.get_value("Supplier", supplier, "default_currency")
+			if currency:
+				return currency
+		for key in ("TOTAL", "AMOUNT_DUE", "SUBTOTAL"):
+			currency = parse_currency_symbol(header.get(key))
+			if currency:
+				return currency
+		return None
+
 	def create_supplier_invoice(self) -> Document:
 		data: dict = self.get_data_from_analysis()
 		header = self.get_raw_data()
@@ -330,6 +346,9 @@ class OCRRequest(Document, InvoiceEntityResolverMixin):
 		doc.vendor_address = data.get("vendor_address")
 		doc.tax_id = tax_id
 		doc.vendor_iban = data.get("vendor_iban")
+		currency = self.resolve_currency(doc.supplier, header)
+		if currency:
+			doc.currency = currency
 		doc.match_confidence = getattr(self, "_match_confidence", None) or "low"
 		doc.ocr_basket = self.ocr_basket
 
