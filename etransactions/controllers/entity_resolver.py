@@ -15,6 +15,15 @@ class InvoiceEntityResolverMixin:
 	def _normalize_tax_id(self, tax_id: str) -> str:
 		return re.sub(r"[\s\-\.]", "", tax_id).upper() if tax_id else ""
 
+	def _company_tax_ids(self) -> set:
+		"""Normalized VAT/tax ids of our own companies (the buyer side).
+
+		A supplier invoice must never resolve a supplier from the buyer's own VAT,
+		which OCR frequently mistakes for the seller's (e.g. AWS Textract TAX_PAYER_ID).
+		"""
+		ids = frappe.get_all("Company", filters={"tax_id": ("is", "set")}, pluck="tax_id")
+		return {self._normalize_tax_id(t) for t in ids if t}
+
 	def _strip_legal_forms(self, name: str) -> str:
 		pattern = r"\b(" + "|".join(re.escape(f) for f in LEGAL_FORMS) + r")\b"
 		return re.sub(pattern, "", name, flags=re.IGNORECASE).strip()
@@ -23,21 +32,25 @@ class InvoiceEntityResolverMixin:
 		supplier = None
 		self._match_confidence = "low"
 
-		# 1. Match by normalized Tax ID
+		# 1. Match by normalized Tax ID — only when unambiguous and not the buyer's own VAT.
+		# A tax_id shared by several suppliers (usually because a buyer VAT leaked onto
+		# masters) must not be trusted: we fall through to name-based matching instead of
+		# arbitrarily picking one supplier and reporting high confidence.
 		if tax_id:
 			normalized = self._normalize_tax_id(tax_id)
-			supplier = frappe.db.get_value("Supplier", {"tax_id": normalized})
-			if not supplier:
-				for s in frappe.get_all(
-					"Supplier",
-					filters={"disabled": 0, "tax_id": ("is", "set")},
-					fields=["name", "tax_id"],
-				):
-					if self._normalize_tax_id(s.tax_id) == normalized:
-						supplier = s.name
-						break
-			if supplier:
-				self._match_confidence = "high"
+			if normalized and normalized not in self._company_tax_ids():
+				matches = [
+					s.name
+					for s in frappe.get_all(
+						"Supplier",
+						filters={"disabled": 0, "tax_id": ("is", "set")},
+						fields=["name", "tax_id"],
+					)
+					if self._normalize_tax_id(s.tax_id) == normalized
+				]
+				if len(matches) == 1:
+					supplier = matches[0]
+					self._match_confidence = "high"
 
 		# 2. Match by IBAN via Bank Account
 		if not supplier and iban:

@@ -107,6 +107,57 @@ class TestSupplierInvoice(eTransactionsTestSuite):
 		self.assertEqual(cn.return_against, pi.name) # type: ignore
 
 
+	def _new_supplier(self, name, tax_id=None):
+		supplier = frappe.new_doc("Supplier")
+		supplier.supplier_name = name
+		supplier.supplier_group = "Services"
+		if tax_id:
+			supplier.tax_id = tax_id
+		supplier.insert(ignore_if_duplicate=True)
+		return supplier
+
+	def _supplier_invoice_stub(self, supplier, tax_id):
+		doc = frappe.new_doc("Supplier Invoice")
+		doc.supplier = supplier
+		doc.tax_id = tax_id
+		return doc
+
+	def test_supplier_tax_id_learned_when_unique(self):
+		suffix = frappe.generate_hash(length=6).upper()
+		new_tax_id = f"FR{suffix}LEARN"
+		supplier = self._new_supplier(f"Learner {suffix}")
+
+		self._supplier_invoice_stub(supplier.name, new_tax_id)._maybe_update_supplier_tax_id()
+
+		self.assertEqual(
+			frappe.db.get_value("Supplier", supplier.name, "tax_id"), new_tax_id
+		)
+
+	def test_supplier_tax_id_not_overwritten_when_duplicate(self):
+		suffix = frappe.generate_hash(length=6).upper()
+		shared = f"FR{suffix}DUP"
+		self._new_supplier(f"Holder {suffix}", tax_id=shared)
+		target = self._new_supplier(f"Target {suffix}")
+
+		self._supplier_invoice_stub(target.name, shared)._maybe_update_supplier_tax_id()
+
+		self.assertFalse(frappe.db.get_value("Supplier", target.name, "tax_id"))
+
+	def test_supplier_tax_id_not_set_to_company_vat(self):
+		suffix = frappe.generate_hash(length=6).upper()
+		buyer_vat = f"FR{suffix}BUYER"
+		original = frappe.db.get_value("Company", self.company, "tax_id")
+		frappe.db.set_value("Company", self.company, "tax_id", buyer_vat)
+		try:
+			target = self._new_supplier(f"Buyer VAT Target {suffix}")
+
+			self._supplier_invoice_stub(target.name, buyer_vat)._maybe_update_supplier_tax_id()
+
+			self.assertFalse(frappe.db.get_value("Supplier", target.name, "tax_id"))
+		finally:
+			frappe.db.set_value("Company", self.company, "tax_id", original)
+
+
 def create_supplier():
 	supplier = frappe.new_doc("Supplier")
 	supplier.supplier_name = "_Test Supplier"
