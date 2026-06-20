@@ -100,6 +100,7 @@ frappe.ui.form.on("Supplier Invoice", {
 		frm.trigger("check_tax_id");
 		frm.trigger("check_supplier_id");
 		frm.trigger("check_po_exists");
+		frm.trigger("check_duplicate_bill_no");
 		frm.trigger("show_match_confidence");
 		frm.trigger("check_unbilled_purchase_orders");
 	},
@@ -264,6 +265,11 @@ frappe.ui.form.on("Supplier Invoice", {
 	supplier(frm) {
 		erpnext.utils.get_party_details(frm);
 		frm.get_field("supplier")?.set_description("");
+		frm.trigger("check_duplicate_bill_no");
+	},
+
+	bill_no(frm) {
+		frm.trigger("check_duplicate_bill_no");
 	},
 
 	tax_category(frm) {
@@ -376,6 +382,25 @@ frappe.ui.form.on("Supplier Invoice", {
 				}
 			})
 		}
+	},
+	check_duplicate_bill_no(frm) {
+		if (!frm.doc.bill_no || !frm.doc.supplier) return;
+		frappe.db.get_list("Purchase Invoice", {
+			filters: {
+				bill_no: frm.doc.bill_no,
+				supplier: frm.doc.supplier,
+				docstatus: 1, // submitted only
+				supplier_invoice: ["!=", frm.doc.name || ""] // exclude this invoice's own PI
+			},
+			fields: ["name"],
+			limit: 1
+		}).then(r => {
+			if (r && r.length) {
+				const link = frappe.utils.get_form_link("Purchase Invoice", r[0].name, true);
+				const msg = __("Supplier Invoice No {0} already exists in submitted Purchase Invoice {1}", [frm.doc.bill_no, link])
+				frm.dashboard.set_headline(msg, "orange")
+			}
+		})
 	},
 });
 
