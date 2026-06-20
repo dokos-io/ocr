@@ -7,10 +7,24 @@ from frappe.tests.utils import FrappeTestCase
 from etransactions.controllers.entity_resolver import InvoiceEntityResolverMixin
 
 
+def _supplier_group():
+	"""Return an existing leaf Supplier Group, creating one under the root if needed."""
+	name = frappe.db.get_value("Supplier Group", {"is_group": 0})
+	if name:
+		return name
+	root = frappe.db.get_value("Supplier Group", {"is_group": 1})
+	group = frappe.new_doc("Supplier Group")
+	group.supplier_group_name = "_Test Resolver Group"
+	group.parent_supplier_group = root
+	group.is_group = 0
+	group.insert(ignore_if_duplicate=True)
+	return group.name
+
+
 def _make_supplier(supplier_name, tax_id=None):
 	supplier = frappe.new_doc("Supplier")
 	supplier.supplier_name = supplier_name
-	supplier.supplier_group = "Services"
+	supplier.supplier_group = _supplier_group()
 	if tax_id:
 		supplier.tax_id = tax_id
 	supplier.insert(ignore_if_duplicate=True)
