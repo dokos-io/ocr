@@ -132,6 +132,186 @@
         ],
         "type": "object"
       },
+      "b2c_payment": {
+        "properties": {
+          "date": {
+            "description": "ISO 8601 date of the payement. For example, `2026-06-05`.",
+            "format": "date",
+            "type": "string"
+          },
+          "id": {
+            "description": "Unique id",
+            "readOnly": true,
+            "type": "integer"
+          },
+          "subtotals": {
+            "items": {
+              "$ref": "#/components/schemas/b2c_payment_subtotal"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "company_id",
+          "date",
+          "subtotals"
+        ],
+        "type": "object"
+      },
+      "b2c_payment_list": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/b2c_payment"
+            },
+            "type": "array"
+          },
+          "has_more": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "data",
+          "has_more"
+        ],
+        "type": "object"
+      },
+      "b2c_payment_subtotal": {
+        "properties": {
+          "amount": {
+            "description": "Amout of the transaction.",
+            "format": "decimal",
+            "type": "string"
+          },
+          "currency_code": {
+            "description": "ISO 4217 currency code of the transactions, as documented in the Annex A of the Z12-012 AFNOR norm. For example, `EUR`.",
+            "type": "string"
+          },
+          "tax_percent": {
+            "description": "VAT rate in percent. For example, `20.0`.",
+            "format": "decimal",
+            "type": "string"
+          }
+        },
+        "required": [
+          "category_code",
+          "tax_percent",
+          "amount"
+        ],
+        "type": "object"
+      },
+      "b2c_transaction": {
+        "properties": {
+          "category_code": {
+            "description": "Transaction category as documented in the Annex A of the Z12-012 AFNOR norm.",
+            "enum": [
+              "TLB1",
+              "TPS1",
+              "TNT1",
+              "TMA1"
+            ],
+            "type": "string"
+          },
+          "currency": {
+            "description": "ISO 4217 currency code of the transactions, as documented in the Annex A of the Z12-012 AFNOR norm. For example, `EUR`.",
+            "type": "string"
+          },
+          "date": {
+            "description": "ISO 8601 date of the transaction. For example, `2026-06-05`.",
+            "format": "date",
+            "type": "string"
+          },
+          "id": {
+            "description": "Unique id",
+            "readOnly": true,
+            "type": "integer"
+          },
+          "role_code": {
+            "description": "Type of transaction: `BY` for a purchase, `SE` for a sale.",
+            "enum": [
+              "BY",
+              "SE"
+            ],
+            "type": "string"
+          },
+          "tax_due_date_type_code": {
+            "description": "UNTDID 2005 or UNTDID 2475 code",
+            "type": "string"
+          },
+          "tax_exclusive_amount": {
+            "description": "Amount of the transaction, excluding taxes.",
+            "format": "decimal",
+            "type": "string"
+          },
+          "tax_subtotals": {
+            "description": "VAT subtotals, grouped by VAT rate.",
+            "items": {
+              "$ref": "#/components/schemas/b2c_transaction_subtotal"
+            },
+            "type": "array"
+          },
+          "tax_total": {
+            "description": "VAT total.",
+            "format": "decimal",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "date",
+          "currency",
+          "category_code",
+          "tax_exclusive_amount",
+          "tax_total",
+          "tax_subtotals",
+          "role_code"
+        ],
+        "type": "object"
+      },
+      "b2c_transaction_list": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/b2c_transaction"
+            },
+            "type": "array"
+          },
+          "has_more": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "data",
+          "has_more"
+        ],
+        "type": "object"
+      },
+      "b2c_transaction_subtotal": {
+        "properties": {
+          "tax_percent": {
+            "description": "VAT rate in percent. For example, `20.0`.",
+            "format": "decimal",
+            "type": "string"
+          },
+          "tax_total": {
+            "description": "VAT total",
+            "format": "decimal",
+            "type": "string"
+          },
+          "taxable_amount": {
+            "description": "Taxable amount",
+            "format": "decimal",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tax_percent",
+          "taxable_amount",
+          "tax_total"
+        ],
+        "type": "object"
+      },
       "binary_object": {
         "description": "BT-125",
         "properties": {
@@ -278,6 +458,19 @@
           "trade_name": {
             "description": "Trade name of the company",
             "type": "string"
+          },
+          "vat_regime": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/vat_regime"
+              },
+              {
+                "enum": [
+                  ""
+                ],
+                "type": "string"
+              }
+            ]
           }
         },
         "required": [
@@ -291,7 +484,44 @@
           "address",
           "postcode",
           "city",
-          "country"
+          "country",
+          "vat_regime"
+        ],
+        "type": "object"
+      },
+      "company_enroll": {
+        "properties": {
+          "email": {
+            "description": "Contact email of the enrolled company. It is optional, but if not set, you agree to provide contact of the enrolled company within 24 hours on our request.",
+            "type": "string"
+          },
+          "number": {
+            "description": "Identifier of the company",
+            "type": "string"
+          },
+          "number_scheme": {
+            "description": "Source from company identifier",
+            "enum": [
+              "sandbox",
+              "fr_siren",
+              "be_numero_entreprise"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "number",
+          "number_scheme"
+        ]
+      },
+      "company_patch": {
+        "properties": {
+          "vat_regime": {
+            "$ref": "#/components/schemas/vat_regime"
+          }
+        },
+        "required": [
+          "vat_regime"
         ],
         "type": "object"
       },
@@ -327,7 +557,7 @@
         "type": "object"
       },
       "convert_invoice_format": {
-        "description": "Invoice format can be\n\n1. `cii`: official format, defined as xml\n2. `ubl`: official format, defined as xml\n3. `en16931`: format defined in schema `en_invoice`, as json data. `factur-x` can be passed as input. It will be possible to pass it as output in the future.",
+        "description": "Invoice format can be\n\n1. `cii`: official format, defined as xml\n2. `ubl`: official format, defined as xml\n3. `en16931`: format defined in schema `en_invoice`, as json data. `factur-x` official format, defined as pdf",
         "enum": [
           "cii",
           "ubl",
@@ -342,7 +572,7 @@
             "$ref": "#/components/schemas/directory"
           },
           "identifier": {
-            "description": "A Peppol address follows the format \"scheme_id:participant_id\", for example, \"0225:853322915\".",
+            "description": "For the Peppol directory, the identifier follows the format `scheme_id:participant_id`, for example: `0225:853322915`. For the French directory, the identifier follow the format `SIREN`, `SIREN_SIRET` or `SIREN_SUFFIXE`.",
             "example": "0225:853322915",
             "type": "string"
           }
@@ -454,6 +684,7 @@
         "type": "string"
       },
       "directory": {
+        "description": "In sandbox, it is only possible to create directory entries in the `peppol` directory. In production, for french identifiers, it is only possible to create directory entries in the `ppf` directory — we handle the creation of the corresponding entries in the Peppol directory.",
         "enum": [
           "peppol",
           "ppf"
@@ -1098,7 +1329,8 @@
           "cii",
           "ubl",
           "en16931",
-          "ubl-peppol-bis"
+          "ubl-peppol-bis",
+          "factur-x"
         ],
         "type": "string"
       },
@@ -1113,7 +1345,7 @@
             "type": "integer"
           },
           "message": {
-            "description": "human description of the message. Do not use programmaticaly, there is no backward compatibility about it",
+            "description": "Human description of the message. Do not use programmaticaly, there is no backward compatibility guarantee.",
             "type": "string"
           }
         },
@@ -1432,7 +1664,6 @@
           "invoiced_quantity_code",
           "net_amount",
           "price_details",
-          "vat_information",
           "item_information"
         ],
         "type": "object"
@@ -1728,9 +1959,6 @@
             "type": "string"
           }
         },
-        "required": [
-          "invoiced_item_vat_category_code"
-        ],
         "type": "object"
       },
       "list_directory_entries": {
@@ -2038,6 +2266,81 @@
         ],
         "type": "object"
       },
+      "ppf_ereporting": {
+        "properties": {
+          "company_id": {
+            "type": "integer"
+          },
+          "end_period": {
+            "format": "date",
+            "type": "string"
+          },
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/ppf_ereporting_event"
+            },
+            "type": "array"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "kind": {
+            "enum": [
+              "transaction",
+              "payment"
+            ],
+            "type": "string"
+          },
+          "role_code": {
+            "enum": [
+              "BY",
+              "SE"
+            ],
+            "type": "string"
+          },
+          "start_period": {
+            "format": "date",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "company_id",
+          "kind",
+          "start_period",
+          "end_period",
+          "events",
+          "role_code"
+        ],
+        "type": "object"
+      },
+      "ppf_ereporting_event": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "status_code": {
+            "enum": [
+              "ppf:ereporting",
+              "ppf:ereporting-ack",
+              "ppf:ereporting-ack-error",
+              "ppf:ereporting-rejected",
+              "ppf:ereporting-response-ok"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "status_code",
+          "created_at"
+        ],
+        "type": "object"
+      },
       "preceding_invoice_reference": {
         "properties": {
           "issue_date": {
@@ -2085,9 +2388,6 @@
             "$ref": "#/components/schemas/unit_code"
           }
         },
-        "required": [
-          "item_net_price"
-        ],
         "type": "object"
       },
       "process_control": {
@@ -2477,6 +2777,16 @@
       "vat_exemption_reason_code": {
         "description": "BT-121\n\nVAT exemption reason code\nA coded statement of the reason for why the amount is exempted from VAT.\nCode list issued and maintained by the Connecting Europe Facility.",
         "type": "string"
+      },
+      "vat_regime": {
+        "description": "The company's VAT regime, one of: `monthly` (réel normal mensuel), `quarterly` (réel normal trimestriel), `simplified` (simplifié d'imposition TVA), `vat_exemption` (franchise en base de TVA).",
+        "enum": [
+          "monthly",
+          "quarterly",
+          "simplified",
+          "vat_exemption"
+        ],
+        "type": "string"
       }
     },
     "securitySchemes": {
@@ -2501,12 +2811,343 @@
     "contact": {
       "name": "SUPER PDP"
     },
-    "description": "The SUPER PDP API allows developers to programatically send and receive invoices in compliance with France’s electronic invoicing reform, and more generally within the Peppol network.\n\nObject ids are stored internally in our PostgreSQL database as positive bigints, which means that their values is in the range [1, 9223372036854775807]\n\nRelease Notes\n\n- 1.21.1.beta (2026-04-07): add missing `failed` status in `user_identity_verification_status` \n\n- 1.21.0.beta (2026-05-04): add query parameter to /oauth2/authorize endpoint to prefill user informations\n\n- 1.20.0.beta (2026-04-24):\n  - add oauth2_sessions route\n  - add invoice_events for flow 1 and CDAR\n\n- 1.19.0.beta (2026-04-21): add disable_pre_check on POST /invoices\n\n- 1.18.0.beta (2026-04-14): add effective_date to directory entries\n\n- 1.17.0.beta (2026-04-14): add number as parameter to french_directory/companies\n\n- 1.16.0.beta (2026-04-03): add mandates for selfbilling invoices\n\n- 1.15.0.beta (2026-03-27):\n  - add date parameter to invoice_event_amount\n  - correct error message in missing reason to create event\n\n - 1.14.0.beta (2026-03-27): add French Directory routes allowing to query french companies electronic addresses\n\n- 1.13.0.beta (2026-03-10): add `external_id` to invoices\n\n- 1.12.0.beta (2026-03-09): update en_invoice as specified in XP Z12 012 of february\n  - add package quantity in parent line to support sublines\n  - add VAT exemption reason on document allowances or charges\n\n- 1.11.0.beta (2026-03-05): add location in subreport message\n\n- 1.10.0.beta (2026-02-27): add parameter to en_invoice to support last version\n  - Deprecate invoiced_object_identifier_scheme and invoiced_object_identifier_value fields. Use invoiced_object_identifiers array instead \n\n- 1.9.3.beta (2026-02-23): add documentation on multipart request to convert to Factur-X\n\n- 1.9.2.beta (2026-02-09): add details and attachments to invoice_events responses\n\n- 1.9.1.beta (2026-01-28): document values of invoice statuses\n\n- 1.9.0.beta (2026-01-26):\n  - add creation of invoice events with status: 'fr:204', 'fr:205', 'fr:206', 'fr:207', 'fr:208', 'fr:209', 'fr:210', 'fr:211'\n  - add parameters to the invoice event 'fr:212' to specify the amount received\n\n- 1.8.0.beta (2026-01-20):\n  - list invoice_events pagination to allow synchronization\n  - list and get invoices expand invoice_events for convenient listing of events\n\n- 1.7.1.beta (2026-01-09): document all missing status code\n\n- 1.7.0.beta (2026-01-07): add endpoint to create and delete directory entries\n\n- 1.6.0.beta (2026-01-02): add endpoint to list directory entries\n\n- 1.5.0.beta (2025-12-31): describe post invoice_events with valid statuses\n\n- 1.4.0.beta (2025-12-10):\n\n  - download Peppol BIS test invoice if test companies have non-french addresses\n\n  - convert invoices now accepts factur-x as input\n\n- 1.3.0.beta (2025-12-03):\n  - generate test invoice as json\n  - new route to convert between json, cii and ubl\n\n- 1.2.0.beta (2025-12-01): define en_invoice structure in GET and LIST endpoints\n\n- 1.1.0.beta (2025-11-20): add endpoint to list invoice events",
+    "description": "The SUPER PDP API allows developers to programatically send and receive invoices in compliance with France’s electronic invoicing reform, and more generally within the Peppol network.\n\nObject ids are stored internally in our PostgreSQL database as positive bigints, which means that their values is in the range [1, 9223372036854775807]\n\nRelease Notes\n\n- 1.25.0.beta (2026-06-18): add suport for INFORMATION sublines. These fields are now optional to support those sublines \n  - the line `vat_information`\n  - `item_net_price`\n  - `invoiced_item_vat_category_code`\n\n- 1.24.0.beta (2026-06-04): add B2C ereporting\n\n- 1.23.0.beta (2026-05-27): accounting companies have possiblity to enroll their user without user presence\n\n- 1.22.0.beta (2026-05-21): support « readable view » factur-x in `/convert`, `/generate_test_invoice` and `/invoices/{id}?format=factur-x` and \n\n- 1.21.1.beta (2026-04-07): add missing `failed` status in `user_identity_verification_status` \n\n- 1.21.0.beta (2026-05-04): add query parameter to /oauth2/authorize endpoint to prefill user informations\n\n- 1.20.0.beta (2026-04-24):\n  - add oauth2_sessions route\n  - add invoice_events for flow 1 and CDAR\n\n- 1.19.0.beta (2026-04-21): add disable_pre_check on POST /invoices\n\n- 1.18.0.beta (2026-04-14): add effective_date to directory entries\n\n- 1.17.0.beta (2026-04-14): add number as parameter to french_directory/companies\n\n- 1.16.0.beta (2026-04-03): add mandates for selfbilling invoices\n\n- 1.15.0.beta (2026-03-27):\n  - add date parameter to invoice_event_amount\n  - correct error message in missing reason to create event\n\n - 1.14.0.beta (2026-03-27): add French Directory routes allowing to query french companies electronic addresses\n\n- 1.13.0.beta (2026-03-10): add `external_id` to invoices\n\n- 1.12.0.beta (2026-03-09): update en_invoice as specified in XP Z12 012 of february\n  - add package quantity in parent line to support sublines\n  - add VAT exemption reason on document allowances or charges\n\n- 1.11.0.beta (2026-03-05): add location in subreport message\n\n- 1.10.0.beta (2026-02-27): add parameter to en_invoice to support last version\n  - Deprecate invoiced_object_identifier_scheme and invoiced_object_identifier_value fields. Use invoiced_object_identifiers array instead \n\n- 1.9.3.beta (2026-02-23): add documentation on multipart request to convert to Factur-X\n\n- 1.9.2.beta (2026-02-09): add details and attachments to invoice_events responses\n\n- 1.9.1.beta (2026-01-28): document values of invoice statuses\n\n- 1.9.0.beta (2026-01-26):\n  - add creation of invoice events with status: 'fr:204', 'fr:205', 'fr:206', 'fr:207', 'fr:208', 'fr:209', 'fr:210', 'fr:211'\n  - add parameters to the invoice event 'fr:212' to specify the amount received\n\n- 1.8.0.beta (2026-01-20):\n  - list invoice_events pagination to allow synchronization\n  - list and get invoices expand invoice_events for convenient listing of events\n\n- 1.7.1.beta (2026-01-09): document all missing status code\n\n- 1.7.0.beta (2026-01-07): add endpoint to create and delete directory entries\n\n- 1.6.0.beta (2026-01-02): add endpoint to list directory entries\n\n- 1.5.0.beta (2025-12-31): describe post invoice_events with valid statuses\n\n- 1.4.0.beta (2025-12-10):\n\n  - download Peppol BIS test invoice if test companies have non-french addresses\n\n  - convert invoices now accepts factur-x as input\n\n- 1.3.0.beta (2025-12-03):\n  - generate test invoice as json\n  - new route to convert between json, cii and ubl\n\n- 1.2.0.beta (2025-12-01): define en_invoice structure in GET and LIST endpoints\n\n- 1.1.0.beta (2025-11-20): add endpoint to list invoice events",
     "title": "SUPER PDP API",
-    "version": "1.21.1.beta"
+    "version": "1.24.0.beta"
   },
   "openapi": "3.0.4",
   "paths": {
+    "/v1.beta/b2c_payments": {
+      "get": {
+        "description": "List the B2C payments that have been created with the \"Create B2C payments\" route.",
+        "operationId": "ListB2CPayments",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "ending_before_id",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "starting_after_id",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "order",
+            "schema": {
+              "default": "asc",
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "default": 100,
+              "maximum": 1000,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/b2c_transaction_list"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "$ref": "#/components/responses/bad_request"
+          },
+          "500": {
+            "$ref": "#/components/responses/internal_server_error"
+          }
+        },
+        "summary": "List B2C payments",
+        "tags": [
+          "ereporting"
+        ]
+      },
+      "post": {
+        "description": "Create B2C payments. Payments are stored immediately, and then they are automatically aggregated and sent to the French tax administration (PPF) according to a schedule that depends on the VAT regime configured at the company level.",
+        "operationId": "CreatePayment",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "items": {
+                      "$ref": "#/components/schemas/b2c_payment"
+                    },
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "items": {
+                        "$ref": "#/components/schemas/b2c_payment"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "$ref": "#/components/responses/bad_request"
+          },
+          "500": {
+            "$ref": "#/components/responses/internal_server_error"
+          }
+        },
+        "summary": "Create B2C payments",
+        "tags": [
+          "ereporting"
+        ]
+      }
+    },
+    "/v1.beta/b2c_transactions": {
+      "get": {
+        "description": "List the transactions that have been created with the \"Create B2C transactions\" route.",
+        "operationId": "ListB2CTransactions",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "ending_before_id",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "starting_after_id",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "order",
+            "schema": {
+              "default": "asc",
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "default": 100,
+              "maximum": 1000,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/b2c_transaction_list"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "$ref": "#/components/responses/bad_request"
+          },
+          "500": {
+            "$ref": "#/components/responses/internal_server_error"
+          }
+        },
+        "summary": "List B2C transactions",
+        "tags": [
+          "ereporting"
+        ]
+      },
+      "post": {
+        "description": "Create B2C transactions. Transactions are stored immediately, and then they are automatically aggregated and sent to the French tax administration (PPF) according to a schedule that depends on the VAT regime configured at the company level.",
+        "operationId": "CreateTransactions",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "data": {
+                    "items": {
+                      "$ref": "#/components/schemas/b2c_transaction"
+                    },
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "items": {
+                        "$ref": "#/components/schemas/b2c_transaction"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "$ref": "#/components/responses/bad_request"
+          },
+          "500": {
+            "$ref": "#/components/responses/internal_server_error"
+          }
+        },
+        "summary": "Create B2C transactions",
+        "tags": [
+          "ereporting"
+        ]
+      }
+    },
+    "/v1.beta/companies": {
+      "patch": {
+        "description": "Update the VAT regime of a company. The e-reporting declaration schedule to the French tax administration (PPF) depends on this VAT regime value.",
+        "operationId": "CompanyUpdateVatRegime",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/company_patch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/company_patch"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "$ref": "#/components/responses/bad_request"
+          },
+          "500": {
+            "$ref": "#/components/responses/internal_server_error"
+          }
+        },
+        "summary": "Update a company VAT regime",
+        "tags": [
+          "companies",
+          "ereporting"
+        ]
+      },
+      "post": {
+        "description": "**This route is for accountants only. Access is denied by default. If you have a multi-tenant model, you must use the [OAuth2.1 Authorization code flow](/documentation/4#authorization-code) to gain access to your client’s accounts.**\n\nTo enroll a new company, call this route with a multipart payload containing a JSON and the formal agreement in PDF format.\n\nThe returned company id can be used in the header `X-Impersonate-Company: company_id` when making API calls. It is recommanded to make a `/companies/me` API call to check that the `X-Impersonate-Company` header works properly.",
+        "operationId": "CompanyEnroll",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "encoding": {
+                "enroll": {
+                  "contentType": "application/json"
+                },
+                "formal_agreement": {
+                  "contentType": "application/pdf"
+                }
+              },
+              "schema": {
+                "properties": {
+                  "enroll": {
+                    "$ref": "#/components/schemas/company_enroll"
+                  },
+                  "formal_agreement": {
+                    "format": "binary",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/company"
+                }
+              }
+            },
+            "description": "Success"
+          }
+        },
+        "summary": "Enroll a company",
+        "tags": [
+          "companies"
+        ]
+      }
+    },
     "/v1.beta/companies/me": {
       "get": {
         "description": "Show the company associated with the current access token.",
@@ -2659,6 +3300,214 @@
         "summary": "Get a directory entry",
         "tags": [
           "directory_entries"
+        ]
+      }
+    },
+    "/v1.beta/ereportings": {
+      "get": {
+        "description": "List e-reportings sent to the French tax administration (PPF). E-reportings are constructed by aggregating payment and transaction data and then sent to the French tax administration (PPF) according to a specific schedule.",
+        "operationId": "ListEreportings",
+        "parameters": [
+          {
+            "description": "E-reportings sent to the French tax administration (PPF) are split based on whether the company is acting as the seller or the buyer. The role code is one of: `SE` for the seller side of the data, `BY` for the buyer side of the data.",
+            "in": "query",
+            "name": "role_code",
+            "schema": {
+              "enum": [
+                "SE",
+                "BY"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "order",
+            "schema": {
+              "default": "asc",
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "starting_after_id",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "ending_before_id",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "default": 100,
+              "maximum": 1000,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "items": {
+                        "$ref": "#/components/schemas/ppf_ereporting"
+                      },
+                      "type": "array"
+                    },
+                    "has_more": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "has_more"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "$ref": "#/components/responses/bad_request"
+          },
+          "500": {
+            "$ref": "#/components/responses/internal_server_error"
+          }
+        },
+        "summary": "List e-reportings",
+        "tags": [
+          "ereporting"
+        ]
+      }
+    },
+    "/v1.beta/ereportings/preview": {
+      "get": {
+        "description": "Get a preview of the e-reporting data that will be sent to the French tax administration (PPF). This only applies for data that has not yet been sent.",
+        "operationId": "EreportingPreview",
+        "parameters": [
+          {
+            "description": "Any date that falls within the wanted preview period. For example, if the company VAT regime is `monthly` and kind is `transaction`, then a value of `2026-01-13` will correspond to the preview for the period between January 11 to 20. In the case the preview period is still ongoing, then the partial, currently known, data is returned.",
+            "in": "query",
+            "name": "date",
+            "required": true,
+            "schema": {
+              "format": "date",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The e-reporting kind, one of: `transaction` for transactions data (10.1 and 10.3 flows), or `payment` for payments data (10.2 and 10.4 flows)",
+            "in": "query",
+            "name": "kind",
+            "required": true,
+            "schema": {
+              "enum": [
+                "transaction",
+                "payment"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "E-reportings sent to the French tax administration (PPF) are split based on whether the company is acting as the seller or the buyer. The role code is one of: `SE` for the seller side of the data, `BY` for the buyer side of the data.",
+            "in": "query",
+            "name": "role_code",
+            "required": true,
+            "schema": {
+              "enum": [
+                "SE",
+                "BY"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/xml": {}
+            },
+            "description": "Success"
+          },
+          "204": {
+            "description": "no content has been found with the provided parameters"
+          },
+          "400": {
+            "$ref": "#/components/responses/bad_request"
+          },
+          "500": {
+            "$ref": "#/components/responses/internal_server_error"
+          }
+        },
+        "summary": "Preview e-reporting",
+        "tags": [
+          "ereporting"
+        ]
+      }
+    },
+    "/v1.beta/ereportings/{id}": {
+      "get": {
+        "description": "Get an e-reporting sent to the French tax administration (PPF). E-reportings are constructed by aggregating payment and transaction data and then sent to the French tax administration (PPF) according to a specific schedule.",
+        "operationId": "GetEreporting",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "format",
+            "schema": {
+              "default": "json",
+              "enum": [
+                "original",
+                "json"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ppf_ereporting"
+                }
+              },
+              "application/xml": {}
+            },
+            "description": "Success"
+          },
+          "400": {
+            "$ref": "#/components/responses/bad_request"
+          },
+          "500": {
+            "$ref": "#/components/responses/internal_server_error"
+          }
+        },
+        "summary": "Get an e-reporting",
+        "tags": [
+          "ereporting"
         ]
       }
     },
@@ -2990,7 +3839,7 @@
         ]
       },
       "post": {
-        "description": "Create an invoice and place it in a queue to be sent asynchronously.\n\nThe content of the request body can be an XML file (format CII or UBL), a PDF (format Factur-X), or a multipart form that contain a single file (which is itself an XML or a PDF) \n\nSucceeds if the XML structure of the payload is valid, but this does not mean that the invoice will pass the additionnal validation steps, or that the transmission will succeed.\n\nThe `id` attribute in the responds allows to fetch the invoice events later.",
+        "description": "Create an invoice and place it in a queue to be sent asynchronously.\n\nThe content of the request body can be an XML file (format CII or UBL), a PDF (format Factur-X), or a multipart form that contain a single file (which is itself an XML or a PDF) \n\nSucceeds if the XML structure of the payload is valid, but this does not mean that the invoice will pass the additionnal validation steps, or that the transmission will succeed.\n\nThe `id` attribute in the response allows to fetch the invoice events later.",
         "operationId": "InvoicesCreate",
         "parameters": [
           {
@@ -3201,6 +4050,31 @@
             "schema": {
               "type": "integer"
             }
+          },
+          {
+            "description": "The format in which you want the data to be returned. If the format is different from the original invoice format, then the data will be automatically converted.\n\n- `en16931`: default, JSON representation of the invoice\n- `original`: unmodified original invoice. Can be one of `cii`, `ubl` or `factur-x` \n- `cii`: CII xml format\n- `ubl`: UBL xml format\n- `factur-x`: Factur-X pdf format. Use this format to have a human readable version of the invoice.",
+            "in": "query",
+            "name": "format",
+            "schema": {
+              "default": "en16931",
+              "enum": [
+                "en16931",
+                "original",
+                "cii",
+                "ubl",
+                "factur-x"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "When asking for the factur-x format, if the original invoice contains an embedded PDF then it is used as the human readable version. To ignore the embedded PDFs and always use the SUPER PDP invoice renderer, set `force_superpdp_pdf_renderer=true`.",
+            "in": "query",
+            "name": "force_superpdp_pdf_renderer",
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            }
           }
         ],
         "responses": {
@@ -3210,7 +4084,9 @@
                 "schema": {
                   "$ref": "#/components/schemas/invoice"
                 }
-              }
+              },
+              "application/pdf": {},
+              "application/xml": {}
             },
             "description": "Success"
           },
@@ -3229,7 +4105,8 @@
     },
     "/v1.beta/invoices/{id}/download": {
       "get": {
-        "description": "Download the raw invoice file referenced by the id. The data can be either XML or PDF.",
+        "deprecated": true,
+        "description": "Download the raw invoice file referenced by the id. The data can be either XML or PDF.\n\nThis route is deprecated and will be deleted in v1.\n\nUse `/invoices/{id}?format=orginal` instead",
         "operationId": "InvoicesDownload",
         "parameters": [
           {
@@ -3378,6 +4255,11 @@
       "description": "The French directory (L’annuaire de la facturation électronique) lists all entities (businesses, public establishments, associations, etc.) that must comply with the French e-invoicing reform. We use the generic term \"companies\" for these entities in our API.",
       "name": "french_directory",
       "x-displayName": "French Directory"
+    },
+    {
+      "description": "The e-invoicing reform in France makes the transmission of transaction and payment data mandatory. This obligation is known as e-reporting. The following routes allow this data to be transmitted to the French tax administration.",
+      "name": "ereporting",
+      "x-displayName": "E-Reporting"
     }
   ]
 }

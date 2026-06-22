@@ -1,7 +1,7 @@
 openapi: 3.0.1
 info:
   title: HUBTIMIZE PA (Customer management) OpenAPI definition
-  version: v1.2.5
+  version: v1.2.6.2
   description: >
 
     _Par Esalink (Plateforme Agréée)_
@@ -19,13 +19,22 @@ info:
      
      > For __PROD__ environment
      >>- Key = `hubtimize-api-key`
-     >>- Value = `019ac4c7-4142-7156-990b-874404480a96`
+     >>- Value = _to be requested before go live_
     
     ---
     
     ## Changelog
     
-    >- `v1.2.5` April 2026 
+    >- `v1.2.6.2` June 2026 
+     >>>- __Add__ examples in POST /v1/customerPA
+    >- `v1.2.6` June 2026 
+     >>>- __Change__ PUT `/v1/customerPA/{customerID}` => email to receive documents to sign can be changed too ("customerEmail": "xxx")
+     >>>- __Add__ POST `/v1/customerPA/{customerId}/resend-kyc-onboarding-email` => Resend onboarding email 
+     >>>- __Add__ new identifiers status 
+     >>>>- __UPDATE__ : Identifier date change requested
+     >>>>- __WAITINGACTIVATE__ : identifier request at the customer creation, waiting the customer activation to be created
+     >>>>- __ERROR__ : Error happening during the automatic setup, require human attention, managed by Esalink
+     >- `v1.2.5` April 2026 
      >>>- __Add__ `/v1/oauth2/token` => standard oauth2 token api
      >>>- __Change__ management of customer users
      >>>>- `POST /v1/customerPA/{customerID}/user`
@@ -117,9 +126,12 @@ info:
      >- NEW : New identifier request _(can be updated or deleted)_
      >- DELETE : Deleted identifiers
      >- IN_PROGRESS : Identifier setup currently in progress by Esalink _(identifier can't be updated or deleted)_
+     >- UPDATE : Identifier date change requested
+     >- WAITINGACTIVATE : identifier request at the customer creation, waiting the customer activation to be created
      >- WAITINGPEPPOL : Peppol realease ask to previous access point, waiting return _(identifier can't be updated or deleted)_
-     >- WAITINGOPTIN : Docusign PDF (OPTIN) sent, waiting customer signature _(identifier can't be updated or deleted)_
+     >- WAITINGOPTIN : Docusign PDF (OPTIN) sent for new identifier, waiting customer signature _(identifier can't be updated or deleted)_
      >- REFUSED : Identifier request refused by Esalink (reason in comment)
+     >- ERROR : Error happening during the automatic setup, require human attention, managed by Esalink
      >- _DONE_ This status is not returned but a calculated status is sent instead, based on activation date
      >>- Active : Identifier active on requested scope (Peppol only for Sending, AIFE Directory + Peppol for France receiving, etc.)
      >>- Inactive : Identifier reach it's end date
@@ -334,6 +346,94 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/CustomerResponseDTO"
+        "400":
+          description: Bad request. The request is invalid or cannot be completed.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        "401":
+          description: Unauthorized. The request requires user authentication.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        "403":
+          description: Forbidden. The server understood the request but denied access.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        "404":
+          description: Not found. No resource exists at the given URI.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        "408":
+          description: Request timeout exceeded.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        "422":
+          description: Data validation error.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        "429":
+          description: Too many requests in a given time frame.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        "500":
+          description: Internal Server Error.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        "501":
+          description: Not implemented.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        "503":
+          description: Service unavailable.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        default:
+          description: An error has occurred - see the status code and JSON response for
+            more information.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+  /v1/customerPA/{customerId}/resend-kyc-onboarding-email:
+    post:
+      tags:
+        - Customer PA
+      summary: Resend KYC onboarding email
+      description: Resends the KYC onboarding email for the specified EDI entity.
+      operationId: resendKycOnboardingEmail
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: KYC onboarding email successfully resent.
+          content:
+            "*/*":
+              schema:
+                type: object
         "400":
           description: Bad request. The request is invalid or cannot be completed.
           content:
@@ -1614,6 +1714,10 @@ components:
           maxLength: 255
           minLength: 0
           type: string
+        customerEmail:
+          maxLength: 255
+          minLength: 0
+          type: string
         logo:
           type: string
           description: Customer logo encoded in Base64 with metadata
@@ -1691,8 +1795,10 @@ components:
       properties:
         electronicAddress:
           type: string
+          example: "123456789"
         qualifier:
           type: string
+          example: "0225"
     EDIUserOdUpdateDTO:
       required:
         - isEnabled
@@ -1732,10 +1838,13 @@ components:
           enum:
             - NEW
             - DELETE
+            - UPDATE
             - IN_PROGRESS
+            - WAITINGACTIVATE
             - WAITINGPEPPOL
             - WAITINGOPTIN
             - REFUSED
+            - ERROR
             - DONE
             - Active
             - Inactive
@@ -1812,8 +1921,10 @@ components:
           maxLength: 255
           minLength: 0
           type: string
+          example: "Société Machin SAS"
         customerLegalId:
           type: string
+          example: "123456789"
         electronicAddresses:
           type: array
           items:
@@ -1822,12 +1933,15 @@ components:
           maxLength: 255
           minLength: 0
           type: string
+          example: "FR99123456789"
         customerEmail:
           type: string
+          example: "representantlegal@societe-machin.fr"
         addressLine1:
           maxLength: 255
           minLength: 0
           type: string
+          example: "3 rue des fleurs en pot"
         addressLine2:
           maxLength: 255
           minLength: 0
@@ -1840,16 +1954,20 @@ components:
           maxLength: 255
           minLength: 0
           type: string
+          example: "16000"
         city:
           maxLength: 255
           minLength: 0
           type: string
+          example: "Angouleme"
         country:
           pattern: ^[A-Z]{2}$
           type: string
+          default: FR
         language:
           pattern: ^[a-z]{2}_[A-Z]{2}$
           type: string
+          default: fr_FR
         logo:
           type: string
           description: Customer logo encoded in Base64 with metadata
@@ -1863,14 +1981,14 @@ components:
         receptionPa:
           type: string
           description: Reception PA flag (Y/N)
-          default: N
+          default: Y
           enum:
             - Y
             - N
         apiUser:
           type: string
           description: Api user flag (Y/N)
-          default: N
+          default: Y
           enum:
             - Y
             - N
@@ -1879,7 +1997,7 @@ components:
           type: string
           description: Start date in DD-MM-YYYY format (minimum 10 days in the future).
             Required when electronicAddresses is provided
-          example: 06-04-2026
+          example: 01-09-2026
       description: Payload containing information to create a new customer.
     ODUserCreateDTO:
       required:
