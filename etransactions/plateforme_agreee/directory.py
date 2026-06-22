@@ -2,6 +2,7 @@ import frappe
 from frappe import _
 
 from etransactions.plateforme_agreee.session import get_client
+from etransactions.plateforme_agreee.routing import address_for_siret, parse_directory_identifier
 from etransactions.etransactions.doctype.einvoicing_log.einvoicing_log import eInvoicingLog
 
 
@@ -96,7 +97,6 @@ def _sync_customer_directory(customer_name: str, client, result: dict):
 		"directory_name": directory_data.name or "",
 		"directory_closed": 1 if directory_data.closed else 0,
 		"directory_update_date": frappe.utils.nowdate(),
-		"directory_siren": siren,
 	})
 
 	if directory_data.entity_type == "no" or directory_data.closed:
@@ -115,23 +115,36 @@ def _sync_customer_directory(customer_name: str, client, result: dict):
 	existing = frappe.get_all(
 		"eInvoicing Directory Line",
 		filters={"customer": customer_name},
-		fields=["name", "identifier", "line_status", "routing_code_name", "commitment_required"],
+		fields=["name", "identifier", "line_status", "routing_code_name", "commitment_required",
+			"siren", "siret", "routing_code", "line_type", "address"],
 	)
 	existing_by_id = {row.identifier: row for row in existing}
 	seen_identifiers: set = set()
 
+	tracked_fields = (
+		"line_status", "routing_code_name", "commitment_required",
+		"siren", "siret", "routing_code", "line_type", "address",
+	)
+
 	for identifier, line_data in directory_data.lines.items():
 		seen_identifiers.add(identifier)
+		parsed = parse_directory_identifier(identifier)
 		line_vals = {
 			"line_status": line_data.line_status,
 			"routing_code_name": line_data.routing_code_name,
 			"commitment_required": line_data.commitment_required,
+			"siren": parsed["siren"],
+			"siret": parsed["siret"],
+			"routing_code": parsed["routing_code"],
+			"line_type": parsed["line_type"],
+			# Bind the line to the matching establishment (Address) when we can.
+			"address": address_for_siret("Customer", customer_name, parsed["siret"]),
 		}
 		if identifier in existing_by_id:
 			existing_row = existing_by_id[identifier]
 			update = {
 				field: line_vals[field]
-				for field in ("line_status", "routing_code_name", "commitment_required")
+				for field in tracked_fields
 				if line_vals.get(field) != existing_row.get(field)
 			}
 			if update:

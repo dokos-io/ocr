@@ -93,19 +93,12 @@ customer_fields = [
 		"read_only": 1,
 	},
 	{
-		"fieldname": "directory_siren",
-		"label": _("SIREN (last query)"),
-		"fieldtype": "Data",
-		"insert_after": "directory_update_date",
-		"read_only": 1,
-	},
-	{
 		"fieldname": "default_directory_line",
 		"label": _("Default Directory Line"),
 		"fieldtype": "Link",
 		"options": "eInvoicing Directory Line",
-		"insert_after": "directory_siren",
-		"description": _("Default routing line used when creating invoices for this customer"),
+		"insert_after": "directory_update_date",
+		"description": _("Default routing line used when no establishment-specific line matches the invoice address."),
 	},
 	{
 		"fieldname": "accredited_platform_override",
@@ -118,6 +111,8 @@ customer_fields = [
 ]
 
 company_fields = [
+		# NB: Company.siren_number is a standard ERPNext field (company.json),
+		# so it is not (re)declared here — only read by the CDAR/generator code.
 		{
 			"fieldname": "etransactions_tab",
 			"fieldtype": "Tab Break",
@@ -125,15 +120,9 @@ company_fields = [
 			"insert_after": "connections_tab"
 		},
 		{
-			"fieldname": "etransactions_seller_reference",
-			"label": _("Seller Reference"),
-			"insert_after": "etransactions_tab",
-			"fieldtype": "Data",
-		},
-		{
 			"fieldname": "etransactions_electronic_address_scheme",
 			"label": _("Electronic Address Scheme"),
-			"insert_after": "etransactions_seller_reference",
+			"insert_after": "etransactions_tab",
 			"fieldtype": "Link",
 			"options": "Common Code",
 		},
@@ -157,8 +146,37 @@ customer_group_fields = [
 	},
 ]
 
+# An Address represents a single establishment. The SIRET ties it to a routing
+# line in the accredited-platform directory; the buyer reference (BT-10 service
+# code / "code service exécutant") is establishment-specific for B2G.
+address_fields = [
+	{
+		"fieldname": "etransactions_section",
+		"label": _("eTransactions"),
+		"fieldtype": "Section Break",
+		"insert_after": "fax",
+		"collapsible": 1,
+	},
+	{
+		"fieldname": "siret",
+		"label": _("SIRET"),
+		"fieldtype": "Data",
+		"insert_after": "etransactions_section",
+		"length": 14,
+		"description": _("Establishment identifier (SIRET) used to bind this address to an e-invoicing routing line."),
+	},
+	{
+		"fieldname": "etransactions_buyer_reference",
+		"label": _("Buyer Reference"),
+		"fieldtype": "Data",
+		"insert_after": "siret",
+		"description": _("Service code (code service exécutant, BT-10) for this establishment. Overrides the customer-level default."),
+	},
+]
+
 MASTER_DATA_FIELDS = {
 	"Customer": customer_fields,
 	"Company": company_fields,
-	"Customer Group": customer_group_fields
+	"Customer Group": customer_group_fields,
+	"Address": address_fields,
 }

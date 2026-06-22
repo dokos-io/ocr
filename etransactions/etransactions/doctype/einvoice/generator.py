@@ -169,7 +169,24 @@ class EInvoiceMapper:
 			self.einvoice.seller_electronic_address_scheme = "EM"
 			self.einvoice.seller_electronic_address = self.company.email
 
-		if self.customer.etransactions_electronic_address_scheme and self.customer.etransactions_electronic_address:
+		# Buyer electronic address (BT-49). The accredited-platform directory line
+		# for this establishment is authoritative; the manual fields and contact
+		# email are fallbacks for parties not present in the directory.
+		from etransactions.plateforme_agreee.routing import resolve_routing, identifier_to_electronic_address
+
+		line_name = resolve_routing(
+			"Customer", self.sales_invoice.customer, self.sales_invoice.get("customer_address")
+		)
+		buyer_identifier = (
+			frappe.db.get_value("eInvoicing Directory Line", line_name, "identifier")
+			if line_name
+			else None
+		)
+		if buyer_identifier:
+			scheme, value = identifier_to_electronic_address(buyer_identifier)
+			self.einvoice.buyer_electronic_address_scheme = scheme
+			self.einvoice.buyer_electronic_address = value
+		elif self.customer.etransactions_electronic_address_scheme and self.customer.etransactions_electronic_address:
 			self.einvoice.buyer_electronic_address_scheme = frappe.db.get_value(
 				"Common Code", self.customer.etransactions_electronic_address_scheme, "common_code"
 			)

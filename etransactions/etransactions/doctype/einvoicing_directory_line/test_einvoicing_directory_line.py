@@ -69,7 +69,13 @@ class TestDirectorySync(IntegrationTestCase):
 
 	def _make_line(self, customer, identifier, line_status="active",
 				   routing_code_name=None, commitment_required=0):
-		"""Insert a pre-existing eInvoicing Directory Line."""
+		"""Insert a pre-existing eInvoicing Directory Line.
+
+		The parsed columns are populated from the identifier exactly as a real
+		sync would, so an "unchanged" line truly matches what the sync produces.
+		"""
+		from etransactions.plateforme_agreee.routing import parse_directory_identifier
+		parsed = parse_directory_identifier(identifier)
 		return frappe.get_doc({
 			"doctype": "eInvoicing Directory Line",
 			"customer": customer,
@@ -77,7 +83,30 @@ class TestDirectorySync(IntegrationTestCase):
 			"line_status": line_status,
 			"routing_code_name": routing_code_name or identifier,
 			"commitment_required": commitment_required,
+			"siren": parsed["siren"],
+			"siret": parsed["siret"],
+			"routing_code": parsed["routing_code"],
+			"line_type": parsed["line_type"],
 		}).insert(ignore_permissions=True).name
+
+	def _make_address(self, customer, siret, suffix):
+		"""Insert an Address (establishment) linked to the customer with a SIRET."""
+		addr = frappe.get_doc({
+			"doctype": "Address",
+			"address_title": f"_Test PA Addr {suffix}",
+			"address_type": "Billing",
+			"address_line1": "1 rue de Test",
+			"city": "Paris",
+			"country": "France",
+			"siret": siret,
+			"links": [{"link_doctype": "Customer", "link_name": customer}],
+		}).insert(ignore_permissions=True)
+		self.addCleanup(self._delete_address, addr.name)
+		return addr.name
+
+	def _delete_address(self, name):
+		if frappe.db.exists("Address", name):
+			frappe.delete_doc("Address", name, ignore_permissions=True, force=True)
 
 	def _client(self, response):
 		mock = MagicMock()
@@ -130,12 +159,11 @@ class TestDirectorySync(IntegrationTestCase):
 
 		values = frappe.db.get_value(
 			"Customer", customer,
-			["directory_entity_type", "directory_name", "directory_siren", "directory_update_date"],
+			["directory_entity_type", "directory_name", "directory_update_date"],
 			as_dict=True,
 		)
 		self.assertEqual(values.directory_entity_type, "private")
 		self.assertEqual(values.directory_name, "Acme SAS")
-		self.assertEqual(values.directory_siren, "123456789")
 		self.assertEqual(values.directory_update_date, frappe.utils.getdate())
 
 	# ------------------------------------------------------------------
@@ -283,6 +311,58 @@ class TestDirectorySync(IntegrationTestCase):
 		)
 		self.assertEqual(status, "disabled")
 		self.assertEqual(result["new_count"], 0)
+
+	# ------------------------------------------------------------------
+	# SIRET → Address binding and routing resolution
+	# ------------------------------------------------------------------
+
+	def test_binds_line_to_address_by_siret(self):
+		"""A synced line whose SIRET matches a customer Address is bound to it,
+		and the parsed siren/siret/line_type columns are populated."""
+		customer = self._make_customer("addr-bind", siren_number="853322915")
+		addr = self._make_address(customer, "85332291500012", "bind")
+		response = DirectoryData(
+			entity_type="private", name="Bind SA", closed=False,
+			lines={"0225:85332291500012": DirectoryLineData(line_status="active", routing_code_name="PPF")},
+		)
+
+		_sync_customer_directory(customer, self._client(response), self._result())
+
+		row = frappe.db.get_value(
+			"eInvoicing Directory Line",
+			{"customer": customer, "identifier": "0225:85332291500012"},
+			["address", "siret", "siren", "line_type"], as_dict=True,
+		)
+		self.assertEqual(row.address, addr)
+		self.assertEqual(row.siret, "85332291500012")
+		self.assertEqual(row.siren, "853322915")
+		self.assertEqual(row.line_type, "siret")
+
+	def test_resolve_routing_prefers_address_match(self):
+		"""With several active establishments, resolve_routing returns the line
+		bound to the invoice's address — and None when the address is ambiguous."""
+		from etransactions.plateforme_agreee.routing import resolve_routing
+
+		customer = self._make_customer("resolve", siren_number="853322915")
+		self._make_address(customer, "85332291500012", "a")
+		addr_b = self._make_address(customer, "85332291500038", "b")
+		response = DirectoryData(
+			entity_type="private", name="Resolve SA", closed=False,
+			lines={
+				"0225:85332291500012": DirectoryLineData(line_status="active", routing_code_name="A"),
+				"0225:85332291500038": DirectoryLineData(line_status="active", routing_code_name="B"),
+			},
+		)
+		_sync_customer_directory(customer, self._client(response), self._result())
+
+		line_b = resolve_routing("Customer", customer, addr_b)
+		self.assertIsNotNone(line_b)
+		self.assertEqual(
+			frappe.db.get_value("eInvoicing Directory Line", line_b, "identifier"),
+			"0225:85332291500038",
+		)
+		# Two active lines and no address → ambiguous → no auto-resolution.
+		self.assertIsNone(resolve_routing("Customer", customer, None))
 
 	def test_disables_all_lines_when_closed(self):
 		"""closed=True → existing lines are disabled even if entity_type is known."""

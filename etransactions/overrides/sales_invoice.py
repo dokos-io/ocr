@@ -17,6 +17,7 @@ def on_validate(doc, method):
 	if not doc.etransaction_profile:
 		return
 
+	_apply_address_buyer_reference(doc)
 	_warn_missing_seller_data(doc)
 
 	# accredited platform validation warnings
@@ -243,6 +244,17 @@ def _apply_b2g(doc):
 		)
 
 
+def _apply_address_buyer_reference(doc):
+	"""Let the establishment (customer address) override the customer-level BT-10
+	service code. The customer-level value (fetched client-side) remains the
+	default when the address carries none."""
+	if not doc.customer_address:
+		return
+	addr_ref = frappe.db.get_value("Address", doc.customer_address, "etransactions_buyer_reference")
+	if addr_ref:
+		doc.etransactions_buyer_reference = addr_ref
+
+
 def _warn_missing_seller_data(doc):
 	"""Warn the user about missing company data that will cause e-invoice validation errors."""
 	if not doc.company:
@@ -345,6 +357,14 @@ def _create_update_einvoice(doc):
 	customer_entity_type = frappe.db.get_value("Customer", doc.customer, "directory_entity_type")
 	if customer_entity_type == "public":
 		einvoice.pa_processing_rule = "B2G"
+
+	# Resolve the routing line for the invoice's establishment unless the user
+	# has picked one manually.
+	if not einvoice.pa_directory_line:
+		from etransactions.plateforme_agreee.routing import resolve_routing
+		line = resolve_routing("Customer", doc.customer, doc.customer_address)
+		if line:
+			einvoice.pa_directory_line = line
 
 	einvoice.flags.ignore_permissions = True
 	einvoice.save()

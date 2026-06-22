@@ -95,6 +95,7 @@ INCOMING (purchases)
 | [`flow.py`](flow.py) | Submission helper + the four polling cron jobs |
 | [`auto_status.py`](auto_status.py) | Document-event handlers that auto-emit lifecycle statuses |
 | [`directory.py`](directory.py) | Annuaire sync (`sync_customer_directory`, `sync_all_customers`) |
+| [`routing.py`](routing.py) | Identifier parsing + routing resolution (`parse_directory_identifier`, `resolve_routing`, `address_for_siret`) |
 | [`lifecycle_status.py`](lifecycle_status.py) | Canonical status registry + per-platform code mapping |
 | [`cdar.py`](cdar.py) | CDAR XML data builder (`build_cdar_data`, `generate_cdar_flow`) over `pyfrctc.generate_cdar` |
 | [`esalink.py`](esalink.py) | `ESALINKClient` — `pyfrctc` adapter implementing the unified interface |
@@ -194,10 +195,27 @@ raises for SuperPDP. Prefer `get_client()` for all new code.
 |---------|---------|---------------|
 | **eInvoice** | core invoice record | `pa_directory_line`, `pa_processing_rule` (`B2B`/`B2G`/`B2C`/`OutOfScope`), `pa_flow_id`, `pa_status` (`created`/`sent`/`pending`/`done`/`error`), `pa_submitted_at`, `pa_updated_at`, `pa_flow_type` (`CustomerInvoice`/`SupplierInvoice`/`*LC`), `pa_syntax` (`Factur-X`/`UBL`/`CII`), `pa_error_details` |
 | **eInvoice Event** | one lifecycle event | `direction` (in/out), `status`, `state`, `pa_event_id`, `pa_flow_id`, `reason_code`/`reason_text`, `action_code`/`action_text`, `comment`, `amount`/`currency`/`payment_date` |
-| **eInvoicing Directory Line** | annuaire routing entry per customer | `identifier`, `line_type`, `line_status`, routing code, `commitment_required` |
+| **eInvoicing Directory Line** | annuaire routing entry per party + establishment | `customer` **xor** `supplier`, `identifier`, `siren`/`siret` (parsed from the identifier), `address` (the matching establishment Address), `line_type`, `line_status`, `routing_code`, `commitment_required` |
 | **eTransactions Accredited Platform** | PA config (per company) | see [Configuration](#configuration) |
 | **eTransactions Settings** | singleton defaults | default platforms + auto-status flags |
 | **eInvoicing Log** | audit trail | `operation_type`, `origin`, `status`, `new_count`/`updated_count`, `logs` |
+
+### Routing resolution
+
+A legal entity (one SIREN) can hold many establishments (SIRET) and service codes —
+i.e. many directory lines. The routing target of an invoice is an *establishment*,
+which maps to an **Address** (custom fields `siret` + `etransactions_buyer_reference`).
+
+During sync, `directory.py` parses each annuaire `identifier` (`parse_directory_identifier`)
+to fill `siren`/`siret`/`routing_code`/`line_type`, then binds the line to the party's
+Address whose SIRET matches (`address_for_siret`).
+
+`routing.resolve_routing(party_type, party, address)` then picks the line for a
+transaction, in order: the active line bound to the invoice's address → the customer's
+`default_directory_line` → the single active line (if unambiguous) → `None` (fall back to
+the manual BT-34/BT-49 electronic address). It is the single source used by
+`cdar.build_cdar_data` (recipient routing, MDT-73), `generator.map_electronic_addresses`
+(buyer BT-49), and `sales_invoice._create_update_einvoice` (auto-fills `pa_directory_line`).
 
 Relevant `eInvoice` methods (in
 [`../etransactions/doctype/einvoice/einvoice.py`](../etransactions/doctype/einvoice/einvoice.py)):

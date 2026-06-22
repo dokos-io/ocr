@@ -6,6 +6,7 @@
  "engine": "InnoDB",
  "field_order": [
   "customer",
+  "supplier",
   "identifier",
   "column_break_dl_1",
   "line_type",
@@ -13,6 +14,7 @@
   "details_section",
   "siren",
   "siret",
+  "address",
   "column_break_dl_2",
   "routing_code",
   "routing_code_name",
@@ -27,7 +29,14 @@
    "in_standard_filter": 1,
    "label": "Customer",
    "options": "Customer",
-   "reqd": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "supplier",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Supplier",
+   "options": "Supplier",
    "search_index": 1
   },
   {
@@ -74,6 +83,13 @@
    "fieldtype": "Data",
    "label": "SIRET",
    "read_only": 1
+  },
+  {
+   "fieldname": "address",
+   "fieldtype": "Link",
+   "label": "Establishment Address",
+   "options": "Address",
+   "description": "Address (establishment) this routing line is bound to, matched on SIRET during directory sync."
   },
   {
    "fieldname": "column_break_dl_2",

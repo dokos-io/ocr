@@ -35,15 +35,21 @@ def _siren(doctype: str, name: str, *, what: str) -> str:
 	return siren
 
 
-def _customer_routing_identifier(customer: str) -> str | None:
-	"""Return the identifier of the customer's active e-invoicing directory line."""
+def _customer_routing_identifier(customer: str, address: str | None = None) -> str | None:
+	"""Return the addressing identifier of the customer's routing line.
+
+	Resolved for the invoice's establishment (``address``) so a customer with
+	several active establishments routes to the right one, rather than an
+	arbitrary active line.
+	"""
 	if not customer:
 		return None
-	return frappe.db.get_value(
-		"eInvoicing Directory Line",
-		{"customer": customer, "line_status": "active"},
-		"identifier",
-	)
+	from etransactions.plateforme_agreee.routing import resolve_routing
+
+	line = resolve_routing("Customer", customer, address)
+	if not line:
+		return None
+	return frappe.db.get_value("eInvoicing Directory Line", line, "identifier")
 
 
 def build_cdar_data(einvoice, status: str, details: list[dict] | None = None,
@@ -79,11 +85,13 @@ def build_cdar_data(einvoice, status: str, details: list[dict] | None = None,
 		# We issued the invoice: we are the seller, the counterparty is the buyer.
 		sender_role, recipient_role = "SE", "BY"
 		issuer_siren = company_siren
+		customer_address = None
 		if einvoice.sales_invoice:
 			customer = frappe.db.get_value("Sales Invoice", einvoice.sales_invoice, "customer")
+			customer_address = frappe.db.get_value("Sales Invoice", einvoice.sales_invoice, "customer_address")
 		partner_siren = _siren("Customer", customer, what=_("the customer")) if customer else ""
 		partner_name = einvoice.buyer_name or ""
-		recipient_routing = _customer_routing_identifier(customer) or einvoice.buyer_electronic_address
+		recipient_routing = _customer_routing_identifier(customer, customer_address) or einvoice.buyer_electronic_address
 		inv_type_code = "381" if (einvoice.sales_invoice and frappe.db.get_value(
 			"Sales Invoice", einvoice.sales_invoice, "is_return")) else "380"
 	else:

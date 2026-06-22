@@ -260,12 +260,24 @@ CUSTOM_FIELDS_TO_DELETE = [
 		"fieldtype": "Link",
 		"options": "Pending Purchase Invoice Item",
 	},
+	# Removed: never read by any code path.
+	{
+		"dt": "Company",
+		"fieldname": "etransactions_seller_reference",
+		"fieldtype": "Data",
+	},
+	# Removed: redundant with siren_number; routing now keyed on SIRET/Address.
+	{
+		"dt": "Customer",
+		"fieldname": "directory_siren",
+		"fieldtype": "Data",
+	},
 ]
 
 
 def add_custom_fields():
 	click.secho("* Updating eTransactions Custom Fields")
-	_delete_ocr_custom_fields()
+	_delete_obsolete_custom_fields()
 
 	custom_fields = get_custom_fields()
 	create_custom_fields(custom_fields, ignore_validate=frappe.flags.in_patch, update=True)
@@ -274,7 +286,7 @@ def add_custom_fields():
 		frappe.clear_cache(doctype=dt)
 
 
-def _delete_ocr_custom_fields():
+def _delete_obsolete_custom_fields():
 	for field in CUSTOM_FIELDS_TO_DELETE:
 		if frappe.db.exists("Custom Field", {"dt": field["dt"], "fieldname": field["fieldname"]}):
 			frappe.delete_doc("Custom Field", f"{field['dt']}-{field['fieldname']}", ignore_missing=True)
