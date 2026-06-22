@@ -232,9 +232,7 @@ scheduler_events = {
 	"daily": [
 		"etransactions.plateforme_agreee.directory.sync_all_customers",
 		"etransactions.etransactions.doctype.einvoicing_log.einvoicing_log.vacuum_old_logs",
-	],
-	"daily": [
-		"etransactions.etransactions_hub.doctype.accounting_request.accounting_request.notify_overdue_requests"
+		"etransactions.etransactions_hub.doctype.accounting_request.accounting_request.notify_overdue_requests",
 	],
 	# "weekly": [
 	# 	"etransactions.tasks.weekly"
