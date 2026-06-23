@@ -173,7 +173,16 @@ etransactions.EinvoiceReadinessWizard = class EinvoiceReadinessWizard {
 	make_field(fieldname, $parent) {
 		const base = this.frm.get_field(fieldname);
 		if (!base) return;
-		const df = Object.assign({}, base.df, { hidden: 0, read_only: base.df.read_only ? 1 : 0 });
+		// The wizard is a guided editor: every field is always shown. Strip the
+		// native layout's display-gating (hidden / depends_on) from the clone so a
+		// field like the electronic address (depends_on the scheme) still renders.
+		const df = Object.assign({}, base.df, {
+			hidden: 0,
+			read_only: base.df.read_only ? 1 : 0,
+			depends_on: "",
+			mandatory_depends_on: "",
+			read_only_depends_on: "",
+		});
 
 		const $cell = $('<div class="et-wiz-field"></div>').appendTo($parent);
 		const control = frappe.ui.form.make_control({
