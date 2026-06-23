@@ -9,9 +9,32 @@ API reference: https://api.superpdp.tech (OpenAPI spec: components/ext/superpdp.
 
 import time
 from dataclasses import asdict, is_dataclass
+from datetime import datetime
 
 import frappe
 from frappe import _
+
+
+def _to_db_datetime(value: str | None) -> str | None:
+    """Normalize a platform ISO-8601 timestamp into a DB-safe datetime string.
+
+    SuperPDP returns UTC timestamps like ``2026-06-23T20:02:28.826685Z``; MySQL's
+    DATETIME columns reject the ``T``/``Z`` form, so convert to a naive datetime in
+    the site's timezone (``YYYY-MM-DD HH:MM:SS.ffffff``).
+    """
+    if not value:
+        return None
+    try:
+        dt = datetime.fromisoformat(value)
+    except (ValueError, TypeError):
+        return value
+    if dt.tzinfo is not None:
+        import pytz
+
+        from frappe.utils import get_system_timezone
+
+        dt = dt.astimezone(pytz.timezone(get_system_timezone())).replace(tzinfo=None)
+    return dt.strftime("%Y-%m-%d %H:%M:%S.%f")
 
 from etransactions.components.superpdp.models import (
     B2CPayment,
@@ -386,7 +409,7 @@ class SuperPDPClient:
         )
         return FlowResult(
             flow_id=str(res["id"]),
-            submitted_at=res.get("created_at"),
+            submitted_at=_to_db_datetime(res.get("created_at")),
             syntax=syntax,
             flow_type="CustomerInvoice",
         )
@@ -396,7 +419,7 @@ class SuperPDPClient:
         invoice = self.get_invoice(flow_id)
         events: list[dict] = invoice.get("events", [])
         status = self._derive_status(events)
-        updated_at = events[-1].get("created_at") if events else None
+        updated_at = _to_db_datetime(events[-1].get("created_at")) if events else None
         error_details = self._collect_error_details(events)
         return StatusResult(status=status, updated_at=updated_at, error_details=error_details)
 
@@ -406,8 +429,8 @@ class SuperPDPClient:
         return [
             IncomingFlow(
                 flow_id=str(inv["id"]),
-                submitted_at=inv.get("created_at"),
-                updated_at=inv.get("created_at"),
+                submitted_at=_to_db_datetime(inv.get("created_at")),
+                updated_at=_to_db_datetime(inv.get("created_at")),
                 flow_type="SupplierInvoice",
                 syntax=None,
             )
