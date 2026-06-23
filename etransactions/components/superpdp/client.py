@@ -14,6 +14,26 @@ from datetime import datetime
 import frappe
 from frappe import _
 
+from etransactions.components.superpdp.models import (
+    B2CPayment,
+    B2CTransaction,
+    DirectoryData,
+    DirectoryLineData,
+    EreportingEvent,
+    EreportingResult,
+    FlowResult,
+    IncomingFlow,
+    LifecycleEvent,
+    LifecycleResult,
+    StatusResult,
+)
+from etransactions.plateforme_agreee import lifecycle_status
+
+try:
+    import requests
+except ImportError:
+    requests = None
+
 
 def _to_db_datetime(value: str | None) -> str | None:
     """Normalize a platform ISO-8601 timestamp into a DB-safe datetime string.
@@ -35,26 +55,6 @@ def _to_db_datetime(value: str | None) -> str | None:
 
         dt = dt.astimezone(pytz.timezone(get_system_timezone())).replace(tzinfo=None)
     return dt.strftime("%Y-%m-%d %H:%M:%S.%f")
-
-from etransactions.components.superpdp.models import (
-    B2CPayment,
-    B2CTransaction,
-    DirectoryData,
-    DirectoryLineData,
-    EreportingEvent,
-    EreportingResult,
-    FlowResult,
-    IncomingFlow,
-    LifecycleEvent,
-    LifecycleResult,
-    StatusResult,
-)
-from etransactions.plateforme_agreee import lifecycle_status
-
-try:
-    import requests
-except ImportError:
-    requests = None
 
 
 def _ereporting_payload(obj) -> dict:
@@ -501,7 +501,7 @@ class SuperPDPClient:
         return LifecycleResult(
             state="sent",
             event_id=str(res.get("id")) if res.get("id") is not None else None,
-            submitted_at=res.get("created_at"),
+            submitted_at=_to_db_datetime(res.get("created_at")),
         )
 
     def list_incoming_lifecycle_flows(self) -> list[IncomingFlow]:
@@ -526,7 +526,7 @@ class SuperPDPClient:
                     status=canonical,
                     status_label=lifecycle_status.label(canonical),
                     direction="in",
-                    datetime=ev.get("created_at"),
+                    datetime=_to_db_datetime(ev.get("created_at")),
                     comment=comment,
                     pa_event_id=str(ev.get("id")) if ev.get("id") is not None else None,
                 )
@@ -603,7 +603,7 @@ class SuperPDPClient:
             events=[
                 EreportingEvent(
                     status_code=ev.get("status_code", ""),
-                    created_at=ev.get("created_at"),
+                    created_at=_to_db_datetime(ev.get("created_at")),
                 )
                 for ev in raw.get("events", [])
             ],
