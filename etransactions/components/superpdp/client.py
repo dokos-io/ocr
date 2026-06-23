@@ -190,6 +190,24 @@ class SuperPDPClient:
                 title=_("Missing Seller Identifier")
             )
 
+        low = msg.lower()
+        if "receiver address does not exist" in low or "peppol directory" in low:
+            frappe.throw(
+                _(
+                    "The recipient's routing address could not be found in the e-invoicing directory "
+                    "(PPF/Peppol), so this invoice can't be delivered. The directory line resolved for "
+                    "this customer may be out of date, or the establishment may not be registered. "
+                    "To fix this: <br>"
+                    "1. Re-sync the directory for this customer (Customer &rarr; e-invoicing &rarr; "
+                    "<b>Sync directory</b>) so the active routing line reflects the current directory.<br>"
+                    "2. Check the billing <b>Address SIRET</b> matches a registered establishment "
+                    "(a SIRET is 14 digits) and that the recipient is live on an accredited platform (PDP).<br>"
+                    "3. Re-save the Sales Invoice to regenerate the e-invoice, then retry."
+                ),
+                frappe.ValidationError,
+                title=_("Recipient not reachable for e-invoicing"),
+            )
+
         frappe.throw(
             _("SuperPDP API error {0}: {1}").format(resp.status_code, msg),
             frappe.ValidationError,

@@ -3,6 +3,7 @@
 
 from unittest.mock import patch
 
+import frappe
 from frappe.tests import UnitTestCase
 
 from etransactions.components.superpdp.client import SuperPDPClient
@@ -112,6 +113,41 @@ class TestSuperPDPEreporting(UnitTestCase):
 		with patch.object(client, "_request", side_effect=pages):
 			events = client.list_invoice_events(invoice_id=99)
 		self.assertEqual([e["id"] for e in events], [1, 2])
+
+
+def _error_response(payload, status_code=400):
+	resp = _FakeResponse(payload)
+	resp.ok = False
+	resp.status_code = status_code
+	resp.text = str(payload)
+	return resp
+
+
+class TestSuperPDPRaiseForStatus(UnitTestCase):
+	"""_raise_for_status maps known platform errors to actionable messages."""
+
+	def test_receiver_not_in_directory_is_actionable(self):
+		resp = _error_response(
+			{"message": "pre-check: receiver address does not exist in peppol directory"}
+		)
+		with self.assertRaises(frappe.ValidationError) as cm:
+			SuperPDPClient._raise_for_status(resp)
+		message = str(cm.exception)
+		# The actionable branch fired, not the raw "SuperPDP API error" fallback.
+		self.assertIn("routing address could not be found", message)
+		self.assertNotIn("SuperPDP API error", message)
+
+	def test_missing_seller_identifier_branch_unaffected(self):
+		resp = _error_response({"message": "Seller.LegalRegistrationIdentifier is required"})
+		with self.assertRaises(frappe.ValidationError) as cm:
+			SuperPDPClient._raise_for_status(resp)
+		self.assertIn("legal registration identifier", str(cm.exception))
+
+	def test_unrelated_error_falls_back_to_generic(self):
+		resp = _error_response({"message": "some other failure"}, status_code=500)
+		with self.assertRaises(frappe.ValidationError) as cm:
+			SuperPDPClient._raise_for_status(resp)
+		self.assertIn("SuperPDP API error 500", str(cm.exception))
 
 
 class TestSuperPDPOwnDirectory(UnitTestCase):
