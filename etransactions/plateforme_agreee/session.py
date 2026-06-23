@@ -12,10 +12,13 @@ from frappe.utils import now_datetime
 #   exposes the e-reporting endpoints today; CDAR platforms (Esalink/AFNOR) do
 #   not, so callers must gate on this flag before queuing or submitting
 #   e-reporting data.
+#   ``directory_registration`` advertises managing the company's own directory
+#   entries (Peppol / PPF). Only SuperPDP exposes these endpoints; CDAR platforms
+#   register the company through their own portal.
 PLATFORM_CAPABILITIES = {
-	"SuperPDP": {"self_provision": False, "ereporting": True},
-	"Esalink": {"self_provision": False, "ereporting": False},
-	"Custom": {"self_provision": False, "ereporting": False},
+	"SuperPDP": {"self_provision": False, "ereporting": True, "directory_registration": True},
+	"Esalink": {"self_provision": False, "ereporting": False, "directory_registration": False},
+	"Custom": {"self_provision": False, "ereporting": False, "directory_registration": False},
 }
 
 

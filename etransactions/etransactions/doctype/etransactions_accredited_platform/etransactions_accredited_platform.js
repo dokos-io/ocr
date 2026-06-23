@@ -27,6 +27,10 @@ frappe.ui.form.on("eTransactions Accredited Platform", {
 				});
 			});
 
+			if (frm.doc.platform_type === "SuperPDP") {
+				frm.add_custom_button(__("Directory registration"), () => open_directory_dialog(frm));
+			}
+
 			if (frm.doc.platform_type === "SuperPDP" && frm.doc.is_sandbox) {
 				frm.add_custom_button(__("Run sandbox test"), () => {
 					frappe.call({
@@ -96,3 +100,112 @@ frappe.ui.form.on("eTransactions Accredited Platform", {
 		frm.get_field("redirect_url_html").$wrapper.html(html);
 	},
 });
+
+// --- Directory registration (own company entries, SuperPDP only) -------------
+
+function open_directory_dialog(frm) {
+	const d = new frappe.ui.Dialog({
+		title: __("Directory registration"),
+		size: "large",
+		fields: [
+			{ fieldtype: "HTML", fieldname: "entries_html" },
+			{ fieldtype: "Section Break", label: __("Add an entry") },
+			{
+				fieldtype: "Select",
+				fieldname: "directory",
+				label: __("Directory"),
+				options: [
+					{ value: "ppf", label: __("FR (PPF)") },
+					{ value: "peppol", label: __("Peppol") },
+				],
+				default: "ppf",
+				reqd: 1,
+			},
+			{ fieldtype: "Column Break" },
+			{
+				fieldtype: "Data",
+				fieldname: "identifier",
+				label: __("Identifier"),
+				description: __("Peppol address, e.g. 0225:123456789"),
+				reqd: 1,
+			},
+		],
+		primary_action_label: __("Add entry"),
+		primary_action(values) {
+			frappe.call({
+				method: "etransactions.plateforme_agreee.own_directory.register_directory_entry",
+				args: { platform_name: frm.doc.name, identifier: values.identifier, directory: values.directory },
+				freeze: true,
+				freeze_message: __("Registering…"),
+				callback() {
+					frappe.show_alert({ message: __("Entry registered."), indicator: "green" });
+					d.set_value("identifier", "");
+					load_directory_entries(frm, d);
+				},
+			});
+		},
+	});
+
+	// Suggest the company's SIREN as a Peppol address (0225 = French SIRENE scheme).
+	if (frm.doc.company) {
+		frappe.db.get_value("Company", frm.doc.company, "siren_number").then((r) => {
+			const siren = r.message && r.message.siren_number;
+			if (siren && !d.get_value("identifier")) d.set_value("identifier", `0225:${siren}`);
+		});
+	}
+
+	d.show();
+	load_directory_entries(frm, d);
+}
+
+function load_directory_entries(frm, d) {
+	const $wrap = d.fields_dict.entries_html.$wrapper;
+	$wrap.html(`<div class="text-muted">${frappe.utils.icon("loading-indicator")} ${__("Loading entries…")}</div>`);
+	frappe.call({
+		method: "etransactions.plateforme_agreee.own_directory.list_directory_entries",
+		args: { platform_name: frm.doc.name },
+		callback(r) {
+			render_directory_entries($wrap, r.message || [], frm, d);
+		},
+	});
+}
+
+function render_directory_entries($wrap, entries, frm, d) {
+	if (!entries.length) {
+		$wrap.html(`<div class="text-muted">${__("No directory entries yet.")}</div>`);
+		return;
+	}
+	const rows = entries
+		.map((e) => {
+			const dir = e.directory === "peppol" ? __("Peppol") : __("FR (PPF)");
+			return `<tr>
+				<td>${frappe.utils.escape_html(e.identifier || "")}</td>
+				<td>${dir}</td>
+				<td>${frappe.utils.escape_html(e.status || "")}</td>
+				<td class="text-right"><button class="btn btn-xs btn-danger et-dir-remove" data-id="${e.id}">${__("Remove")}</button></td>
+			</tr>`;
+		})
+		.join("");
+	$wrap.html(`
+		<table class="table table-bordered" style="margin-bottom:0">
+			<thead><tr>
+				<th>${__("Identifier")}</th><th>${__("Directory")}</th><th>${__("Status")}</th><th></th>
+			</tr></thead>
+			<tbody>${rows}</tbody>
+		</table>`);
+	$wrap.find(".et-dir-remove").on("click", function () {
+		const id = $(this).attr("data-id");
+		frappe.confirm(__("Remove this directory entry?"), () => {
+			frappe.call({
+				method: "etransactions.plateforme_agreee.own_directory.remove_directory_entry",
+				args: { platform_name: frm.doc.name, entry_id: id },
+				freeze: true,
+				freeze_message: __("Removing…"),
+				callback() {
+					frappe.show_alert({ message: __("Entry removed."), indicator: "green" });
+					load_directory_entries(frm, d);
+				},
+			});
+		});
+	});
+}

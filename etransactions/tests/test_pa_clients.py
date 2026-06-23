@@ -114,6 +114,39 @@ class TestSuperPDPEreporting(UnitTestCase):
 		self.assertEqual([e["id"] for e in events], [1, 2])
 
 
+class TestSuperPDPOwnDirectory(UnitTestCase):
+	"""Own-company directory entry methods route to the right endpoints."""
+
+	def test_create_directory_entry_payload(self):
+		client = _client()
+		with patch.object(client, "_request", return_value=_FakeResponse({"id": 5, "identifier": "0225:123", "directory": "ppf"})) as req:
+			created = client.create_directory_entry("0225:123", "ppf")
+		args, kwargs = req.call_args
+		self.assertEqual(args[0], "POST")
+		self.assertEqual(args[1], "/v1.beta/directory_entries")
+		self.assertEqual(kwargs["json"], {"identifier": "0225:123", "directory": "ppf"})
+		self.assertEqual(created["directory"], "ppf")
+
+	def test_list_directory_entries(self):
+		client = _client()
+		with patch.object(client, "_request", return_value=_FakeResponse({"data": [{"id": 1}]})) as req:
+			entries = client.list_directory_entries()
+		self.assertEqual(req.call_args.args, ("GET", "/v1.beta/directory_entries"))
+		self.assertEqual(entries, [{"id": 1}])
+
+	def test_delete_directory_entry(self):
+		client = _client()
+		with patch.object(client, "_request", return_value=_FakeResponse()) as req:
+			client.delete_directory_entry(9)
+		self.assertEqual(req.call_args.args, ("DELETE", "/v1.beta/directory_entries/9"))
+
+	def test_register_rejects_invalid_directory(self):
+		from etransactions.plateforme_agreee import own_directory
+
+		with self.assertRaises(Exception):
+			own_directory.register_directory_entry("Platform", "0225:123", "bogus")
+
+
 class TestUnsupportedPlatforms(UnitTestCase):
 	"""AFNOR/Esalink clients reject e-reporting as a backstop to capability gating."""
 
