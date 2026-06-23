@@ -165,6 +165,25 @@ class eInvoice(Document):
 		if locked and locked.pa_flow_id and locked.pa_status != "error":
 			frappe.throw(_("This eInvoice has already been submitted to the accredited platform."))
 
+		# A B2C invoice's buyer isn't reachable through the e-invoicing directory, so it
+		# is declared via e-reporting rather than submitted as a structured invoice. The
+		# auto-send path already filters these out; block the manual button here too so a
+		# user can't push one into the invoice endpoint (the platform would reject it with
+		# an opaque "receiver address does not exist in directory" error).
+		if self.pa_processing_rule == "B2C":
+			frappe.throw(
+				_(
+					"This invoice is classified B2C: the customer is not reachable through the "
+					"e-invoicing directory, so the sale is declared to the tax authority via "
+					"e-reporting, not submitted as a structured e-invoice.<br><br>"
+					"To send a structured invoice instead, register the customer in the directory "
+					"(set a valid SIREN and re-sync the directory) so an active routing line is "
+					"resolved — the invoice will then be classified B2B."
+				),
+				frappe.ValidationError,
+				title=_("B2C invoice — cannot be submitted to the platform"),
+			)
+
 		if not self.seller_electronic_address:
 			frappe.throw(
 				_(

@@ -311,6 +311,50 @@ class TesteInvoice(eTransactionsTestSuite):
 		self.assertEqual(einvoice.items[1].billed_quantity, 1)
 		self.assertEqual(einvoice.items[1].net_rate, 100.0)
 
+	def test_send_to_plateform_blocks_b2c(self):
+		"""The manual send refuses a B2C-classified invoice rather than letting the
+		platform reject it. A customer with no SIREN and no directory status isn't
+		reachable through the e-invoicing directory, so it is e-reported, not
+		e-invoiced; send_to_plateform() must raise before any client call."""
+		company = "_Test Company"
+
+		if not frappe.db.exists("Customer", "_Test Customer"):
+			frappe.get_doc({
+				"doctype": "Customer",
+				"customer_name": "_Test Customer",
+				"customer_group": "All Customer Groups",
+				"territory": "All Territories"
+			}).insert()
+		customer = "_Test Customer"
+
+		# Precondition for B2C classification: no SIREN, no directory status.
+		self.assertFalse(frappe.db.get_value("Customer", customer, "siren_number"))
+
+		if not frappe.db.exists("Item", "_Test Item 1"):
+			frappe.get_doc({
+				"doctype": "Item",
+				"item_code": "_Test Item 1",
+				"item_group": "All Item Groups",
+				"is_stock_item": 0
+			}).insert()
+
+		si = frappe.new_doc("Sales Invoice")
+		si.company = company
+		si.customer = customer
+		si.currency = "INR"
+		si.posting_date = frappe.utils.today()
+		si.etransaction_profile = "EN16931"
+		si.append("items", {"item_code": "_Test Item 1", "qty": 1, "rate": 100.0})
+		si.insert()
+
+		einvoice_name = frappe.db.exists("eInvoice", {"sales_invoice": si.name})
+		self.assertTrue(einvoice_name, "eInvoice should be created automatically for Sales Invoice")
+		einvoice = frappe.get_doc("eInvoice", einvoice_name)
+		self.assertEqual(einvoice.pa_processing_rule, "B2C")
+
+		# The B2C guard fires before the platform client is ever instantiated.
+		self.assertRaises(frappe.ValidationError, einvoice.send_to_plateform)
+
 
 # ---------------------------------------------------------------------------
 # Helpers for the SIREN unit tests below
