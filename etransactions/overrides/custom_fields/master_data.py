@@ -126,6 +126,19 @@ customer_fields = [
 		"insert_after": "default_directory_line",
 		"description": _("Override the default eTransactions Accredited Platform for this customer"),
 	},
+	# Read-only table of the customer's establishments (addresses) and the directory
+	# line bound to each one, rendered by customer.js via get_party_establishments.
+	{
+		"fieldname": "pa_establishments_section",
+		"label": _("Establishments & Routing"),
+		"fieldtype": "Section Break",
+		"insert_after": "accredited_platform_override",
+	},
+	{
+		"fieldname": "pa_establishments_html",
+		"fieldtype": "HTML",
+		"insert_after": "pa_establishments_section",
+	},
 ]
 
 company_fields = [

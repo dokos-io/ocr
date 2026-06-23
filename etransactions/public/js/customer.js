@@ -16,6 +16,8 @@ frappe.ui.form.on("Customer", {
 			query: "etransactions.overrides.master_data.eas_scheme_query",
 		}));
 
+		_render_establishments(frm);
+
 		if (!frm.is_new()) {
 			frm.add_custom_button(__("Sync Directory Lines"), () => {
 				frappe.db
@@ -59,4 +61,90 @@ function _do_sync(frm, company) {
 			frm.reload_doc();
 		},
 	});
+}
+
+// Read-only "Establishments & Routing" table: each address (establishment) of the
+// customer with its SIRET and the directory line bound to it. Re-adds the view that
+// was dropped with the e-invoicing wizard, reusing the get_party_establishments API.
+function _render_establishments(frm) {
+	const field = frm.fields_dict.pa_establishments_html;
+	if (!field) return;
+	const $wrap = $(field.wrapper).empty();
+
+	if (frm.is_new()) {
+		$wrap.html(`<div class="text-muted small">${__("Save the customer first to see its establishments and routing.")}</div>`);
+		return;
+	}
+
+	$wrap.html(`<div class="text-muted small">${frappe.utils.icon("loading-indicator")} ${__("Loading establishments…")}</div>`);
+
+	frappe.call({
+		method: "etransactions.plateforme_agreee.directory.get_party_establishments",
+		args: { party_type: "Customer", party: frm.doc.name },
+		callback: (r) => _draw_establishments($wrap, r.message || []),
+	});
+}
+
+function _draw_establishments($wrap, rows) {
+	$wrap.empty();
+	if (!rows.length) {
+		$wrap.html(`<div class="text-muted small">${__("No addresses linked to this customer yet.")}</div>`);
+		return;
+	}
+
+	const esc = frappe.utils.escape_html;
+	const $table = $(`
+		<table class="et-estab">
+			<thead>
+				<tr>
+					<th scope="col">${__("Establishment")}</th>
+					<th scope="col">${__("SIRET")}</th>
+					<th scope="col">${__("Routing")}</th>
+					<th scope="col"><span class="sr-only">${__("Actions")}</span></th>
+				</tr>
+			</thead>
+			<tbody></tbody>
+		</table>
+	`);
+	const $body = $table.find("tbody");
+
+	rows.forEach((row) => {
+		const primary = row.is_primary
+			? ` <span class="et-estab-primary">${__("primary")}</span>`
+			: "";
+		const $row = $(`
+			<tr>
+				<td><span class="et-estab-title">${esc(row.title || row.address)}</span>${primary}</td>
+				<td class="et-estab-siret">${esc(row.siret_number || "—")}</td>
+				<td>${_routing_cell(row)}</td>
+				<td class="et-estab-actions"></td>
+			</tr>
+		`);
+		const $open = $(
+			`<button type="button" class="et-icon-btn" aria-label="${__("Open address {0}", [esc(row.title || row.address)])}" title="${__("Open address")}">${frappe.utils.icon("edit", "sm")}</button>`,
+		);
+		$open.on("click", () => frappe.set_route("Form", "Address", row.address));
+		$row.find(".et-estab-actions").append($open);
+		$body.append($row);
+	});
+
+	$wrap.append($table);
+}
+
+function _routing_cell(row) {
+	const esc = frappe.utils.escape_html;
+	const line = row.line;
+	if (!row.siret_number) {
+		return `<span class="indicator-pill orange">${__("No SIRET")}</span>`;
+	}
+	if (line) {
+		const color =
+			line.line_status === "active" ? "green" : line.line_status === "upcoming" ? "blue" : "gray";
+		let html = `<span class="indicator-pill ${color}">${esc(line.routing_code_name || line.line_status)}</span>`;
+		if (line.commitment_required) {
+			html += ` <span class="et-estab-commit" title="${__("Every invoice to this route needs a purchase-order / commitment number.")}">${__("commitment required")}</span>`;
+		}
+		return html;
+	}
+	return `<span class="indicator-pill gray">${__("No routing line — sync directory")}</span>`;
 }

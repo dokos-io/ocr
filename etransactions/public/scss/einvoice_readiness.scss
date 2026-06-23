@@ -60,6 +60,75 @@
   }
 }
 
+// Establishments & routing table (Customer master data). Read-only list of the
+// customer's addresses with the directory line bound to each one.
+.et-estab {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+
+  th, td {
+    text-align: left;
+    padding: 8px 10px 8px 2px;
+    border-bottom: 1px solid var(--border-color);
+    vertical-align: middle;
+  }
+
+  th {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+  }
+
+  tbody tr:last-child td { border-bottom: none; }
+
+  &-title { color: var(--text-color); }
+
+  &-primary {
+    font-size: 11px;
+    color: var(--text-muted);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    padding: 0 5px;
+    margin-left: 4px;
+  }
+
+  &-siret {
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  &-commit {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-left: 4px;
+  }
+
+  &-actions {
+    width: 1%;
+    white-space: nowrap;
+    text-align: right;
+  }
+
+  .et-icon-btn {
+    background: none;
+    border: none;
+    padding: 4px;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    color: var(--text-muted);
+
+    svg { fill: currentColor; }
+    &:hover { color: var(--text-color); background: var(--bg-color); }
+    &:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: 1px;
+    }
+  }
+}
+
 // Live readiness panel on Sales / Purchase Invoice
 .et-inv-readiness {
   padding: 8px 0;
