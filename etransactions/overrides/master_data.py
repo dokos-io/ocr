@@ -9,13 +9,14 @@ The scheme field is an unfiltered Link to Common Code, whose options span the wh
 Peppol participant-identifier-scheme list — a superset of EAS that also includes
 Peppol-internal schemes (e.g. 0242 SPIS). Picking one of those produces an eInvoice
 that fails validation downstream with an opaque BR-CL-25 message. This guard rejects
-a non-EAS scheme at save time, naming the field to fix.
+a non-EAS scheme at save time, naming the field to fix — and :func:`eas_scheme_query`
+keeps the non-EAS schemes out of the picker in the first place.
 """
 
 import frappe
 from frappe import _
 
-from etransactions.plateforme_agreee.routing import is_valid_eas_scheme
+from etransactions.plateforme_agreee.routing import EAS_CODES, is_valid_eas_scheme
 
 
 def validate_electronic_address(doc, method=None):
@@ -36,4 +37,26 @@ def validate_electronic_address(doc, method=None):
 			"0009 (SIRET)."
 		).format(frappe.bold(scheme_code or scheme_name)),
 		title=_("Invalid Electronic Address Scheme"),
+	)
+
+
+@frappe.whitelist()
+@frappe.validate_and_sanitize_search_inputs
+def eas_scheme_query(doctype, txt, searchfield, start, page_len, filters):
+	"""Link-field query that offers only CEF EAS Common Codes (BR-CL-25).
+
+	Bound to ``etransactions_electronic_address_scheme`` on Customer / Supplier /
+	Company so the picker can't surface a non-EAS scheme. Shares the EAS allowlist
+	with the save-time guard, so the dropdown and the validation never disagree.
+	"""
+	like = f"%{txt}%"
+	return frappe.get_all(
+		"Common Code",
+		filters=[["common_code", "in", sorted(EAS_CODES)]],
+		or_filters=[["common_code", "like", like], ["title", "like", like]] if txt else None,
+		fields=["name", "title", "common_code"],
+		order_by="common_code asc",
+		start=start,
+		page_length=page_len,
+		as_list=True,
 	)

@@ -43,6 +43,7 @@ doctype_js = {
 	"Communication" : "public/js/communication.js",
 	"Customer": "public/js/customer.js",
 	"Supplier": "public/js/supplier.js",
+	"Company": "public/js/company.js",
 	"Purchase Invoice": "public/js/purchase_invoice.js",
 	"Purchase Order": "public/js/purchase_order.js",
 	"Sales Invoice": "public/js/sales_invoice.js",

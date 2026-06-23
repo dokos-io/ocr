@@ -11,6 +11,11 @@ frappe.ui.form.on("Customer", {
 		// Scope the default routing line to this customer's own directory lines.
 		frm.set_query("default_directory_line", () => ({ filters: { customer: frm.doc.name } }));
 
+		// Offer only CEF EAS schemes — anything else fails EN16931 (BR-CL-25).
+		frm.set_query("etransactions_electronic_address_scheme", () => ({
+			query: "etransactions.overrides.master_data.eas_scheme_query",
+		}));
+
 		if (!frm.is_new()) {
 			frm.add_custom_button(__("Sync Directory Lines"), () => {
 				frappe.db
