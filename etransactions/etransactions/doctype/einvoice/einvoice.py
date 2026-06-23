@@ -154,12 +154,15 @@ class eInvoice(Document):
 		self.check_permission("write")
 		if self.einvoice_type != "Outgoing":
 			frappe.throw(_("Only Outgoing eInvoices can be submitted to the accredited platform."))
-		if self.pa_flow_id:
+		# A healthy flow (anything but a platform rejection) can't be re-sent. An
+		# errored flow may be resubmitted to retry after fixing the cause.
+		if self.pa_flow_id and self.pa_status != "error":
 			frappe.throw(_("This eInvoice has already been submitted to the accredited platform (Flow ID: {0}).").format(self.pa_flow_id))
 
 		# Guard against concurrent sends (enqueued auto-send racing a manual click):
 		# take a row lock and re-read, so only one submission can pass this point.
-		if frappe.db.get_value("eInvoice", self.name, "pa_flow_id", for_update=True):
+		locked = frappe.db.get_value("eInvoice", self.name, ["pa_flow_id", "pa_status"], for_update=True, as_dict=True)
+		if locked and locked.pa_flow_id and locked.pa_status != "error":
 			frappe.throw(_("This eInvoice has already been submitted to the accredited platform."))
 
 		if not self.seller_electronic_address:
@@ -198,6 +201,8 @@ class eInvoice(Document):
 			"pa_status": "sent",
 			"pa_syntax": result.syntax,
 			"pa_flow_type": result.flow_type,
+			# Clear any error text from a previous (rejected) send on a successful resend.
+			"pa_error_details": None,
 		})
 
 	@frappe.whitelist()

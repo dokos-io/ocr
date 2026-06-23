@@ -3,15 +3,19 @@
 
 frappe.ui.form.on("eInvoice", {
 	refresh(frm) {
-		if (frm.is_new() || !frm.doc.pa_flow_id) {
+		if (frm.is_new()) {
 			return;
 		}
 
-		etransactions.lifecycle.attach(frm, {
-			einvoice: frm.doc.name,
-			side: frm.doc.einvoice_type === "Outgoing" ? "sale" : "purchase",
-			pa_status: frm.doc.pa_status,
-		});
+		_add_pa_buttons(frm);
+
+		if (frm.doc.pa_flow_id) {
+			etransactions.lifecycle.attach(frm, {
+				einvoice: frm.doc.name,
+				side: frm.doc.einvoice_type === "Outgoing" ? "sale" : "purchase",
+				pa_status: frm.doc.pa_status,
+			});
+		}
 	},
 
 	setup(frm) {
@@ -70,6 +74,44 @@ frappe.ui.form.on("eInvoice", {
 		});
 	},
 });
+
+function _send_to_plateform(frm) {
+	frm.call({
+		method: "send_to_plateform",
+		doc: frm.doc,
+		freeze: true,
+		freeze_message: __("Submitting to accredited platform…"),
+	}).then(() => frm.reload_doc());
+}
+
+function _add_pa_buttons(frm) {
+	const pa_status = frm.doc.pa_status || "";
+	const pa_flow_id = frm.doc.pa_flow_id;
+
+	if (frm.doc.einvoice_type === "Outgoing" && (!pa_flow_id || pa_status === "error")) {
+		frm.add_custom_button(__("Send to the accredited platform"), () => {
+			if (pa_status === "error") {
+				frappe.confirm(
+					__("The previous submission was rejected by the accredited platform. Send this e-invoice again?"),
+					() => _send_to_plateform(frm)
+				);
+			} else {
+				_send_to_plateform(frm);
+			}
+		}, __("Accredited platform"));
+	}
+
+	if (pa_flow_id) {
+		frm.add_custom_button(__("Refresh PA Status"), () => {
+			frm.call({
+				method: "refresh_pa_status",
+				doc: frm.doc,
+				freeze: true,
+				freeze_message: __("Refreshing status…"),
+			}).then(() => frm.reload_doc());
+		}, __("Accredited platform"));
+	}
+}
 
 frappe.ui.form.on("E Invoice Item", {
 	create_item: function (frm, cdt, cdn) {
