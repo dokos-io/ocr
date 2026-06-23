@@ -10,6 +10,12 @@ from etransactions.etransactions.doctype.einvoicing_log.einvoicing_log import eI
 def sync_customer_directory(customer: str, company: str = None):
 	"""Sync eTransactions Accredited Platform directory lines for a customer. Called from the Customer form."""
 	frappe.has_permission("Customer", "write", doc=customer, throw=True)
+	if frappe.db.get_value("Customer", customer, "directory_pinned"):
+		frappe.msgprint(
+			_("Directory is pinned for this customer — unpin to sync."),
+			indicator="orange",
+		)
+		return
 	if not frappe.db.get_value("Customer", customer, "siren_number"):
 		frappe.throw(_("This customer has no SIREN number. Add one before syncing directory lines."))
 	if not company:
@@ -142,6 +148,7 @@ def sync_all_customers():
 			filters={
 				"directory_entity_type": ["in", ["private", "public"]],
 				"directory_closed": 0,
+				"directory_pinned": 0,
 				"directory_update_date": ["<", cutoff_date],
 			},
 			pluck="name",
@@ -160,9 +167,12 @@ def sync_all_customers():
 
 def _sync_customer_directory(customer_name: str, client, result: dict):
 	"""Query the PA directory for a customer and create/update/archive its directory lines."""
-	siren, directory_type = frappe.db.get_value(
-		"Customer", customer_name, ["siren_number", "directory_type"]
+	siren, directory_type, pinned = frappe.db.get_value(
+		"Customer", customer_name, ["siren_number", "directory_type", "directory_pinned"]
 	)
+	if pinned:
+		result["logs"].append(("info", f"Customer {customer_name} is directory-pinned. Skipping sync."))
+		return
 	if not siren:
 		result["logs"].append(("warning", f"Customer {customer_name} has no SIREN number. Skipping."))
 		return

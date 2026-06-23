@@ -26,6 +26,7 @@ import frappe
 from frappe import _
 
 from etransactions.utils import EInvoiceProfile
+from etransactions.utils.siren import is_valid_siren, vat_matches_siren
 
 # severity → desk indicator color
 INDICATOR = {"error": "red", "warning": "orange", "info": "blue"}
@@ -92,7 +93,9 @@ def customer_check_specs() -> list[CheckSpec]:
 	"""Ordered customer readiness checks. Built per request so ``_()`` resolves."""
 	return [
 		CheckSpec("siren", _("SIREN number"), True, lambda r: bool(r.get("siren_number")), "siren_number"),
+		CheckSpec("siren_valid", _("Valid SIREN number"), False, _siren_valid, "siren_number"),
 		CheckSpec("tax_id", _("Tax ID (TVA)"), True, lambda r: bool(r.get("tax_id")), "tax_id"),
+		CheckSpec("siren_vat_match", _("SIREN matches VAT number"), False, _siren_vat_match, "siren_number"),
 		CheckSpec(
 			"contact",
 			_("Primary contact"),
@@ -119,7 +122,9 @@ def supplier_check_specs() -> list[CheckSpec]:
 	"""Lighter supplier checks — routing is the buyer's (company's) concern."""
 	return [
 		CheckSpec("siren", _("SIREN number"), True, lambda r: bool(r.get("siren_number")), "siren_number"),
+		CheckSpec("siren_valid", _("Valid SIREN number"), False, _siren_valid, "siren_number"),
 		CheckSpec("tax_id", _("Tax ID (TVA)"), True, lambda r: bool(r.get("tax_id")), "tax_id"),
+		CheckSpec("siren_vat_match", _("SIREN matches VAT number"), False, _siren_vat_match, "siren_number"),
 		CheckSpec(
 			"address",
 			_("Primary address"),
@@ -129,6 +134,26 @@ def supplier_check_specs() -> list[CheckSpec]:
 		),
 		CheckSpec("siret", _("SIRET on address"), True, _siret_ok, fix_doctype="address"),
 	]
+
+
+def _siren_valid(r: dict) -> bool:
+	"""SIREN passes the Luhn checksum, when one is present.
+
+	Peppol participants are identified by foreign / non-SIREN ids (e.g. the
+	SuperPDP sandbox display number ``000000001``), so the check only applies to
+	the French national directory (PPF). Presence is covered by the blocking
+	``siren`` check, so an empty SIREN does not warn here.
+	"""
+	if r.get("directory_type") == "peppol" or not r.get("siren_number"):
+		return True
+	return is_valid_siren(r.get("siren_number"))
+
+
+def _siren_vat_match(r: dict) -> bool:
+	"""SIREN is consistent with the SIREN embedded in the French VAT number."""
+	if r.get("directory_type") == "peppol":
+		return True
+	return vat_matches_siren(r.get("tax_id"), r.get("siren_number"))
 
 
 def _siret_ok(r: dict) -> bool:
@@ -193,7 +218,14 @@ def _customer_row(party: str) -> dict:
 	row = frappe.db.get_value(
 		"Customer",
 		party,
-		["siren_number", "tax_id", "customer_primary_contact", "email_id", "customer_primary_address"],
+		[
+			"siren_number",
+			"tax_id",
+			"directory_type",
+			"customer_primary_contact",
+			"email_id",
+			"customer_primary_address",
+		],
 		as_dict=True,
 	) or {}
 	_attach_address(row, "Customer", party, row.get("customer_primary_address"))

@@ -79,6 +79,36 @@ class TestPartyReadiness(eTransactionsTestSuite):
 		self.assertEqual(by_key["siret"]["fix_doctype"], "Address")
 		self.assertEqual(by_key["siret"]["fix_name"], address)
 
+	def test_invalid_siren_warns_non_blocking(self):
+		# Present but Luhn-invalid SIREN: presence check passes, validity warns.
+		customer = self._make_customer("bad-siren", siren_number="127741217")
+		by_key = {f["key"]: f for f in evaluate_party_readiness("Customer", customer)}
+
+		self.assertNotIn("siren", by_key)  # presence satisfied
+		self.assertIn("siren_valid", by_key)
+		self.assertEqual(by_key["siren_valid"]["severity"], "warning")
+
+	def test_mismatched_vat_warns_non_blocking(self):
+		# Valid SIREN, but the VAT embeds a different SIREN.
+		customer = self._make_customer(
+			"vat-mismatch", siren_number="853322915", tax_id="FR00111111111"
+		)
+		by_key = {f["key"]: f for f in evaluate_party_readiness("Customer", customer)}
+
+		self.assertNotIn("siren_valid", by_key)  # SIREN itself is valid
+		self.assertIn("siren_vat_match", by_key)
+		self.assertEqual(by_key["siren_vat_match"]["severity"], "warning")
+
+	def test_peppol_display_number_does_not_warn(self):
+		# Sandbox convention: a Peppol customer stores a non-SIREN display number.
+		customer = self._make_customer(
+			"peppol", siren_number="000000001", directory_type="peppol"
+		)
+		by_key = {f["key"]: f for f in evaluate_party_readiness("Customer", customer)}
+
+		self.assertNotIn("siren_valid", by_key)
+		self.assertNotIn("siren_vat_match", by_key)
+
 	def test_complete_customer_has_no_blocking_findings(self):
 		customer = self._make_customer("ready", siren_number="853322915", tax_id="FR12853322915")
 		self._make_address(

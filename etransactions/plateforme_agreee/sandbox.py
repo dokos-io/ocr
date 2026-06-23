@@ -53,6 +53,8 @@ def provision_superpdp_test_customer(company: str) -> str:
 			"directory_name": "Tricatel",
 			"directory_closed": 0,
 			"default_directory_line": line,
+			# Pin so a later manual/cron sync can't revert the forced routing.
+			"directory_pinned": 1,
 		},
 	)
 	return customer
@@ -137,7 +139,13 @@ def _ensure_address(customer: str) -> str:
 
 
 def _ensure_directory_synced(customer: str, company: str) -> None:
-	"""Best-effort: mirror the live platform directory. Never fatal."""
+	"""Best-effort: mirror the live platform directory. Never fatal.
+
+	Skipped once the customer is pinned (set on a prior run) — the forced routing
+	below is the source of truth, and syncing a pinned customer is a no-op anyway.
+	"""
+	if frappe.db.get_value("Customer", customer, "directory_pinned"):
+		return
 	try:
 		from etransactions.plateforme_agreee.directory import sync_customer_directory
 

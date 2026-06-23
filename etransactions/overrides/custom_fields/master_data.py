@@ -119,6 +119,16 @@ customer_fields = [
 		"description": _("Which directory to look in when syncing routing lines: Peppol or the French national directory (PPF)."),
 	},
 	{
+		"fieldname": "directory_pinned",
+		"label": _("Directory Pinned"),
+		"fieldtype": "Check",
+		"insert_after": "directory_type",
+		"description": _(
+			"Skip automatic directory sync; routing is maintained manually "
+			"(e.g. the SuperPDP sandbox recipient). Unpin to let sync update the lines."
+		),
+	},
+	{
 		"fieldname": "accredited_platform_override",
 		"label": _("eTransactions Accredited Platform Override"),
 		"fieldtype": "Link",

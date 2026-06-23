@@ -312,6 +312,31 @@ class TestDirectorySync(IntegrationTestCase):
 		self.assertEqual(status, "disabled")
 		self.assertEqual(result["new_count"], 0)
 
+	def test_pinned_customer_is_not_synced(self):
+		"""directory_pinned → early return: client untouched, forced state preserved."""
+		customer = self._make_customer("pinned", siren_number="853322915")
+		self._make_line(customer, "0225:315143296_35", line_status="active")
+		frappe.db.set_value(
+			"Customer", customer, {"directory_pinned": 1, "directory_entity_type": "private"}
+		)
+		client = self._client(DirectoryData(entity_type="no", name="", closed=False))
+		result = self._result()
+
+		_sync_customer_directory(customer, client, result)
+
+		client.get_directory_for_siren.assert_not_called()
+		self.assertEqual(
+			frappe.db.get_value("Customer", customer, "directory_entity_type"), "private"
+		)
+		self.assertEqual(
+			frappe.db.get_value(
+				"eInvoicing Directory Line",
+				{"customer": customer, "identifier": "0225:315143296_35"},
+				"line_status",
+			),
+			"active",
+		)
+
 	# ------------------------------------------------------------------
 	# SIRET → Address binding and routing resolution
 	# ------------------------------------------------------------------
