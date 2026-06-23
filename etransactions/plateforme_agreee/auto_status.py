@@ -81,7 +81,23 @@ def on_purchase_invoice_submit(doc, method=None):
 
 
 def on_payment_entry_submit(doc, method=None):
-	"""Payment submitted -> 'Payment Sent' (purchase) / 'Payment Received' (sale)."""
+	"""Payment submitted -> 'Payment Sent' (purchase) / 'Payment Received' (sale).
+
+	Also queues B2C payment data for PPF e-reporting when the paid sale was
+	itself e-reported (best-effort, independent of the lifecycle auto-send flag).
+	"""
+	for ref in doc.get("references", []):
+		if ref.reference_doctype == "Sales Invoice":
+			try:
+				from etransactions.plateforme_agreee.ereporting import capture_sale_payment
+				capture_sale_payment(doc, ref.reference_name, ref.allocated_amount, doc.posting_date)
+			except Exception:
+				frappe.log_error(
+					title="e-reporting payment capture failed",
+					reference_doctype="Payment Entry",
+					reference_name=doc.name,
+				)
+
 	if not _settings().get("auto_send_payment"):
 		return
 

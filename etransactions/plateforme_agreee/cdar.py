@@ -98,10 +98,9 @@ def build_cdar_data(einvoice, status: str, details: list[dict] | None = None,
 		# We received the invoice: we are the buyer, the counterparty is the seller.
 		sender_role, recipient_role = "BY", "SE"
 		partner_name = einvoice.seller_name or ""
-		# The seller's SIREN is not stored as a dedicated field; best-effort from
-		# the electronic address (SIRET scheme 0009 -> first 9 digits = SIREN).
-		# TODO: persist the supplier SIREN on the eInvoice during parsing.
-		partner_siren = _seller_siren_best_effort(einvoice)
+		# Prefer the SIREN persisted at parse time; fall back to deriving it from
+		# the seller's electronic address / tax id for older records.
+		partner_siren = (getattr(einvoice, "supplier_siren", None) or "").strip() or _seller_siren_best_effort(einvoice)
 		issuer_siren = partner_siren
 		recipient_routing = einvoice.seller_electronic_address
 		inv_type_code = "380"

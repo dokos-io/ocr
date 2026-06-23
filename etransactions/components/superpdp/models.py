@@ -75,3 +75,74 @@ class LifecycleEvent:
     payment_date: str | None = None
     pa_event_id: str | None = None
     attachments: list = field(default_factory=list)
+
+
+# ---------------------------------------------------------------------------
+# B2C e-reporting (data declared to the PPF, not invoice flows)
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class B2CTransactionSubtotal:
+    """A per-rate VAT breakdown line of a B2C transaction (Z12-012 Annex A)."""
+    tax_percent: str
+    taxable_amount: str
+    tax_total: str
+
+
+@dataclass
+class B2CTransaction:
+    """Normalized B2C transaction (10.1 / 10.3 flow) for e-reporting.
+
+    ``role_code`` is ``SE`` (we are the seller) or ``BY`` (we are the buyer).
+    ``category_code`` is the Z12-012 transaction category (TLB1/TPS1/TNT1/TMA1).
+    ``id`` is the platform-assigned identifier, set only on read-back.
+    """
+    date: str
+    currency: str
+    category_code: str
+    tax_exclusive_amount: str
+    tax_total: str
+    tax_subtotals: list = field(default_factory=list)  # B2CTransactionSubtotal
+    role_code: str = "SE"
+    tax_due_date_type_code: str | None = None
+    id: str | None = None
+
+
+@dataclass
+class B2CPaymentSubtotal:
+    """A per-rate breakdown line of a B2C payment (10.2 / 10.4 flow)."""
+    amount: str
+    tax_percent: str
+    category_code: str | None = None
+    currency_code: str | None = None
+
+
+@dataclass
+class B2CPayment:
+    """Normalized B2C payment data (10.2 / 10.4 flow) for e-reporting."""
+    date: str
+    subtotals: list = field(default_factory=list)  # B2CPaymentSubtotal
+    id: str | None = None
+
+
+@dataclass
+class EreportingEvent:
+    """A status event on a PPF e-reporting declaration."""
+    status_code: str  # ppf:ereporting / -ack / -ack-error / -rejected / -response-ok
+    created_at: str | None = None
+
+
+@dataclass
+class EreportingResult:
+    """Normalized PPF e-reporting declaration (aggregated by the platform).
+
+    ``kind`` is ``transaction`` or ``payment``; ``role_code`` is ``SE`` or
+    ``BY``; ``events`` is the ordered list of PPF acknowledgement events.
+    """
+    id: str
+    kind: str
+    role_code: str
+    start_period: str | None = None
+    end_period: str | None = None
+    events: list = field(default_factory=list)  # EreportingEvent

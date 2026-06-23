@@ -49,6 +49,10 @@ def on_update(doc, method):
 
 def on_submit(doc, method):
 	"""Generate FacturX PDF and submit to accredited platform when a Sales Invoice is submitted."""
+	# B2C / foreign sales are reported as aggregated data, not structured
+	# invoices, so this runs independently of the e-invoice profile.
+	_capture_ereporting(doc)
+
 	if not doc.etransaction_profile:
 		return
 
@@ -155,6 +159,15 @@ def refresh_pa_status(sales_invoice: str):
 	frappe.get_doc("eInvoice", einvoice_name).refresh_pa_status()
 
 
+def _capture_ereporting(doc):
+	"""Best-effort: queue a B2C/foreign sale for PPF e-reporting. Never blocks submit."""
+	try:
+		from etransactions.plateforme_agreee.ereporting import capture_sale_transaction
+		capture_sale_transaction(doc)
+	except Exception:
+		frappe.log_error(frappe.get_traceback(), _("e-reporting capture failed"))
+
+
 def _apply_b2g(doc):
 	"""Apply B2G (public-sector / Chorus Pro) handling to a Sales Invoice.
 
@@ -207,10 +220,16 @@ def _create_update_einvoice(doc):
 	einvoice.country = country
 	einvoice.company = doc.company
 
-	# B2G (public-entity buyer) → set the B2G processing rule for the platform.
+	# Processing rule from the buyer's directory status: public -> B2G,
+	# registered private business -> B2B (default), anything else (individual /
+	# foreign / non-established) -> B2C, which is e-reported rather than invoiced.
 	customer_entity_type = frappe.db.get_value("Customer", doc.customer, "directory_entity_type")
 	if customer_entity_type == "public":
 		einvoice.pa_processing_rule = "B2G"
+	elif customer_entity_type == "private":
+		einvoice.pa_processing_rule = "B2B"
+	else:
+		einvoice.pa_processing_rule = "B2C"
 
 	# Resolve the routing line for the invoice's establishment unless the user
 	# has picked one manually.

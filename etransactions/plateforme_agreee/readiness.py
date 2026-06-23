@@ -262,6 +262,7 @@ def check_invoice_readiness(doc) -> list[dict]:
 	party_type = party = None
 	if invoice.doctype == "Sales Invoice":
 		result += as_dicts(evaluate_einvoice_readiness(invoice))
+		result += as_dicts(_ereporting_findings(invoice))
 		party_type, party = "Customer", invoice.get("customer")
 	elif invoice.doctype == "Purchase Invoice":
 		party_type, party = "Supplier", invoice.get("supplier")
@@ -273,6 +274,45 @@ def check_invoice_readiness(doc) -> list[dict]:
 			pf["label"] = _("{0}: {1}").format(_(party_type), pf["label"])
 			result.append(pf)
 	return result
+
+
+def _ereporting_findings(doc) -> list[Finding]:
+	"""Findings for a sale that will be reported to the PPF as B2C e-reporting.
+
+	Independent of the e-invoice profile: B2C/foreign sales are reported as
+	aggregated data, not structured invoices.
+	"""
+	out: list[Finding] = []
+	try:
+		from etransactions.plateforme_agreee.ereporting import should_ereport_sale
+		if not should_ereport_sale(doc):
+			return out
+	except Exception:
+		return out
+
+	out.append(
+		Finding(
+			"ereporting_scope",
+			"info",
+			_("This sale will be reported to the PPF as B2C e-reporting data."),
+		)
+	)
+	if doc.get("company") and not frappe.db.get_value("Company", doc.company, "etransactions_vat_regime"):
+		company = frappe.utils.sanitize_html(doc.company)
+		out.append(
+			Finding(
+				"ereporting_vat_regime",
+				"warning",
+				_("Company VAT regime not set for e-reporting"),
+				detail=_(
+					"Set the <b>VAT Regime</b> in <a href='/app/company/{0}'>Company settings</a> so "
+					"e-reporting is declared to the French tax administration (PPF) on the correct schedule."
+				).format(company),
+				fix_doctype="Company",
+				fix_name=doc.company,
+			)
+		)
+	return out
 
 
 def evaluate_einvoice_readiness(doc) -> list[Finding]:

@@ -145,6 +145,7 @@ class eInvoiceParser:
 		)
 		self.einvoice_document.seller_electronic_address = str(seller.electronic_address.uri_ID._text)
 		self.einvoice_document.seller_electronic_address_scheme = str(seller.electronic_address.uri_ID._scheme_id)
+		self.einvoice_document.supplier_siren = _seller_siren(seller, self.einvoice_document)
 		self.parse_address(seller.address, "seller")
 
 	def parse_buyer(self, buyer: TradeParty):
@@ -251,3 +252,31 @@ class eInvoiceParser:
 
 def flt_or_none(value) -> float | None:
 	return float(value) if value is not None else None
+
+
+def _seller_siren(seller, einvoice_document) -> str | None:
+	"""Best-effort SIREN of the seller for a parsed incoming invoice.
+
+	Prefers the legal-organization registration id (scheme 0002); falls back to
+	the electronic address (SIRET schemes 0009/0225) or the VAT/tax id. Returns
+	None when nothing usable is found — never raises, so parsing is unaffected.
+	"""
+	try:
+		legal_id = seller.legal_organization.id._text
+		digits = "".join(c for c in str(legal_id or "") if c.isdigit())
+		if len(digits) >= 9:
+			return digits[:9]
+	except Exception:
+		pass
+
+	scheme = (einvoice_document.seller_electronic_address_scheme or "").strip()
+	address_digits = "".join(c for c in (einvoice_document.seller_electronic_address or "") if c.isdigit())
+	if scheme in ("0009", "0225") and len(address_digits) >= 9:
+		return address_digits[:9]
+
+	tax_digits = "".join(c for c in (einvoice_document.seller_tax_id or "") if c.isdigit())
+	if len(tax_digits) == 9:
+		return tax_digits
+	if len(tax_digits) == 14:  # SIRET -> SIREN
+		return tax_digits[:9]
+	return None

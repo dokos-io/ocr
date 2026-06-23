@@ -1,0 +1,60 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-06-23 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "category_code",
+  "tax_percent",
+  "taxable_amount",
+  "tax_total",
+  "amount"
+ ],
+ "fields": [
+  {
+   "fieldname": "category_code",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Category Code"
+  },
+  {
+   "fieldname": "tax_percent",
+   "fieldtype": "Percent",
+   "in_list_view": 1,
+   "label": "Tax Percent"
+  },
+  {
+   "fieldname": "taxable_amount",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Taxable Amount"
+  },
+  {
+   "fieldname": "tax_total",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Tax Total"
+  },
+  {
+   "description": "Payment subtotals carry an amount rather than a taxable/tax split.",
+   "fieldname": "amount",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Amount"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-06-23 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "eTransactions",
+ "name": "eReporting Entry Subtotal",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

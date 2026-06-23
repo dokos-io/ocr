@@ -177,3 +177,35 @@ class ESALINKClient:
                 )
 
         return DirectoryData(entity_type=entity_type, name=name, closed=closed, lines=lines)
+
+    # -------------------------------------------------------------------------
+    # B2C e-reporting — not supported on Esalink/CDAR platforms
+    # -------------------------------------------------------------------------
+
+    @staticmethod
+    def _ereporting_unsupported():
+        frappe.throw(_("B2C e-reporting is not supported on this platform."))
+
+    def create_b2c_transactions(self, transactions):
+        self._ereporting_unsupported()
+
+    def list_b2c_transactions(self):
+        self._ereporting_unsupported()
+
+    def create_b2c_payments(self, payments):
+        self._ereporting_unsupported()
+
+    def list_b2c_payments(self):
+        self._ereporting_unsupported()
+
+    def update_vat_regime(self, vat_regime: str):
+        self._ereporting_unsupported()
+
+    def list_ereportings(self, role_code: str = None):
+        self._ereporting_unsupported()
+
+    def get_ereporting(self, ereporting_id):
+        self._ereporting_unsupported()
+
+    def preview_ereporting(self, kind: str, date: str, role_code: str):
+        self._ereporting_unsupported()

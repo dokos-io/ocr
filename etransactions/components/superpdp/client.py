@@ -8,13 +8,18 @@ API reference: https://api.superpdp.tech (OpenAPI spec: components/ext/superpdp.
 """
 
 import time
+from dataclasses import asdict, is_dataclass
 
 import frappe
 from frappe import _
 
 from etransactions.components.superpdp.models import (
+    B2CPayment,
+    B2CTransaction,
     DirectoryData,
     DirectoryLineData,
+    EreportingEvent,
+    EreportingResult,
     FlowResult,
     IncomingFlow,
     LifecycleEvent,
@@ -27,6 +32,24 @@ try:
     import requests
 except ImportError:
     requests = None
+
+
+def _ereporting_payload(obj) -> dict:
+    """Serialize a B2C transaction/payment dataclass to a wire dict.
+
+    Drops ``None`` values and the read-only ``id`` field so the platform assigns
+    the identifier on create. Nested subtotal dataclasses are converted too.
+    """
+    raw = asdict(obj) if is_dataclass(obj) else dict(obj)
+
+    def clean(value):
+        if isinstance(value, dict):
+            return {k: clean(v) for k, v in value.items() if k != "id" and v is not None}
+        if isinstance(value, list):
+            return [clean(v) for v in value]
+        return value
+
+    return clean(raw)
 
 
 class SuperPDPClient:
@@ -236,15 +259,29 @@ class SuperPDPClient:
         starting_after_id: int = None,
         limit: int = None,
     ) -> list[dict]:
-        """List invoice lifecycle events, optionally filtered by invoice."""
+        """List invoice lifecycle events, auto-paginating until all are returned.
+
+        Filtered by invoice when ``invoice_id`` is given. Without pagination a
+        long-lived invoice would silently drop events past the first page.
+        """
         params: dict = {}
         if invoice_id is not None:
             params["invoice_id"] = invoice_id
-        if starting_after_id is not None:
-            params["starting_after_id"] = starting_after_id
         if limit:
             params["limit"] = limit
-        return self._request("GET", "/v1.beta/invoice_events", params=params).json().get("data", [])
+
+        all_items: list[dict] = []
+        after_id = starting_after_id
+        while True:
+            if after_id is not None:
+                params["starting_after_id"] = after_id
+            resp = self._request("GET", "/v1.beta/invoice_events", params=params).json()
+            page = resp.get("data", [])
+            all_items.extend(page)
+            if not resp.get("has_after") or not page:
+                break
+            after_id = page[-1]["id"]
+        return all_items
 
     def create_invoice_event(
         self,
@@ -439,9 +476,9 @@ class SuperPDPClient:
 
     def get_lifecycle_events(self, flow_id: str) -> list[LifecycleEvent]:
         """Return the lifecycle events recorded on one of our outgoing invoices."""
-        invoice = self.get_invoice(flow_id)
+        raw_events = self.list_invoice_events(invoice_id=int(flow_id))
         events: list[LifecycleEvent] = []
-        for ev in invoice.get("events", []):
+        for ev in raw_events:
             canonical = lifecycle_status.from_superpdp_code(ev.get("status_code", ""))
             if not canonical:
                 continue
@@ -462,8 +499,100 @@ class SuperPDPClient:
         return events
 
     # -------------------------------------------------------------------------
+    # B2C e-reporting (data declared to the PPF)
+    # -------------------------------------------------------------------------
+
+    def create_b2c_transactions(self, transactions: list["B2CTransaction"]) -> list[dict]:
+        """Create B2C transaction data (10.1 / 10.3 flows).
+
+        Transactions are stored immediately, then aggregated and sent to the PPF
+        on a schedule that depends on the company VAT regime.
+        """
+        payload = {"data": [_ereporting_payload(t) for t in transactions]}
+        return self._request("POST", "/v1.beta/b2c_transactions", json=payload).json().get("data", [])
+
+    def list_b2c_transactions(self) -> list[dict]:
+        """List the B2C transactions previously created."""
+        return self._paginate("/v1.beta/b2c_transactions")
+
+    def create_b2c_payments(self, payments: list["B2CPayment"]) -> list[dict]:
+        """Create B2C payment data (10.2 / 10.4 flows)."""
+        payload = {"data": [_ereporting_payload(p) for p in payments]}
+        return self._request("POST", "/v1.beta/b2c_payments", json=payload).json().get("data", [])
+
+    def list_b2c_payments(self) -> list[dict]:
+        """List the B2C payments previously created."""
+        return self._paginate("/v1.beta/b2c_payments")
+
+    def update_vat_regime(self, vat_regime: str) -> dict:
+        """Set the company VAT regime, which drives the PPF declaration schedule.
+
+        ``vat_regime`` is one of: ``monthly``, ``quarterly``, ``simplified``,
+        ``vat_exemption``.
+        """
+        return self._request(
+            "PATCH", "/v1.beta/companies", json={"vat_regime": vat_regime}
+        ).json()
+
+    def list_ereportings(self, role_code: str = None) -> list[EreportingResult]:
+        """List e-reporting declarations sent to the PPF (optionally one side)."""
+        params = {"role_code": role_code} if role_code else None
+        raw = self._paginate("/v1.beta/ereportings", params=params)
+        return [self._to_ereporting(r) for r in raw]
+
+    def get_ereporting(self, ereporting_id: int | str) -> EreportingResult:
+        """Retrieve a single e-reporting declaration by id."""
+        raw = self._request("GET", f"/v1.beta/ereportings/{ereporting_id}").json()
+        return self._to_ereporting(raw)
+
+    def preview_ereporting(self, kind: str, date: str, role_code: str) -> dict:
+        """Preview the e-reporting data that will be sent for a period.
+
+        ``kind`` is ``transaction`` or ``payment``; ``date`` is any date inside
+        the wanted period; ``role_code`` is ``SE`` or ``BY``.
+        """
+        return self._request(
+            "GET",
+            "/v1.beta/ereportings/preview",
+            params={"kind": kind, "date": date, "role_code": role_code},
+        ).json()
+
+    @staticmethod
+    def _to_ereporting(raw: dict) -> EreportingResult:
+        return EreportingResult(
+            id=str(raw.get("id")),
+            kind=raw.get("kind", ""),
+            role_code=raw.get("role_code", ""),
+            start_period=raw.get("start_period"),
+            end_period=raw.get("end_period"),
+            events=[
+                EreportingEvent(
+                    status_code=ev.get("status_code", ""),
+                    created_at=ev.get("created_at"),
+                )
+                for ev in raw.get("events", [])
+            ],
+        )
+
+    # -------------------------------------------------------------------------
     # Internal helpers
     # -------------------------------------------------------------------------
+
+    def _paginate(self, path: str, params: dict | None = None) -> list[dict]:
+        """GET a list endpoint, following ``has_after`` / ``starting_after_id``."""
+        params = dict(params or {})
+        all_items: list[dict] = []
+        after_id = None
+        while True:
+            if after_id is not None:
+                params["starting_after_id"] = after_id
+            resp = self._request("GET", path, params=params).json()
+            page = resp.get("data", [])
+            all_items.extend(page)
+            if not resp.get("has_after") or not page:
+                break
+            after_id = page[-1]["id"]
+        return all_items
 
     def _derive_status(self, events: list[dict]) -> str:
         """Derive a single pa_status value from the append-only events list."""

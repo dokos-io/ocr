@@ -3,15 +3,25 @@ from frappe import _
 from frappe.utils import now_datetime
 
 
-# Per-platform-type capabilities. ``self_provision`` advertises an in-app
-# account-creation flow; all current platforms register credentials in their own
-# portal (manual), but the guided dialog reads this map so an automated branch
-# can be switched on per platform later without UI rework.
+# Per-platform-type capabilities.
+#   ``self_provision`` advertises an in-app account-creation flow; all current
+#   platforms register credentials in their own portal (manual), but the guided
+#   dialog reads this map so an automated branch can be switched on per platform
+#   later without UI rework.
+#   ``ereporting`` advertises B2C/payment e-reporting to the PPF. Only SuperPDP
+#   exposes the e-reporting endpoints today; CDAR platforms (Esalink/AFNOR) do
+#   not, so callers must gate on this flag before queuing or submitting
+#   e-reporting data.
 PLATFORM_CAPABILITIES = {
-	"SuperPDP": {"self_provision": False},
-	"Esalink": {"self_provision": False},
-	"Custom": {"self_provision": False},
+	"SuperPDP": {"self_provision": False, "ereporting": True},
+	"Esalink": {"self_provision": False, "ereporting": False},
+	"Custom": {"self_provision": False, "ereporting": False},
 }
+
+
+def platform_supports(platform_type: str, capability: str) -> bool:
+	"""True if the given platform type advertises the named capability."""
+	return bool(PLATFORM_CAPABILITIES.get(platform_type, {}).get(capability))
 
 
 @frappe.whitelist()

@@ -213,7 +213,10 @@ doc_events = {
 		"validate": "etransactions.overrides.sales_invoice.on_validate",
 		"on_update": "etransactions.overrides.sales_invoice.on_update",
 		"on_submit": "etransactions.overrides.sales_invoice.on_submit",
-	}
+	},
+	"Company": {
+		"on_update": "etransactions.plateforme_agreee.ereporting.on_company_update",
+	},
 }
 
 # Scheduled Tasks
@@ -229,6 +232,8 @@ scheduler_events = {
 		"etransactions.plateforme_agreee.flow.poll_incoming_flows",
 		"etransactions.plateforme_agreee.flow.poll_outgoing_lifecycle_events",
 		"etransactions.plateforme_agreee.flow.poll_incoming_lifecycle_flows",
+		"etransactions.plateforme_agreee.flow.submit_pending_ereporting_entries",
+		"etransactions.plateforme_agreee.flow.poll_ereporting_status",
 	],
 	"daily": [
 		"etransactions.plateforme_agreee.directory.sync_all_customers",

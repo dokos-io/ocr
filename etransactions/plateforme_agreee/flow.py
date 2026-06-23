@@ -229,6 +229,134 @@ def poll_incoming_lifecycle_flows():
 			eInvoicingLog.create_log(result)
 
 
+def submit_pending_ereporting_entries():
+	"""Cron: batch pending B2C e-reporting entries and submit them to the platform.
+
+	Entries are grouped by company and kind; the platform aggregates them and
+	declares them to the PPF on its own schedule. Only platforms advertising the
+	``ereporting`` capability are processed.
+	"""
+	from etransactions.plateforme_agreee.ereporting import ereporting_platform
+
+	companies = frappe.get_all(
+		"eReporting Entry",
+		filters={"state": "pending"},
+		fields=["company"],
+		group_by="company",
+		pluck="company",
+	)
+
+	for company in companies:
+		if not ereporting_platform(company, "sales"):
+			continue
+
+		result = {
+			"operation_type": "ereporting_send",
+			"origin": "Cron",
+			"company": company,
+			"new_count": 0,
+			"updated_count": 0,
+			"logs": [],
+		}
+		try:
+			client = get_client(company, transaction_type="sales")
+		except Exception as e:
+			result["logs"].append(("error", str(e)))
+			eInvoicingLog.create_log(result)
+			continue
+
+		for kind in ("transaction", "payment"):
+			names = frappe.get_all(
+				"eReporting Entry",
+				filters={"company": company, "kind": kind, "state": "pending"},
+				pluck="name",
+			)
+			if not names:
+				continue
+			_submit_ereporting_batch(client, kind, names, result)
+
+		if result["new_count"] or result["logs"]:
+			eInvoicingLog.create_log(result)
+
+
+def _submit_ereporting_batch(client, kind: str, names: list[str], result: dict):
+	"""Submit one company's batch of entries of a single kind, recording outcomes."""
+	docs = [frappe.get_doc("eReporting Entry", n) for n in names]
+	try:
+		if kind == "transaction":
+			created = client.create_b2c_transactions([d.to_b2c_transaction() for d in docs])
+		else:
+			created = client.create_b2c_payments([d.to_b2c_payment() for d in docs])
+	except Exception as e:
+		for d in docs:
+			d.db_set("state", "error", update_modified=False)
+			d.db_set("error_details", str(e)[:500], update_modified=False)
+		result["logs"].append(("error", f"Failed to submit {len(docs)} {kind} entries: {str(e)}"))
+		return
+
+	for idx, d in enumerate(docs):
+		pa_id = None
+		if idx < len(created) and isinstance(created[idx], dict):
+			pa_id = created[idx].get("id")
+		d.db_set("pa_entry_id", str(pa_id) if pa_id is not None else None, update_modified=False)
+		d.db_set("state", "sent", update_modified=False)
+		result["new_count"] += 1
+	result["logs"].append(("info", f"Submitted {len(docs)} {kind} entries"))
+
+
+def poll_ereporting_status():
+	"""Cron: refresh PPF e-reporting declarations for every e-reporting platform."""
+	from etransactions.plateforme_agreee.ereporting import ereporting_platform
+	from etransactions.etransactions.doctype.ereporting_declaration.ereporting_declaration import (
+		eReportingDeclaration,
+	)
+	from etransactions.plateforme_agreee import ereporting_status
+
+	companies = frappe.get_all(
+		"eTransactions Accredited Platform",
+		filters={"is_active": 1},
+		fields=["company"],
+		group_by="company",
+		pluck="company",
+	)
+
+	for company in companies:
+		if not ereporting_platform(company, "sales"):
+			continue
+
+		result = {
+			"operation_type": "ereporting_status",
+			"origin": "Cron",
+			"company": company,
+			"new_count": 0,
+			"updated_count": 0,
+			"logs": [],
+		}
+		try:
+			client = get_client(company, transaction_type="sales")
+			declarations = client.list_ereportings()
+		except Exception as e:
+			result["logs"].append(("error", f"Failed to list e-reportings: {str(e)}"))
+			eInvoicingLog.create_log(result)
+			continue
+
+		for decl in declarations:
+			try:
+				doc = eReportingDeclaration.upsert_from_platform(company, decl)
+			except Exception as e:
+				result["logs"].append(("warning", f"Could not record e-reporting {decl.id}: {str(e)}"))
+				continue
+			result["updated_count"] += 1
+			warn = any(ereporting_status.is_warning(ev.status_code) for ev in decl.events)
+			if warn:
+				result["logs"].append(
+					("warning", f"e-reporting {doc.name} for {doc.period_start}–{doc.period_end} was rejected/errored by the PPF")
+				)
+
+		if result["updated_count"] or result["logs"]:
+			eInvoicingLog.create_log(result)
+
+
 def poll_incoming_flows():
 	"""Cron: fetch new incoming flows from the PA and create eInvoice records for each."""
 	active_platforms = frappe.get_all(

@@ -153,6 +153,19 @@ company_fields = [
 			"fieldtype": "Data",
 			"depends_on": "etransactions_electronic_address_scheme",
 		},
+		{
+			# Drives the PPF e-reporting declaration schedule. Pushed to the
+			# platform via SuperPDPClient.update_vat_regime when it changes.
+			"fieldname": "etransactions_vat_regime",
+			"label": _("VAT Regime (e-reporting)"),
+			"insert_after": "etransactions_electronic_address",
+			"fieldtype": "Select",
+			"options": "\nmonthly\nquarterly\nsimplified\nvat_exemption",
+			"description": _(
+				"VAT regime declared to the accredited platform; it sets the e-reporting "
+				"cadence to the French tax administration (PPF)."
+			),
+		},
 ]
 
 customer_group_fields = [

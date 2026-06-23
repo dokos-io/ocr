@@ -3,6 +3,10 @@
 
 frappe.ui.form.on("Sales Invoice", {
 	refresh(frm) {
+		// B2C / foreign sales are e-reported (no structured profile), so show
+		// their PPF e-reporting status independently of the e-invoice profile.
+		if (frm.doc.docstatus === 1) _show_ereporting(frm);
+
 		if (!frm.doc.etransaction_profile) return;
 
 		etransactions.invoiceReadiness.refresh(frm);
@@ -43,6 +47,22 @@ frappe.ui.form.on("Sales Taxes and Charges", {
 	charge_type: (frm) => etransactions.invoiceReadiness.refresh(frm),
 	taxes_remove: (frm) => etransactions.invoiceReadiness.refresh(frm),
 });
+
+function _show_ereporting(frm) {
+	frappe.call({
+		method: "etransactions.plateforme_agreee.ereporting.get_source_ereporting",
+		args: { doctype: frm.doctype, name: frm.doc.name },
+		callback(r) {
+			const e = r.message;
+			if (!e || !e.name) return;
+			const colors = { pending: "orange", sent: "blue", error: "red" };
+			frm.dashboard.add_indicator(
+				__("PPF e-reporting: {0}", [e.state]),
+				colors[e.state] || "gray"
+			);
+		},
+	});
+}
 
 function _attach_lifecycle(frm) {
 	frappe.call({

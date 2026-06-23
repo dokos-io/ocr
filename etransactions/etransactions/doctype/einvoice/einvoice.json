@@ -44,6 +44,7 @@
   "seller_tab",
   "seller_name",
   "seller_tax_id",
+  "supplier_siren",
   "column_break_jjaa",
   "section_break_sqyh",
   "seller_electronic_address_scheme",
@@ -225,6 +226,14 @@
    "fieldname": "seller_tax_id",
    "fieldtype": "Data",
    "label": "Seller Tax ID",
+   "read_only": 1
+  },
+  {
+   "description": "Supplier SIREN parsed from an incoming invoice. Used as the issuer identifier when reporting lifecycle statuses back via CDAR.",
+   "fieldname": "supplier_siren",
+   "fieldtype": "Data",
+   "label": "Supplier SIREN",
+   "length": 9,
    "read_only": 1
   },
   {
