@@ -699,7 +699,7 @@
    "fieldname": "pa_status",
    "fieldtype": "Select",
    "label": "PA Status",
-   "options": "\ncreated\nsent\npending\ndone\nerror",
+   "options": "\ncreated\nsent\npending\ndone\nerror\nrejected",
    "read_only": 1,
    "no_copy": 1,
    "in_list_view": 0

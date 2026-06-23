@@ -154,15 +154,15 @@ class eInvoice(Document):
 		self.check_permission("write")
 		if self.einvoice_type != "Outgoing":
 			frappe.throw(_("Only Outgoing eInvoices can be submitted to the accredited platform."))
-		# A healthy flow (anything but a platform rejection) can't be re-sent. An
-		# errored flow may be resubmitted to retry after fixing the cause.
-		if self.pa_flow_id and self.pa_status != "error":
+		# A healthy flow can't be re-sent. An errored or rejected flow may be
+		# resubmitted to retry after fixing the cause.
+		if self.pa_flow_id and self.pa_status not in ("error", "rejected"):
 			frappe.throw(_("This eInvoice has already been submitted to the accredited platform (Flow ID: {0}).").format(self.pa_flow_id))
 
 		# Guard against concurrent sends (enqueued auto-send racing a manual click):
 		# take a row lock and re-read, so only one submission can pass this point.
 		locked = frappe.db.get_value("eInvoice", self.name, ["pa_flow_id", "pa_status"], for_update=True, as_dict=True)
-		if locked and locked.pa_flow_id and locked.pa_status != "error":
+		if locked and locked.pa_flow_id and locked.pa_status not in ("error", "rejected"):
 			frappe.throw(_("This eInvoice has already been submitted to the accredited platform."))
 
 		# A B2C invoice's buyer isn't reachable through the e-invoicing directory, so it
@@ -247,7 +247,7 @@ class eInvoice(Document):
 			update["pa_updated_at"] = status.updated_at
 		if status.error_details:
 			update["pa_error_details"] = status.error_details
-		elif status.status and status.status != "error":
+		elif status.status and status.status not in ("error", "rejected"):
 			# Recovered flow: drop any stale error text from a previous poll.
 			update["pa_error_details"] = None
 

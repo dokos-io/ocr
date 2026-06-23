@@ -85,20 +85,30 @@ class SuperPDPClient:
 
     BASE_URL = "https://api.superpdp.tech"
 
-    # Event status_code → internal pa_status priority weights
-    _STATUS_WEIGHT = {"error": 4, "done": 3, "pending": 2, "sent": 1}
+    # Event status_code → internal pa_status priority weights. "rejected" outranks
+    # "error" so a terminal platform rejection dominates the derived status.
+    _STATUS_WEIGHT = {"rejected": 5, "error": 4, "done": 3, "pending": 2, "sent": 1}
 
     # Status codes that always resolve to a specific internal status
     _CODE_MAP: dict[str, str] = {
         "api:created": "sent",
         "api:received": "pending",
-        "api:rejected": "error",
         "ppf:003": "pending",  # transmitted to PPF
         "ppf:004": "done",     # accepted by PPF
-        "ppf:005": "error",    # rejected by PPF
+        # French PPF lifecycle status codes (fr:NNN)
+        "fr:200": "sent",      # Submitted
+        "fr:201": "pending",   # Sent
+        "fr:202": "pending",   # Received
+        "fr:203": "pending",   # Made available
+        "fr:208": "pending",   # On hold
+        "fr:209": "done",      # Completed
+        "fr:211": "done",      # Payment sent
+        "fr:212": "done",      # Payment received
     }
-    _DONE_CODES = {"fr:204", "fr:205", "fr:206"}
-    _ERROR_CODES = {"fr:207", "api:rejected", "ppf:005"}
+    _DONE_CODES = {"fr:204", "fr:205", "fr:206"}  # Acknowledged / Accepted / Partly accepted
+    # Terminal rejections (the document was refused by the PPF / recipient).
+    _REJECTED_CODES = {"fr:210", "fr:213", "api:rejected", "ppf:005"}  # Refused / Rejected
+    _ERROR_CODES = {"fr:207", "fr:501"}  # Disputed / Inadmissible
 
     def __init__(self, client_id: str, client_secret: str, base_url: str = None, disable_pre_check: bool = False):
         if not requests:
@@ -644,6 +654,8 @@ class SuperPDPClient:
     def _map_code(self, code: str) -> str:
         if code in self._DONE_CODES:
             return "done"
+        if code in self._REJECTED_CODES:
+            return "rejected"
         if code in self._ERROR_CODES:
             return "error"
         return self._CODE_MAP.get(code, "pending")
@@ -651,9 +663,9 @@ class SuperPDPClient:
     def _collect_error_details(self, events: list[dict]) -> str | None:
         reasons = []
         for ev in events:
-            if self._map_code(ev.get("status_code", "")) == "error":
+            if self._map_code(ev.get("status_code", "")) in ("error", "rejected"):
                 for detail in ev.get("details", []):
-                    reason = detail.get("reason")
+                    reason = detail.get("reason") or detail.get("message")
                     if reason:
                         reasons.append(reason)
                 ev_reason = ev.get("data", {}).get("reason")

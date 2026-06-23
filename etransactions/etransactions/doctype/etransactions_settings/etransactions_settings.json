@@ -15,6 +15,8 @@
   "facturx_section",
   "generate_facturx_on_submit",
   "block_submission_on_facturx_failure",
+  "french_ctc_section",
+  "default_business_process_code",
   "purchase_invoices_tab",
   "purchase_invoices_section",
   "no_purchase_order",
@@ -61,6 +63,18 @@
    "fieldname": "block_submission_on_facturx_failure",
    "fieldtype": "Check",
    "label": "Block submission if FacturX PDF generation fails"
+  },
+  {
+   "fieldname": "french_ctc_section",
+   "fieldtype": "Section Break",
+   "label": "French CTC (PPF)"
+  },
+  {
+   "default": "B2",
+   "description": "Business process code (BT-23) carried by French CTC invoices. Must be one of B1, S1, M1, B2, S2, M2, B4, S4, M4, S5, S6, B7, S7 (BR-FR-08).",
+   "fieldname": "default_business_process_code",
+   "fieldtype": "Data",
+   "label": "Default Business Process Code (BT-23)"
   },
   {
    "fieldname": "purchase_invoices_tab",

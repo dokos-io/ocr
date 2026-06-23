@@ -134,7 +134,7 @@ etransactions.lifecycle = {
 	},
 
 	ribbon_html(pa_status) {
-		const error = pa_status === "error";
+		const error = pa_status === "error" || pa_status === "rejected";
 		const reached = this.PA_RIBBON.findIndex((s) => s.key === pa_status);
 		const steps = this.PA_RIBBON.map((s, i) => {
 			let cls = "";

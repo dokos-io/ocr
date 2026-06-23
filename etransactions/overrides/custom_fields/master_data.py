@@ -177,6 +177,35 @@ company_fields = [
 				"cadence to the French tax administration (PPF)."
 			),
 		},
+		{
+			"fieldname": "etransactions_mentions_section",
+			"label": _("Mandatory French Invoice Mentions"),
+			"fieldtype": "Section Break",
+			"insert_after": "etransactions_vat_regime",
+			"collapsible": 1,
+			"description": _(
+				"Legal mentions required on French invoices (BR-FR-05). Left blank, "
+				"standard legal default texts are used."
+			),
+		},
+		{
+			"fieldname": "etransactions_mention_late_penalty",
+			"label": _("Late-Payment Penalties (PMD)"),
+			"fieldtype": "Small Text",
+			"insert_after": "etransactions_mentions_section",
+		},
+		{
+			"fieldname": "etransactions_mention_recovery_costs",
+			"label": _("Recovery Costs (PMT)"),
+			"fieldtype": "Small Text",
+			"insert_after": "etransactions_mention_late_penalty",
+		},
+		{
+			"fieldname": "etransactions_mention_discount",
+			"label": _("Early-Payment Discount (AAB)"),
+			"fieldtype": "Small Text",
+			"insert_after": "etransactions_mention_recovery_costs",
+		},
 ]
 
 customer_group_fields = [

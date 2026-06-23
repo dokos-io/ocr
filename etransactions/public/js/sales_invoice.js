@@ -91,7 +91,7 @@ function _add_pa_buttons(frm) {
 			const pa_status = data.pa_status;
 			const pa_flow_id = data.pa_flow_id;
 
-			if (!pa_flow_id || ["created", "", "error"].includes(pa_status || "")) {
+			if (!pa_flow_id || ["created", "", "error", "rejected"].includes(pa_status || "")) {
 				frm.add_custom_button(__("Send to the accredited platform"), () => {
 					const send = () => {
 						frappe.call({
@@ -104,7 +104,7 @@ function _add_pa_buttons(frm) {
 							},
 						});
 					};
-					if (pa_status === "error") {
+					if (pa_status === "error" || pa_status === "rejected") {
 						frappe.confirm(
 							__("The previous submission was rejected by the accredited platform. Send this e-invoice again?"),
 							send

@@ -198,9 +198,9 @@ def _ensure_test_item() -> str:
 
 
 def _resolve_profile() -> str:
-	# EN16931 is the interoperable CEN profile expected for a Peppol B2B send;
-	# the FACTUR-X EXTENDED profiles add BR-FXEXT-* rules that reject the minimal
-	# test invoice, so prefer EN16931 and fall back to any available profile.
+	# Use the EN16931 profile: the PPF accredited platform recognises its guideline
+	# (BT-24) and applies the French CDV rules on top. The generator adds the French
+	# legal mentions and business-process code because the sale is French-domestic.
 	for preferred in ("EN16931", "BASIC"):
 		if frappe.db.exists("eTransaction Profile", preferred):
 			return preferred

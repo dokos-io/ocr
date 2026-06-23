@@ -31,6 +31,27 @@ if TYPE_CHECKING:
 	from etransactions.etransactions.doctype.einvoice_item.einvoice_item import eInvoiceItem
 
 
+# Fallback BT-23 business-process code for French CTC invoices when none is
+# configured in eTransactions Settings (the platform requires one of
+# B1/S1/M1/B2/S2/M2/B4/S4/M4/S5/S6/B7/S7 — see BR-FR-08).
+DEFAULT_FR_BUSINESS_PROCESS = "B2"
+
+# Mandatory French legal mentions (BR-FR-05). Used when the Company has not
+# overridden them. Subject codes: PMD = late-payment penalties, PMT = recovery
+# costs, AAB = early-payment discount.
+DEFAULT_FR_MENTIONS = {
+	"PMD": (
+		"En cas de retard de paiement, des pénalités de retard sont exigibles le jour suivant la "
+		"date de règlement figurant sur la facture, au taux de trois fois le taux d'intérêt légal "
+		"(article L441-10 du Code de commerce)."
+	),
+	"PMT": (
+		"Une indemnité forfaitaire de 40 € pour frais de recouvrement est due en cas de retard de "
+		"paiement (articles L441-10 et D441-5 du Code de commerce)."
+	),
+	"AAB": "Pas d'escompte pour paiement anticipé.",
+}
+
 uom_codes = CommonCodeRetriever(
 	["urn:xoev-de:kosit:codeliste:rec20_3", "urn:xoev-de:kosit:codeliste:rec21_3"], "C62"
 )
@@ -157,11 +178,29 @@ class EInvoiceMapper:
 			self.buyer_contact = frappe.get_doc("Contact", self.sales_invoice.contact_person)
 
 	def map_electronic_addresses(self):
-		if self.company.etransactions_electronic_address_scheme and self.company.etransactions_electronic_address:
-			self.einvoice.seller_electronic_address_scheme = frappe.db.get_value(
-				"Common Code", self.company.etransactions_electronic_address_scheme, "common_code"
+		from etransactions.plateforme_agreee.routing import resolve_routing, identifier_to_electronic_address
+
+		def resolve_address(scheme_common_code, raw_value):
+			# A stored value may already carry its scheme as a "<scheme>:<value>"
+			# prefix (e.g. a Peppol identifier like "0225:315143296_36"). The URIID
+			# value must not contain the scheme separator, so split it out rather
+			# than emit "0225:0225:..." (rejected by BR-FR-23/BT-34).
+			if raw_value and ":" in raw_value:
+				return identifier_to_electronic_address(raw_value)
+			scheme = (
+				frappe.db.get_value("Common Code", scheme_common_code, "common_code")
+				if scheme_common_code
+				else None
 			)
-			self.einvoice.seller_electronic_address = self.company.etransactions_electronic_address
+			return scheme, raw_value
+
+		if self.company.etransactions_electronic_address_scheme and self.company.etransactions_electronic_address:
+			scheme, value = resolve_address(
+				self.company.etransactions_electronic_address_scheme,
+				self.company.etransactions_electronic_address,
+			)
+			self.einvoice.seller_electronic_address_scheme = scheme
+			self.einvoice.seller_electronic_address = value
 		elif self.seller_contact and self.seller_contact.email_id:
 			self.einvoice.seller_electronic_address_scheme = "EM"
 			self.einvoice.seller_electronic_address = self.seller_contact.email_id
@@ -172,8 +211,6 @@ class EInvoiceMapper:
 		# Buyer electronic address (BT-49). The accredited-platform directory line
 		# for this establishment is authoritative; the manual fields and contact
 		# email are fallbacks for parties not present in the directory.
-		from etransactions.plateforme_agreee.routing import resolve_routing, identifier_to_electronic_address
-
 		line_name = resolve_routing(
 			"Customer", self.sales_invoice.customer, self.sales_invoice.get("customer_address")
 		)
@@ -187,10 +224,12 @@ class EInvoiceMapper:
 			self.einvoice.buyer_electronic_address_scheme = scheme
 			self.einvoice.buyer_electronic_address = value
 		elif self.customer.etransactions_electronic_address_scheme and self.customer.etransactions_electronic_address:
-			self.einvoice.buyer_electronic_address_scheme = frappe.db.get_value(
-				"Common Code", self.customer.etransactions_electronic_address_scheme, "common_code"
+			scheme, value = resolve_address(
+				self.customer.etransactions_electronic_address_scheme,
+				self.customer.etransactions_electronic_address,
 			)
-			self.einvoice.buyer_electronic_address = self.customer.etransactions_electronic_address
+			self.einvoice.buyer_electronic_address_scheme = scheme
+			self.einvoice.buyer_electronic_address = value
 		elif self.sales_invoice.contact_email:
 			self.einvoice.buyer_electronic_address_scheme = "EM"
 			self.einvoice.buyer_electronic_address = self.sales_invoice.contact_email
@@ -407,9 +446,31 @@ class EInvoiceGenerator:
 		self.doc.trade.agreement.additional_references.add(ref_doc)
 
 	def _set_context(self):
-		"""Set default context according to XRechnung 3.0.2"""
-		self.doc.context.business_parameter.id = "urn:fdc:peppol.eu:2017:poacc:billing:01:1.0"
+		"""Set the document context (BT-23 business process + BT-24 guideline).
+
+		The guideline (BT-24) stays the one for the document's profile — the PPF
+		accredited platform validates French invoices against the standard EN16931 /
+		Factur-X guideline and applies the French CDV rules on top. Only the
+		business process (BT-23) switches to the French code for domestic invoices.
+		"""
+		if self._is_french_domestic():
+			# The French CTC (PPF) rejects the Peppol process URN and requires a
+			# code from B1/S1/M1/B2/... (BR-FR-08/BT-23).
+			self.doc.context.business_parameter.id = (
+				frappe.db.get_single_value("eTransactions Settings", "default_business_process_code")
+				or DEFAULT_FR_BUSINESS_PROCESS
+			)
+		else:
+			self.doc.context.business_parameter.id = "urn:fdc:peppol.eu:2017:poacc:billing:01:1.0"
 		self.doc.context.guideline_parameter.id = get_guideline(self.profile)
+
+	def _is_french_domestic(self) -> bool:
+		"""True for a French domestic invoice (French seller and French buyer).
+
+		These go through the PPF and must carry the French legal mentions and
+		business-process code; exports/intra-EU sales keep the generic Peppol form.
+		"""
+		return self.einvoice.seller_country == "France" and self.einvoice.buyer_country == "France"
 
 	def _set_header(self):
 		self.doc.header.id = self.einvoice.id
@@ -452,6 +513,28 @@ class EInvoiceGenerator:
 		if self.einvoice.incoterm:
 			note = IncludedNote(subject_code="AAR")  # Terms of delivery
 			note.content.add(f"{self.einvoice.incoterm} {self.einvoice.named_place or ''}".strip())
+			self.doc.header.notes.add(note)
+
+		self._add_french_mandatory_mentions()
+
+	def _add_french_mandatory_mentions(self):
+		"""Add the mandatory French legal mentions (BR-FR-05) for CTC invoices.
+
+		The PPF requires late-payment penalties (PMD), recovery costs (PMT) and the
+		early-payment discount mention (AAB) in the invoice notes (BG-1). Texts come
+		from the Company, falling back to standard legal defaults.
+		"""
+		if not self._is_french_domestic():
+			return
+
+		mentions = {
+			"PMD": self.company.get("etransactions_mention_late_penalty"),
+			"PMT": self.company.get("etransactions_mention_recovery_costs"),
+			"AAB": self.company.get("etransactions_mention_discount"),
+		}
+		for subject_code, text in mentions.items():
+			note = IncludedNote(subject_code=subject_code)
+			note.content.add((text or DEFAULT_FR_MENTIONS[subject_code]).strip())
 			self.doc.header.notes.add(note)
 
 	def _set_seller(self):
@@ -566,8 +649,10 @@ class EInvoiceGenerator:
 			self.doc.trade.agreement.buyer.legal_organization.id = ("0002", buyer_siren.strip())
 
 	def _set_buyer_tax_id(self):
-		is_vat_added = False
-
+		# A buyer carries only a VAT identifier (BT-48, schemeID "VA"). Unlike the
+		# seller (BT-32/FC), EN16931 has no buyer tax-registration for the SIREN —
+		# that lives in SpecifiedLegalOrganization (BT-47). Emitting an "FC" buyer
+		# tax registration is rejected by the French CTC (schemeID not allowed).
 		if self.einvoice.buyer_tax_id:
 			raw = self.einvoice.buyer_tax_id.strip()
 			try:
@@ -575,19 +660,8 @@ class EInvoiceGenerator:
 				self.doc.trade.agreement.buyer.tax_registrations.add(
 					TaxRegistration(id=("VA", customer_tax_id))
 				)
-				is_vat_added = True
 			except ValueError:
-				self.doc.trade.agreement.buyer.tax_registrations.add(
-					TaxRegistration(id=("FC", raw))
-				)
-
-		# Add SIREN as FC when: the primary ID is a VAT number (so SIREN is separate),
-		# or when there is no Tax ID at all but a SIREN is known.
-		buyer_siren = self.customer.get("siren_number")
-		if buyer_siren and (is_vat_added or not self.einvoice.buyer_tax_id):
-			self.doc.trade.agreement.buyer.tax_registrations.add(
-				TaxRegistration(id=("FC", buyer_siren.strip()))
-			)
+				pass
 
 	def _set_buyer_address(self):
 		if not self.einvoice.buyer_address_line_1:

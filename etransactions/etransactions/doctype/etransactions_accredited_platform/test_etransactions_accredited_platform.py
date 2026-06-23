@@ -4,7 +4,7 @@
 from unittest.mock import patch
 
 import frappe
-from frappe.tests import IntegrationTestCase
+from frappe.tests import IntegrationTestCase, UnitTestCase
 
 from etransactions.plateforme_agreee import sandbox
 from etransactions.plateforme_agreee.routing import (
@@ -72,3 +72,23 @@ class IntegrationTesteTransactionsAccreditedPlatform(IntegrationTestCase):
 
 		with self.assertRaises(frappe.ValidationError):
 			sandbox.send_superpdp_test_invoice(platform.name)
+
+
+class UnitTestSuperPDPStatus(UnitTestCase):
+	"""Pure-logic tests for SuperPDP status-code mapping (no DB fixtures)."""
+
+	def test_rejection_status_mapping(self):
+		"""A platform rejection (fr:213) maps to 'rejected', not 'pending', and its
+		reasons are captured so the eInvoice can surface them."""
+		from etransactions.components.superpdp.client import SuperPDPClient
+
+		client = SuperPDPClient("id", "secret")
+		self.assertEqual(client._map_code("fr:213"), "rejected")  # Rejected
+		self.assertEqual(client._map_code("fr:210"), "rejected")  # Refused
+		self.assertEqual(client._map_code("fr:501"), "error")     # Inadmissible
+		self.assertEqual(client._map_code("fr:205"), "done")      # Accepted
+		self.assertEqual(client._map_code("fr:201"), "pending")   # Sent
+
+		events = [{"status_code": "fr:213", "details": [{"reason": "BR-FR-05/BT-22 missing"}]}]
+		self.assertEqual(client._derive_status(events), "rejected")
+		self.assertIn("BR-FR-05", client._collect_error_details(events))
