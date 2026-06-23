@@ -46,31 +46,36 @@ purchasing_fields = [
 	},
 ]
 
+# Shared reference field definitions. Placed in the Details area on orders, and moved
+# into the eInvoice tab on Sales Invoice (see selling_fields vs sales_invoicing_fields).
+buyer_reference_field = {
+	"fieldname": "etransactions_buyer_reference",
+	"label": _("Buyer Reference"),
+	"fieldtype": "Data",
+	"fetch_from": "customer.etransactions_buyer_reference",
+	"fetch_if_empty": 1,
+}
+
+contract_reference_field = {
+	"fieldname": "etransactions_contract_reference",
+	"label": _("Contract Reference"),
+	"description": _("Public-procurement contract number (numéro de marché, BT-12). Used for B2G / Chorus Pro."),
+	"fieldtype": "Data",
+	"fetch_from": "customer.etransactions_contract_reference",
+	"fetch_if_empty": 1,
+}
+
+# Orders: references stay in the Details area after tax_id.
 selling_fields = [
-	{
-		"fieldname": "etransactions_buyer_reference",
-		"label": _("Buyer Reference"),
-		"insert_after": "tax_id",
-		"fieldtype": "Data",
-		"fetch_from": "customer.etransactions_buyer_reference",
-		"fetch_if_empty": 1,
-	},
-	{
-		"fieldname": "etransactions_contract_reference",
-		"label": _("Contract Reference"),
-		"description": _("Public-procurement contract number (numéro de marché, BT-12). Used for B2G / Chorus Pro."),
-		"insert_after": "etransactions_buyer_reference",
-		"fieldtype": "Data",
-		"fetch_from": "customer.etransactions_contract_reference",
-		"fetch_if_empty": 1,
-	},
+	{**buyer_reference_field, "insert_after": "tax_id"},
+	{**contract_reference_field, "insert_after": "etransactions_buyer_reference"},
 ]
 
 sales_invoicing_fields = [
 	{
 		"fieldname": "etransactions_tab",
 		"fieldtype": "Tab Break",
-		"label": _("eTransactions"),
+		"label": _("eInvoice"),
 		"insert_after": "terms",
 	},
 	{
@@ -82,11 +87,13 @@ sales_invoicing_fields = [
 		"fetch_from": "customer.etransaction_profile",
 		"fetch_if_empty": 1,
 	},
+	{**buyer_reference_field, "insert_after": "etransaction_profile"},
+	{**contract_reference_field, "insert_after": "etransactions_buyer_reference"},
 	{
 		"fieldname": "etransactions_status_html",
 		"fieldtype": "HTML",
 		"label": "",
-		"insert_after": "etransaction_profile",
+		"insert_after": "etransactions_contract_reference",
 	},
 ]
 
@@ -94,7 +101,7 @@ purchase_invoicing_fields = [
 	{
 		"fieldname": "etransactions_tab",
 		"fieldtype": "Tab Break",
-		"label": _("eTransactions"),
+		"label": _("eInvoice"),
 		"insert_after": "terms",
 	},
 	{
@@ -129,5 +136,5 @@ TRANSACTION_FIELDS: dict = {
 		},
 	],
 	"Sales Order": selling_fields,
-	"Sales Invoice": selling_fields + sales_invoicing_fields,
+	"Sales Invoice": sales_invoicing_fields,
 }
