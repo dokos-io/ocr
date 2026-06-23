@@ -90,9 +90,24 @@ sales_invoicing_fields = [
 	},
 ]
 
+purchase_invoicing_fields = [
+	{
+		"fieldname": "etransactions_tab",
+		"fieldtype": "Tab Break",
+		"label": _("eTransactions"),
+		"insert_after": "terms",
+	},
+	{
+		"fieldname": "etransactions_status_html",
+		"fieldtype": "HTML",
+		"label": "",
+		"insert_after": "etransactions_tab",
+	},
+]
+
 TRANSACTION_FIELDS: dict = {
 	"Purchase Order": purchasing_fields,
-	"Purchase Invoice": purchasing_fields,
+	"Purchase Invoice": purchasing_fields + purchase_invoicing_fields,
 	"Purchase Order Item": [
 		{
 			"fieldname": "ocr_request_line_item",

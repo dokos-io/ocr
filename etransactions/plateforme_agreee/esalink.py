@@ -26,6 +26,12 @@ class ESALINKClient:
     def __init__(self, pyfrctc_session):
         self._session = pyfrctc_session
 
+    def healthcheck(self) -> None:
+        """Probe connectivity using pyfrctc's healthcheck on the session."""
+        from pyfrctc import healthcheck as _healthcheck
+
+        _healthcheck(self._session)
+
     # -------------------------------------------------------------------------
     # Unified platform client interface
     # -------------------------------------------------------------------------

@@ -44,13 +44,25 @@ class eTransactionsSettings(Document):
 
 	@frappe.whitelist()
 	def test_connection(self, company: str):
-		"""Test the API connection for the given company's platform credentials."""
-		try:
-			from etransactions.plateforme_agreee.session import get_session
-			from pyfrctc import healthcheck
-		except ImportError:
-			frappe.throw(_("The pyfrctc library is not installed. Run 'pip install pyfrctc' or check your bench dependencies."))
+		"""Test the active platform connection for the given company (any type)."""
+		from etransactions.plateforme_agreee.session import (
+			check_platform_health,
+			get_platform_for_context,
+		)
 
-		session = get_session(company)
-		healthcheck(session)
-		frappe.msgprint(_("Connection to eTransactions Accredited Platform successful for {0}").format(company), alert=True, indicator="green")
+		platform_name = get_platform_for_context(company)
+		if not platform_name:
+			frappe.throw(_("No eTransactions Accredited Platform configured for company {0}.").format(company))
+
+		result = check_platform_health(platform_name)
+		if result["status"] == "ok":
+			frappe.msgprint(
+				_("Connection to eTransactions Accredited Platform successful for {0}").format(company),
+				alert=True,
+				indicator="green",
+			)
+		else:
+			frappe.throw(
+				_("Connection failed for {0}: {1}").format(company, result["message"]),
+				title=_("Connection failed"),
+			)

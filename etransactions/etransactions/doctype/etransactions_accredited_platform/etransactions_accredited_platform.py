@@ -25,6 +25,9 @@ class eTransactionsAccreditedPlatform(Document):
 		description: DF.Text | None
 		directory_refresh_days: DF.Int
 		is_active: DF.Check
+		last_health_check: DF.Datetime | None
+		last_health_message: DF.SmallText | None
+		last_health_status: DF.Literal["unknown", "ok", "error"]
 		platform_code: DF.Data
 		platform_name: DF.Data
 		platform_type: DF.Literal["Custom", "SuperPDP", "Esalink"]
@@ -49,7 +52,7 @@ def get_platforms(company=None, transaction_type=None):
 
 	platforms = frappe.get_all(
 		"eTransactions Accredited Platform",
-		fields=["name", "platform_name", "platform_type", "platform_code", "company", "transaction_type", "is_active", "api_base_url", "description", "auto_send_on_submit", "directory_refresh_days"],
+		fields=["name", "platform_name", "platform_type", "platform_code", "company", "transaction_type", "is_active", "api_base_url", "description", "auto_send_on_submit", "directory_refresh_days", "last_health_status", "last_health_check", "last_health_message"],
 		filters=filters,
 		order_by="company, platform_name"
 	)

@@ -110,6 +110,10 @@ class AFNORClient:
             self._fetch_token()
         return self._access_token
 
+    def healthcheck(self) -> None:
+        """Probe connectivity by acquiring an OAuth2 token."""
+        self._token()
+
     def _headers(self, extra: dict | None = None) -> dict:
         h = {"Authorization": f"Bearer {self._token()}"}
         if extra:

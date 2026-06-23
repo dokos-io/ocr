@@ -20,7 +20,11 @@
   "credentials_section",
   "redirect_url_html",
   "client_id",
-  "client_secret"
+  "client_secret",
+  "health_section",
+  "last_health_status",
+  "last_health_check",
+  "last_health_message"
  ],
  "fields": [
   {
@@ -122,6 +126,31 @@
    "fieldtype": "Password",
    "label": "Client Secret",
    "reqd": 1
+  },
+  {
+   "fieldname": "health_section",
+   "fieldtype": "Section Break",
+   "label": "Connection Health"
+  },
+  {
+   "default": "unknown",
+   "fieldname": "last_health_status",
+   "fieldtype": "Select",
+   "label": "Last Health Status",
+   "options": "unknown\nok\nerror",
+   "read_only": 1
+  },
+  {
+   "fieldname": "last_health_check",
+   "fieldtype": "Datetime",
+   "label": "Last Checked",
+   "read_only": 1
+  },
+  {
+   "fieldname": "last_health_message",
+   "fieldtype": "Small Text",
+   "label": "Last Health Message",
+   "read_only": 1
   }
  ],
  "links": [],

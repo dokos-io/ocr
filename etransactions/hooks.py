@@ -42,6 +42,7 @@ app_include_css = "etransactions.bundle.css"
 doctype_js = {
 	"Communication" : "public/js/communication.js",
 	"Customer": "public/js/customer.js",
+	"Supplier": "public/js/supplier.js",
 	"Purchase Invoice": "public/js/purchase_invoice.js",
 	"Purchase Order": "public/js/purchase_order.js",
 	"Sales Invoice": "public/js/sales_invoice.js",
@@ -231,6 +232,7 @@ scheduler_events = {
 	],
 	"daily": [
 		"etransactions.plateforme_agreee.directory.sync_all_customers",
+		"etransactions.plateforme_agreee.session.run_all_health_checks",
 		"etransactions.etransactions.doctype.einvoicing_log.einvoicing_log.vacuum_old_logs",
 		"etransactions.etransactions_hub.doctype.accounting_request.accounting_request.notify_overdue_requests",
 	],

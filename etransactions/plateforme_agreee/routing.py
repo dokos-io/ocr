@@ -80,7 +80,11 @@ def identifier_to_electronic_address(identifier: str) -> tuple[str, str]:
 
 
 def address_for_siret(party_type: str, party: str, siret: str | None) -> str | None:
-	"""Return the name of the party's Address whose SIRET matches ``siret``."""
+	"""Return the name of the party's Address whose SIRET matches ``siret``.
+
+	The establishment SIRET lives on the standard ``Address.siret_number`` field
+	(erpnext France regional setup).
+	"""
 	if not (siret and party_type and party):
 		return None
 	address_names = frappe.get_all(
@@ -90,7 +94,9 @@ def address_for_siret(party_type: str, party: str, siret: str | None) -> str | N
 	)
 	if not address_names:
 		return None
-	return frappe.db.get_value("Address", {"name": ["in", address_names], "siret": siret}, "name")
+	return frappe.db.get_value(
+		"Address", {"name": ["in", address_names], "siret_number": siret}, "name"
+	)
 
 
 def resolve_routing(party_type: str, party: str | None, address: str | None = None):

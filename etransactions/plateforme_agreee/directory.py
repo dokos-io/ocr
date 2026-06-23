@@ -32,6 +32,55 @@ def sync_customer_directory(customer: str, company: str = None):
 	)
 
 
+@frappe.whitelist()
+def get_party_establishments(party_type: str, party: str) -> list[dict]:
+	"""Return the party's addresses (establishments) with their SIRET, buyer
+	reference and the directory line bound to each one.
+
+	Used by the master-data readiness wizard's "Establishments & routing" step.
+	"""
+	party_field = "customer" if party_type == "Customer" else "supplier"
+
+	address_names = frappe.get_all(
+		"Dynamic Link",
+		filters={"parenttype": "Address", "link_doctype": party_type, "link_name": party},
+		pluck="parent",
+	)
+	if not address_names:
+		return []
+
+	addresses = frappe.get_all(
+		"Address",
+		filters={"name": ["in", address_names], "disabled": 0},
+		fields=[
+			"name", "address_title", "address_type", "siret_number",
+			"etransactions_buyer_reference", "is_primary_address",
+		],
+		order_by="is_primary_address desc, address_title",
+	)
+
+	out = []
+	for a in addresses:
+		line = None
+		if a.siret_number:
+			line = frappe.db.get_value(
+				"eInvoicing Directory Line",
+				{party_field: party, "address": a.name},
+				["name", "line_status", "routing_code_name", "commitment_required"],
+				as_dict=True,
+			)
+		out.append({
+			"address": a.name,
+			"title": a.address_title,
+			"address_type": a.address_type,
+			"siret_number": a.siret_number,
+			"buyer_reference": a.etransactions_buyer_reference,
+			"is_primary": a.is_primary_address,
+			"line": line,
+		})
+	return out
+
+
 def sync_all_customers():
 	"""Cron entry point: sync stale directory lines for all customers across all configured companies."""
 	companies = frappe.db.get_all(

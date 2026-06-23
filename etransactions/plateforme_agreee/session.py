@@ -1,5 +1,49 @@
 import frappe
 from frappe import _
+from frappe.utils import now_datetime
+
+
+# Per-platform-type capabilities. ``self_provision`` advertises an in-app
+# account-creation flow; all current platforms register credentials in their own
+# portal (manual), but the guided dialog reads this map so an automated branch
+# can be switched on per platform later without UI rework.
+PLATFORM_CAPABILITIES = {
+	"SuperPDP": {"self_provision": False},
+	"Esalink": {"self_provision": False},
+	"Custom": {"self_provision": False},
+}
+
+
+@frappe.whitelist()
+def get_platform_capabilities() -> dict:
+	"""Expose PLATFORM_CAPABILITIES to the client (registration dialog)."""
+	return PLATFORM_CAPABILITIES
+
+
+def _build_client(platform_type, client_id, client_secret, api_base_url=None, platform_code=None):
+	"""Instantiate the right PA client from raw credentials.
+
+	Construction performs authentication (OAuth for SuperPDP/AFNOR, a pyfrctc
+	session for Esalink), so a successful build doubles as a connection probe.
+	Raises on failure.
+	"""
+	if platform_type == "SuperPDP":
+		from etransactions.components.superpdp import SuperPDPClient
+		return SuperPDPClient(client_id, client_secret, base_url=api_base_url or None)
+
+	if platform_type == "Custom":
+		from etransactions.components.afnor import AFNORClient
+		return AFNORClient(client_id, client_secret, base_url=api_base_url or "")
+
+	# Esalink — pyfrctc session
+	try:
+		from pyfrctc import get_session as _get_session
+	except ImportError:
+		frappe.throw(_("The pyfrctc library is not installed. Check your bench dependencies."))
+	if not platform_code:
+		frappe.throw(_("No platform code configured for this Esalink platform."))
+	from etransactions.plateforme_agreee.esalink import ESALINKClient
+	return ESALINKClient(_get_session(client_id, client_secret, platform=platform_code))
 
 
 def get_platform_for_context(company: str, customer: str = None, transaction_type: str = "sales"):
@@ -81,48 +125,18 @@ def get_client(company: str, customer: str = None, transaction_type: str = "sale
 		)
 
 	platform_doc = frappe.get_cached_doc("eTransactions Accredited Platform", platform_name)
-	client_id = platform_doc.get_password("client_id")
-	client_secret = platform_doc.get_password("client_secret")
-
-	if platform_doc.platform_type == "SuperPDP":
-		from etransactions.components.superpdp import SuperPDPClient
-		base_url = platform_doc.api_base_url or None
-		try:
-			return SuperPDPClient(client_id, client_secret, base_url=base_url)
-		except Exception as e:
-			frappe.throw(
-				_("Failed to initialise SuperPDP client for company {0}: {1}").format(company, str(e))
-			)
-
-	if platform_doc.platform_type == "Custom":
-		from etransactions.components.afnor import AFNORClient
-		try:
-			return AFNORClient(client_id, client_secret, base_url=platform_doc.api_base_url or "")
-		except Exception as e:
-			frappe.throw(
-				_("Failed to initialise AFNOR client for company {0}: {1}").format(company, str(e))
-			)
-
-	# Esalink — use pyfrctc
 	try:
-		from pyfrctc import get_session as _get_session
-	except ImportError:
-		frappe.throw(_("The pyfrctc library is not installed. Check your bench dependencies."))
-
-	platform_code = platform_doc.platform_code
-	if not platform_code:
-		frappe.throw(
-			_("No platform code configured for company {0}. Check the eTransactions Accredited Platform settings.").format(company)
+		return _build_client(
+			platform_doc.platform_type,
+			platform_doc.get_password("client_id"),
+			platform_doc.get_password("client_secret"),
+			api_base_url=platform_doc.api_base_url,
+			platform_code=platform_doc.platform_code,
 		)
-
-	from etransactions.plateforme_agreee.esalink import ESALINKClient
-	try:
-		session = _get_session(client_id, client_secret, platform=platform_code)
-		return ESALINKClient(session)
 	except Exception as e:
 		frappe.throw(
-			_("Failed to connect to eTransactions Accredited Platform ({0}) for company {1}: {2}").format(
-				platform_code, company, str(e)
+			_("Failed to connect to eTransactions Accredited Platform for company {0}: {1}").format(
+				company, str(e)
 			)
 		)
 
@@ -167,3 +181,76 @@ def get_session(company: str, customer: str = None, transaction_type: str = "sal
 				platform_code, company, str(e)
 			)
 		)
+
+
+# ---------------------------------------------------------------------------
+# Connection health
+# ---------------------------------------------------------------------------
+
+
+@frappe.whitelist()
+def test_platform_credentials(platform_type, client_id, client_secret, api_base_url=None, platform_code=None):
+	"""Probe credentials without persisting anything (used before saving a platform).
+
+	Returns ``{"status": "ok"|"error", "message": str}`` — never raises, so the
+	dialog can render the outcome inline.
+	"""
+	frappe.only_for(("System Manager", "Accounts Manager"))
+	try:
+		client = _build_client(platform_type, client_id, client_secret, api_base_url, platform_code)
+		client.healthcheck()
+		return {"status": "ok", "message": _("Connection successful.")}
+	except Exception as e:
+		return {"status": "error", "message": str(e)}
+
+
+def check_platform_health(platform_name: str, store: bool = True) -> dict:
+	"""Probe a saved platform's connection and (by default) persist the outcome."""
+	doc = frappe.get_cached_doc("eTransactions Accredited Platform", platform_name)
+	try:
+		client = _build_client(
+			doc.platform_type,
+			doc.get_password("client_id"),
+			doc.get_password("client_secret"),
+			api_base_url=doc.api_base_url,
+			platform_code=doc.platform_code,
+		)
+		client.healthcheck()
+		status, message = "ok", _("Connection successful.")
+	except Exception as e:
+		status, message = "error", str(e)
+
+	if store:
+		frappe.db.set_value(
+			"eTransactions Accredited Platform",
+			platform_name,
+			{
+				"last_health_status": status,
+				"last_health_check": now_datetime(),
+				"last_health_message": message[:140],
+			},
+			update_modified=False,
+		)
+	return {"status": status, "message": message}
+
+
+@frappe.whitelist()
+def run_platform_health_check(platform_name: str) -> dict:
+	"""Whitelisted: probe one saved platform now and store the result."""
+	frappe.only_for(("System Manager", "Accounts Manager"))
+	result = check_platform_health(platform_name)
+	frappe.db.commit()
+	return result
+
+
+def run_all_health_checks():
+	"""Daily scheduler: refresh the connection health of every active platform."""
+	for name in frappe.get_all(
+		"eTransactions Accredited Platform", filters={"is_active": 1}, pluck="name"
+	):
+		try:
+			check_platform_health(name)
+			frappe.db.commit()
+		except Exception:
+			frappe.db.rollback()
+			frappe.log_error(frappe.get_traceback(), f"PA health check failed: {name}")

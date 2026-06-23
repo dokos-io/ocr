@@ -272,6 +272,13 @@ CUSTOM_FIELDS_TO_DELETE = [
 		"fieldname": "directory_siren",
 		"fieldtype": "Data",
 	},
+	# Removed: duplicated erpnext France's standard Address.siret_number, which
+	# routing now matches on. See plateforme_agreee/routing.py::address_for_siret.
+	{
+		"dt": "Address",
+		"fieldname": "siret",
+		"fieldtype": "Data",
+	},
 ]
 
 

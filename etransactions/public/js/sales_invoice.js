@@ -3,7 +3,11 @@
 
 frappe.ui.form.on("Sales Invoice", {
 	refresh(frm) {
-		if (frm.doc.docstatus === 1 && frm.doc.etransaction_profile) {
+		if (!frm.doc.etransaction_profile) return;
+
+		etransactions.invoiceReadiness.refresh(frm);
+
+		if (frm.doc.docstatus === 1) {
 			frm.add_custom_button(__("Download FacturX Invoice"), () => {
 				frappe.call({
 					method: "etransactions.overrides.sales_invoice.get_facturx_pdf",
@@ -16,42 +20,41 @@ frappe.ui.form.on("Sales Invoice", {
 				});
 			}, __("eInvoice"));
 
-			_refresh_einvoice_status(frm);
 			_add_pa_buttons(frm);
-		}
-
-		if (frm.doc.docstatus === 0 && frm.doc.etransaction_profile && !frm.is_new()) {
-			_refresh_einvoice_status(frm);
+			_attach_lifecycle(frm);
 		}
 	},
 
-	after_save(frm) {
-		if (frm.doc.docstatus === 0 && frm.doc.etransaction_profile) {
-			_refresh_einvoice_status(frm);
-		}
+	etransaction_profile: (frm) => etransactions.invoiceReadiness.refresh(frm),
+	customer: (frm) => etransactions.invoiceReadiness.refresh(frm),
+	customer_address: (frm) => etransactions.invoiceReadiness.refresh(frm),
+	company: (frm) => etransactions.invoiceReadiness.refresh(frm),
+	company_address: (frm) => etransactions.invoiceReadiness.refresh(frm),
+	po_no: (frm) => etransactions.invoiceReadiness.refresh(frm),
+	after_save: (frm) => etransactions.invoiceReadiness.refresh(frm),
+
+	before_submit(frm) {
+		if (!frm.doc.etransaction_profile) return;
+		return etransactions.invoiceReadiness.gate(frm);
 	},
 });
 
-function _refresh_einvoice_status(frm) {
+frappe.ui.form.on("Sales Taxes and Charges", {
+	charge_type: (frm) => etransactions.invoiceReadiness.refresh(frm),
+	taxes_remove: (frm) => etransactions.invoiceReadiness.refresh(frm),
+});
+
+function _attach_lifecycle(frm) {
 	frappe.call({
-		method: "etransactions.overrides.sales_invoice.get_einvoice_status",
-		args: { sales_invoice: frm.doc.name },
+		method: "etransactions.etransactions.doctype.einvoice.einvoice.get_transaction_einvoice",
+		args: { doctype: frm.doctype, name: frm.doc.name },
 		callback(r) {
-			const data = r.message;
-
-			if (!data || !data.einvoice) {
-				_render_status(frm, "gray", __("No eInvoice generated yet."), null, true);
-				return;
-			}
-
-			const { einvoice, errors, warnings, has_iban } = data;
-
-			if (errors) {
-				_render_status(frm, "red", errors, einvoice, has_iban);
-			} else if (warnings || !has_iban) {
-				_render_status(frm, "orange", warnings, einvoice, has_iban);
-			} else {
-				_render_status(frm, "green", "", einvoice, has_iban);
+			if (r.message) {
+				etransactions.lifecycle.attach(frm, {
+					einvoice: r.message.name,
+					side: r.message.side,
+					pa_status: r.message.pa_status,
+				});
 			}
 		},
 	});
@@ -97,60 +100,4 @@ function _add_pa_buttons(frm) {
 			}
 		},
 	});
-}
-
-function _render_status(frm, color, message, einvoice_name, has_iban) {
-	const field = frm.fields_dict.etransactions_status_html;
-	if (!field) return;
-
-	const wrapper = document.createElement("div");
-	wrapper.style.padding = "8px 0";
-
-	const pill = document.createElement("span");
-	pill.className = `indicator-pill ${color}`;
-
-	const labels = { green: __("eInvoice valid"), orange: __("eInvoice warnings"), red: __("eInvoice errors"), gray: __("eInvoice pending") };
-	pill.textContent = labels[color] || color;
-	wrapper.appendChild(pill);
-
-	const lines = (message || "").split("\n").filter(Boolean);
-	if (lines.length) {
-		const ul = document.createElement("ul");
-		ul.style.cssText = "font-size:var(--text-sm);color:var(--text-muted);margin:6px 0 4px 16px;";
-		lines.slice(0, 5).forEach(line => {
-			const li = document.createElement("li");
-			li.textContent = line;
-			ul.appendChild(li);
-		});
-		if (lines.length > 5) {
-			const li = document.createElement("li");
-			li.textContent = __("{0} more…", [lines.length - 5]);
-			ul.appendChild(li);
-		}
-		wrapper.appendChild(ul);
-	}
-
-	if (!has_iban) {
-		const hint = document.createElement("div");
-		hint.style.cssText = "font-size:var(--text-sm);color:var(--text-muted);margin-top:4px;";
-		const link = document.createElement("a");
-		link.href = "/app/bank-account";
-		link.textContent = __("Set up payment IBAN →");
-		hint.appendChild(document.createTextNode(__("No payment IBAN configured.") + " "));
-		hint.appendChild(link);
-		wrapper.appendChild(hint);
-	}
-
-	if (einvoice_name) {
-		const nav = document.createElement("div");
-		nav.style.cssText = "font-size:var(--text-sm);margin-top:6px;";
-		const link = document.createElement("a");
-		link.href = frappe.utils.get_form_link("eInvoice", einvoice_name);
-		link.textContent = __("Open eInvoice →");
-		nav.appendChild(link);
-		wrapper.appendChild(nav);
-	}
-
-	field.wrapper.innerHTML = "";
-	field.wrapper.appendChild(wrapper);
 }

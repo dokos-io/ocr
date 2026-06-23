@@ -507,6 +507,43 @@ def get_lifecycle_reason_codes(status: str) -> list[str]:
 
 
 @frappe.whitelist()
+def get_transaction_einvoice(doctype: str, name: str) -> dict | None:
+	"""Resolve the eInvoice (and its PA status) behind a Sales / Purchase Invoice.
+
+	Lets the transaction forms surface the lifecycle without leaving the document.
+	Returns ``None`` when no eInvoice has reached the platform yet.
+	"""
+	frappe.get_doc(doctype, name).check_permission("read")
+
+	einvoice = None
+	if doctype == "Sales Invoice":
+		einvoice = frappe.db.get_value(
+			"eInvoice", {"sales_invoice": name, "einvoice_type": "Outgoing"}, "name"
+		)
+	elif doctype == "Purchase Invoice":
+		einvoice = frappe.db.get_value("Supplier Invoice", {"original_invoice": name}, "einvoice")
+
+	if not einvoice:
+		return None
+
+	data = frappe.db.get_value(
+		"eInvoice", einvoice, ["name", "pa_status", "pa_flow_id", "einvoice_type"], as_dict=True
+	)
+	if not data or not data.pa_flow_id:
+		return None
+	data["side"] = "sale" if data.einvoice_type == "Outgoing" else "purchase"
+	return data
+
+
+@frappe.whitelist()
+def report_lifecycle_status(einvoice: str, status: str, **kwargs):
+	"""Thin wrapper so transaction forms can drive lifecycle on the linked eInvoice."""
+	doc = frappe.get_doc("eInvoice", einvoice)
+	doc.check_permission("write")
+	return doc.submit_lifecycle_status(status, **kwargs)
+
+
+@frappe.whitelist()
 @frappe.validate_and_sanitize_search_inputs
 def po_item_query(doctype: str, txt: str, searchfield: str, start: int, page_len: int, filters: dict, as_dict: bool | None = False):
 	item_code = filters.pop("item_code", None)

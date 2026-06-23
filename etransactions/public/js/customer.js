@@ -3,6 +3,11 @@
 
 frappe.ui.form.on("Customer", {
 	refresh(frm) {
+		if (frm.fields_dict.etransactions_wizard_html && etransactions.EinvoiceReadinessWizard) {
+			frm._et_wizard = frm._et_wizard || new etransactions.EinvoiceReadinessWizard(frm);
+			frm._et_wizard.refresh();
+		}
+
 		if (!frm.is_new()) {
 			frm.add_custom_button(__("Sync Directory Lines"), () => {
 				frappe.db

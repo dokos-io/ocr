@@ -144,6 +144,10 @@ class SuperPDPClient:
         """Return the company bound to the current OAuth2 credentials."""
         return self._request("GET", "/v1.beta/companies/me").json()
 
+    def healthcheck(self) -> None:
+        """Probe connectivity by fetching the bound company (forces OAuth)."""
+        self.get_company()
+
     def get_session_info(self) -> dict:
         """Return OAuth2 session metadata including KYB verification status."""
         return self._request("GET", "/v1.beta/oauth2_sessions/me").json()

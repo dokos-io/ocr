@@ -98,7 +98,7 @@ class TestDirectorySync(IntegrationTestCase):
 			"address_line1": "1 rue de Test",
 			"city": "Paris",
 			"country": "France",
-			"siret": siret,
+			"siret_number": siret,
 			"links": [{"link_doctype": "Customer", "link_name": customer}],
 		}).insert(ignore_permissions=True)
 		self.addCleanup(self._delete_address, addr.name)

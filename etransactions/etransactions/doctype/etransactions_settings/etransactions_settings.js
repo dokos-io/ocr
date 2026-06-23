@@ -62,6 +62,24 @@ function _render_platform_management(frm) {
 		);
 	});
 
+	$wrapper.on("click", ".btn-test-platform", function () {
+		const name = $(this).data("name");
+		frappe.call({
+			method: "etransactions.plateforme_agreee.session.run_platform_health_check",
+			args: { platform_name: name },
+			freeze: true,
+			freeze_message: __("Testing connection…"),
+			callback: (r) => {
+				const res = r.message || {};
+				frappe.show_alert({
+					message: res.message || res.status,
+					indicator: res.status === "ok" ? "green" : "red",
+				});
+				_load_platforms(frm);
+			},
+		});
+	});
+
 	$wrapper.on("click", ".btn-delete-platform", function () {
 		const name = $(this).data("name");
 		frappe.confirm(__("Delete this platform? This cannot be undone."), () => {
@@ -104,12 +122,22 @@ function _render_platform_table(frm, platforms) {
 		Custom: "et-type-badge--custom",
 	};
 	const TX_LABEL = { Both: __("Sales + Purchases"), Sales: __("Sales"), Purchases: __("Purchases") };
+	const HEALTH = {
+		ok: ["green", __("Connected")],
+		error: ["red", __("Error")],
+		unknown: ["gray", __("Not tested")],
+	};
 
 	let rows = "";
 	platforms.forEach((p) => {
 		const active_badge = p.is_active
 			? `<span class="indicator-pill green">${__("Active")}</span>`
 			: `<span class="indicator-pill gray">${__("Inactive")}</span>`;
+		const [health_color, health_label] = HEALTH[p.last_health_status || "unknown"] || HEALTH.unknown;
+		const health_title = p.last_health_check
+			? `${__("Last checked")}: ${frappe.datetime.str_to_user(p.last_health_check)}${p.last_health_message ? " — " + frappe.utils.escape_html(p.last_health_message) : ""}`
+			: __("Connection not tested yet");
+		const health_badge = `<span class="indicator-pill ${health_color}" title="${health_title}">${health_label}</span>`;
 		const type_badge = `<span class="et-type-badge ${TYPE_BADGE_MOD[p.platform_type] || "et-type-badge--custom"}">${frappe.utils.escape_html(p.platform_type)}</span>`;
 		const tx_label = TX_LABEL[p.transaction_type] || frappe.utils.escape_html(p.transaction_type);
 		const toggle_mod = p.is_active ? "et-icon-btn--deactivate" : "et-icon-btn--activate";
@@ -124,8 +152,12 @@ function _render_platform_table(frm, platforms) {
 				<td>${tx_label}</td>
 				<td><span class="et-platform-code">${frappe.utils.escape_html(p.platform_code)}</span></td>
 				<td>${active_badge}</td>
+				<td>${health_badge}</td>
 				<td>
 					<div class="et-btn-group">
+						<button class="et-icon-btn btn-test-platform" data-name="${p.name}" title="${__("Test connection")}">
+							${frappe.utils.icon("refresh")}
+						</button>
 						<button class="et-icon-btn btn-edit-platform" data-name="${p.name}" title="${__("Edit")}">
 							${frappe.utils.icon("edit")}
 						</button>
@@ -151,6 +183,7 @@ function _render_platform_table(frm, platforms) {
 						<th>${__("Transactions")}</th>
 						<th>${__("Code")}</th>
 						<th>${__("Status")}</th>
+						<th>${__("Health")}</th>
 						<th>${__("Actions")}</th>
 					</tr>
 				</thead>
@@ -231,6 +264,7 @@ function _open_platform_dialog(frm, existing_name = null, preset_type = null) {
 				fieldname: "client_secret",
 				label: __("Client Secret"),
 			},
+			{ fieldtype: "HTML", fieldname: "test_result_html" },
 			{ fieldtype: "Section Break", label: __("Options"), collapsible: 1 },
 			{
 				fieldtype: "Check",
@@ -315,6 +349,34 @@ function _open_platform_dialog(frm, existing_name = null, preset_type = null) {
 		}
 		_toggle_redirect_url(type);
 	};
+
+	// Inline connection test — probe the entered credentials before saving.
+	dialog.add_custom_action(__("Test connection"), () => {
+		const v = dialog.get_values(true) || {};
+		if (!v.client_id || !v.client_secret) {
+			frappe.show_alert({ message: __("Enter Client ID and Client Secret first."), indicator: "orange" });
+			return;
+		}
+		const $result = dialog.fields_dict.test_result_html.$wrapper;
+		$result.html(`<div class="text-muted small">${frappe.utils.icon("loading-indicator")} ${__("Testing…")}</div>`);
+		frappe.call({
+			method: "etransactions.plateforme_agreee.session.test_platform_credentials",
+			args: {
+				platform_type: v.platform_type,
+				client_id: v.client_id,
+				client_secret: v.client_secret,
+				api_base_url: v.api_base_url || null,
+				platform_code: v.platform_code || null,
+			},
+			callback(r) {
+				const res = r.message || {};
+				const color = res.status === "ok" ? "green" : "red";
+				$result.html(
+					`<div class="indicator-pill ${color}" style="margin-top:4px">${frappe.utils.escape_html(res.message || res.status)}</div>`
+				);
+			},
+		});
+	});
 
 	if (is_edit) {
 		frappe.call({
