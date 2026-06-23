@@ -182,6 +182,11 @@ etransactions.EinvoiceReadinessWizard = class EinvoiceReadinessWizard {
 			render_input: true,
 			only_input: false,
 			doc: this.frm.doc,
+			// doctype/docname are required alongside frm: refresh_input() reads the
+			// displayed value via frappe.model.get_value(doctype, docname, field).
+			// Without them the lookup returns null and the control renders empty.
+			doctype: this.frm.doctype,
+			docname: this.frm.docname,
 			frm: this.frm,
 		});
 		control.set_value(this.frm.doc[fieldname]);
@@ -197,10 +202,7 @@ etransactions.EinvoiceReadinessWizard = class EinvoiceReadinessWizard {
 			}
 		};
 		control.df.onchange = commit;
-		// Bind on `input` too (not just change/blur) so the model stays current as
-		// the user types and the form goes dirty immediately — controls that never
-		// blur before save (e.g. top Save button, Ctrl+S) would otherwise be lost.
-		if (control.$input) control.$input.on("input change blur", commit);
+		if (control.$input) control.$input.on("change blur", commit);
 
 		this.controls[fieldname] = control;
 		return control;
