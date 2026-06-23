@@ -10,6 +10,8 @@ from etransactions.etransactions.doctype.einvoicing_log.einvoicing_log import eI
 def sync_customer_directory(customer: str, company: str = None):
 	"""Sync eTransactions Accredited Platform directory lines for a customer. Called from the Customer form."""
 	frappe.has_permission("Customer", "write", doc=customer, throw=True)
+	if not frappe.db.get_value("Customer", customer, "siren_number"):
+		frappe.throw(_("This customer has no SIREN number. Add one before syncing directory lines."))
 	if not company:
 		company = frappe.defaults.get_global_default("company")
 	client = get_client(company, customer=customer)
@@ -26,11 +28,30 @@ def sync_customer_directory(customer: str, company: str = None):
 	_sync_customer_directory(customer, client, result)
 	eInvoicingLog.create_log(result)
 
-	frappe.msgprint(
-		_("Directory lines updated: {0} new, {1} updated").format(result["new_count"], result["updated_count"]),
-		alert=True,
-		indicator="green" if result["updated_count"] + result["new_count"] >= 0 else "orange",
+	new_count = result["new_count"]
+	updated_count = result["updated_count"]
+	if new_count + updated_count > 0:
+		frappe.msgprint(
+			_("Directory lines updated: {0} new, {1} updated").format(new_count, updated_count),
+			alert=True,
+			indicator="green",
+		)
+		return
+
+	entity_type, closed = frappe.db.get_value(
+		"Customer", customer, ["directory_entity_type", "directory_closed"]
 	)
+	if entity_type == "no" or closed:
+		frappe.msgprint(
+			_("This customer was not found in the directory (or is closed). No active routing lines."),
+			indicator="orange",
+		)
+	else:
+		frappe.msgprint(
+			_("Directory is already up to date — no changes."),
+			alert=True,
+			indicator="blue",
+		)
 
 
 @frappe.whitelist()

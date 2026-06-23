@@ -197,10 +197,25 @@ etransactions.EinvoiceReadinessWizard = class EinvoiceReadinessWizard {
 			}
 		};
 		control.df.onchange = commit;
-		if (control.$input) control.$input.on("change blur", commit);
+		// Bind on `input` too (not just change/blur) so the model stays current as
+		// the user types and the form goes dirty immediately — controls that never
+		// blur before save (e.g. top Save button, Ctrl+S) would otherwise be lost.
+		if (control.$input) control.$input.on("input change blur", commit);
 
 		this.controls[fieldname] = control;
 		return control;
+	}
+
+	// Push every mounted control's value into the form model. Called on before_save
+	// so pending edits are persisted regardless of the save path. frm.set_value's
+	// model update is synchronous, so values land before serialization.
+	flush() {
+		Object.entries(this.controls).forEach(([fieldname, control]) => {
+			const val = control.get_value();
+			if (val !== this.frm.doc[fieldname]) {
+				this.frm.set_value(fieldname, val);
+			}
+		});
 	}
 
 	refresh_footer() {
