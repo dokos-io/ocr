@@ -390,7 +390,7 @@ def get_closing_meta() -> dict:
 			"templates": templates,
 		}
 	except Exception:
-		frappe.log_error(title="get_closing_meta failed")
+		frappe.log_error(frappe.get_traceback(), "get_closing_meta failed")
 		return {
 			"can_manage_periods": False,
 			"can_manage_templates": False,

@@ -87,16 +87,14 @@ def on_submit(doc, method):
 				einvoice = _create_update_einvoice(doc)
 				einvoice_name = einvoice.name if einvoice else None
 			if einvoice_name:
-				from etransactions.plateforme_agreee.flow import send_einvoice_to_plateforme
-				try:
-					send_einvoice_to_plateforme(einvoice_name)
-				except Exception:
-					frappe.log_error(frappe.get_traceback(), _("PA Submission Failed"))
-					frappe.msgprint(
-						_("Could not submit to accredited platform. Please check the error log."),
-						alert=True,
-						indicator="orange",
-					)
+				# Send after commit on the short queue so an unreachable/slow
+				# platform can't delay or roll back the invoice submission.
+				frappe.enqueue(
+					"etransactions.plateforme_agreee.flow.send_einvoice_to_plateforme",
+					queue="short",
+					enqueue_after_commit=True,
+					einvoice_name=einvoice_name,
+				)
 
 
 @frappe.whitelist()
@@ -227,6 +225,10 @@ def _create_update_einvoice(doc):
 	if customer_entity_type == "public":
 		einvoice.pa_processing_rule = "B2G"
 	elif customer_entity_type == "private":
+		einvoice.pa_processing_rule = "B2B"
+	elif not customer_entity_type and frappe.db.get_value("Customer", doc.customer, "siren_number"):
+		# FR business pending directory sync — treat as B2B, not B2C (mirrors
+		# should_ereport_sale, so the two legs never disagree on classification).
 		einvoice.pa_processing_rule = "B2B"
 	else:
 		einvoice.pa_processing_rule = "B2C"

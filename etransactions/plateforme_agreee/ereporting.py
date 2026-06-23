@@ -44,28 +44,53 @@ def should_ereport_sale(doc) -> bool:
 	if not ereporting_platform(doc.company, "sales"):
 		return False
 	entity_type = frappe.db.get_value("Customer", doc.customer, "directory_entity_type")
-	# private / public companies are reached as structured B2B/B2G invoices.
-	return entity_type not in ("private", "public")
+	# Registered businesses (private) and public entities are reached as
+	# structured B2B / B2G e-invoices, never e-reported.
+	if entity_type in ("private", "public"):
+		return False
+	# A customer that carries a SIREN but has no resolved directory status is a
+	# French business whose directory simply hasn't been synced yet — it should be
+	# e-invoiced once routed, not mis-declared to the PPF as B2C. Hold it out of
+	# e-reporting; the readiness panel surfaces the "directory not synced" warning.
+	if not entity_type and frappe.db.get_value("Customer", doc.customer, "siren_number"):
+		return False
+	# Individuals / foreign / confirmed not-in-directory parties: e-reported.
+	return True
+
+
+# Charge types whose amount is a percentage of a running base, so the taxable
+# base can be recovered as ``tax / (rate/100)``. Fixed-amount rows (Actual /
+# On Item Quantity) carry no VAT rate and never form a rate bucket.
+_PERCENT_CHARGE_TYPES = {"On Net Total", "On Previous Row Total", "On Previous Row Amount"}
 
 
 def _tax_subtotals(doc) -> list[dict]:
 	"""Per-rate VAT breakdown derived from the document's tax rows.
 
-	For a percentage tax the taxable base is recovered as ``tax / (rate/100)``,
-	which avoids having to re-group items by rate. A zero-rate row falls back to
-	the document net total.
+	Percentage tax rows are grouped by rate — the PPF expects a single line per
+	rate, so two rows at the same rate are summed rather than emitted twice. The
+	taxable base for a rate is recovered from the *summed* tax as
+	``tax / (rate/100)`` (rounding once per rate limits drift). Non-percentage and
+	zero-rate rows are skipped; a document with no percentage VAT falls back to a
+	single zero-rate line carrying the net total (exempt / zero-rated sales).
 	"""
-	rows: list[dict] = []
+	by_rate: dict[float, float] = {}
 	for tax in doc.get("taxes", []):
+		if tax.charge_type not in _PERCENT_CHARGE_TYPES:
+			continue
 		rate = float(tax.rate or 0)
-		tax_amount = float(tax.tax_amount or 0)
-		if rate:
-			taxable = round(tax_amount / (rate / 100.0), 2)
-		else:
-			taxable = float(doc.get("net_total") or 0)
+		if not rate:
+			continue
+		by_rate[rate] = by_rate.get(rate, 0.0) + float(tax.tax_amount or 0)
+
+	rows: list[dict] = []
+	for rate in sorted(by_rate):
+		tax_amount = round(by_rate[rate], 2)
+		taxable = round(tax_amount / (rate / 100.0), 2)
 		rows.append({"tax_percent": rate, "taxable_amount": taxable, "tax_total": tax_amount})
+
 	if not rows:
-		# No taxes (e.g. VAT-exempt): one zero-rate line carrying the net total.
+		# No percentage VAT (exempt / zero-rated): one zero-rate line, net total.
 		rows.append(
 			{"tax_percent": 0, "taxable_amount": float(doc.get("net_total") or 0), "tax_total": 0}
 		)
@@ -168,18 +193,32 @@ def get_source_ereporting(doctype: str, name: str) -> dict:
 
 
 def on_company_update(doc, method=None):
-	"""Doc event: push the VAT regime to the platform when it changes (best-effort)."""
+	"""Doc event: push the VAT regime to the platform when it changes (best-effort).
+
+	The platform call is enqueued after commit so a slow/unreachable platform
+	never delays (or rolls back with) the Company save.
+	"""
 	if not doc.get("etransactions_vat_regime"):
 		return
 	if not doc.has_value_changed("etransactions_vat_regime"):
 		return
+	frappe.enqueue(
+		"etransactions.plateforme_agreee.ereporting.run_vat_regime_push",
+		queue="short",
+		enqueue_after_commit=True,
+		company=doc.name,
+	)
+
+
+def run_vat_regime_push(company: str) -> None:
+	"""Background job: push the VAT regime, logging (not raising) on failure."""
 	try:
-		push_vat_regime(doc.name)
+		push_vat_regime(company)
 	except Exception:
 		frappe.log_error(
 			title="e-reporting VAT regime push failed",
 			reference_doctype="Company",
-			reference_name=doc.name,
+			reference_name=company,
 		)
 
 

@@ -151,10 +151,16 @@ class eInvoice(Document):
 	@frappe.whitelist()
 	def send_to_plateform(self):
 		"""Submit this outgoing eInvoice to the accredited platform."""
+		self.check_permission("write")
 		if self.einvoice_type != "Outgoing":
 			frappe.throw(_("Only Outgoing eInvoices can be submitted to the accredited platform."))
 		if self.pa_flow_id:
 			frappe.throw(_("This eInvoice has already been submitted to the accredited platform (Flow ID: {0}).").format(self.pa_flow_id))
+
+		# Guard against concurrent sends (enqueued auto-send racing a manual click):
+		# take a row lock and re-read, so only one submission can pass this point.
+		if frappe.db.get_value("eInvoice", self.name, "pa_flow_id", for_update=True):
+			frappe.throw(_("This eInvoice has already been submitted to the accredited platform."))
 
 		if not self.seller_electronic_address:
 			frappe.throw(
@@ -197,6 +203,7 @@ class eInvoice(Document):
 	@frappe.whitelist()
 	def refresh_pa_status(self):
 		"""Poll the accredited platform for the latest flow state."""
+		self.check_permission("read")
 		if not self.pa_flow_id:
 			frappe.throw(_("This eInvoice has not been submitted to the accredited platform yet."))
 
@@ -216,6 +223,9 @@ class eInvoice(Document):
 			update["pa_updated_at"] = status.updated_at
 		if status.error_details:
 			update["pa_error_details"] = status.error_details
+		elif status.status and status.status != "error":
+			# Recovered flow: drop any stale error text from a previous poll.
+			update["pa_error_details"] = None
 
 		if update:
 			self.db_set(update)
@@ -240,6 +250,7 @@ class eInvoice(Document):
 		from etransactions.etransactions.doctype.einvoice_event.einvoice_event import record_event
 		from etransactions.etransactions.doctype.einvoicing_log.einvoicing_log import eInvoicingLog
 
+		self.check_permission("write")
 		if not self.pa_flow_id:
 			frappe.throw(_("This eInvoice has not been submitted to the accredited platform yet."))
 		if status not in lifecycle_status.STATUSES:

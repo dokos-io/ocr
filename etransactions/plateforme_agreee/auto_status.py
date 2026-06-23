@@ -43,9 +43,33 @@ def _platform_supports(company: str, transaction_type: str, status: str) -> bool
 
 
 def _send(einvoice_name: str, status: str, transaction_type: str, **kwargs):
+	"""Queue an automatic lifecycle status send off the document's transaction.
+
+	The actual platform call runs after commit on the ``short`` queue, so a slow
+	or unreachable platform never delays (or rolls back with) the accounting
+	document that triggered it.
+	"""
+	frappe.enqueue(
+		"etransactions.plateforme_agreee.auto_status.run_auto_lifecycle_status",
+		queue="short",
+		enqueue_after_commit=True,
+		einvoice_name=einvoice_name,
+		status=status,
+		transaction_type=transaction_type,
+		**kwargs,
+	)
+
+
+def run_auto_lifecycle_status(einvoice_name: str, status: str, transaction_type: str, **kwargs):
+	"""Background job: emit a system-initiated lifecycle status to the platform.
+
+	System-initiated, so it bypasses the interactive permission gate on
+	``submit_lifecycle_status``. Best-effort: failures are logged, never raised.
+	"""
 	einvoice = frappe.get_doc("eInvoice", einvoice_name)
 	if not _platform_supports(einvoice.company, transaction_type, status):
 		return
+	einvoice.flags.ignore_permissions = True
 	try:
 		einvoice.submit_lifecycle_status(status, **kwargs)
 	except Exception:

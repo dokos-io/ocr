@@ -8,8 +8,13 @@ from etransactions.etransactions.doctype.einvoice_event.einvoice_event import re
 
 
 def send_einvoice_to_plateforme(einvoice_name: str):
-	"""Send an outgoing eInvoice to the accredited platform. Called from sales_invoice.on_submit()."""
+	"""Send an outgoing eInvoice to the accredited platform.
+
+	Enqueued after commit from sales_invoice.on_submit() (auto-send). System-
+	initiated, so it bypasses the interactive permission gate on send_to_plateform.
+	"""
 	einvoice = frappe.get_doc("eInvoice", einvoice_name)
+	einvoice.flags.ignore_permissions = True
 
 	result = {
 		"operation_type": "flow_send",
@@ -294,10 +299,28 @@ def _submit_ereporting_batch(client, kind: str, names: list[str], result: dict):
 		result["logs"].append(("error", f"Failed to submit {len(docs)} {kind} entries: {str(e)}"))
 		return
 
-	for idx, d in enumerate(docs):
-		pa_id = None
-		if idx < len(created) and isinstance(created[idx], dict):
-			pa_id = created[idx].get("id")
+	# The platform returns one result per submitted entry, matched by position —
+	# the only correlation available (no client reference is echoed). If the
+	# counts disagree we cannot map ids reliably, so flag for manual review rather
+	# than risk a wrong pa_entry_id or a duplicate re-declaration on the next run.
+	if len(created) != len(docs):
+		for d in docs:
+			d.db_set("state", "error", update_modified=False)
+			d.db_set(
+				"error_details",
+				f"Platform returned {len(created)} results for {len(docs)} submitted "
+				f"{kind} entries; references cannot be mapped. Manual review required.",
+				update_modified=False,
+			)
+		result["logs"].append((
+			"error",
+			f"{kind}: platform returned {len(created)} results for {len(docs)} entries; "
+			"marked for manual review to avoid mismatched/duplicate declarations.",
+		))
+		return
+
+	for d, item in zip(docs, created):
+		pa_id = item.get("id") if isinstance(item, dict) else None
 		d.db_set("pa_entry_id", str(pa_id) if pa_id is not None else None, update_modified=False)
 		d.db_set("state", "sent", update_modified=False)
 		result["new_count"] += 1
@@ -393,7 +416,11 @@ def poll_incoming_flows():
 			continue
 
 		known_flow_ids = set(
-			frappe.get_all("eInvoice", filters={"pa_flow_id": ["is", "set"]}, pluck="pa_flow_id")
+			frappe.get_all(
+				"eInvoice",
+				filters={"company": company, "einvoice_type": "Incoming", "pa_flow_id": ["is", "set"]},
+				pluck="pa_flow_id",
+			)
 		)
 
 		for flow in incoming_flows:

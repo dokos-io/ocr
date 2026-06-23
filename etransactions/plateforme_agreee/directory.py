@@ -9,6 +9,7 @@ from etransactions.etransactions.doctype.einvoicing_log.einvoicing_log import eI
 @frappe.whitelist()
 def sync_customer_directory(customer: str, company: str = None):
 	"""Sync eTransactions Accredited Platform directory lines for a customer. Called from the Customer form."""
+	frappe.has_permission("Customer", "write", doc=customer, throw=True)
 	if not company:
 		company = frappe.defaults.get_global_default("company")
 	client = get_client(company, customer=customer)
@@ -39,6 +40,10 @@ def get_party_establishments(party_type: str, party: str) -> list[dict]:
 
 	Used by the master-data readiness wizard's "Establishments & routing" step.
 	"""
+	if party_type not in ("Customer", "Supplier"):
+		frappe.throw(_("Invalid party type {0}.").format(party_type))
+	frappe.has_permission(party_type, "read", doc=party, throw=True)
+
 	party_field = "customer" if party_type == "Customer" else "supplier"
 
 	address_names = frappe.get_all(

@@ -147,6 +147,9 @@ def _addr_fields_ok(r: dict) -> bool:
 @frappe.whitelist()
 def evaluate_party_readiness(party_type: str, party: str) -> list[dict]:
 	"""Return the readiness findings for one Customer / Supplier."""
+	if party_type not in ("Customer", "Supplier"):
+		return []
+	frappe.has_permission(party_type, "read", doc=party, throw=True)
 	if party_type == "Customer":
 		row = _customer_row(party)
 		specs = customer_check_specs()
@@ -256,6 +259,7 @@ def check_invoice_readiness(doc) -> list[dict]:
 	if isinstance(doc, str):
 		doc = frappe.parse_json(doc)
 	invoice = frappe.get_doc(doc)
+	invoice.check_permission("read")
 	invoice.flags.ignore_mandatory = True
 
 	result: list[dict] = []
