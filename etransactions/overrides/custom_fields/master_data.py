@@ -15,8 +15,8 @@ customer_fields = [
 		"label": _("eTransactions"),
 		"insert_after": "selling_party_html",
 	},
-	# Guided readiness wizard — the single editor for the fields below, which are
-	# kept hidden as the data layer (the wizard reads/writes them via set_value).
+	# Readiness indicator — a status pill + fixable checklist rendered here by
+	# einvoice_readiness_indicator.js. The fields below are edited natively.
 	{
 		"fieldname": "etransactions_wizard_html",
 		"fieldtype": "HTML",
@@ -28,14 +28,12 @@ customer_fields = [
 		"fieldtype": "Link",
 		"options": "eTransaction Profile",
 		"insert_after": "etransactions_wizard_html",
-		"hidden": 1,
 	},
 	{
 		"fieldname": "etransactions_buyer_reference",
 		"label": _("Buyer Reference"),
 		"insert_after": "etransaction_profile",
 		"fieldtype": "Data",
-		"hidden": 1,
 	},
 	{
 		"fieldname": "etransactions_contract_reference",
@@ -43,7 +41,6 @@ customer_fields = [
 		"description": _("Default public-procurement contract number (numéro de marché) for B2G invoices."),
 		"insert_after": "etransactions_buyer_reference",
 		"fieldtype": "Data",
-		"hidden": 1,
 	},
 	{
 		"fieldname": "etransactions_electronic_address_scheme",
@@ -51,7 +48,6 @@ customer_fields = [
 		"insert_after": "etransactions_contract_reference",
 		"fieldtype": "Link",
 		"options": "Common Code",
-		"hidden": 1,
 	},
 	{
 		"fieldname": "etransactions_electronic_address",
@@ -59,7 +55,6 @@ customer_fields = [
 		"insert_after": "etransactions_electronic_address_scheme",
 		"fieldtype": "Data",
 		"depends_on": "etransactions_electronic_address_scheme",
-		"hidden": 1,
 	},
 	# Accredited platform directory fields (read-only, populated by sync)
 	{
@@ -68,7 +63,6 @@ customer_fields = [
 		"fieldtype": "Section Break",
 		"insert_after": "etransactions_electronic_address",
 		"collapsible": 1,
-		"hidden": 1,
 	},
 	{
 		"fieldname": "directory_entity_type",
@@ -78,7 +72,6 @@ customer_fields = [
 		"insert_after": "pa_directory_section",
 		"read_only": 1,
 		"in_list_view": 0,
-		"hidden": 1,
 	},
 	{
 		"fieldname": "directory_name",
@@ -86,7 +79,6 @@ customer_fields = [
 		"fieldtype": "Data",
 		"insert_after": "directory_entity_type",
 		"read_only": 1,
-		"hidden": 1,
 	},
 	{
 		"fieldname": "directory_closed",
@@ -94,13 +86,11 @@ customer_fields = [
 		"fieldtype": "Check",
 		"insert_after": "directory_name",
 		"read_only": 1,
-		"hidden": 1,
 	},
 	{
 		"fieldname": "pa_directory_col_break",
 		"fieldtype": "Column Break",
 		"insert_after": "directory_closed",
-		"hidden": 1,
 	},
 	{
 		"fieldname": "directory_update_date",
@@ -108,7 +98,6 @@ customer_fields = [
 		"fieldtype": "Date",
 		"insert_after": "pa_directory_col_break",
 		"read_only": 1,
-		"hidden": 1,
 	},
 	{
 		"fieldname": "default_directory_line",
@@ -117,7 +106,6 @@ customer_fields = [
 		"options": "eInvoicing Directory Line",
 		"insert_after": "directory_update_date",
 		"description": _("Default routing line used when no establishment-specific line matches the invoice address."),
-		"hidden": 1,
 	},
 	{
 		"fieldname": "directory_type",
@@ -129,7 +117,6 @@ customer_fields = [
 		"default": "ppf",
 		"insert_after": "default_directory_line",
 		"description": _("Which directory to look in when syncing routing lines: Peppol or the French national directory (PPF)."),
-		"hidden": 1,
 	},
 	{
 		"fieldname": "accredited_platform_override",
@@ -138,7 +125,6 @@ customer_fields = [
 		"options": "eTransactions Accredited Platform",
 		"insert_after": "default_directory_line",
 		"description": _("Override the default eTransactions Accredited Platform for this customer"),
-		"hidden": 1,
 	},
 ]
 
@@ -193,7 +179,7 @@ customer_group_fields = [
 
 # Suppliers need identification for incoming-invoice matching; routing is the
 # buyer's (company's) concern, so no directory fields here. The eTransactions tab
-# hosts the lighter readiness wizard; the fields stay hidden as the data layer.
+# hosts the lighter readiness indicator above the natively-edited fields.
 supplier_fields = [
 	{
 		"fieldname": "siren_number",
@@ -219,7 +205,6 @@ supplier_fields = [
 		"insert_after": "etransactions_wizard_html",
 		"fieldtype": "Link",
 		"options": "Common Code",
-		"hidden": 1,
 	},
 	{
 		"fieldname": "etransactions_electronic_address",
@@ -227,7 +212,6 @@ supplier_fields = [
 		"insert_after": "etransactions_electronic_address_scheme",
 		"fieldtype": "Data",
 		"depends_on": "etransactions_electronic_address_scheme",
-		"hidden": 1,
 	},
 ]
 

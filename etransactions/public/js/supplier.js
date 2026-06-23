@@ -2,15 +2,10 @@
 // For license information, please see license.txt
 
 frappe.ui.form.on("Supplier", {
-	before_save(frm) {
-		// Flush pending wizard edits into the model before the save serializes.
-		if (frm._et_wizard) frm._et_wizard.flush();
-	},
-
 	refresh(frm) {
-		if (frm.fields_dict.etransactions_wizard_html && etransactions.EinvoiceReadinessWizard) {
-			frm._et_wizard = frm._et_wizard || new etransactions.EinvoiceReadinessWizard(frm);
-			frm._et_wizard.refresh();
+		if (frm.fields_dict.etransactions_wizard_html && etransactions.EinvoiceReadinessIndicator) {
+			frm._et_readiness = frm._et_readiness || new etransactions.EinvoiceReadinessIndicator(frm);
+			frm._et_readiness.refresh();
 		}
 	},
 });
