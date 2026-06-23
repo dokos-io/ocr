@@ -63,13 +63,10 @@ def get_platform_for_context(company: str, customer: str = None, transaction_typ
 	1. Customer-specific override (if customer is provided)
 	2. Customer Group override (if customer is provided)
 	3. Active company platform matching the transaction type
-	4. Global default from eTransactions Settings for that transaction type
 
 	transaction_type: "sales" or "purchases"
 	Returns the platform name (str) or None if no platform is configured.
 	"""
-	settings = frappe.get_cached_doc("eTransactions Settings")
-
 	if customer:
 		customer_platform = frappe.db.get_value("Customer", customer, "accredited_platform_override")
 		if customer_platform:
@@ -88,21 +85,12 @@ def get_platform_for_context(company: str, customer: str = None, transaction_typ
 	else:
 		type_filter = ["Sales", "Purchases", "Both"]
 
-	platform = frappe.db.get_value(
+	return frappe.db.get_value(
 		"eTransactions Accredited Platform",
 		{"company": company, "is_active": 1, "transaction_type": ["in", type_filter]},
 		"name",
 		order_by="creation asc",
 	)
-
-	if platform:
-		return platform
-
-	if transaction_type == "sales":
-		return settings.default_sales_platform
-	elif transaction_type == "purchases":
-		return settings.default_purchases_platform
-	return settings.default_sales_platform or settings.default_purchases_platform
 
 
 def get_platform_for_company(company: str, transaction_type: str = "sales"):

@@ -81,12 +81,6 @@ def save_platform(platform_data, existing_name=None):
 @frappe.whitelist()
 def delete_platform(platform_name):
 	"""Delete an eTransactions Accredited Platform."""
-	settings = frappe.get_single("eTransactions Settings")
-	if platform_name in (settings.default_sales_platform, settings.default_purchases_platform):
-		frappe.throw(
-			_("Cannot delete platform '{0}' because it is set as a default platform in eTransactions Settings.").format(platform_name)
-		)
-
 	used_in_customer = frappe.db.exists("Customer", {"accredited_platform_override": platform_name})
 	used_in_customer_group = frappe.db.exists("Customer Group", {"accredited_platform_override": platform_name})
 
