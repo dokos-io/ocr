@@ -91,6 +91,22 @@ function _add_pa_buttons(frm) {
 			const pa_status = data.pa_status;
 			const pa_flow_id = data.pa_flow_id;
 
+			// At-a-glance platform status on the dashboard.
+			if (pa_status) {
+				const colors = {
+					rejected: "red",
+					error: "red",
+					done: "green",
+					pending: "blue",
+					sent: "blue",
+					created: "gray",
+				};
+				frm.dashboard.add_indicator(
+					__("e-invoice: {0}", [pa_status]),
+					colors[pa_status] || "gray"
+				);
+			}
+
 			if (!pa_flow_id || ["created", "", "error", "rejected"].includes(pa_status || "")) {
 				frm.add_custom_button(__("Send to the accredited platform"), () => {
 					const send = () => {
@@ -105,10 +121,23 @@ function _add_pa_buttons(frm) {
 						});
 					};
 					if (pa_status === "error" || pa_status === "rejected") {
-						frappe.confirm(
-							__("The previous submission was rejected by the accredited platform. Send this e-invoice again?"),
-							send
-						);
+						// Show the previous rejection reasons so the user can confirm
+						// they've been addressed before resending.
+						frappe.call({
+							method: "etransactions.overrides.sales_invoice.get_einvoice_panel",
+							args: { sales_invoice: frm.doc.name },
+							callback(p) {
+								const reasons = ((p.message || {}).problems || []).map(
+									(f) => `<li>${frappe.utils.escape_html(f.label)}</li>`
+								).join("");
+								frappe.confirm(
+									`${__("The previous submission was rejected by the accredited platform:")}
+									${reasons ? `<ul style="margin-top:8px">${reasons}</ul>` : ""}
+									${__("Send this e-invoice again?")}`,
+									send
+								);
+							},
+						});
 					} else {
 						send();
 					}

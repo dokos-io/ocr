@@ -17,47 +17,94 @@ etransactions.invoiceReadiness = {
 	},
 
 	_fetch(frm) {
-		frappe.call({
+		// Live (pre-send) readiness on the in-memory doc + the post-send platform
+		// state (status + rejection/validation reasons) in one panel.
+		const live = frappe.call({
 			method: "etransactions.plateforme_agreee.readiness.check_invoice_readiness",
 			args: { doc: frm.doc },
-			callback: (r) => this._render(frm, r.message || []),
 		});
+		const panel =
+			frm.doc.docstatus === 1 && !frm.is_new()
+				? frappe.call({
+						method: "etransactions.overrides.sales_invoice.get_einvoice_panel",
+						args: { sales_invoice: frm.doc.name },
+				  })
+				: Promise.resolve({ message: {} });
+
+		Promise.all([live, panel]).then(([l, p]) =>
+			this._render(frm, l.message || [], p.message || {})
+		);
 	},
 
-	_render(frm, findings) {
+	// Color for a platform pa_status badge.
+	_status_meta(status) {
+		const map = {
+			rejected: ["red", __("Rejected by the platform")],
+			error: ["red", __("Transmission error")],
+			done: ["green", __("Accepted")],
+			pending: ["blue", __("In processing")],
+			sent: ["blue", __("Sent")],
+			created: ["gray", __("Created")],
+		};
+		return map[status] || ["gray", status || ""];
+	},
+
+	_render(frm, findings, panel) {
 		const field = frm.fields_dict.etransactions_status_html;
 		if (!field) return;
 
-		const errors = findings.filter((f) => f.severity === "error");
-		const warnings = findings.filter((f) => f.severity === "warning");
-		const color = errors.length ? "red" : warnings.length ? "orange" : "green";
-		const label = errors.length
-			? __("{0} blocking issue(s)", [errors.length])
-			: warnings.length
-			? __("{0} warning(s)", [warnings.length])
-			: __("Ready for e-invoicing");
-
 		const $wrap = $('<div class="et-inv-readiness"></div>');
-		$wrap.append(`<span class="indicator-pill ${color}">${label}</span>`);
 
-		if (findings.length) {
-			const $list = $('<div class="et-inv-findings"></div>');
-			findings.forEach((f) => {
-				const dot = f.severity === "error" ? "red" : f.severity === "warning" ? "orange" : "blue";
-				const $row = $(`
-					<div class="et-inv-finding">
-						<span class="et-wiz-dot ${dot}"></span>
-						<span class="et-inv-finding-label">${frappe.utils.escape_html(f.label)}</span>
-						<a class="et-inv-fix">${__("Fix")} →</a>
-					</div>
-				`);
-				$row.find(".et-inv-fix").on("click", () => this._fix(frm, f));
-				$list.append($row);
-			});
-			$wrap.append($list);
+		// --- Post-send: platform status badge + rejection/validation reasons ---
+		if (panel && panel.pa_status) {
+			const [color, label] = this._status_meta(panel.pa_status);
+			$wrap.append(`<span class="indicator-pill ${color}">${frappe.utils.escape_html(label)}</span>`);
+			const problems = panel.problems || [];
+			if (problems.length) {
+				$wrap.append(this._findings_list(frm, problems));
+			}
+		}
+
+		// --- Pre-send readiness (hidden once the platform has accepted it) ---
+		const showLive = !(panel && ["done", "pending", "sent"].includes(panel.pa_status));
+		if (showLive) {
+			const errors = findings.filter((f) => f.severity === "error");
+			const warnings = findings.filter((f) => f.severity === "warning");
+			const color = errors.length ? "red" : warnings.length ? "orange" : "green";
+			const label = errors.length
+				? __("{0} blocking issue(s)", [errors.length])
+				: warnings.length
+				? __("{0} warning(s)", [warnings.length])
+				: __("Ready for e-invoicing");
+			if (!(panel && panel.pa_status)) {
+				$wrap.append(`<span class="indicator-pill ${color}">${label}</span>`);
+			}
+			if (findings.length) {
+				$wrap.append(this._findings_list(frm, findings));
+			}
 		}
 
 		field.$wrapper.empty().append($wrap);
+	},
+
+	_findings_list(frm, findings) {
+		const $list = $('<div class="et-inv-findings"></div>');
+		findings.forEach((f) => {
+			const dot = f.severity === "error" ? "red" : f.severity === "warning" ? "orange" : "blue";
+			const fixable = (f.fix_doctype && f.fix_name) || f.fix_field;
+			const $row = $(`
+				<div class="et-inv-finding">
+					<span class="et-wiz-dot ${dot}"></span>
+					<span class="et-inv-finding-label">${frappe.utils.escape_html(f.label)}</span>
+					${fixable ? `<a class="et-inv-fix">${__("Fix")} →</a>` : ""}
+				</div>
+			`);
+			if (fixable) {
+				$row.find(".et-inv-fix").on("click", () => this._fix(frm, f));
+			}
+			$list.append($row);
+		});
+		return $list;
 	},
 
 	_fix(frm, finding) {
@@ -82,7 +129,14 @@ etransactions.invoiceReadiness = {
 						resolve();
 						return;
 					}
-					const list = errors.map((f) => `<li>${frappe.utils.escape_html(f.label)}</li>`).join("");
+					const list = errors
+						.map((f) => {
+							const detail = f.detail
+								? `<div class="text-muted small" style="margin:2px 0 6px">${f.detail}</div>`
+								: "";
+							return `<li>${frappe.utils.escape_html(f.label)}${detail}</li>`;
+						})
+						.join("");
 					frappe.confirm(
 						`${__("This invoice has e-invoicing issues that may cause it to be rejected:")}
 						<ul style="margin-top:8px">${list}</ul>

@@ -581,3 +581,81 @@ def _payment_schedule_findings(doc) -> list[Finding]:
 			)
 		)
 	return out
+
+
+# ---------------------------------------------------------------------------
+# Platform / schematron errors -> fixable findings
+# ---------------------------------------------------------------------------
+
+# Keyword → fix target. First matching rule wins; matched case-insensitively
+# against the raw platform/schematron message. ``target`` resolves to a master
+# (Customer / Company) or a setting the user can act on.
+_ERROR_FIX_RULES = (
+	("customer", ("annuaire", "directory", "validateur", "validator", "receiver", "destinataire", "routing")),
+	("company", ("bt-34", "uriid", "électronique", "electronic address", "br-fr-23")),
+	("company", ("mention", "pénalit", "penalit", "escompte", "recouvrement", "br-fr-05")),
+	("settings", ("bt-23", "business process", "processus", "br-fr-08")),
+)
+
+
+def _split_reasons(text: str | None) -> list[str]:
+	"""Split a stored error blob (``\\n`` or ``; `` separated) into clean lines."""
+	if not text:
+		return []
+	parts: list[str] = []
+	for chunk in str(text).replace("; ", "\n").split("\n"):
+		chunk = chunk.strip()
+		if chunk and chunk not in parts:
+			parts.append(chunk)
+	return parts
+
+
+def _platform_finding(key: str, message: str, severity: str, company: str | None, customer: str | None) -> Finding:
+	"""Map one platform/schematron message to a Finding with a fix target."""
+	low = message.lower()
+	target = None
+	for tgt, keywords in _ERROR_FIX_RULES:
+		if any(kw in low for kw in keywords):
+			target = tgt
+			break
+
+	finding = Finding(key=key, severity=severity, label=message)
+	if target == "customer" and customer:
+		finding.fix_doctype, finding.fix_name = "Customer", customer
+	elif target == "company" and company:
+		finding.fix_doctype, finding.fix_name = "Company", company
+	elif target == "settings":
+		finding.fix_doctype, finding.fix_name = "eTransactions Settings", "eTransactions Settings"
+	return finding
+
+
+def findings_from_platform_errors(einvoice: str) -> list[dict]:
+	"""Findings for the platform rejection reasons and schematron validation issues
+	stored on an eInvoice, each mapped to a fix target where recognisable.
+
+	Lets the Sales Invoice surface *why* a send failed and *where to fix it*
+	without the user opening the eInvoice. Unmapped messages still show in full.
+	"""
+	row = frappe.db.get_value(
+		"eInvoice",
+		einvoice,
+		["company", "sales_invoice", "pa_error_details", "validation_errors", "validation_warnings"],
+		as_dict=True,
+	)
+	if not row:
+		return []
+
+	customer = (
+		frappe.db.get_value("Sales Invoice", row.sales_invoice, "customer")
+		if row.sales_invoice
+		else None
+	)
+
+	out: list[Finding] = []
+	for i, msg in enumerate(_split_reasons(row.pa_error_details)):
+		out.append(_platform_finding(f"pa_{i}", msg, "error", row.company, customer))
+	for i, msg in enumerate(_split_reasons(row.validation_errors)):
+		out.append(_platform_finding(f"val_{i}", msg, "error", row.company, customer))
+	for i, msg in enumerate(_split_reasons(row.validation_warnings)):
+		out.append(_platform_finding(f"valw_{i}", msg, "warning", row.company, customer))
+	return as_dicts(out)

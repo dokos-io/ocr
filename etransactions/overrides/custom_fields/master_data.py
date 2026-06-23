@@ -15,19 +15,27 @@ customer_fields = [
 		"label": _("eTransactions"),
 		"insert_after": "selling_party_html",
 	},
-	# Readiness indicator — a status pill + fixable checklist rendered here by
+	# Readiness indicator (hero): a status pill + fixable checklist, a one-line
+	# routing summary and the single primary action (Sync directory), rendered by
 	# einvoice_readiness_indicator.js. The fields below are edited natively.
 	{
 		"fieldname": "etransactions_wizard_html",
 		"fieldtype": "HTML",
 		"insert_after": "etransactions_tab",
 	},
+	# --- Identity: the few fields a user actually sets ---
+	{
+		"fieldname": "pa_identity_section",
+		"label": _("Identity"),
+		"fieldtype": "Section Break",
+		"insert_after": "etransactions_wizard_html",
+	},
 	{
 		"fieldname": "etransaction_profile",
 		"label": "eTransaction Profile",
 		"fieldtype": "Link",
 		"options": "eTransaction Profile",
-		"insert_after": "etransactions_wizard_html",
+		"insert_after": "pa_identity_section",
 	},
 	{
 		"fieldname": "etransactions_buyer_reference",
@@ -42,34 +50,27 @@ customer_fields = [
 		"insert_after": "etransactions_buyer_reference",
 		"fieldtype": "Data",
 	},
-	{
-		"fieldname": "etransactions_electronic_address_scheme",
-		"label": _("Electronic Address Scheme"),
-		"insert_after": "etransactions_contract_reference",
-		"fieldtype": "Link",
-		"options": "Common Code",
-	},
-	{
-		"fieldname": "etransactions_electronic_address",
-		"label": _("Electronic Address"),
-		"insert_after": "etransactions_electronic_address_scheme",
-		"fieldtype": "Data",
-		"depends_on": "etransactions_electronic_address_scheme",
-	},
-	# Accredited platform directory fields (read-only, populated by sync)
+	# --- Routing: discovered and maintained automatically by directory sync ---
 	{
 		"fieldname": "pa_directory_section",
-		"label": _("Accredited Platform Directory"),
+		"label": _("Routing — managed automatically"),
 		"fieldtype": "Section Break",
-		"insert_after": "etransactions_electronic_address",
+		"insert_after": "etransactions_contract_reference",
 		"collapsible": 1,
+	},
+	# Read-only establishments + routing-line table (customer.js via
+	# get_party_establishments) — the visual status, shown first in the section.
+	{
+		"fieldname": "pa_establishments_html",
+		"fieldtype": "HTML",
+		"insert_after": "pa_directory_section",
 	},
 	{
 		"fieldname": "directory_entity_type",
 		"label": _("Directory Entity Type"),
 		"fieldtype": "Select",
 		"options": "\nprivate\npublic\nno",
-		"insert_after": "pa_directory_section",
+		"insert_after": "pa_establishments_html",
 		"read_only": 1,
 		"in_list_view": 0,
 	},
@@ -133,21 +134,24 @@ customer_fields = [
 		"label": _("eTransactions Accredited Platform Override"),
 		"fieldtype": "Link",
 		"options": "eTransactions Accredited Platform",
-		"insert_after": "default_directory_line",
+		"insert_after": "directory_pinned",
 		"description": _("Override the default eTransactions Accredited Platform for this customer"),
 	},
-	# Read-only table of the customer's establishments (addresses) and the directory
-	# line bound to each one, rendered by customer.js via get_party_establishments.
+	# Manual electronic address (BT-49) — fallback only, when the party is not in
+	# the directory. Normally the synced routing line is authoritative.
 	{
-		"fieldname": "pa_establishments_section",
-		"label": _("Establishments & Routing"),
-		"fieldtype": "Section Break",
+		"fieldname": "etransactions_electronic_address_scheme",
+		"label": _("Electronic Address Scheme"),
 		"insert_after": "accredited_platform_override",
+		"fieldtype": "Link",
+		"options": "Common Code",
 	},
 	{
-		"fieldname": "pa_establishments_html",
-		"fieldtype": "HTML",
-		"insert_after": "pa_establishments_section",
+		"fieldname": "etransactions_electronic_address",
+		"label": _("Electronic Address"),
+		"insert_after": "etransactions_electronic_address_scheme",
+		"fieldtype": "Data",
+		"depends_on": "etransactions_electronic_address_scheme",
 	},
 ]
 

@@ -123,6 +123,35 @@ def get_einvoice_status(sales_invoice: str) -> dict:
 
 
 @frappe.whitelist()
+def get_einvoice_panel(sales_invoice: str) -> dict:
+	"""Unified post-send e-invoicing state for the Sales Invoice panel.
+
+	Returns the platform status/flow plus the rejection reasons and schematron
+	validation issues as fixable findings, so the user can see *why* a send failed
+	and *where to fix it* without opening the eInvoice.
+	"""
+	frappe.get_doc("Sales Invoice", sales_invoice).check_permission("read")
+
+	row = frappe.db.get_value(
+		"eInvoice",
+		{"sales_invoice": sales_invoice},
+		["name", "pa_status", "pa_flow_id"],
+		as_dict=True,
+	)
+	if not row:
+		return {"einvoice": None, "pa_status": "", "pa_flow_id": "", "problems": []}
+
+	from etransactions.plateforme_agreee.readiness import findings_from_platform_errors
+
+	return {
+		"einvoice": row.name,
+		"pa_status": row.pa_status or "",
+		"pa_flow_id": row.pa_flow_id or "",
+		"problems": findings_from_platform_errors(row.name),
+	}
+
+
+@frappe.whitelist()
 def get_facturx_pdf(sales_invoice: str) -> str:
 	"""Return the FacturX PDF attachment URL, generating the file on demand if needed."""
 	frappe.get_doc("Sales Invoice", sales_invoice).check_permission("read")

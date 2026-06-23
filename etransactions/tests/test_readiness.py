@@ -3,9 +3,12 @@
 
 import frappe
 from erpnext import get_default_company
+from frappe.tests import UnitTestCase
 
 from etransactions.tests.utils import eTransactionsTestSuite
 from etransactions.plateforme_agreee.readiness import (
+	_platform_finding,
+	_split_reasons,
 	evaluate_einvoice_readiness,
 	evaluate_party_readiness,
 )
@@ -166,3 +169,28 @@ class TestInvoiceReadiness(eTransactionsTestSuite):
 		# Party-derived findings carry a Customer fix target.
 		party = [f for f in findings if f.get("fix_doctype") == "Customer"]
 		self.assertTrue(party, "expected at least one Customer-targeted finding")
+
+
+class TestPlatformErrorMapping(UnitTestCase):
+	"""Pure-logic mapping of platform / schematron messages to fixable findings."""
+
+	def test_split_reasons(self):
+		self.assertEqual(_split_reasons("a; b\nc"), ["a", "b", "c"])
+		self.assertEqual(_split_reasons(None), [])
+		self.assertEqual(_split_reasons("x; x"), ["x"])  # de-duplicated
+
+	def test_mapping_to_fix_targets(self):
+		cases = {
+			"receiver address does not exist in directory": "Customer",
+			"BR-FR-23/BT-34 l'adresse électronique (ram:URIID) invalide": "Company",
+			"BR-FR-05/BT-22 mention pénalités de retard absente": "Company",
+			"BR-FR-08/BT-23 business process invalide": "eTransactions Settings",
+		}
+		for message, expected_dt in cases.items():
+			finding = _platform_finding("k", message, "error", company="DKY", customer="ACME")
+			self.assertEqual(finding.fix_doctype, expected_dt, message)
+
+	def test_unmapped_message_has_no_fix(self):
+		finding = _platform_finding("k", "some opaque platform error", "error", "DKY", "ACME")
+		self.assertIsNone(finding.fix_doctype)
+		self.assertEqual(finding.label, "some opaque platform error")

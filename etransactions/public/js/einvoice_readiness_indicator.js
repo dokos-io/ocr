@@ -32,10 +32,12 @@ etransactions.EinvoiceReadinessIndicator = class EinvoiceReadinessIndicator {
 			<div class="et-readiness">
 				<div class="et-readiness-pill"></div>
 				<div class="et-readiness-body"></div>
+				<div class="et-readiness-routing"></div>
 			</div>
 		`).appendTo($w);
 		this.render_pill();
 		this.render_body();
+		this.render_routing();
 	}
 
 	load_readiness() {
@@ -108,5 +110,44 @@ etransactions.EinvoiceReadinessIndicator = class EinvoiceReadinessIndicator {
 			// Native Frappe: switch to the field's tab and highlight it.
 			this.frm.scroll_to_field(finding.fix_field);
 		}
+	}
+
+	// One-line routing status + the single primary action (Sync directory),
+	// Customer-only. `sync_action` is provided by customer.js (it owns the
+	// company-picker); the widget just surfaces the button.
+	render_routing() {
+		if (!this.$root || this.party_type !== "Customer" || this.frm.is_new()) return;
+		const $r = this.$root.find(".et-readiness-routing").empty();
+		const d = this.frm.doc;
+
+		let summary;
+		if (d.directory_pinned) {
+			summary = __("Routing pinned — managed manually.");
+		} else if (d.directory_update_date) {
+			const dir = (d.directory_type || "").toUpperCase() || "—";
+			const entity = d.directory_entity_type ? __(d.directory_entity_type) : __("not found");
+			summary = __("Directory: {0} · {1} · synced {2}", [
+				dir,
+				entity,
+				frappe.datetime.str_to_user(d.directory_update_date),
+			]);
+		} else {
+			summary = __("Directory not synced yet.");
+		}
+
+		const $row = $('<div class="et-readiness-routing-row"></div>');
+		$('<span class="et-readiness-routing-summary text-muted small"></span>').text(summary).appendTo($row);
+
+		if (this.sync_action && !d.directory_pinned) {
+			const synced = !!d.directory_update_date;
+			const $btn = $(
+				`<button type="button" class="btn btn-xs ${synced ? "btn-default" : "btn-primary"} et-readiness-sync">${
+					synced ? __("Re-sync directory") : __("Sync directory")
+				}</button>`,
+			);
+			$btn.on("click", () => this.sync_action());
+			$row.append($btn);
+		}
+		$r.append($row);
 	}
 };

@@ -5,6 +5,9 @@ frappe.ui.form.on("Customer", {
 	refresh(frm) {
 		if (frm.fields_dict.etransactions_wizard_html && etransactions.EinvoiceReadinessIndicator) {
 			frm._et_readiness = frm._et_readiness || new etransactions.EinvoiceReadinessIndicator(frm);
+			// The widget surfaces the single "Sync directory" action; we own the
+			// company-picker. Sync is meaningless until the customer is saved.
+			frm._et_readiness.sync_action = frm.is_new() ? null : () => _sync_with_picker(frm);
 			frm._et_readiness.refresh();
 		}
 
@@ -17,39 +20,39 @@ frappe.ui.form.on("Customer", {
 		}));
 
 		_render_establishments(frm);
-
-		if (!frm.is_new()) {
-			frm.add_custom_button(__("Sync Directory Lines"), () => {
-				frappe.db
-					.get_list("eTransactions Accredited Platform", {
-						filters: { is_active: 1 },
-						fields: ["company"],
-						group_by: "company",
-					})
-					.then((rows) => {
-						const companies = [...new Set(rows.map((r) => r.company))];
-						if (companies.length <= 1) {
-							_do_sync(frm, companies[0] || null);
-						} else {
-							frappe.prompt(
-								{
-									label: __("Company"),
-									fieldname: "company",
-									fieldtype: "Link",
-									options: "Company",
-									default: companies[0],
-									reqd: 1,
-								},
-								({ company }) => _do_sync(frm, company),
-								__("Select Company"),
-								__("Sync"),
-							);
-						}
-					});
-			}, __("Accredited Platform"));
-		}
 	},
 });
+
+// Resolve which company's platform to sync against (prompt only when ambiguous),
+// then run the directory sync.
+function _sync_with_picker(frm) {
+	frappe.db
+		.get_list("eTransactions Accredited Platform", {
+			filters: { is_active: 1 },
+			fields: ["company"],
+			group_by: "company",
+		})
+		.then((rows) => {
+			const companies = [...new Set(rows.map((r) => r.company))];
+			if (companies.length <= 1) {
+				_do_sync(frm, companies[0] || null);
+			} else {
+				frappe.prompt(
+					{
+						label: __("Company"),
+						fieldname: "company",
+						fieldtype: "Link",
+						options: "Company",
+						default: companies[0],
+						reqd: 1,
+					},
+					({ company }) => _do_sync(frm, company),
+					__("Select Company"),
+					__("Sync"),
+				);
+			}
+		});
+}
 
 function _do_sync(frm, company) {
 	frappe.call({

@@ -148,7 +148,11 @@ etransactions.lifecycle = {
 		}).join('<span class="et-lc-line"></span>');
 
 		const err = error
-			? `<div class="et-lc-error">${frappe.utils.icon("solid-error", "sm")} ${__("Transmission error — open the eInvoice for details.")}</div>`
+			? `<div class="et-lc-error">${frappe.utils.icon("solid-error", "sm")} ${
+					pa_status === "rejected"
+						? __("Rejected by the accredited platform — see the issues in the e-invoicing panel.")
+						: __("Transmission error — see the issues in the e-invoicing panel.")
+			  }</div>`
 			: "";
 
 		return `<div class="et-lc">

@@ -279,6 +279,13 @@ CUSTOM_FIELDS_TO_DELETE = [
 		"fieldname": "siret",
 		"fieldtype": "Data",
 	},
+	# Removed: the establishments table now lives inside the collapsible routing
+	# section (pa_directory_section); its standalone section break is obsolete.
+	{
+		"dt": "Customer",
+		"fieldname": "pa_establishments_section",
+		"fieldtype": "Section Break",
+	},
 ]
 
 
