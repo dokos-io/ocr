@@ -120,6 +120,18 @@ customer_fields = [
 		"hidden": 1,
 	},
 	{
+		"fieldname": "directory_type",
+		"label": _("Directory"),
+		"fieldtype": "Select",
+		# Stored values match the SuperPDP API contract ("peppol" | "ppf");
+		# "ppf" is the French national directory (Portail Public de Facturation).
+		"options": "\npeppol\nppf",
+		"default": "ppf",
+		"insert_after": "default_directory_line",
+		"description": _("Which directory to look in when syncing routing lines: Peppol or the French national directory (PPF)."),
+		"hidden": 1,
+	},
+	{
 		"fieldname": "accredited_platform_override",
 		"label": _("eTransactions Accredited Platform Override"),
 		"fieldtype": "Link",

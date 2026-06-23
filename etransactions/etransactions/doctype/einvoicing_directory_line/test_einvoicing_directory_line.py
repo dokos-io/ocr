@@ -143,7 +143,7 @@ class TestDirectorySync(IntegrationTestCase):
 
 		_sync_customer_directory(customer, client, result)
 
-		client.get_directory_for_siren.assert_called_once_with("123456789")
+		client.get_directory_for_siren.assert_called_once_with("123456789", "ppf")
 
 	# ------------------------------------------------------------------
 	# Customer field updates

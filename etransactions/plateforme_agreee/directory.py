@@ -160,12 +160,14 @@ def sync_all_customers():
 
 def _sync_customer_directory(customer_name: str, client, result: dict):
 	"""Query the PA directory for a customer and create/update/archive its directory lines."""
-	siren = frappe.db.get_value("Customer", customer_name, "siren_number")
+	siren, directory_type = frappe.db.get_value(
+		"Customer", customer_name, ["siren_number", "directory_type"]
+	)
 	if not siren:
 		result["logs"].append(("warning", f"Customer {customer_name} has no SIREN number. Skipping."))
 		return
 
-	directory_data = client.get_directory_for_siren(siren)
+	directory_data = client.get_directory_for_siren(siren, directory_type)
 
 	frappe.db.set_value("Customer", customer_name, {
 		"directory_entity_type": directory_data.entity_type,
