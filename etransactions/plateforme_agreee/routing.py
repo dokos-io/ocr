@@ -17,6 +17,41 @@ maps naturally to an ``Address``. This module:
 import frappe
 
 
+# CEF Electronic Address Scheme (EAS) code list.
+#
+# EN16931 rule BR-CL-25 requires the schemeID emitted on the seller (BT-34) and
+# buyer (BT-49) electronic address to belong to the CEF EAS code list. The Peppol
+# "participant identifier scheme" list this app installs is a SUPERSET: it also
+# carries Peppol-internal schemes (e.g. 0242 "OpenPeppol Service Provider
+# Identification Scheme") that are NOT valid EAS codes. A Common Code merely
+# existing is therefore not sufficient — its code must be one of these.
+#
+# Source: https://docs.peppol.eu/poacc/billing/3.0/codelist/eas/ (plus "EM", the
+# EN16931 e-mail scheme). Update when the CEF EAS list changes.
+EAS_CODES = frozenset(
+	{
+		"0002", "0007", "0009", "0037", "0060", "0088", "0096", "0097", "0106",
+		"0130", "0135", "0142", "0147", "0151", "0170", "0177", "0183", "0184",
+		"0188", "0190", "0191", "0192", "0193", "0195", "0196", "0198", "0199",
+		"0200", "0201", "0202", "0204", "0205", "0208", "0209", "0210", "0211",
+		"0212", "0213", "0215", "0216", "0217", "0218", "0221", "0225", "0230",
+		"0235", "0240",
+		"9901", "9910", "9913", "9914", "9915", "9918", "9919", "9920", "9922",
+		"9923", "9924", "9925", "9926", "9927", "9928", "9929", "9930", "9931",
+		"9932", "9933", "9934", "9935", "9936", "9937", "9938", "9939", "9940",
+		"9941", "9942", "9943", "9944", "9945", "9946", "9947", "9948", "9949",
+		"9950", "9951", "9952", "9953", "9954", "9955", "9956", "9957", "9958",
+		"9959",
+		"EM",
+	}
+)
+
+
+def is_valid_eas_scheme(scheme: str | None) -> bool:
+	"""True if ``scheme`` (a bare EAS code, e.g. ``0225``) is a CEF EAS code (BR-CL-25)."""
+	return bool(scheme) and scheme.strip() in EAS_CODES
+
+
 def parse_directory_identifier(identifier: str) -> dict:
 	"""Best-effort split of a directory addressing identifier.
 

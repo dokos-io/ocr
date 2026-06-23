@@ -215,7 +215,14 @@ doc_events = {
 		"on_submit": "etransactions.overrides.sales_invoice.on_submit",
 	},
 	"Company": {
+		"validate": "etransactions.overrides.master_data.validate_electronic_address",
 		"on_update": "etransactions.plateforme_agreee.ereporting.on_company_update",
+	},
+	"Customer": {
+		"validate": "etransactions.overrides.master_data.validate_electronic_address",
+	},
+	"Supplier": {
+		"validate": "etransactions.overrides.master_data.validate_electronic_address",
 	},
 }
 
