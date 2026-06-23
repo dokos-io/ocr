@@ -77,12 +77,15 @@ class SuperPDPClient:
     _DONE_CODES = {"fr:204", "fr:205", "fr:206"}
     _ERROR_CODES = {"fr:207", "api:rejected", "ppf:005"}
 
-    def __init__(self, client_id: str, client_secret: str, base_url: str = None):
+    def __init__(self, client_id: str, client_secret: str, base_url: str = None, disable_pre_check: bool = False):
         if not requests:
             frappe.throw(_("The 'requests' library is required for the SuperPDP integration."))
         self._client_id = client_id
         self._client_secret = client_secret
         self._base_url = (base_url or self.BASE_URL).rstrip("/")
+        # Sandbox / pré-production platforms skip the platform's pre-validation
+        # checks on every invoice send.
+        self._disable_pre_check = disable_pre_check
         self._access_token: str | None = None
         self._token_expires_at: float = 0.0
 
@@ -379,6 +382,7 @@ class SuperPDPClient:
             filename,
             syntax,
             external_id=external_id,
+            disable_pre_check=self._disable_pre_check,
         )
         return FlowResult(
             flow_id=str(res["id"]),

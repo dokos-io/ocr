@@ -30,16 +30,17 @@ def get_platform_capabilities() -> dict:
 	return PLATFORM_CAPABILITIES
 
 
-def _build_client(platform_type, client_id, client_secret, api_base_url=None, platform_code=None):
+def _build_client(platform_type, client_id, client_secret, api_base_url=None, platform_code=None, sandbox=False):
 	"""Instantiate the right PA client from raw credentials.
 
 	Construction performs authentication (OAuth for SuperPDP/AFNOR, a pyfrctc
 	session for Esalink), so a successful build doubles as a connection probe.
-	Raises on failure.
+	``sandbox`` flags a pré-production platform; only SuperPDP acts on it (skips
+	pre-validation on invoice sends). Raises on failure.
 	"""
 	if platform_type == "SuperPDP":
 		from etransactions.components.superpdp import SuperPDPClient
-		return SuperPDPClient(client_id, client_secret, base_url=api_base_url or None)
+		return SuperPDPClient(client_id, client_secret, base_url=api_base_url or None, disable_pre_check=sandbox)
 
 	if platform_type == "Custom":
 		from etransactions.components.afnor import AFNORClient
@@ -130,6 +131,7 @@ def get_client(company: str, customer: str = None, transaction_type: str = "sale
 			platform_doc.get_password("client_secret"),
 			api_base_url=platform_doc.api_base_url,
 			platform_code=platform_doc.platform_code,
+			sandbox=bool(platform_doc.is_sandbox),
 		)
 	except Exception as e:
 		frappe.throw(

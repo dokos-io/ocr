@@ -16,6 +16,7 @@
   "description",
   "column_break_1",
   "auto_send_on_submit",
+  "is_sandbox",
   "directory_refresh_days",
   "credentials_section",
   "redirect_url_html",
@@ -98,6 +99,14 @@
    "fieldname": "auto_send_on_submit",
    "fieldtype": "Check",
    "label": "Send to Platform on Sales Invoice Submit"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.platform_type === 'SuperPDP'",
+   "description": "Disables SuperPDP pre-validation checks (disable_pre_check) for test/pré-production environments.",
+   "fieldname": "is_sandbox",
+   "fieldtype": "Check",
+   "label": "Pre-production (Sandbox)"
   },
   {
    "default": "15",

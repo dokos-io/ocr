@@ -273,6 +273,14 @@ function _open_platform_dialog(frm, existing_name = null, preset_type = null) {
 				default: 0,
 			},
 			{
+				fieldtype: "Check",
+				fieldname: "is_sandbox",
+				label: __("Pre-production (Sandbox)"),
+				default: 0,
+				depends_on: "eval:doc.platform_type === 'SuperPDP'",
+				description: __("Disables SuperPDP pre-validation checks (disable_pre_check) for test/pré-production environments."),
+			},
+			{
 				fieldtype: "Int",
 				fieldname: "directory_refresh_days",
 				label: __("Directory Refresh (days)"),
