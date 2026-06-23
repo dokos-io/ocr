@@ -26,6 +26,30 @@ frappe.ui.form.on("eTransactions Accredited Platform", {
 					},
 				});
 			});
+
+			if (frm.doc.platform_type === "SuperPDP" && frm.doc.is_sandbox) {
+				frm.add_custom_button(__("Run sandbox test"), () => {
+					frappe.call({
+						method: "etransactions.plateforme_agreee.sandbox.send_superpdp_test_invoice",
+						args: { platform_name: frm.doc.name },
+						freeze: true,
+						freeze_message: __("Provisioning test customer and sending test invoice…"),
+						callback(r) {
+							const res = r.message || {};
+							if (!res.flow_id) return;
+							frappe.msgprint({
+								title: __("Sandbox test sent"),
+								indicator: "green",
+								message: __("Test invoice {0} sent to SuperPDP (flow {1}, status {2}).", [
+									`<a href="/app/sales-invoice/${res.sales_invoice}">${res.sales_invoice}</a>`,
+									res.flow_id,
+									res.pa_status || "—",
+								]),
+							});
+						},
+					});
+				});
+			}
 		}
 	},
 
