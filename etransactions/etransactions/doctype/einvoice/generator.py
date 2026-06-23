@@ -212,7 +212,7 @@ class EInvoiceMapper:
 				{
 					"product_name": item.item_name,
 					"seller_product_id": item.item_code,
-					"product_description": html2text(item.description),
+					"product_description": html2text(item.description) if item.description else None,
 					"item": item.item_code,
 					"billed_quantity": item.qty,
 					"unit_code": uom_codes.get([("UOM", item.uom)]),
