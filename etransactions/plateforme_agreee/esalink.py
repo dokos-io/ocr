@@ -155,7 +155,9 @@ class ESALINKClient:
         flows and are processed by ``flow.poll_incoming_lifecycle_flows()``."""
         return []
 
-    def get_directory_for_siren(self, siren: str) -> DirectoryData:
+    def get_directory_for_siren(self, siren: str, directory_type: str = "ppf") -> DirectoryData:
+        # Esalink/CDAR exposes only the French national directory; directory_type
+        # is accepted for interface parity and currently ignored.
         try:
             from pyfrctc import get_directory_siren_parsed, get_directory_lines_parsed
         except ImportError:

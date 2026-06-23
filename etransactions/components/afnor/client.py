@@ -328,8 +328,12 @@ class AFNORClient:
         """Download an invoice file by its flow ID."""
         return self.download_flow_file(flow_id)
 
-    def get_directory_for_siren(self, siren: str) -> DirectoryData:
-        """Look up e-invoicing directory entries for a company by SIREN."""
+    def get_directory_for_siren(self, siren: str, directory_type: str = "ppf") -> DirectoryData:
+        """Look up e-invoicing directory entries for a company by SIREN.
+
+        AFNOR/PA exposes only the French national directory; ``directory_type``
+        is accepted for interface parity and currently ignored.
+        """
         siren_data = self.get_siren(siren)
         if siren_data is None:
             return DirectoryData(entity_type="no", name="", closed=False)

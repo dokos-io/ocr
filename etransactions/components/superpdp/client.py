@@ -414,9 +414,17 @@ class SuperPDPClient:
         """Download an invoice file by its platform flow_id."""
         return self.download_invoice(flow_id)
 
-    def get_directory_for_siren(self, siren: str) -> DirectoryData:
-        """Look up e-invoicing directory entries for a company by SIREN."""
+    def get_directory_for_siren(self, siren: str, directory_type: str = "ppf") -> DirectoryData:
+        """Look up e-invoicing directory entries for a company by SIREN.
+
+        ``directory_type``: ``"ppf"`` (French national directory) or ``"peppol"``.
+        """
+        directory_type = directory_type or "ppf"
         entries = self.list_french_directory_entries(siren)
+        # Keep only entries for the requested directory. Entries without a
+        # directory marker are retained so a schema change can't silently
+        # empty the result.
+        entries = [e for e in entries if e.get("directory", directory_type) == directory_type]
         if not entries:
             return DirectoryData(entity_type="no", name="", closed=False)
 
