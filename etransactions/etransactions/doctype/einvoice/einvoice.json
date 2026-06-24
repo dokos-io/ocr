@@ -681,7 +681,7 @@
    "fieldname": "pa_processing_rule",
    "fieldtype": "Select",
    "label": "Processing Rule",
-   "options": "\nB2B\nB2G\nB2C\nOutOfScope",
+   "options": "\nB2B\nB2G\nB2C\nB2Bi\nOutOfScope",
    "depends_on": "eval:doc.einvoice_type==\"Outgoing\""
   },
   {

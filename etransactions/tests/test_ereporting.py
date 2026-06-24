@@ -13,6 +13,7 @@ from etransactions.components.superpdp.models import (
 )
 from etransactions.plateforme_agreee import ereporting_status as es
 from etransactions.plateforme_agreee import session
+from etransactions.plateforme_agreee.classification import TransactionClass
 from etransactions.plateforme_agreee.ereporting import _tax_subtotals, should_ereport_sale
 
 
@@ -142,7 +143,11 @@ class TestTaxSubtotals(UnitTestCase):
 
 
 class TestShouldEreportSale(UnitTestCase):
-	"""B2C e-reporting scope: who is reported to the PPF vs. e-invoiced (M3)."""
+	"""B2C / B2Bi e-reporting scope: who is reported to the PPF vs. e-invoiced.
+
+	Classification itself is covered by ``test_classification``; here we check the
+	gating (return / platform) and that the e-reported classes are the trigger.
+	"""
 
 	def _doc(self, **kw):
 		base = {"is_return": 0, "company": "_C", "customer": "_CUST"}
@@ -150,31 +155,23 @@ class TestShouldEreportSale(UnitTestCase):
 		return _dict(base)
 
 	@patch("etransactions.plateforme_agreee.ereporting.ereporting_platform", return_value=object())
-	@patch("frappe.db.get_value")
-	def test_registered_business_not_ereported(self, gv, _plat):
-		gv.return_value = "private"  # reached as a structured B2B e-invoice
+	@patch("etransactions.plateforme_agreee.classification.classify_transaction", return_value=TransactionClass.B2B_DOMESTIC)
+	def test_registered_business_not_ereported(self, _cls, _plat):
 		self.assertFalse(should_ereport_sale(self._doc()))
 
 	@patch("etransactions.plateforme_agreee.ereporting.ereporting_platform", return_value=object())
-	@patch("frappe.db.get_value")
-	def test_unsynced_business_with_siren_is_held(self, gv, _plat):
-		# No resolved directory status yet, but a SIREN is present -> hold, don't
-		# mis-declare a French business as B2C.
-		values = {"directory_entity_type": None, "siren_number": "853322915"}
-		gv.side_effect = lambda dt, name, field: values[field]
+	@patch("etransactions.plateforme_agreee.classification.classify_transaction", return_value=TransactionClass.B2G)
+	def test_public_not_ereported(self, _cls, _plat):
 		self.assertFalse(should_ereport_sale(self._doc()))
 
 	@patch("etransactions.plateforme_agreee.ereporting.ereporting_platform", return_value=object())
-	@patch("frappe.db.get_value")
-	def test_individual_without_siren_is_ereported(self, gv, _plat):
-		values = {"directory_entity_type": None, "siren_number": None}
-		gv.side_effect = lambda dt, name, field: values[field]
+	@patch("etransactions.plateforme_agreee.classification.classify_transaction", return_value=TransactionClass.B2C)
+	def test_individual_is_ereported(self, _cls, _plat):
 		self.assertTrue(should_ereport_sale(self._doc()))
 
 	@patch("etransactions.plateforme_agreee.ereporting.ereporting_platform", return_value=object())
-	@patch("frappe.db.get_value")
-	def test_confirmed_not_in_directory_is_ereported(self, gv, _plat):
-		gv.return_value = "no"  # directory consulted, party not registered
+	@patch("etransactions.plateforme_agreee.classification.classify_transaction", return_value=TransactionClass.B2BI)
+	def test_foreign_business_is_ereported(self, _cls, _plat):
 		self.assertTrue(should_ereport_sale(self._doc()))
 
 	@patch("etransactions.plateforme_agreee.ereporting.ereporting_platform", return_value=None)
@@ -184,3 +181,26 @@ class TestShouldEreportSale(UnitTestCase):
 	@patch("etransactions.plateforme_agreee.ereporting.ereporting_platform", return_value=object())
 	def test_return_not_ereported(self, _plat):
 		self.assertFalse(should_ereport_sale(self._doc(is_return=1)))
+
+
+class TestShouldEreportPurchase(UnitTestCase):
+	"""Purchase-side e-reporting: only international B2B (B2Bi) is reported by us."""
+
+	def _doc(self, **kw):
+		base = {"is_return": 0, "company": "_C", "supplier": "_SUPP"}
+		base.update(kw)
+		return _dict(base)
+
+	@patch("etransactions.plateforme_agreee.ereporting.ereporting_platform", return_value=object())
+	@patch("etransactions.plateforme_agreee.classification.classify_transaction", return_value=TransactionClass.B2BI)
+	def test_foreign_supplier_is_ereported(self, _cls, _plat):
+		from etransactions.plateforme_agreee.ereporting import should_ereport_purchase
+
+		self.assertTrue(should_ereport_purchase(self._doc()))
+
+	@patch("etransactions.plateforme_agreee.ereporting.ereporting_platform", return_value=object())
+	@patch("etransactions.plateforme_agreee.classification.classify_transaction", return_value=TransactionClass.B2B_DOMESTIC)
+	def test_domestic_purchase_not_ereported(self, _cls, _plat):
+		from etransactions.plateforme_agreee.ereporting import should_ereport_purchase
+
+		self.assertFalse(should_ereport_purchase(self._doc()))

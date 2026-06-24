@@ -17,7 +17,15 @@ etransactions.lifecycle = {
 			{ status: "partially_approved", label: __("Partially Approved"), reason: true },
 			{ status: "dispute", label: __("Disputed"), reason: true },
 			{ status: "suspended", label: __("Suspended"), reason: true },
-			{ status: "refused", label: __("Refused"), reason: true, confirm: true },
+			{
+				status: "refused",
+				label: __("Refused"),
+				reason: true,
+				confirm: true,
+				confirm_message: __(
+					"Refusal is definitive and cannot be undone. To block the invoice temporarily instead (e.g. pending a correction), report 'Disputed'. Continue with the refusal?"
+				),
+			},
 			{ status: "payment_sent", label: __("Payment Sent") },
 		],
 		sale: [
@@ -88,7 +96,10 @@ etransactions.lifecycle = {
 					(values) => {
 						const submit = () => run({ reason_code: values.reason_code, comment: values.comment });
 						if (def.confirm) {
-							frappe.confirm(__("Reporting '{0}' cannot be undone. Continue?", [def.label]), submit);
+							const msg =
+								def.confirm_message ||
+								__("Reporting '{0}' cannot be undone. Continue?", [def.label]);
+							frappe.confirm(msg, submit);
 						} else {
 							submit();
 						}

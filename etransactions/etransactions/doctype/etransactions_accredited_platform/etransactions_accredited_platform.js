@@ -28,6 +28,18 @@ frappe.ui.form.on("eTransactions Accredited Platform", {
 			});
 
 			if (frm.doc.platform_type === "SuperPDP") {
+				frm.add_custom_button(__("Connect account (onboarding)"), () => {
+					frappe.call({
+						method: "etransactions.plateforme_agreee.session.start_oauth_onboarding",
+						args: { platform_name: frm.doc.name },
+						freeze: true,
+						freeze_message: __("Preparing onboarding…"),
+						callback(r) {
+							const url = (r.message || {}).authorize_url;
+							if (url) window.location.href = url;
+						},
+					});
+				});
 				frm.add_custom_button(__("Directory registration"), () => open_directory_dialog(frm));
 			}
 

@@ -60,6 +60,73 @@ def sync_customer_directory(customer: str, company: str = None):
 		)
 
 
+def maybe_sync_on_confirm(company: str, customer: str, origin: str = "Confirmation") -> None:
+	"""Sync a customer's directory at invoice/order confirmation, if configured.
+
+	Honours the platform's ``directory_sync_on_submit`` mode: ``blocking`` raises
+	when the directory is unreachable (so a stale routing is never used), while
+	``not_blocking`` logs and continues and ``no`` is a no-op. Skips pinned
+	customers, customers without a SIREN, and those synced within the staleness
+	window (the shorter window applies to inactive entities). Reuses the same sync
+	path as the manual button and the cron.
+	"""
+	if not company or not customer:
+		return
+
+	from etransactions.plateforme_agreee.session import get_platform_for_company
+
+	platform = get_platform_for_company(company, "sales")
+	if not platform:
+		return
+	mode = platform.get("directory_sync_on_submit") or "not_blocking"
+	if mode == "no":
+		return
+
+	row = frappe.db.get_value(
+		"Customer",
+		customer,
+		["siren_number", "directory_pinned", "directory_entity_type", "directory_update_date"],
+		as_dict=True,
+	) or {}
+	if not row.get("siren_number") or row.get("directory_pinned"):
+		return
+
+	# Skip if already synced recently enough (inactive entities use the shorter
+	# cadence, since they may have been reactivated).
+	if row.get("directory_entity_type") and row.get("directory_update_date"):
+		if row.directory_entity_type == "private_inactive":
+			days = platform.get("directory_refresh_days_inactive") or 5
+		else:
+			days = platform.get("directory_refresh_days") or 15
+		cutoff = frappe.utils.add_days(frappe.utils.nowdate(), -days)
+		if frappe.utils.getdate(row.directory_update_date) >= frappe.utils.getdate(cutoff):
+			return
+
+	result = {
+		"operation_type": "directory_single",
+		"origin": origin,
+		"company": company,
+		"new_count": 0,
+		"updated_count": 0,
+		"logs": [],
+	}
+	try:
+		client = get_client(company, customer=customer)
+		_sync_customer_directory(customer, client, result)
+		eInvoicingLog.create_log(result)
+	except Exception as e:
+		result["logs"].append(("error", str(e)))
+		eInvoicingLog.create_log(result)
+		if mode == "blocking":
+			frappe.throw(
+				_(
+					"The accredited-platform directory could not be synced for this customer, "
+					"which is required before confirmation. Sync the directory on the customer "
+					"(or set Directory Sync on Submit to 'not blocking'). Error: {0}"
+				).format(str(e))
+			)
+
+
 @frappe.whitelist()
 def get_party_establishments(party_type: str, party: str) -> list[dict]:
 	"""Return the party's addresses (establishments) with their SIRET, buyer
@@ -117,7 +184,7 @@ def sync_all_customers():
 	"""Cron entry point: sync stale directory lines for all customers across all configured companies."""
 	companies = frappe.db.get_all(
 		"eTransactions Accredited Platform",
-		fields=["company", "directory_refresh_days"],
+		fields=["company", "directory_refresh_days", "directory_refresh_days_inactive"],
 		filters={"is_active": 1},
 		group_by="company"
 	)
@@ -125,6 +192,9 @@ def sync_all_customers():
 	for platform_row in companies:
 		company = platform_row.company
 		refresh_days = platform_row.directory_refresh_days or 15
+		# Inactive VAT-registered entities may be reactivated, so re-check them on a
+		# shorter cadence than active ones.
+		refresh_days_inactive = platform_row.directory_refresh_days_inactive or 5
 
 		result = {
 			"operation_type": "directory_all",
@@ -143,6 +213,7 @@ def sync_all_customers():
 			continue
 
 		cutoff_date = frappe.utils.add_days(frappe.utils.nowdate(), -refresh_days)
+		cutoff_date_inactive = frappe.utils.add_days(frappe.utils.nowdate(), -refresh_days_inactive)
 		stale_customers = frappe.get_all(
 			"Customer",
 			filters={
@@ -150,6 +221,16 @@ def sync_all_customers():
 				"directory_closed": 0,
 				"directory_pinned": 0,
 				"directory_update_date": ["<", cutoff_date],
+			},
+			pluck="name",
+		)
+		stale_customers += frappe.get_all(
+			"Customer",
+			filters={
+				"directory_entity_type": "private_inactive",
+				"directory_closed": 0,
+				"directory_pinned": 0,
+				"directory_update_date": ["<", cutoff_date_inactive],
 			},
 			pluck="name",
 		)
@@ -163,6 +244,22 @@ def sync_all_customers():
 				result["logs"].append(("warning", f"Failed to sync customer {customer_name}: {str(e)}"))
 
 		eInvoicingLog.create_log(result)
+
+
+def _primary_address_siret(customer_name: str) -> str | None:
+	"""SIRET of the customer's primary billing address, if resolvable."""
+	primary = frappe.db.get_value("Customer", customer_name, "customer_primary_address")
+	if not primary:
+		linked = frappe.get_all(
+			"Dynamic Link",
+			filters={"parenttype": "Address", "link_doctype": "Customer", "link_name": customer_name},
+			pluck="parent",
+		)
+		if linked:
+			primary = frappe.db.get_value(
+				"Address", {"name": ["in", linked], "is_primary_address": 1, "disabled": 0}, "name"
+			)
+	return frappe.db.get_value("Address", primary, "siret_number") if primary else None
 
 
 def _sync_customer_directory(customer_name: str, client, result: dict):
@@ -179,12 +276,18 @@ def _sync_customer_directory(customer_name: str, client, result: dict):
 
 	directory_data = client.get_directory_for_siren(siren, directory_type)
 
-	frappe.db.set_value("Customer", customer_name, {
+	update = {
 		"directory_entity_type": directory_data.entity_type,
 		"directory_name": directory_data.name or "",
 		"directory_closed": 1 if directory_data.closed else 0,
 		"directory_update_date": frappe.utils.nowdate(),
-	})
+		# Pin the identifier queried so a later change to the party's SIREN/SIRET is
+		# detected (the synced routing lines would belong to a different entity).
+		"directory_query_siren": siren,
+	}
+	if directory_data.entity_type == "public":
+		update["directory_query_siret"] = _primary_address_siret(customer_name)
+	frappe.db.set_value("Customer", customer_name, update)
 
 	if directory_data.entity_type == "no" or directory_data.closed:
 		frappe.db.set_value(

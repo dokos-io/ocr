@@ -115,6 +115,22 @@ def customer_check_specs() -> list[CheckSpec]:
 		),
 		CheckSpec("siret", _("SIRET on billing address"), True, _siret_ok, fix_doctype="address"),
 		CheckSpec("addr_fields", _("Complete billing address"), True, _addr_fields_ok, fix_doctype="address"),
+		# Identity must not drift away from what the directory was synced against:
+		# the routing lines would then belong to a different legal entity.
+		CheckSpec(
+			"siren_unchanged",
+			_("SIREN changed since directory sync — create a new customer instead"),
+			True,
+			_siren_unchanged,
+			"siren_number",
+		),
+		CheckSpec(
+			"siret_unchanged",
+			_("Public-sector SIRET changed since directory sync — create a new customer instead"),
+			True,
+			_siret_unchanged,
+			fix_doctype="address",
+		),
 	]
 
 
@@ -158,6 +174,26 @@ def _siren_vat_match(r: dict) -> bool:
 
 def _siret_ok(r: dict) -> bool:
 	return bool(r.get("resolved_address")) and bool(r.get("siret_number"))
+
+
+def _siren_unchanged(r: dict) -> bool:
+	"""SIREN still matches the one the directory was last synced against.
+
+	Passes when the party was never synced (no pinned SIREN) or the values agree.
+	"""
+	pinned = r.get("directory_query_siren")
+	return not pinned or pinned == r.get("siren_number")
+
+
+def _siret_unchanged(r: dict) -> bool:
+	"""Public-sector SIRET still matches the one the directory was synced against.
+
+	Only public entities are addressed by SIRET; for everyone else this passes.
+	"""
+	if r.get("directory_entity_type") != "public":
+		return True
+	pinned = r.get("directory_query_siret")
+	return not pinned or pinned == r.get("siret_number")
 
 
 def _addr_fields_ok(r: dict) -> bool:
@@ -222,6 +258,9 @@ def _customer_row(party: str) -> dict:
 			"siren_number",
 			"tax_id",
 			"directory_type",
+			"directory_entity_type",
+			"directory_query_siren",
+			"directory_query_siret",
 			"customer_primary_contact",
 			"email_id",
 			"customer_primary_address",
@@ -320,19 +359,19 @@ def _ereporting_findings(doc) -> list[Finding]:
 	"""
 	out: list[Finding] = []
 	try:
+		from etransactions.plateforme_agreee.classification import TransactionClass, classify_transaction
 		from etransactions.plateforme_agreee.ereporting import should_ereport_sale
 		if not should_ereport_sale(doc):
 			return out
+		cls = classify_transaction(doc.company, "Customer", doc.customer, doc.get("customer_address"))
 	except Exception:
 		return out
 
-	out.append(
-		Finding(
-			"ereporting_scope",
-			"info",
-			_("This sale will be reported to the PPF as B2C e-reporting data."),
-		)
-	)
+	if cls == TransactionClass.B2BI:
+		scope_msg = _("This sale will be reported to the PPF as international B2B (B2Bi) e-reporting data.")
+	else:
+		scope_msg = _("This sale will be reported to the PPF as B2C e-reporting data.")
+	out.append(Finding("ereporting_scope", "info", scope_msg))
 	if doc.get("company") and not frappe.db.get_value("Company", doc.company, "etransactions_vat_regime"):
 		company = frappe.utils.sanitize_html(doc.company)
 		out.append(

@@ -45,6 +45,34 @@ class eInvoiceEvent(Document):
 		# (dispute / refusal / suspension). Mirrors the Odoo mail-activity behaviour.
 		if self.direction == "in" and lifecycle_status.is_warning(self.status):
 			self._notify_warning()
+		# A refusal is definitive: optionally cancel the linked Sales Invoice.
+		if self.direction == "in" and self.status == "refused":
+			self._maybe_auto_cancel()
+
+	def _maybe_auto_cancel(self):
+		"""Cancel the linked Sales Invoice when the customer refuses the e-invoice.
+
+		Gated by the (default-off) ``auto_cancel_on_refusal`` setting because cancel
+		is irreversible. Best-effort: a failure is logged, not raised, so it never
+		blocks recording the inbound event.
+		"""
+		if not frappe.db.get_single_value("eTransactions Settings", "auto_cancel_on_refusal"):
+			return
+		sales_invoice = frappe.db.get_value("eInvoice", self.einvoice, "sales_invoice")
+		if not sales_invoice:
+			return
+		inv = frappe.get_doc("Sales Invoice", sales_invoice)
+		if inv.docstatus != 1:
+			return
+		try:
+			inv.flags.ignore_permissions = True
+			inv.cancel()
+			inv.add_comment(
+				"Comment",
+				text=frappe._("Cancelled automatically: the customer refused the e-invoice on the accredited platform."),
+			)
+		except Exception:
+			frappe.log_error(frappe.get_traceback(), "Auto-cancel on refusal failed")
 
 	def _notify_warning(self):
 		einvoice = frappe.get_doc("eInvoice", self.einvoice)

@@ -110,7 +110,16 @@ class SuperPDPClient:
     _REJECTED_CODES = {"fr:210", "fr:213", "api:rejected", "ppf:005"}  # Refused / Rejected
     _ERROR_CODES = {"fr:207", "fr:501"}  # Disputed / Inadmissible
 
-    def __init__(self, client_id: str, client_secret: str, base_url: str = None, disable_pre_check: bool = False):
+    def __init__(
+        self,
+        client_id: str,
+        client_secret: str,
+        base_url: str = None,
+        disable_pre_check: bool = False,
+        auth_method: str = "client_credentials",
+        refresh_token: str | None = None,
+        on_token_refreshed=None,
+    ):
         if not requests:
             frappe.throw(_("The 'requests' library is required for the SuperPDP integration."))
         self._client_id = client_id
@@ -119,6 +128,12 @@ class SuperPDPClient:
         # Sandbox / pré-production platforms skip the platform's pre-validation
         # checks on every invoice send.
         self._disable_pre_check = disable_pre_check
+        # "client_credentials" (act as our own company) or "authorization_code"
+        # (refresh-token grant after interactive onboarding).
+        self._auth_method = auth_method or "client_credentials"
+        self._refresh_token = refresh_token
+        # Callback(token_dict) used to persist a rotated token after refresh.
+        self._on_token_refreshed = on_token_refreshed
         self._access_token: str | None = None
         self._token_expires_at: float = 0.0
 
@@ -127,6 +142,9 @@ class SuperPDPClient:
     # -------------------------------------------------------------------------
 
     def _fetch_token(self) -> None:
+        if self._auth_method == "authorization_code":
+            self._refresh_access_token()
+            return
         resp = requests.post(
             f"{self._base_url}/oauth2/token",
             data={
@@ -143,10 +161,116 @@ class SuperPDPClient:
         # Subtract 60 s so we refresh before actual expiry
         self._token_expires_at = time.monotonic() + expires_in - 60
 
+    def _refresh_access_token(self) -> None:
+        """Exchange the stored refresh token for a fresh access token.
+
+        Persists the (possibly rotated) tokens through ``on_token_refreshed`` so
+        the next request — in this or another worker — reuses them.
+        """
+        if not self._refresh_token:
+            frappe.throw(
+                _("This platform uses interactive authentication but has no refresh token. Run the onboarding.")
+            )
+        resp = requests.post(
+            f"{self._base_url}/oauth2/token",
+            data={
+                "grant_type": "refresh_token",
+                "client_id": self._client_id,
+                "refresh_token": self._refresh_token,
+            },
+            timeout=30,
+        )
+        self._raise_for_status(resp)
+        data = resp.json()
+        self._access_token = data["access_token"]
+        expires_in = int(data.get("expires_in", 3600))
+        self._token_expires_at = time.monotonic() + expires_in - 60
+        # A rotated refresh token replaces the old one for subsequent refreshes.
+        if data.get("refresh_token"):
+            self._refresh_token = data["refresh_token"]
+        if self._on_token_refreshed:
+            self._on_token_refreshed(data)
+
     def _token(self) -> str:
         if not self._access_token or time.monotonic() >= self._token_expires_at:
             self._fetch_token()
         return self._access_token
+
+    # -- Interactive onboarding (authorization_code + PKCE) -------------------
+
+    @staticmethod
+    def generate_pkce_pair() -> tuple[str, str]:
+        """Return a ``(code_verifier, code_challenge)`` PKCE pair (S256)."""
+        import base64
+        import hashlib
+        import secrets
+
+        code_verifier = secrets.token_urlsafe(64)
+        digest = hashlib.sha256(code_verifier.encode("ascii")).digest()
+        code_challenge = base64.urlsafe_b64encode(digest).decode("ascii").rstrip("=")
+        return code_verifier, code_challenge
+
+    @classmethod
+    def build_authorize_url(
+        cls,
+        *,
+        client_id: str,
+        redirect_uri: str,
+        state: str,
+        code_challenge: str,
+        base_url: str = None,
+        company_number: str | None = None,
+        company_number_scheme: str | None = None,
+        login_hint: str | None = None,
+    ) -> str:
+        """Build the SuperPDP ``/oauth2/authorize`` URL for the consent redirect."""
+        from urllib.parse import urlencode
+
+        base = (base_url or cls.BASE_URL).rstrip("/")
+        params = {
+            "response_type": "code",
+            "client_id": client_id,
+            "redirect_uri": redirect_uri,
+            "state": state,
+            "code_challenge": code_challenge,
+            "code_challenge_method": "S256",
+        }
+        if company_number and company_number_scheme:
+            params["superpdp_company_number"] = company_number
+            params["superpdp_company_number_scheme"] = company_number_scheme
+        if login_hint:
+            params["login_hint"] = login_hint
+        return f"{base}/oauth2/authorize?{urlencode(params)}"
+
+    @classmethod
+    def exchange_authorization_code(
+        cls,
+        *,
+        client_id: str,
+        code: str,
+        code_verifier: str,
+        redirect_uri: str,
+        base_url: str = None,
+    ) -> dict:
+        """Exchange an authorization code for the initial token set."""
+        if not requests:
+            frappe.throw(_("The 'requests' library is required for the SuperPDP integration."))
+        base = (base_url or cls.BASE_URL).rstrip("/")
+        resp = requests.post(
+            f"{base}/oauth2/token",
+            data={
+                "grant_type": "authorization_code",
+                "client_id": client_id,
+                "code": code,
+                "code_verifier": code_verifier,
+                "redirect_uri": redirect_uri,
+            },
+            timeout=30,
+        )
+        if resp.status_code >= 400:
+            # Do not leak the code/secret; surface only the platform's error text.
+            frappe.throw(_("Token exchange failed: {0}").format(resp.text[:300]))
+        return resp.json()
 
     def _headers(self, extra: dict | None = None) -> dict:
         h = {"Authorization": f"Bearer {self._token()}"}
@@ -485,7 +609,15 @@ class SuperPDPClient:
 
         first_company = entries[0].get("company", {})
         name = first_company.get("formal_name", "")
-        all_inactive = all(not e.get("is_active") for e in entries)
+        any_active = any(e.get("is_active") for e in entries)
+        # Administrative closure (entity ceased) is distinct from "no active
+        # routing line": the former marks the legal entity as closed, the latter a
+        # VAT-registered business whose directory entry is currently inactive.
+        closed = (
+            first_company.get("administrative_status") == "C"
+            or bool(first_company.get("closed"))
+            or bool(first_company.get("is_closed"))
+        )
 
         lines: dict[str, DirectoryLineData] = {}
         for entry in entries:
@@ -498,10 +630,12 @@ class SuperPDPClient:
                 commitment_required=False,
             )
 
+        # A registered business with no active routing line is e-reported (B2C),
+        # not e-invoiced — surface that as private_inactive (mirrors akretion).
         return DirectoryData(
-            entity_type="private",
+            entity_type="private" if any_active else "private_inactive",
             name=name,
-            closed=all_inactive,
+            closed=closed,
             lines=lines,
         )
 

@@ -189,6 +189,7 @@ doc_events = {
 			"etransactions.etransactions.doctype.ocr_request.ocr_request.update_ocr_request_status",
 			"etransactions.etransactions.doctype.supplier_invoice.supplier_invoice.set_pending_purchase_order_status",
 			"etransactions.plateforme_agreee.auto_status.on_purchase_invoice_submit",
+			"etransactions.overrides.purchase_invoice.on_submit",
 		],
 		"on_cancel": [
 			"etransactions.etransactions.doctype.ocr_request.ocr_request.update_ocr_request_status",
@@ -213,7 +214,12 @@ doc_events = {
 	"Sales Invoice": {
 		"validate": "etransactions.overrides.sales_invoice.on_validate",
 		"on_update": "etransactions.overrides.sales_invoice.on_update",
+		"before_submit": "etransactions.overrides.sales_invoice.before_submit",
 		"on_submit": "etransactions.overrides.sales_invoice.on_submit",
+	},
+	"Sales Order": {
+		"validate": "etransactions.overrides.sales_order.on_validate",
+		"before_submit": "etransactions.overrides.sales_order.before_submit",
 	},
 	"Company": {
 		"validate": "etransactions.overrides.master_data.validate_electronic_address",

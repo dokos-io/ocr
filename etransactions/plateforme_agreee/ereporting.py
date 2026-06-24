@@ -35,27 +35,20 @@ def ereporting_platform(company: str, transaction_type: str = "sales"):
 def should_ereport_sale(doc) -> bool:
 	"""True if a Sales Invoice represents an in-scope sale that needs e-reporting.
 
-	A sale is e-reported (rather than e-invoiced) when the customer is not a
-	French registered business reachable through the directory — i.e. a private
-	individual or a foreign/non-established party.
+	A sale is e-reported (rather than e-invoiced) when the buyer is not reached as
+	a structured B2B/B2G invoice — i.e. a private individual, an inactive
+	VAT-registered entity, or a foreign business (international B2B). The flow is
+	decided by the shared :func:`classify_transaction`, so this leg and the
+	e-invoicing leg never disagree on classification.
 	"""
 	if doc.get("is_return"):
 		return False
 	if not ereporting_platform(doc.company, "sales"):
 		return False
-	entity_type = frappe.db.get_value("Customer", doc.customer, "directory_entity_type")
-	# Registered businesses (private) and public entities are reached as
-	# structured B2B / B2G e-invoices, never e-reported.
-	if entity_type in ("private", "public"):
-		return False
-	# A customer that carries a SIREN but has no resolved directory status is a
-	# French business whose directory simply hasn't been synced yet — it should be
-	# e-invoiced once routed, not mis-declared to the PPF as B2C. Hold it out of
-	# e-reporting; the readiness panel surfaces the "directory not synced" warning.
-	if not entity_type and frappe.db.get_value("Customer", doc.customer, "siren_number"):
-		return False
-	# Individuals / foreign / confirmed not-in-directory parties: e-reported.
-	return True
+	from etransactions.plateforme_agreee.classification import EREPORTED, classify_transaction
+
+	cls = classify_transaction(doc.company, "Customer", doc.customer, doc.get("customer_address"))
+	return cls in EREPORTED
 
 
 # Charge types whose amount is a percentage of a running base, so the taxable
@@ -114,11 +107,68 @@ def capture_sale_transaction(doc) -> str | None:
 	if existing:
 		return existing
 
+	from etransactions.plateforme_agreee.classification import TransactionClass, classify_transaction
+
+	cls = classify_transaction(doc.company, "Customer", doc.customer, doc.get("customer_address"))
+
 	entry = frappe.new_doc("eReporting Entry")
 	entry.company = doc.company
 	entry.kind = "transaction"
 	entry.role_code = "SE"
+	entry.transaction_class = "B2Bi" if cls == TransactionClass.B2BI else "B2C"
 	entry.reference_doctype = "Sales Invoice"
+	entry.reference_name = doc.name
+	entry.date = doc.posting_date
+	entry.currency = doc.currency
+	entry.category_code = DEFAULT_TRANSACTION_CATEGORY
+	entry.tax_exclusive_amount = float(doc.get("net_total") or 0)
+	entry.tax_total = float(doc.get("total_taxes_and_charges") or 0)
+	for sub in _tax_subtotals(doc):
+		entry.append("subtotals", sub)
+	entry.flags.ignore_permissions = True
+	entry.insert()
+	return entry.name
+
+
+def should_ereport_purchase(doc) -> bool:
+	"""True if a Purchase Invoice is an international B2B (B2Bi) purchase to report.
+
+	Domestic purchases are e-invoiced by the supplier (we receive them); only
+	cross-border B2B purchases from a foreign business must be e-reported by us as
+	the buyer (flow 10.1, role BY).
+	"""
+	if doc.get("is_return"):
+		return False
+	if not ereporting_platform(doc.company, "purchases"):
+		return False
+	from etransactions.plateforme_agreee.classification import TransactionClass, classify_transaction
+
+	cls = classify_transaction(doc.company, "Supplier", doc.supplier, doc.get("supplier_address"))
+	return cls == TransactionClass.B2BI
+
+
+def capture_purchase_transaction(doc) -> str | None:
+	"""Queue a B2Bi purchase e-reporting entry (we are the buyer).
+
+	Idempotent and best-effort, mirroring :func:`capture_sale_transaction`.
+	"""
+	if not should_ereport_purchase(doc):
+		return None
+
+	existing = frappe.db.get_value(
+		"eReporting Entry",
+		{"reference_doctype": "Purchase Invoice", "reference_name": doc.name, "kind": "transaction"},
+		"name",
+	)
+	if existing:
+		return existing
+
+	entry = frappe.new_doc("eReporting Entry")
+	entry.company = doc.company
+	entry.kind = "transaction"
+	entry.role_code = "BY"
+	entry.transaction_class = "B2Bi"
+	entry.reference_doctype = "Purchase Invoice"
 	entry.reference_name = doc.name
 	entry.date = doc.posting_date
 	entry.currency = doc.currency

@@ -33,7 +33,8 @@
   "lifecycle_status_section",
   "auto_send_in_hand",
   "auto_send_approved",
-  "auto_send_payment"
+  "auto_send_payment",
+  "auto_cancel_on_refusal"
  ],
  "fields": [
   {
@@ -208,6 +209,13 @@
    "fieldname": "auto_send_payment",
    "fieldtype": "Check",
    "label": "Auto-send payment statuses on payment submission"
+  },
+  {
+   "default": "0",
+   "description": "When the customer refuses an e-invoice (incoming 'Refused' status), automatically cancel the linked Sales Invoice. Off by default — cancellation is irreversible.",
+   "fieldname": "auto_cancel_on_refusal",
+   "fieldtype": "Check",
+   "label": "Auto-cancel Sales Invoice on refusal"
   }
  ],
  "grid_page_length": 50,

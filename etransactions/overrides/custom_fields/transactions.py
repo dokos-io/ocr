@@ -65,10 +65,23 @@ contract_reference_field = {
 	"fetch_if_empty": 1,
 }
 
+# The accredited-platform routing line (establishment) the e-invoice is sent to.
+# Resolved automatically from the buyer's directory; editable to force a specific
+# establishment. Shared by Sales Order (where it is determined at confirmation)
+# and Sales Invoice (where it is propagated and drives the eInvoice routing).
+routing_line_field = {
+	"fieldname": "etransactions_routing_line",
+	"label": _("Accredited-Platform Routing Line"),
+	"fieldtype": "Link",
+	"options": "eInvoicing Directory Line",
+	"description": _("Directory line used to route the e-invoice. Resolved automatically; override to force a specific establishment."),
+}
+
 # Orders: references stay in the Details area after tax_id.
 selling_fields = [
 	{**buyer_reference_field, "insert_after": "tax_id"},
 	{**contract_reference_field, "insert_after": "etransactions_buyer_reference"},
+	{**routing_line_field, "insert_after": "etransactions_contract_reference"},
 ]
 
 sales_invoicing_fields = [
@@ -89,11 +102,24 @@ sales_invoicing_fields = [
 	},
 	{**buyer_reference_field, "insert_after": "etransaction_profile"},
 	{**contract_reference_field, "insert_after": "etransactions_buyer_reference"},
+	# The regulated-flow determination (single source of truth), set on validate by
+	# classify_transaction so the user sees why an invoice is sent or e-reported.
+	{
+		"fieldname": "etransactions_flow_class",
+		"label": _("Regulated Flow"),
+		"fieldtype": "Select",
+		"options": "\nB2B\nB2G\nB2C\nB2Bi\nOutOfScope",
+		"insert_after": "etransactions_contract_reference",
+		"read_only": 1,
+		"no_copy": 1,
+		"description": _("How this invoice is handled under the French CTC reform: B2B/B2G are e-invoiced, B2C/B2Bi are e-reported."),
+	},
+	{**routing_line_field, "insert_after": "etransactions_flow_class"},
 	{
 		"fieldname": "etransactions_status_html",
 		"fieldtype": "HTML",
 		"label": "",
-		"insert_after": "etransactions_contract_reference",
+		"insert_after": "etransactions_routing_line",
 	},
 ]
 

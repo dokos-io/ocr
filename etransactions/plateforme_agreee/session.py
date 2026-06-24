@@ -33,16 +33,39 @@ def get_platform_capabilities() -> dict:
 	return PLATFORM_CAPABILITIES
 
 
-def _build_client(platform_type, client_id, client_secret, api_base_url=None, platform_code=None, sandbox=False):
+def _build_client(
+	platform_type,
+	client_id,
+	client_secret,
+	api_base_url=None,
+	platform_code=None,
+	sandbox=False,
+	auth_method="client_credentials",
+	platform_name=None,
+):
 	"""Instantiate the right PA client from raw credentials.
 
 	Construction performs authentication (OAuth for SuperPDP/AFNOR, a pyfrctc
 	session for Esalink), so a successful build doubles as a connection probe.
 	``sandbox`` flags a pré-production platform; only SuperPDP acts on it (skips
-	pre-validation on invoice sends). Raises on failure.
+	pre-validation on invoice sends). ``auth_method`` selects SuperPDP's OAuth
+	grant; ``authorization_code`` loads the stored refresh token. Raises on failure.
 	"""
 	if platform_type == "SuperPDP":
 		from etransactions.components.superpdp import SuperPDPClient
+		if auth_method == "authorization_code":
+			tok = _get_platform_token(platform_name) if platform_name else {}
+			return SuperPDPClient(
+				client_id,
+				client_secret,
+				base_url=api_base_url or None,
+				disable_pre_check=sandbox,
+				auth_method="authorization_code",
+				refresh_token=tok.get("refresh_token"),
+				on_token_refreshed=(
+					(lambda data: _store_platform_token(platform_name, data)) if platform_name else None
+				),
+			)
 		return SuperPDPClient(client_id, client_secret, base_url=api_base_url or None, disable_pre_check=sandbox)
 
 	if platform_type == "Custom":
@@ -131,10 +154,12 @@ def get_client(company: str, customer: str = None, transaction_type: str = "sale
 		return _build_client(
 			platform_doc.platform_type,
 			platform_doc.get_password("client_id"),
-			platform_doc.get_password("client_secret"),
+			platform_doc.get_password("client_secret", raise_exception=False),
 			api_base_url=platform_doc.api_base_url,
 			platform_code=platform_doc.platform_code,
 			sandbox=bool(platform_doc.is_sandbox),
+			auth_method=platform_doc.get("auth_method") or "client_credentials",
+			platform_name=platform_name,
 		)
 	except Exception as e:
 		frappe.throw(
@@ -214,9 +239,11 @@ def check_platform_health(platform_name: str, store: bool = True) -> dict:
 		client = _build_client(
 			doc.platform_type,
 			doc.get_password("client_id"),
-			doc.get_password("client_secret"),
+			doc.get_password("client_secret", raise_exception=False),
 			api_base_url=doc.api_base_url,
 			platform_code=doc.platform_code,
+			auth_method=doc.get("auth_method") or "client_credentials",
+			platform_name=platform_name,
 		)
 		client.healthcheck()
 		status, message = "ok", _("Connection successful.")
@@ -257,3 +284,128 @@ def run_all_health_checks():
 		except Exception:
 			frappe.db.rollback()
 			frappe.log_error(frappe.get_traceback(), f"PA health check failed: {name}")
+
+
+# ---------------------------------------------------------------------------
+# Interactive OAuth2 onboarding (authorization_code + PKCE) for SuperPDP
+# ---------------------------------------------------------------------------
+
+_OAUTH_STATE_TTL = 600  # seconds the onboarding state stays valid
+
+
+def _oauth_redirect_uri() -> str:
+	"""The redirect URI registered in the platform's portal (matches the form JS)."""
+	return f"{frappe.utils.get_url()}/api/method/etransactions.plateforme_agreee.session.oauth_callback"
+
+
+def _get_platform_token(platform_name: str) -> dict:
+	"""Return the stored, decrypted token set for a platform (empty if none)."""
+	name = frappe.db.get_value("eTransactions Platform Token", {"platform": platform_name})
+	if not name:
+		return {}
+	doc = frappe.get_doc("eTransactions Platform Token", name)
+	return {
+		"access_token": doc.get_password("access_token", raise_exception=False),
+		"refresh_token": doc.get_password("refresh_token", raise_exception=False),
+		"expires_at": doc.expires_at,
+	}
+
+
+def _store_platform_token(platform_name: str, token: dict) -> None:
+	"""Persist a token set on its own record (encrypted Password fields).
+
+	Keeping tokens off the platform doc avoids write contention with the frequent
+	reads/writes there. Only overwrites the refresh token when the platform rotated
+	it, so a plain access-token refresh keeps the existing refresh token.
+	"""
+	name = frappe.db.get_value("eTransactions Platform Token", {"platform": platform_name})
+	doc = (
+		frappe.get_doc("eTransactions Platform Token", name)
+		if name
+		else frappe.new_doc("eTransactions Platform Token")
+	)
+	if not name:
+		doc.platform = platform_name
+	doc.access_token = token.get("access_token")
+	if token.get("refresh_token"):
+		doc.refresh_token = token.get("refresh_token")
+	doc.expires_at = frappe.utils.add_to_date(
+		frappe.utils.now_datetime(), seconds=int(token.get("expires_in", 3600))
+	)
+	doc.flags.ignore_permissions = True
+	doc.save()
+
+
+@frappe.whitelist()
+def start_oauth_onboarding(platform_name: str) -> dict:
+	"""Begin the SuperPDP authorization_code onboarding; return the authorize URL.
+
+	Generates a PKCE pair + anti-CSRF ``state``, stashes them in the server cache
+	keyed by state (bound to the current user), and builds the consent URL. The
+	browser then redirects to :func:`oauth_callback`.
+	"""
+	frappe.only_for(("System Manager", "Accounts Manager"))
+	doc = frappe.get_cached_doc("eTransactions Accredited Platform", platform_name)
+	if doc.platform_type != "SuperPDP":
+		frappe.throw(_("Interactive onboarding is only available for SuperPDP platforms."))
+
+	import secrets
+
+	from etransactions.components.superpdp import SuperPDPClient
+
+	code_verifier, code_challenge = SuperPDPClient.generate_pkce_pair()
+	state = secrets.token_urlsafe(24)
+	frappe.cache().set_value(
+		f"superpdp_oauth:{state}",
+		{"platform": platform_name, "code_verifier": code_verifier, "user": frappe.session.user},
+		expires_in_sec=_OAUTH_STATE_TTL,
+	)
+
+	siren = frappe.db.get_value("Company", doc.company, "siren_number") if doc.company else None
+	url = SuperPDPClient.build_authorize_url(
+		client_id=doc.get_password("client_id"),
+		redirect_uri=_oauth_redirect_uri(),
+		state=state,
+		code_challenge=code_challenge,
+		base_url=doc.api_base_url or None,
+		company_number=siren,
+		company_number_scheme=("sandbox" if doc.is_sandbox else "fr_siren") if siren else None,
+		login_hint=frappe.session.user if "@" in (frappe.session.user or "") else None,
+	)
+	return {"authorize_url": url}
+
+
+@frappe.whitelist()
+def oauth_callback(**kwargs):
+	"""Redirect target for SuperPDP onboarding: validate state, store the tokens.
+
+	Validates the ``state`` against the cached value for the current user (CSRF),
+	exchanges the authorization code for the token set, persists it, and redirects
+	back to the platform form. The authorization code and tokens are never logged.
+	"""
+	state = kwargs.get("state")
+	code = kwargs.get("code")
+	cached = frappe.cache().get_value(f"superpdp_oauth:{state}") if state else None
+	if not cached or cached.get("user") != frappe.session.user or not code:
+		frappe.throw(_("Invalid or expired onboarding session. Please restart the onboarding."))
+	frappe.cache().delete_value(f"superpdp_oauth:{state}")
+
+	platform_name = cached["platform"]
+	doc = frappe.get_cached_doc("eTransactions Accredited Platform", platform_name)
+
+	from etransactions.components.superpdp import SuperPDPClient
+
+	token = SuperPDPClient.exchange_authorization_code(
+		client_id=doc.get_password("client_id"),
+		code=code,
+		code_verifier=cached["code_verifier"],
+		redirect_uri=_oauth_redirect_uri(),
+		base_url=doc.api_base_url or None,
+	)
+	_store_platform_token(platform_name, token)
+	# Switch the platform to the interactive method now that a refresh token exists.
+	if doc.get("auth_method") != "authorization_code":
+		frappe.db.set_value("eTransactions Accredited Platform", platform_name, "auth_method", "authorization_code")
+
+	frappe.local.response["type"] = "redirect"
+	frappe.local.response["location"] = f"/app/etransactions-accredited-platform/{platform_name}"

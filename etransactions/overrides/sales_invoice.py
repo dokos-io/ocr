@@ -18,11 +18,18 @@ def on_validate(doc, method):
 
 	# Mutations first so the readiness evaluation sees the final values.
 	_apply_address_buyer_reference(doc)
+	_propagate_routing_from_order(doc)
 
-	from etransactions.plateforme_agreee.session import get_platform_settings
-	if get_platform_settings(doc.company):
-		customer_entity_type = frappe.db.get_value("Customer", doc.customer, "directory_entity_type")
-		if customer_entity_type == "public":
+	# Record the regulated-flow determination (single source of truth) so the user
+	# can see why an invoice will (or won't) be sent, and apply B2G handling.
+	from etransactions.plateforme_agreee.classification import TransactionClass, classify_transaction
+
+	if doc.customer:
+		cls = classify_transaction(doc.company, "Customer", doc.customer, doc.customer_address)
+		doc.etransactions_flow_class = cls.value
+
+		from etransactions.plateforme_agreee.session import get_platform_settings
+		if get_platform_settings(doc.company) and cls == TransactionClass.B2G:
 			_apply_b2g(doc)
 
 	# Single source of truth for all e-invoice warnings (shared with the live
@@ -45,6 +52,16 @@ def on_update(doc, method):
 		return
 
 	_create_update_einvoice(doc)
+
+
+def before_submit(doc, method):
+	"""Confirmation-time directory sync, honouring the platform's
+	``directory_sync_on_submit`` mode (blocking/not_blocking/no)."""
+	if not doc.get("customer"):
+		return
+	from etransactions.plateforme_agreee.directory import maybe_sync_on_confirm
+
+	maybe_sync_on_confirm(doc.company, doc.customer, origin=f"Sales Invoice {doc.name}")
 
 
 def on_submit(doc, method):
@@ -79,8 +96,10 @@ def on_submit(doc, method):
 	from etransactions.plateforme_agreee.session import get_platform_settings
 	platform_settings = get_platform_settings(doc.company)
 	if platform_settings and platform_settings.auto_send_on_submit:
-		customer_entity_type = frappe.db.get_value("Customer", doc.customer, "directory_entity_type")
-		if customer_entity_type in ("private", "public"):
+		from etransactions.plateforme_agreee.classification import EINVOICED, classify_transaction
+
+		cls = classify_transaction(doc.company, "Customer", doc.customer, doc.customer_address)
+		if cls in EINVOICED:
 			einvoice_name = frappe.db.get_value("eInvoice", {"sales_invoice": doc.name}, "name")
 			if not einvoice_name:
 				# eInvoice may not exist yet if FacturX was disabled; create it now
@@ -215,6 +234,22 @@ def _apply_b2g(doc):
 	# The missing B2G service-code warning is raised by evaluate_einvoice_readiness.
 
 
+def _propagate_routing_from_order(doc):
+	"""Carry a routing line chosen on the source Sales Order onto the invoice.
+
+	Only when the invoice has no line yet and every item comes from a single
+	order — a multi-order invoice has no unambiguous establishment, so the
+	invoice falls back to resolving routing from the buyer's directory.
+	"""
+	if doc.get("etransactions_routing_line"):
+		return
+	orders = {row.sales_order for row in doc.get("items", []) if row.get("sales_order")}
+	if len(orders) == 1:
+		line = frappe.db.get_value("Sales Order", orders.pop(), "etransactions_routing_line")
+		if line:
+			doc.etransactions_routing_line = line
+
+
 def _apply_address_buyer_reference(doc):
 	"""Let the establishment (customer address) override the customer-level BT-10
 	service code. The customer-level value (fetched client-side) remains the
@@ -247,26 +282,23 @@ def _create_update_einvoice(doc):
 	einvoice.country = country
 	einvoice.company = doc.company
 
-	# Processing rule from the buyer's directory status: public -> B2G,
-	# registered private business -> B2B (default), anything else (individual /
-	# foreign / non-established) -> B2C, which is e-reported rather than invoiced.
-	customer_entity_type = frappe.db.get_value("Customer", doc.customer, "directory_entity_type")
-	if customer_entity_type == "public":
-		einvoice.pa_processing_rule = "B2G"
-	elif customer_entity_type == "private":
-		einvoice.pa_processing_rule = "B2B"
-	elif not customer_entity_type and frappe.db.get_value("Customer", doc.customer, "siren_number"):
-		# FR business pending directory sync — treat as B2B, not B2C (mirrors
-		# should_ereport_sale, so the two legs never disagree on classification).
-		einvoice.pa_processing_rule = "B2B"
-	else:
-		einvoice.pa_processing_rule = "B2C"
+	# Processing rule from the shared classifier (single source of truth): public
+	# -> B2G, registered/pending FR business -> B2B, inactive/individual -> B2C,
+	# foreign business -> B2Bi. B2C/B2Bi are e-reported rather than invoiced.
+	from etransactions.plateforme_agreee.classification import classify_transaction
 
-	# Resolve the routing line for the invoice's establishment unless the user
-	# has picked one manually.
+	einvoice.pa_processing_rule = classify_transaction(
+		doc.company, "Customer", doc.customer, doc.customer_address
+	).value
+
+	# Routing line for the invoice's establishment. Prefer a line carried on the
+	# invoice (chosen manually or propagated from the source Sales Order), else
+	# resolve it from the buyer's directory. A line already on the eInvoice wins.
 	if not einvoice.pa_directory_line:
-		from etransactions.plateforme_agreee.routing import resolve_routing
-		line = resolve_routing("Customer", doc.customer, doc.customer_address)
+		line = doc.get("etransactions_routing_line")
+		if not line:
+			from etransactions.plateforme_agreee.routing import resolve_routing
+			line = resolve_routing("Customer", doc.customer, doc.customer_address)
 		if line:
 			einvoice.pa_directory_line = line
 

@@ -69,7 +69,10 @@ customer_fields = [
 		"fieldname": "directory_entity_type",
 		"label": _("Directory Entity Type"),
 		"fieldtype": "Select",
-		"options": "\nprivate\npublic\nno",
+		# private_inactive = VAT-registered business whose directory entry is no
+		# longer active: it has no reachable routing line, so it is e-reported (B2C)
+		# rather than e-invoiced, and re-synced on a shorter cadence.
+		"options": "\nprivate\nprivate_inactive\npublic\nno",
 		"insert_after": "pa_establishments_html",
 		"read_only": 1,
 		"in_list_view": 0,
@@ -99,6 +102,27 @@ customer_fields = [
 		"fieldtype": "Date",
 		"insert_after": "pa_directory_col_break",
 		"read_only": 1,
+	},
+	# The SIREN/SIRET actually used to query the directory, recorded at sync time.
+	# A later change to the party's SIREN/SIRET means the routing lines belong to a
+	# different legal entity — readiness flags it (a new record should be created).
+	{
+		"fieldname": "directory_query_siren",
+		"label": _("Directory Query SIREN"),
+		"fieldtype": "Data",
+		"insert_after": "directory_update_date",
+		"read_only": 1,
+		"no_copy": 1,
+		"hidden": 1,
+	},
+	{
+		"fieldname": "directory_query_siret",
+		"label": _("Directory Query SIRET"),
+		"fieldtype": "Data",
+		"insert_after": "directory_query_siren",
+		"read_only": 1,
+		"no_copy": 1,
+		"hidden": 1,
 	},
 	{
 		"fieldname": "default_directory_line",

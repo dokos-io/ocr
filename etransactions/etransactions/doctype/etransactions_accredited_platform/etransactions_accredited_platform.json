@@ -18,7 +18,10 @@
   "auto_send_on_submit",
   "is_sandbox",
   "directory_refresh_days",
+  "directory_refresh_days_inactive",
+  "directory_sync_on_submit",
   "credentials_section",
+  "auth_method",
   "redirect_url_html",
   "client_id",
   "client_secret",
@@ -115,9 +118,33 @@
    "label": "Directory Refresh (days)"
   },
   {
+   "default": "5",
+   "fieldname": "directory_refresh_days_inactive",
+   "fieldtype": "Int",
+   "label": "Directory Refresh — Inactive (days)",
+   "description": "Shorter re-sync cadence for inactive VAT-registered entities, which may be reactivated."
+  },
+  {
+   "default": "not_blocking",
+   "fieldname": "directory_sync_on_submit",
+   "fieldtype": "Select",
+   "label": "Directory Sync on Submit",
+   "options": "no\nnot_blocking\nblocking",
+   "description": "Sync the buyer's directory when an invoice/order is confirmed: 'blocking' stops confirmation if the directory is unreachable, 'not_blocking' continues."
+  },
+  {
    "fieldname": "credentials_section",
    "fieldtype": "Section Break",
    "label": "Credentials"
+  },
+  {
+   "default": "client_credentials",
+   "depends_on": "eval:doc.platform_type=='SuperPDP'",
+   "description": "client_credentials authenticates with the platform as your own company (API-key style). authorization_code performs an interactive consent (onboarding) and stores a refresh token.",
+   "fieldname": "auth_method",
+   "fieldtype": "Select",
+   "label": "Authentication Method",
+   "options": "client_credentials\nauthorization_code"
   },
   {
    "fieldname": "redirect_url_html",

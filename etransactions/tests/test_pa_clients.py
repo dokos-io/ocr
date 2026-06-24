@@ -199,3 +199,60 @@ class TestUnsupportedPlatforms(UnitTestCase):
 		client = ESALINKClient.__new__(ESALINKClient)
 		with self.assertRaises(Exception):
 			client.update_vat_regime("monthly")
+
+
+class TestOAuthOnboardingHelpers(UnitTestCase):
+	"""Pure-logic checks for the authorization_code + PKCE onboarding helpers."""
+
+	def test_pkce_pair_is_url_safe_and_distinct(self):
+		import base64
+		import hashlib
+
+		verifier, challenge = SuperPDPClient.generate_pkce_pair()
+		self.assertNotEqual(verifier, challenge)
+		# challenge == base64url(sha256(verifier)) without padding
+		expected = base64.urlsafe_b64encode(hashlib.sha256(verifier.encode()).digest()).decode().rstrip("=")
+		self.assertEqual(challenge, expected)
+
+	def test_authorize_url_carries_pkce_and_company(self):
+		from urllib.parse import parse_qs, urlparse
+
+		url = SuperPDPClient.build_authorize_url(
+			client_id="cid",
+			redirect_uri="https://erp.example/cb",
+			state="st",
+			code_challenge="ch",
+			base_url="https://api.superpdp.tech",
+			company_number="853322915",
+			company_number_scheme="fr_siren",
+		)
+		q = parse_qs(urlparse(url).query)
+		self.assertEqual(q["response_type"], ["code"])
+		self.assertEqual(q["code_challenge_method"], ["S256"])
+		self.assertEqual(q["code_challenge"], ["ch"])
+		self.assertEqual(q["state"], ["st"])
+		self.assertEqual(q["superpdp_company_number"], ["853322915"])
+		self.assertEqual(q["superpdp_company_number_scheme"], ["fr_siren"])
+
+	def test_authorization_code_client_refreshes_token(self):
+		captured = {}
+
+		def fake_post(url, data=None, timeout=None):
+			captured.update(data or {})
+			return _FakeResponse({"access_token": "new-tok", "expires_in": 3600, "refresh_token": "r2"})
+
+		persisted = {}
+		client = SuperPDPClient(
+			"cid",
+			"",
+			auth_method="authorization_code",
+			refresh_token="r1",
+			on_token_refreshed=lambda d: persisted.update(d),
+		)
+		with patch("etransactions.components.superpdp.client.requests.post", side_effect=fake_post):
+			self.assertEqual(client._token(), "new-tok")
+		self.assertEqual(captured["grant_type"], "refresh_token")
+		self.assertEqual(captured["refresh_token"], "r1")
+		# rotated refresh token is adopted and persisted
+		self.assertEqual(client._refresh_token, "r2")
+		self.assertEqual(persisted["refresh_token"], "r2")

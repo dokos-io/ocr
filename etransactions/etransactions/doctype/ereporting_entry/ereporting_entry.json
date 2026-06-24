@@ -10,6 +10,7 @@
   "company",
   "kind",
   "role_code",
+  "transaction_class",
   "column_break_main",
   "date",
   "currency",
@@ -57,6 +58,14 @@
    "label": "Role Code",
    "options": "SE\nBY",
    "reqd": 1
+  },
+  {
+   "description": "B2C = aggregated B2C reporting (10.3/10.4); B2Bi = unitary international B2B reporting (10.1/10.2).",
+   "fieldname": "transaction_class",
+   "fieldtype": "Select",
+   "in_standard_filter": 1,
+   "label": "Transaction Class",
+   "options": "B2C\nB2Bi"
   },
   {
    "fieldname": "column_break_main",

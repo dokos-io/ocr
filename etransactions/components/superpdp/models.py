@@ -38,7 +38,7 @@ class DirectoryLineData:
 @dataclass
 class DirectoryData:
     """Normalized directory lookup result for a SIREN from any platform."""
-    entity_type: str  # private | public | no
+    entity_type: str  # private | private_inactive | public | no
     name: str
     closed: bool
     lines: dict = field(default_factory=dict)  # identifier -> DirectoryLineData
