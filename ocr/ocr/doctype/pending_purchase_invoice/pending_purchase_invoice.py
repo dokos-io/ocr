@@ -51,11 +51,13 @@ class PendingPurchaseInvoice(Document):
 
 	if TYPE_CHECKING:
 		from frappe.types import DF
+		from ocr.ocr.doctype.pending_purchase_invoice_credit_note_allocation.pending_purchase_invoice_credit_note_allocation import PendingPurchaseInvoiceCreditNoteAllocation
 		from ocr.ocr.doctype.pending_purchase_invoice_item.pending_purchase_invoice_item import PendingPurchaseInvoiceItem
 
 		bill_date: DF.Date | None
 		bill_no: DF.Data | None
 		company: DF.Link
+		credit_note_allocations: DF.Table[PendingPurchaseInvoiceCreditNoteAllocation]
 		currency: DF.Link
 		due_date: DF.Date | None
 		file: DF.Link | None
@@ -104,6 +106,8 @@ class PendingPurchaseInvoice(Document):
 
 		if self.is_return and not self.items:
 			self.append_original_invoice_rows()
+
+		self.validate_credit_note_allocations()
 
 	def before_save(self):
 		self.calculate_totals()
@@ -257,6 +261,11 @@ class PendingPurchaseInvoice(Document):
 		for item in self.items:
 			ppi_row = frappe.copy_doc(item).as_dict()
 			if self.is_return:
+				if self.credit_note_allocations:
+					# Multi-invoice credit note has no return_against, so ERPNext does not
+					# enforce the sign for us: force negative quantities so the invoice
+					# carries a credit balance that can be reconciled.
+					ppi_row["qty"] = -abs(flt(ppi_row.get("qty")))
 				doc.append("items", ppi_row)
 			else:
 				doc_item = get_doc_item(item)
@@ -270,6 +279,10 @@ class PendingPurchaseInvoice(Document):
 		if doc.is_return and self.original_invoice:
 			doc.return_against = self.original_invoice
 			doc.update_outstanding_for_self = 0
+		elif doc.is_return and self.credit_note_allocations:
+			# Multi-invoice allocation: the credit note keeps its own outstanding so it
+			# can be reconciled against several invoices via Payment Reconciliation.
+			doc.update_outstanding_for_self = 1
 
 
 		for field in frappe.get_meta(self.doctype).fields:
@@ -320,6 +333,9 @@ class PendingPurchaseInvoice(Document):
 					apply_workflow(doc, workflow_actions[0])
 			else:
 				doc.submit()
+
+		if self.credit_note_allocations and doc.docstatus == 1:
+			self.reconcile_credit_note_allocations(doc)
 
 		return doc
 
@@ -622,6 +638,183 @@ class PendingPurchaseInvoice(Document):
 		from erpnext.controllers.sales_and_purchase_return import make_return_doc
 
 		return make_return_doc("Purchase Invoice", original_invoice)
+
+	def validate_credit_note_allocations(self):
+		"""Validate the multi-invoice credit note allocation table.
+
+		The allocation flow is mutually exclusive with the single-invoice
+		``original_invoice`` (quantity return) flow. Each allocated amount must not
+		exceed the target invoice outstanding, and the sum must not exceed the
+		credit note amount.
+		"""
+		if not self.credit_note_allocations:
+			return
+
+		if not self.is_return:
+			frappe.throw(_("Credit note allocations are only allowed when 'Is Debit Note' is checked."))
+
+		if self.original_invoice:
+			frappe.throw(
+				_("Use either 'Original Invoice' (single-invoice return) or 'Credit Note Allocations' (multi-invoice), not both.")
+			)
+
+		precision = cint(frappe.db.get_default("currency_precision")) or 2
+		total_allocated = 0.0
+		for row in self.credit_note_allocations:
+			if flt(row.allocated_amount) <= 0:
+				continue
+
+			total_allocated += flt(row.allocated_amount)
+
+			pi = frappe.db.get_value(
+				"Purchase Invoice", row.purchase_invoice, ["docstatus", "outstanding_amount"], as_dict=True
+			)
+			# Drafts are allowed in the table but skipped at reconciliation time, so the
+			# outstanding check only applies to submitted invoices.
+			if not pi or pi.docstatus != 1:
+				continue
+
+			if flt(row.allocated_amount, precision) - flt(pi.outstanding_amount, precision) > 0.009:
+				frappe.throw(
+					_("Row {0}: allocated amount {1} exceeds the outstanding amount {2} of invoice {3}.").format(
+						row.idx, row.allocated_amount, pi.outstanding_amount, row.purchase_invoice
+					)
+				)
+
+		self.calculate_totals()
+		credit_amount = abs(flt(self.net_total, precision))
+		if credit_amount and flt(total_allocated, precision) - credit_amount > 0.009:
+			frappe.throw(
+				_("Total allocated amount {0} exceeds the credit note amount {1}.").format(total_allocated, credit_amount)
+			)
+
+	@frappe.whitelist()
+	def fetch_open_invoices_for_credit_note(self):
+		"""Return submitted, unpaid supplier invoices eligible for credit note
+		allocation, oldest first (FIFO)."""
+		if not self.supplier:
+			return []
+
+		return frappe.get_all(
+			"Purchase Invoice",
+			filters={
+				"supplier": self.supplier,
+				"company": self.company,
+				"docstatus": 1,
+				"is_return": 0,
+				"outstanding_amount": (">", 0),
+			},
+			fields=["name", "bill_no", "posting_date", "outstanding_amount", "currency"],
+			order_by="posting_date asc, name asc",
+		)
+
+	@frappe.whitelist()
+	def allocate_credit_note_fifo(self):
+		"""Compute a FIFO allocation of the credit note amount across open invoices.
+
+		Returns the proposed rows (oldest invoice first) without mutating the
+		document; the front-end populates the grid so amounts stay editable.
+		"""
+		self.calculate_totals()
+		remaining = abs(flt(self.net_total))
+		rows = []
+		if remaining <= 0:
+			return rows
+
+		for inv in self.fetch_open_invoices_for_credit_note():
+			if remaining <= 0:
+				break
+			allocate = min(remaining, flt(inv.outstanding_amount))
+			rows.append({
+				"purchase_invoice": inv.name,
+				"bill_no": inv.bill_no,
+				"posting_date": inv.posting_date,
+				"outstanding_amount": inv.outstanding_amount,
+				"allocated_amount": allocate,
+			})
+			remaining -= allocate
+
+		return rows
+
+	def reconcile_credit_note_allocations(self, purchase_invoice):
+		"""Allocate the submitted credit note ``purchase_invoice`` across the target
+		invoices listed in ``credit_note_allocations`` using ERPNext's Payment
+		Reconciliation engine. Only submitted target invoices are reconciled; drafts
+		are skipped with a comment.
+		"""
+		from erpnext.accounts.party import get_party_account
+
+		if not self.credit_note_allocations or purchase_invoice.docstatus != 1:
+			return
+
+		targets = []
+		for row in self.credit_note_allocations:
+			if flt(row.allocated_amount) <= 0:
+				continue
+			if frappe.db.get_value("Purchase Invoice", row.purchase_invoice, "docstatus") != 1:
+				self.add_comment(
+					text=_("Invoice {0} is not submitted and was skipped during credit note reconciliation.").format(row.purchase_invoice)
+				)
+				continue
+			targets.append(row)
+
+		if not targets:
+			return
+
+		pr = frappe.new_doc("Payment Reconciliation")
+		pr.company = self.company
+		pr.party_type = "Supplier"
+		pr.party = self.supplier
+		pr.receivable_payable_account = get_party_account("Supplier", self.supplier, self.company)
+		pr.get_unreconciled_entries()
+
+		pay_doc = next((p for p in pr.payments if p.get("reference_name") == purchase_invoice.name), None)
+		if not pay_doc:
+			self.add_comment(text=_("Credit note {0} has no outstanding balance to allocate.").format(purchase_invoice.name))
+			return
+
+		# Work on plain dicts: the reconciliation engine helpers mutate these entries.
+		pay = pay_doc.as_dict()
+		invoices_by_name = {inv.get("invoice_number"): inv.as_dict() for inv in pr.invoices}
+		invoice_exchange_map = pr.get_invoice_exchange_map(pr.invoices, pr.payments)
+		default_exc_gain_loss = frappe.get_cached_value("Company", self.company, "exchange_gain_loss_account")
+
+		pay["unreconciled_amount"] = pay.get("amount")
+		pay["exchange_rate"] = invoice_exchange_map.get(pay.get("reference_name"))
+		remaining = abs(flt(pay.get("amount")))
+
+		allocations = []
+		for row in targets:
+			inv = invoices_by_name.get(row.purchase_invoice)
+			if not inv:
+				self.add_comment(text=_("Invoice {0} has no outstanding amount and was skipped.").format(row.purchase_invoice))
+				continue
+
+			allocate = min(flt(row.allocated_amount), remaining)
+			if allocate <= 0:
+				break
+
+			pay["amount"] = remaining
+			inv["exchange_rate"] = invoice_exchange_map.get(inv.get("invoice_number"))
+			entry = pr.get_allocated_entry(pay, inv, allocate)
+			entry.difference_amount = pr.get_difference_amount(pay, inv, allocate)
+			entry.difference_account = default_exc_gain_loss
+			entry.exchange_rate = inv.get("exchange_rate")
+			entry.update({"gain_loss_posting_date": pay.get("posting_date")})
+			allocations.append(entry)
+			remaining -= allocate
+
+		if not allocations:
+			return
+
+		pr.set("allocation", [])
+		for entry in allocations:
+			pr.append("allocation", entry)
+
+		pr.reconcile()
+		self.add_comment(
+			text=_("Credit note {0} reconciled against {1} invoice(s).").format(purchase_invoice.name, len(allocations))
+		)
 
 	def auto_reconcile(self):
 		if self.status in ["Completed", "Closed"] or not self.items:

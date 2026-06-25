@@ -56,6 +56,18 @@ frappe.ui.form.on("Pending Purchase Invoice", {
 		frm.set_query("item_tax_template", "items", function(doc, cdt, cdn) {
 			return set_query_for_item_tax_template(doc, cdt, cdn);
 		});
+
+		frm.set_query("purchase_invoice", "credit_note_allocations", function(doc) {
+			return {
+				filters: {
+					"docstatus": 1,
+					"is_return": 0,
+					"company": frm.doc.company,
+					"supplier": frm.doc.supplier,
+					"outstanding_amount": [">", 0],
+				}
+			};
+		});
 	},
 
 	async set_bottom_button_label(frm) {
@@ -100,6 +112,24 @@ frappe.ui.form.on("Pending Purchase Invoice", {
 		frm.trigger("check_tax_id");
 		frm.trigger("check_supplier_id");
 		frm.trigger("check_po_exists");
+		frm.trigger("add_credit_note_allocation_button");
+	},
+
+	add_credit_note_allocation_button(frm) {
+		if (frm.is_new() || !frm.doc.is_return || frm.doc.original_invoice) return;
+		if (["Completed", "Closed"].includes(frm.doc.status)) return;
+
+		frm.add_custom_button(__("Allocate credit note (FIFO)"), function() {
+			frm.call("allocate_credit_note_fifo").then(r => {
+				if (!r.message || !r.message.length) {
+					frappe.msgprint(__("No open invoices found for this supplier."));
+					return;
+				}
+				frm.set_value("credit_note_allocations", []);
+				r.message.forEach(row => frm.add_child("credit_note_allocations", row));
+				frm.refresh_field("credit_note_allocations");
+			});
+		}, __("Actions"));
 	},
 
 	async show_preview(frm) {
