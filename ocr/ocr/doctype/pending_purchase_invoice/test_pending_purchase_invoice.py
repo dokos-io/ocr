@@ -63,6 +63,7 @@ class TestPendingPurchaseInvoice(IntegrationTestCase):
 		"OCR Settings",
 		{"reconcile_with_purchase_receipts": 1, "auto_submit_purchase_invoices": 1},
 	)
+	@change_settings("Accounts Settings", {"mandatory_accounting_journal": 0})
 	def test_auto_reconciliation_of_credit_note(self):
 		po = create_purchase_order(supplier=self.supplier.name, company=self.company, qty=1.0, rate=5000)
 		pr = make_purchase_receipt(po.name)
@@ -87,21 +88,29 @@ class TestPendingPurchaseInvoice(IntegrationTestCase):
 			"supplier": po.supplier,
 			"company": po.company,
 			"is_return": 1,
-			"original_invoice": pi.name,
 			"supplier_net_amount": 500,
 			"bill_no": "CN-123",
 			"bill_date": nowdate(),
+			"items": [{
+				"item_code": "_Test Item",
+				"qty": -1,
+				"rate": 500,
+				"amount": -500,
+				"expense_account": self.EXPENSE_ACCOUNT,
+			}],
+			"credit_note_allocations": [{"purchase_invoice": pi.name, "allocated_amount": 500}],
 		}) # type: ignore
 		credit_note_ppi.insert()
-
-		credit_note_ppi.items[0].rate = 500.0
-		credit_note_ppi.save()
 
 		cn_name = frappe.db.get_value("Purchase Invoice", {"pending_purchase_invoice": credit_note_ppi.name})
 		self.assertTrue(cn_name)
 		cn = frappe.get_doc("Purchase Invoice", cn_name) # type: ignore
 		self.assertEqual(cn.is_return, 1) # type: ignore
-		self.assertEqual(cn.return_against, pi.name) # type: ignore
+		self.assertFalse(cn.return_against) # type: ignore
+		self.assertEqual(cn.update_outstanding_for_self, 1) # type: ignore
+
+		pi.reload()
+		self.assertEqual(flt(pi.outstanding_amount), 4500)  # 5000 - 500 reconciled
 
 	# --- Multi-invoice credit note allocation -------------------------------
 
@@ -119,7 +128,7 @@ class TestPendingPurchaseInvoice(IntegrationTestCase):
 			do_not_submit=not submit,
 		)
 
-	def _make_credit_note(self, amount, allocations=None, original_invoice=None, insert=True):
+	def _make_credit_note(self, amount, allocations=None, insert=True):
 		doc = frappe.get_doc({
 			"doctype": "Pending Purchase Invoice",
 			"supplier": self.supplier.name,
@@ -129,9 +138,8 @@ class TestPendingPurchaseInvoice(IntegrationTestCase):
 			"supplier_net_amount": amount,
 			"bill_no": frappe.generate_hash(length=8),
 			"bill_date": nowdate(),
-			"original_invoice": original_invoice,
-			# Credit note lines are negative, consistent with the single-invoice
-			# return flow (which mirrors negative quantities via make_return_doc).
+			# Credit note lines carry negative quantities so the invoice holds a credit
+			# balance that can be reconciled against the allocated invoices.
 			"items": [{
 				"item_code": "_Test Item",
 				"qty": -1,
@@ -206,11 +214,4 @@ class TestPendingPurchaseInvoice(IntegrationTestCase):
 	def test_credit_note_over_allocation_rejected(self):
 		pi_a = self._make_submitted_invoice(1000)
 		credit_note = self._make_credit_note(5000, allocations=[(pi_a.name, 5000)], insert=False)
-		self.assertRaises(frappe.ValidationError, credit_note.insert)
-
-	def test_credit_note_mutually_exclusive_modes(self):
-		pi_a = self._make_submitted_invoice(5000)
-		credit_note = self._make_credit_note(
-			1000, allocations=[(pi_a.name, 1000)], original_invoice=pi_a.name, insert=False
-		)
 		self.assertRaises(frappe.ValidationError, credit_note.insert)

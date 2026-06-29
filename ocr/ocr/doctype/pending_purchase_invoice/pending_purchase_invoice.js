@@ -39,34 +39,12 @@ frappe.ui.form.on("Pending Purchase Invoice", {
 			};
 		});
 
-		frm.set_query("original_invoice", function(doc) {
-			return {
-				filters: {
-					"is_return": false,
-					"company": frm.doc.company,
-					"supplier": frm.doc.supplier,
-				}
-			};
-		});
-
 		$(frm.wrapper).on("dirty", function () {
 			frm.trigger("set_bottom_button_label");
 		})
 
 		frm.set_query("item_tax_template", "items", function(doc, cdt, cdn) {
 			return set_query_for_item_tax_template(doc, cdt, cdn);
-		});
-
-		frm.set_query("purchase_invoice", "credit_note_allocations", function(doc) {
-			return {
-				filters: {
-					"docstatus": 1,
-					"is_return": 0,
-					"company": frm.doc.company,
-					"supplier": frm.doc.supplier,
-					"outstanding_amount": [">", 0],
-				}
-			};
 		});
 	},
 
@@ -113,23 +91,26 @@ frappe.ui.form.on("Pending Purchase Invoice", {
 		frm.trigger("check_supplier_id");
 		frm.trigger("check_po_exists");
 		frm.trigger("add_credit_note_allocation_button");
+		frm.trigger("render_credit_note_allocation_recap");
 	},
 
 	add_credit_note_allocation_button(frm) {
-		if (frm.is_new() || !frm.doc.is_return || frm.doc.original_invoice) return;
+		if (frm.is_new() || !frm.doc.is_return) return;
 		if (["Completed", "Closed"].includes(frm.doc.status)) return;
 
-		frm.add_custom_button(__("Allocate credit note (FIFO)"), function() {
-			frm.call("allocate_credit_note_fifo").then(r => {
-				if (!r.message || !r.message.length) {
-					frappe.msgprint(__("No open invoices found for this supplier."));
-					return;
-				}
-				frm.set_value("credit_note_allocations", []);
-				r.message.forEach(row => frm.add_child("credit_note_allocations", row));
-				frm.refresh_field("credit_note_allocations");
-			});
+		frm.add_custom_button(__("Credit note allocation"), function() {
+			open_credit_note_allocation_dialog(frm);
 		}, __("Actions"));
+	},
+
+	is_return(frm) {
+		if (!frm.doc.is_return || frm.is_new() || !frm.doc.supplier) return;
+		if (["Completed", "Closed"].includes(frm.doc.status)) return;
+		open_credit_note_allocation_dialog(frm);
+	},
+
+	render_credit_note_allocation_recap(frm) {
+		render_credit_note_allocation_recap(frm);
 	},
 
 	async show_preview(frm) {
@@ -305,42 +286,6 @@ frappe.ui.form.on("Pending Purchase Invoice", {
 			})
 		}
 	},
-	original_invoice(frm) {
-		if (frm.doc.original_invoice) {
-			frappe.call({
-				method: "get_return_invoice",
-				doc: frm.doc,
-				args: {
-					original_invoice: frm.doc.original_invoice
-				}
-			}).then(r => {
-				frm.set_value("items", []);
-				r.message.items.map(i => {
-					frm.add_child("items",
-						{
-							row: i.name,
-							project: i.project,
-							cost_center: i.cost_center,
-							item_code: i.item_code,
-							description: i.description,
-							rate: i.rate,
-							qty: i.qty,
-							amount: i.amount,
-							expense_account: i.expense_account,
-							item_tax_template: i.item_tax_template
-						}
-					)
-				})
-				frm.refresh_field("items")
-
-				["currency", "department", "cost_center"].forEach(f => {
-					if (r.message[f]) {
-						frm.set_value(f, r.message[f])
-					}
-				})
-			})
-		}
-	},
 	check_supplier_id(frm) {
 		if (frm.doc.purchase_order_number && frm.doc.supplier) {
 			frappe.db.get_value("Purchase Order", frm.doc.purchase_order_number, "supplier", r => {
@@ -488,6 +433,230 @@ const confirm = (message, fields, confirm_action, reject_action, confirm_title, 
 	// flag, used to bind "okay" on enter
 	d.confirm_dialog = true;
 	return d;
+};
+
+
+const credit_note_amount = (frm) => Math.abs(flt(frm.doc.net_total));
+
+const open_credit_note_allocation_dialog = async (frm) => {
+	const currency = frm.doc.currency;
+	const credit_amount = credit_note_amount(frm);
+
+	let data;
+	if (frm.doc.credit_note_allocations && frm.doc.credit_note_allocations.length) {
+		data = frm.doc.credit_note_allocations.map(r => ({
+			purchase_invoice: r.purchase_invoice,
+			bill_no: r.bill_no,
+			posting_date: r.posting_date,
+			outstanding_amount: r.outstanding_amount,
+			allocated_amount: r.allocated_amount,
+		}));
+	} else {
+		const r = await frm.call("allocate_credit_note_fifo");
+		data = (r.message || []).map(row => Object.assign({}, row));
+	}
+
+	const dialog = new frappe.ui.Dialog({
+		title: __("Allocate credit note across invoices"),
+		size: "large",
+		fields: [
+			{
+				fieldname: "allocations",
+				fieldtype: "Table",
+				label: __("Invoices to allocate"),
+				in_place_edit: true,
+				cannot_add_rows: false,
+				data: data,
+				get_data: () => data,
+				fields: [
+					{
+						fieldtype: "Link",
+						fieldname: "purchase_invoice",
+						options: "Purchase Invoice",
+						label: __("Invoice"),
+						in_list_view: 1,
+						reqd: 1,
+						columns: 3,
+						get_query: () => ({
+							filters: {
+								docstatus: 1,
+								is_return: 0,
+								company: frm.doc.company,
+								supplier: frm.doc.supplier,
+								outstanding_amount: [">", 0],
+							},
+						}),
+						onchange: function() {
+							const invoice = this.get_value();
+							if (!invoice) return;
+							const grid_row = this.grid_row;
+							frappe.db.get_value("Purchase Invoice", invoice,
+								["bill_no", "posting_date", "outstanding_amount"]).then(res => {
+								const v = res.message || {};
+								grid_row.on_grid_fields_dict.bill_no?.set_value(v.bill_no || "");
+								grid_row.on_grid_fields_dict.posting_date?.set_value(v.posting_date || "");
+								grid_row.on_grid_fields_dict.outstanding_amount?.set_value(v.outstanding_amount || 0);
+								update_comparator();
+							});
+						},
+					},
+					{ fieldtype: "Data", fieldname: "bill_no", label: __("Supplier Invoice No"), in_list_view: 1, read_only: 1, columns: 2 },
+					{ fieldtype: "Date", fieldname: "posting_date", label: __("Posting Date"), read_only: 1 },
+					{ fieldtype: "Currency", fieldname: "outstanding_amount", label: __("Outstanding"), options: currency, in_list_view: 1, read_only: 1, columns: 2 },
+					{
+						fieldtype: "Currency",
+						fieldname: "allocated_amount",
+						label: __("Allocated"),
+						options: currency,
+						in_list_view: 1,
+						columns: 2,
+						onchange: function() { update_comparator(); },
+					},
+				],
+			},
+			{ fieldtype: "HTML", fieldname: "comparator" },
+		],
+		primary_action_label: __("Confirm allocation"),
+		primary_action() {
+			const rows = (dialog.fields_dict.allocations.df.data || [])
+				.filter(r => r.purchase_invoice && flt(r.allocated_amount) > 0);
+			frm.set_value("credit_note_allocations", []);
+			rows.forEach(r => frm.add_child("credit_note_allocations", {
+				purchase_invoice: r.purchase_invoice,
+				bill_no: r.bill_no,
+				posting_date: r.posting_date,
+				outstanding_amount: r.outstanding_amount,
+				allocated_amount: r.allocated_amount,
+			}));
+			frm.refresh_field("credit_note_allocations");
+			render_credit_note_allocation_recap(frm);
+			dialog.hide();
+		},
+	});
+
+	const update_comparator = () => {
+		const rows = dialog.fields_dict.allocations.df.data || [];
+		let total = 0;
+		rows.forEach(r => total += flt(r.allocated_amount));
+		const diff = flt(credit_amount) - total;
+		const pct = credit_amount ? Math.min(100, (total / credit_amount) * 100) : 0;
+
+		let bar_color, pill;
+		if (Math.abs(diff) < 0.01) {
+			bar_color = "var(--green-500, #28a745)";
+			pill = `<span class="indicator-pill green">${__("Fully allocated")}</span>`;
+		} else if (diff > 0) {
+			bar_color = "var(--orange-500, #ff9800)";
+			pill = `<span class="indicator-pill orange">${__("{0} remaining", [format_currency(diff, currency)])}</span>`;
+		} else {
+			bar_color = "var(--red-500, #dc3545)";
+			pill = `<span class="indicator-pill red">${__("{0} over-allocated", [format_currency(-diff, currency)])}</span>`;
+		}
+
+		dialog.fields_dict.comparator.$wrapper.html(`
+			<div style="margin-top: 14px; padding: 14px 16px; background: var(--subtle-fg, #f4f5f6); border-radius: var(--border-radius-md, 8px);">
+				<div style="height: 8px; border-radius: 6px; background: var(--gray-200, #e2e6e9); margin-bottom: 12px; overflow: hidden;">
+					<div style="height: 100%; width:${pct}%; background-color:${bar_color}; border-radius: 6px; transition: width 0.2s ease;"></div>
+				</div>
+				<div class="d-flex justify-content-between" style="margin-bottom: 4px;">
+					<span class="text-muted">${__("Credit note amount")}</span>
+					<span style="font-weight: 600;">${format_currency(credit_amount, currency)}</span>
+				</div>
+				<div class="d-flex justify-content-between" style="margin-bottom: 10px;">
+					<span class="text-muted">${__("Total allocated")}</span>
+					<span style="font-weight: 600;">${format_currency(total, currency)}</span>
+				</div>
+				<div class="d-flex justify-content-between align-items-center">
+					<span class="text-muted">${__("Status")}</span>
+					${pill}
+				</div>
+			</div>
+		`);
+	};
+
+	dialog.show();
+	update_comparator();
+};
+
+const render_credit_note_allocation_recap = (frm) => {
+	const field = frm.get_field("credit_note_allocation_summary");
+	if (!field) return;
+
+	if (!frm.doc.is_return) {
+		field.$wrapper.empty();
+		return;
+	}
+
+	const rows = frm.doc.credit_note_allocations || [];
+	const currency = frm.doc.currency;
+	const credit_amount = credit_note_amount(frm);
+	const editable = !frm.is_new() && !["Completed", "Closed"].includes(frm.doc.status);
+
+	const edit_button = editable
+		? `<button class="btn btn-xs btn-default cn-alloc-edit-btn">
+				<svg class="icon icon-xs"><use href="#icon-edit"></use></svg>
+				${rows.length ? __("Edit") : __("Allocate")}
+			</button>`
+		: "";
+
+	const bind_edit = () => {
+		field.$wrapper.find(".cn-alloc-edit-btn").off("click").on("click", () => open_credit_note_allocation_dialog(frm));
+	};
+
+	if (!rows.length) {
+		field.$wrapper.html(`
+			<div class="d-flex justify-content-between align-items-center" style="padding: 10px 12px; border: 1px dashed var(--border-color, #ebeef0); border-radius: var(--border-radius-md, 8px); max-width: 540px; margin-bottom: 16px;">
+				<span class="text-muted">${__("No credit note allocation yet.")}</span>
+				${edit_button}
+			</div>
+		`);
+		bind_edit();
+		return;
+	}
+
+	let total = 0;
+	const cell = "padding: 8px 12px; border-top: 1px solid var(--border-color, #ebeef0);";
+	const body = rows.map(r => {
+		total += flt(r.allocated_amount);
+		return `<tr>
+			<td style="${cell}">${frappe.utils.escape_html(String(r.purchase_invoice || ""))}</td>
+			<td style="${cell} color: var(--text-muted);">${frappe.utils.escape_html(String(r.bill_no || ""))}</td>
+			<td style="${cell} text-align: right; font-variant-numeric: tabular-nums;">${format_currency(r.allocated_amount, currency)}</td>
+		</tr>`;
+	}).join("");
+
+	const diff = credit_amount - total;
+	let badge;
+	if (Math.abs(diff) < 0.01) {
+		badge = `<span class="indicator-pill green">${__("Fully allocated")}</span>`;
+	} else if (diff > 0) {
+		badge = `<span class="indicator-pill orange">${__("{0} remaining", [format_currency(diff, currency)])}</span>`;
+	} else {
+		badge = `<span class="indicator-pill red">${__("{0} over-allocated", [format_currency(-diff, currency)])}</span>`;
+	}
+
+	const head = "padding: 8px 12px; font-weight: 500; color: var(--text-muted); border: none;";
+	field.$wrapper.html(`
+		<div style="border: 1px solid var(--border-color, #ebeef0); border-radius: var(--border-radius-md, 8px); overflow: hidden; max-width: 540px; margin-bottom: 16px;">
+			<div class="d-flex justify-content-between align-items-center" style="padding: 8px 12px; border-bottom: 1px solid var(--border-color, #ebeef0);">
+				<span style="font-weight: 600;">${__("Credit Note Allocation")}</span>
+				${edit_button}
+			</div>
+			<table style="width: 100%; margin: 0; border-collapse: collapse; font-size: var(--text-sm, 13px);">
+				<thead><tr style="background: var(--subtle-fg, #f4f5f6);">
+					<th style="${head}">${__("Invoice")}</th>
+					<th style="${head}">${__("Supplier Invoice No")}</th>
+					<th style="${head} text-align: right;">${__("Allocated")}</th>
+				</tr></thead>
+				<tbody>${body}</tbody>
+			</table>
+			<div class="d-flex justify-content-between align-items-center" style="padding: 10px 12px; border-top: 1px solid var(--border-color, #ebeef0); background: var(--subtle-fg, #f4f5f6);">
+				<span class="text-muted">${__("Credit note amount")}: <b style="color: var(--text-color);">${format_currency(credit_amount, currency)}</b></span>
+				<span>${__("Allocated")}: <b style="font-variant-numeric: tabular-nums;">${format_currency(total, currency)}</b> &nbsp; ${badge}</span>
+			</div>
+		</div>
+	`);
+	bind_edit();
 };
 
 

@@ -69,7 +69,6 @@ class PendingPurchaseInvoice(Document):
 		net_total: DF.Currency
 		ocr_basket: DF.Link | None
 		ocr_request: DF.Link | None
-		original_invoice: DF.Link | None
 		posting_date: DF.Date
 		purchase_order_number: DF.Data | None
 		status: DF.Literal["Pending", "In Progress", "Ready", "Completed", "Closed"]
@@ -103,9 +102,6 @@ class PendingPurchaseInvoice(Document):
 
 		if not self.is_return and not self.items:
 			self.append_matched_orders()
-
-		if self.is_return and not self.items:
-			self.append_original_invoice_rows()
 
 		self.validate_credit_note_allocations()
 
@@ -261,11 +257,10 @@ class PendingPurchaseInvoice(Document):
 		for item in self.items:
 			ppi_row = frappe.copy_doc(item).as_dict()
 			if self.is_return:
-				if self.credit_note_allocations:
-					# Multi-invoice credit note has no return_against, so ERPNext does not
-					# enforce the sign for us: force negative quantities so the invoice
-					# carries a credit balance that can be reconciled.
-					ppi_row["qty"] = -abs(flt(ppi_row.get("qty")))
+				# Credit notes have no return_against, so ERPNext does not enforce the
+				# sign for us: force negative quantities so the invoice carries a credit
+				# balance that can be reconciled against the allocated invoices.
+				ppi_row["qty"] = -abs(flt(ppi_row.get("qty")))
 				doc.append("items", ppi_row)
 			else:
 				doc_item = get_doc_item(item)
@@ -276,12 +271,9 @@ class PendingPurchaseInvoice(Document):
 				doc.append("items", new_row)
 
 		doc.is_return = bool(self.is_return)
-		if doc.is_return and self.original_invoice:
-			doc.return_against = self.original_invoice
-			doc.update_outstanding_for_self = 0
-		elif doc.is_return and self.credit_note_allocations:
-			# Multi-invoice allocation: the credit note keeps its own outstanding so it
-			# can be reconciled against several invoices via Payment Reconciliation.
+		if doc.is_return:
+			# The credit note keeps its own outstanding so it can be reconciled against
+			# the allocated invoices via Payment Reconciliation.
 			doc.update_outstanding_for_self = 1
 
 
@@ -611,52 +603,17 @@ class PendingPurchaseInvoice(Document):
 					item.set(field, self.get(field))
 
 
-	def append_original_invoice_rows(self):
-		if self.original_invoice:
-			debit_note = self.get_return_invoice(self.original_invoice)
-			for item in debit_note.items:
-				self.append("items", {
-					"row": item.name,
-					"project": item.project,
-					"cost_center": item.cost_center,
-					"item_code": item.item_code,
-					"description": item.description,
-					"rate": item.rate,
-					"qty": item.qty,
-					"amount": item.amount,
-					"expense_account": item.expense_account,
-					"item_tax_template": item.item_tax_template
-				})
-
-			for field in ["currency", "department", "cost_center"]:
-				if debit_note.get(field):
-					self.set(field, debit_note.get(field))
-
-
-	@frappe.whitelist()
-	def get_return_invoice(self, original_invoice):
-		from erpnext.controllers.sales_and_purchase_return import make_return_doc
-
-		return make_return_doc("Purchase Invoice", original_invoice)
-
 	def validate_credit_note_allocations(self):
 		"""Validate the multi-invoice credit note allocation table.
 
-		The allocation flow is mutually exclusive with the single-invoice
-		``original_invoice`` (quantity return) flow. Each allocated amount must not
-		exceed the target invoice outstanding, and the sum must not exceed the
-		credit note amount.
+		Each allocated amount must not exceed the target invoice outstanding, and the
+		sum must not exceed the credit note amount.
 		"""
 		if not self.credit_note_allocations:
 			return
 
 		if not self.is_return:
 			frappe.throw(_("Credit note allocations are only allowed when 'Is Debit Note' is checked."))
-
-		if self.original_invoice:
-			frappe.throw(
-				_("Use either 'Original Invoice' (single-invoice return) or 'Credit Note Allocations' (multi-invoice), not both.")
-			)
 
 		precision = cint(frappe.db.get_default("currency_precision")) or 2
 		total_allocated = 0.0

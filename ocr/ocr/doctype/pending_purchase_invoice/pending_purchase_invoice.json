@@ -27,8 +27,8 @@
   "vendor_address",
   "title",
   "is_return",
-  "original_invoice",
   "credit_note_allocations",
+  "credit_note_allocation_summary",
   "preview_column",
   "invoice_preview",
   "section_break_cesy",
@@ -341,20 +341,18 @@
    "label": "Is Debit Note"
   },
   {
-   "depends_on": "eval:doc.is_return && !(doc.credit_note_allocations && doc.credit_note_allocations.length)",
-   "description": "Single-invoice quantity return: mirrors the original invoice lines and sets Return Against.",
-   "fieldname": "original_invoice",
-   "fieldtype": "Link",
-   "label": "Original Invoice",
-   "options": "Purchase Invoice"
-  },
-  {
-   "depends_on": "eval:doc.is_return && !doc.original_invoice",
-   "description": "Allocate this credit note across several submitted supplier invoices. Mutually exclusive with Original Invoice.",
+   "description": "Allocate this credit note across several submitted supplier invoices. Edited through the allocation dialog opened when 'Is Debit Note' is checked.",
    "fieldname": "credit_note_allocations",
    "fieldtype": "Table",
+   "hidden": 1,
    "label": "Credit Note Allocations",
    "options": "Pending Purchase Invoice Credit Note Allocation"
+  },
+  {
+   "depends_on": "eval:doc.is_return",
+   "fieldname": "credit_note_allocation_summary",
+   "fieldtype": "HTML",
+   "label": "Credit Note Allocation"
   },
   {
    "fetch_from": "supplier.supplier_name",
