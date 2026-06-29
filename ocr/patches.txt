@@ -11,3 +11,4 @@ ocr.patches.remove_all_files_from_aws
 ocr.patches.cleanup_old_errors
 ocr.patches.remove_old_custom_fields
 ocr.patches.set_default_ocr_service
+ocr.patches.migrate_original_invoice_to_credit_note_allocation
