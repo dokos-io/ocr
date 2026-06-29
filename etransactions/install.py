@@ -112,7 +112,7 @@ def _migrate_supplier_invoices():
 		"net_total", "tax_total", "grand_total",
 		"tax_category", "taxes_and_charges",
 		"file", "file_url", "ocr_request", "ocr_basket",
-		"title", "vendor_address", "tax_id", "is_return", "original_invoice",
+		"title", "vendor_address", "tax_id", "is_return",
 		"_user_tags", "_comments", "_assign", "_liked_by",
 	]
 	old = DocType("Pending Purchase Invoice")
