@@ -43,6 +43,36 @@ frappe.ui.form.on("eTransactions Accredited Platform", {
 				frm.add_custom_button(__("Directory registration"), () => open_directory_dialog(frm));
 			}
 
+			if (frm.doc.platform_type === "Esalink" && frm.doc.esalink_customer_id) {
+				frm.add_custom_button(__("Refresh Esalink status"), () => {
+					frappe.call({
+						method: "etransactions.plateforme_agreee.esalink_provisioning.refresh_customer_status",
+						args: { platform_name: frm.doc.name },
+						freeze: true,
+						freeze_message: __("Checking Esalink account status…"),
+						callback(r) {
+							const res = r.message || {};
+							frappe.show_alert({
+								message: __("Esalink status: {0}", [res.status || "—"]),
+								indicator: res.status === "ACTIVE" ? "green" : "orange",
+							});
+							frm.reload_doc();
+						},
+					});
+				});
+				frm.add_custom_button(__("Resend KYC email"), () => {
+					frappe.call({
+						method: "etransactions.plateforme_agreee.esalink_provisioning.resend_kyc_email",
+						args: { platform_name: frm.doc.name },
+						freeze: true,
+						freeze_message: __("Resending onboarding email…"),
+						callback() {
+							frappe.show_alert({ message: __("Onboarding email resent."), indicator: "green" });
+						},
+					});
+				});
+			}
+
 			if (frm.doc.platform_type === "SuperPDP" && frm.doc.is_sandbox) {
 				frm.add_custom_button(__("Run sandbox test"), () => {
 					frappe.call({

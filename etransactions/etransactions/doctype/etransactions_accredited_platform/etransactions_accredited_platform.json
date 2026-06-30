@@ -28,7 +28,11 @@
   "health_section",
   "last_health_status",
   "last_health_check",
-  "last_health_message"
+  "last_health_message",
+  "esalink_account_section",
+  "esalink_customer_id",
+  "esalink_user_id",
+  "esalink_customer_status"
  ],
  "fields": [
   {
@@ -186,6 +190,33 @@
    "fieldname": "last_health_message",
    "fieldtype": "Small Text",
    "label": "Last Health Message",
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval:doc.platform_type === 'Esalink'",
+   "fieldname": "esalink_account_section",
+   "fieldtype": "Section Break",
+   "label": "Esalink Account"
+  },
+  {
+   "fieldname": "esalink_customer_id",
+   "fieldtype": "Data",
+   "label": "Esalink Customer ID",
+   "read_only": 1,
+   "description": "Customer id returned by HUBTIMIZE when the account was provisioned."
+  },
+  {
+   "fieldname": "esalink_user_id",
+   "fieldtype": "Data",
+   "label": "Esalink API User ID",
+   "read_only": 1
+  },
+  {
+   "default": "WAITING_VALIDATION",
+   "fieldname": "esalink_customer_status",
+   "fieldtype": "Select",
+   "label": "Esalink Account Status",
+   "options": "\nWAITING_VALIDATION\nACTIVE\nREJECTED\nINACTIVE",
    "read_only": 1
   }
  ],

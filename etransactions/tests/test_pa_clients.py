@@ -194,9 +194,9 @@ class TestUnsupportedPlatforms(UnitTestCase):
 			client.create_b2c_transactions([])
 
 	def test_esalink_raises(self):
-		from etransactions.plateforme_agreee.esalink import ESALINKClient
+		from etransactions.components.esalink import EsalinkClient
 
-		client = ESALINKClient.__new__(ESALINKClient)
+		client = EsalinkClient.__new__(EsalinkClient)  # skip __init__/auth
 		with self.assertRaises(Exception):
 			client.update_vat_regime("monthly")
 

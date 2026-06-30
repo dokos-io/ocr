@@ -248,6 +248,7 @@ scheduler_events = {
 		"etransactions.plateforme_agreee.flow.poll_incoming_lifecycle_flows",
 		"etransactions.plateforme_agreee.flow.submit_pending_ereporting_entries",
 		"etransactions.plateforme_agreee.flow.poll_ereporting_status",
+		"etransactions.plateforme_agreee.esalink_provisioning.poll_esalink_customer_statuses",
 	],
 	"daily": [
 		"etransactions.plateforme_agreee.directory.sync_all_customers",

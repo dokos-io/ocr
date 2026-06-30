@@ -45,8 +45,8 @@ def _build_client(
 ):
 	"""Instantiate the right PA client from raw credentials.
 
-	Construction performs authentication (OAuth for SuperPDP/AFNOR, a pyfrctc
-	session for Esalink), so a successful build doubles as a connection probe.
+	Construction performs authentication (OAuth for SuperPDP/AFNOR, a token call
+	for Esalink), so a successful build doubles as a connection probe.
 	``sandbox`` flags a pré-production platform; only SuperPDP acts on it (skips
 	pre-validation on invoice sends). ``auth_method`` selects SuperPDP's OAuth
 	grant; ``authorization_code`` loads the stored refresh token. Raises on failure.
@@ -72,15 +72,20 @@ def _build_client(
 		from etransactions.components.afnor import AFNORClient
 		return AFNORClient(client_id, client_secret, base_url=api_base_url or "")
 
-	# Esalink — pyfrctc session
-	try:
-		from pyfrctc import get_session as _get_session
-	except ImportError:
-		frappe.throw(_("The pyfrctc library is not installed. Check your bench dependencies."))
-	if not platform_code:
-		frappe.throw(_("No platform code configured for this Esalink platform."))
-	from etransactions.plateforme_agreee.esalink import ESALINKClient
-	return ESALINKClient(_get_session(client_id, client_secret, platform=platform_code))
+	# Esalink (HUBTIMIZE) — native AFNOR-style client with the hubtimize-api-key header.
+	# Credentials are the company's minted clientId/clientSecret; the api-key and base
+	# URL are environment-level and read from eTransactions Settings.
+	from etransactions.components.esalink import EsalinkClient, base_url_for_environment
+	from etransactions.plateforme_agreee.esalink_provisioning import esalink_runtime_config
+
+	cfg = esalink_runtime_config()
+	base = api_base_url or base_url_for_environment(cfg["environment"])
+	return EsalinkClient(
+		username=client_id,
+		password=client_secret,
+		api_key=cfg["api_key"],
+		base_url=base,
+	)
 
 
 def get_platform_for_context(company: str, customer: str = None, transaction_type: str = "sales"):
@@ -136,7 +141,7 @@ def get_platform_settings(company: str, transaction_type: str = "sales"):
 def get_client(company: str, customer: str = None, transaction_type: str = "sales"):
 	"""Return an authenticated PA client for the given company.
 
-	Returns a SuperPDPClient, AFNORClient, or ESALINKClient depending on the
+	Returns a SuperPDPClient, AFNORClient, or EsalinkClient depending on the
 	configured platform type.  All implement the same interface:
 	submit_invoice, get_invoice_status, list_incoming_invoices,
 	download_flow, get_directory_for_siren.
@@ -170,45 +175,15 @@ def get_client(company: str, customer: str = None, transaction_type: str = "sale
 
 
 def get_session(company: str, customer: str = None, transaction_type: str = "sales"):
-	"""Return a raw pyfrctc session. Kept for backward compatibility.
+	"""Deprecated. Use :func:`get_client`, which returns a unified client for every
+	platform type (Esalink, SuperPDP, Custom AFNOR).
 
-	Prefer get_client() for new code — it works for both Esalink and SuperPDP.
-	Raises frappe.ValidationError for SuperPDP platforms (no pyfrctc session).
+	Esalink no longer exposes a raw pyfrctc session — it is now a native HTTP client —
+	so this accessor only raises and points callers at get_client().
 	"""
-	platform_name = get_platform_for_context(company, customer=customer, transaction_type=transaction_type)
-	if not platform_name:
-		frappe.throw(
-			_("No eTransactions Accredited Platform configured for company {0}.").format(company)
-		)
-
-	platform_doc = frappe.get_cached_doc("eTransactions Accredited Platform", platform_name)
-
-	if platform_doc.platform_type == "SuperPDP":
-		frappe.throw(
-			_("get_session() is not supported for SuperPDP platforms. Use get_client() instead.")
-		)
-
-	try:
-		from pyfrctc import get_session as _get_session
-	except ImportError:
-		frappe.throw(_("The pyfrctc library is not installed. Check your bench dependencies."))
-
-	platform_code = platform_doc.platform_code
-	if not platform_code:
-		frappe.throw(
-			_("No platform code configured for company {0}.").format(company)
-		)
-
-	client_id = platform_doc.get_password("client_id")
-	client_secret = platform_doc.get_password("client_secret")
-	try:
-		return _get_session(client_id, client_secret, platform=platform_code)
-	except Exception as e:
-		frappe.throw(
-			_("Failed to connect to eTransactions Accredited Platform ({0}) for company {1}: {2}").format(
-				platform_code, company, str(e)
-			)
-		)
+	frappe.throw(
+		_("get_session() is no longer supported. Use get_client() instead — it returns a unified client for all platforms.")
+	)
 
 
 # ---------------------------------------------------------------------------

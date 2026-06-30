@@ -23,6 +23,9 @@ function _render_platform_management(frm) {
 				<button class="btn btn-sm btn-default" id="btn-add-custom">
 					${frappe.utils.icon("add")} ${__("Custom Platform")}
 				</button>
+				<button class="btn btn-sm btn-default" id="btn-provision-esalink" title="${__("Create an Esalink account for each company")}">
+					${frappe.utils.icon("upload")} ${__("Provision Esalink for all companies")}
+				</button>
 			</div>
 			<div id="platform-table-container">
 				<div class="text-muted text-center" id="loading-msg">
@@ -37,6 +40,7 @@ function _render_platform_management(frm) {
 	$wrapper.on("click", "#btn-add-superpdp", () => _open_platform_dialog(frm, null, "SuperPDP"));
 	$wrapper.on("click", "#btn-add-esalink", () => _open_platform_dialog(frm, null, "Esalink"));
 	$wrapper.on("click", "#btn-add-custom", () => _open_platform_dialog(frm, null, "Custom"));
+	$wrapper.on("click", "#btn-provision-esalink", () => _open_esalink_provision_dialog(frm));
 
 	$wrapper.on("click", ".btn-edit-platform", function () {
 		_open_platform_dialog(frm, $(this).data("name"));
@@ -407,4 +411,94 @@ function _open_platform_dialog(frm, existing_name = null, preset_type = null) {
 	}
 
 	dialog.show();
+}
+
+// --- Bulk Esalink provisioning (create an account per company) ---------------
+
+function _open_esalink_provision_dialog(frm) {
+	if (!frm.doc.esalink_partner_username || !frm.doc.esalink_api_key) {
+		frappe.msgprint({
+			title: __("Esalink partner connection required"),
+			indicator: "orange",
+			message: __(
+				"Set the Esalink partner username, password and API key in the section above, then save, before provisioning companies."
+			),
+		});
+		return;
+	}
+
+	const d = new frappe.ui.Dialog({
+		title: __("Provision Esalink for companies"),
+		size: "large",
+		fields: [
+			{
+				fieldtype: "HTML",
+				fieldname: "intro",
+				options: `<p class="text-muted">${__(
+					"Creates an Esalink account per selected company (sends each an Esalink KYC onboarding email) and stores the generated credentials. Companies already linked are skipped."
+				)}</p>`,
+			},
+			{
+				fieldtype: "Table MultiSelect",
+				fieldname: "companies",
+				label: __("Companies"),
+				options: "Company",
+				description: __("Leave empty to provision every company without an Esalink account."),
+			},
+			{ fieldtype: "HTML", fieldname: "results" },
+		],
+		primary_action_label: __("Provision"),
+		primary_action(values) {
+			const companies = (values.companies || []).map((c) => c.company || c);
+			frappe.call({
+				method: "etransactions.plateforme_agreee.esalink_provisioning.bulk_provision_esalink",
+				args: { companies: JSON.stringify(companies) },
+				freeze: true,
+				freeze_message: __("Creating Esalink accounts…"),
+				callback(r) {
+					_render_provision_results(d, r.message || []);
+					_load_platforms(frm);
+				},
+			});
+		},
+	});
+	d.show();
+}
+
+function _render_provision_results(d, rows) {
+	const $wrap = d.fields_dict.results.$wrapper;
+	if (!rows.length) {
+		$wrap.html(`<div class="text-muted">${__("No companies to provision.")}</div>`);
+		return;
+	}
+	const STATE = {
+		created: ["green", __("Account created")],
+		existing: ["gray", __("Already linked")],
+		error: ["red", __("Failed")],
+	};
+	const body = rows
+		.map((row) => {
+			const [color, label] = STATE[row.state] || ["gray", row.state || ""];
+			const detail =
+				row.state === "error"
+					? frappe.utils.escape_html(row.message || "")
+					: `${__("Status")}: ${frappe.utils.escape_html(row.status || "—")}` +
+					  (row.customer_id ? ` · ${__("Customer")} ${frappe.utils.escape_html(row.customer_id)}` : "");
+			return `<tr>
+				<td>${frappe.utils.escape_html(row.company || "")}</td>
+				<td><span class="indicator ${color}">${label}</span></td>
+				<td class="small text-muted">${detail}</td>
+			</tr>`;
+		})
+		.join("");
+	$wrap.html(`
+		<table class="table table-bordered" style="margin-top:10px">
+			<thead><tr>
+				<th>${__("Company")}</th><th>${__("Result")}</th><th>${__("Detail")}</th>
+			</tr></thead>
+			<tbody>${body}</tbody>
+		</table>
+		<p class="text-muted small">${__(
+			"Each company completes Esalink's KYC by email; the account activates automatically once Esalink validates it."
+		)}</p>`);
 }
