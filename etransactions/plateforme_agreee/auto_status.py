@@ -20,9 +20,10 @@ def _settings():
 
 def _einvoice_for_purchase_invoice(purchase_invoice: str) -> str | None:
 	"""Resolve the incoming eInvoice behind a Purchase Invoice (via Supplier Invoice)."""
-	einvoice = frappe.db.get_value(
-		"Supplier Invoice", {"original_invoice": purchase_invoice}, "einvoice"
-	)
+	supplier_invoice = frappe.db.get_value("Purchase Invoice", purchase_invoice, "supplier_invoice")
+	if not supplier_invoice:
+		return None
+	einvoice = frappe.db.get_value("Supplier Invoice", supplier_invoice, "einvoice")
 	if einvoice and frappe.db.get_value("eInvoice", einvoice, "pa_flow_id"):
 		return einvoice
 	return None

@@ -462,16 +462,21 @@ class TestGeneratorSirenLogic(unittest.TestCase):
 		self.assertEqual(_tax_regs(gen.doc.trade.agreement.buyer), [("VA", "DE123456789")])
 
 	def test_buyer_siren_only(self):
+		"""SIREN alone yields no buyer tax registration — it belongs in the buyer's
+		SpecifiedLegalOrganization (BT-47), not as an FC tax reg (rejected by the
+		French CTC schemeID rules)."""
 		gen = self._make(buyer_siren="987654321")
 		gen._set_buyer_tax_id()
-		self.assertEqual(_tax_regs(gen.doc.trade.agreement.buyer), [("FC", "987654321")])
+		self.assertEqual(_tax_regs(gen.doc.trade.agreement.buyer), [])
 
 	def test_buyer_vat_and_siren(self):
+		"""Buyer carries only its VAT id (BT-48); the SIREN stays in the legal
+		organization and is never emitted as an FC buyer tax registration."""
 		gen = self._make(buyer_tax_id="FR98765432101", buyer_siren="987654321")
 		gen._set_buyer_tax_id()
 		self.assertEqual(
 			_tax_regs(gen.doc.trade.agreement.buyer),
-			[("VA", "FR98765432101"), ("FC", "987654321")],
+			[("VA", "FR98765432101")],
 		)
 
 	def test_buyer_no_ids(self):
