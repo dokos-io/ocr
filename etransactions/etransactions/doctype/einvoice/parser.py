@@ -115,14 +115,15 @@ class eInvoiceParser:
 			validation_errors, validation_warnings = get_validation_errors(
 				xml_string, EInvoiceProfile(self.profile)
 			)
-		except Exception:
+		except Exception as e:
 			frappe.log_error(
-				title="E Invoice schematron validation",
+				frappe.get_traceback(),
+				title="Schematron validation crashed",
 				reference_doctype=self.einvoice_document.doctype,
 				reference_name=self.einvoice_document.name,
 			)
 			frappe.msgprint(
-				_("Could not validate E Invoice schematron. See Error Log for details."),
+				_("Could not validate E Invoice schematron: {0}. See Error Log for details.").format(str(e)),
 				alert=True,
 				indicator="orange",
 			)

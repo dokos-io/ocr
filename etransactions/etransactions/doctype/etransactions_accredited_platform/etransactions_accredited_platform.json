@@ -29,6 +29,7 @@
   "last_health_status",
   "last_health_check",
   "last_health_message",
+  "last_incoming_poll",
   "esalink_account_section",
   "esalink_customer_id",
   "esalink_user_id",
@@ -191,6 +192,13 @@
    "fieldtype": "Small Text",
    "label": "Last Health Message",
    "read_only": 1
+  },
+  {
+   "fieldname": "last_incoming_poll",
+   "fieldtype": "Datetime",
+   "label": "Last Incoming Poll",
+   "read_only": 1,
+   "description": "Watermark of the last successful incoming-invoice poll; the hourly cron only asks the platform for flows updated after this (minus a 1h margin)."
   },
   {
    "depends_on": "eval:doc.platform_type === 'Esalink'",

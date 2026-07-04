@@ -379,6 +379,8 @@ function _open_platform_dialog(frm, existing_name = null, preset_type = null) {
 				client_secret: v.client_secret,
 				api_base_url: v.api_base_url || null,
 				platform_code: v.platform_code || null,
+				auth_method: v.auth_method || null,
+				platform_name: is_edit ? existing_name : null,
 			},
 			callback(r) {
 				const res = r.message || {};

@@ -31,9 +31,12 @@ def _get_directory_client(platform_name: str):
 	return _build_client(
 		doc.platform_type,
 		doc.get_password("client_id"),
-		doc.get_password("client_secret"),
+		doc.get_password("client_secret", raise_exception=False),
 		api_base_url=doc.api_base_url,
 		platform_code=doc.platform_code,
+		sandbox=bool(doc.is_sandbox),
+		auth_method=doc.get("auth_method") or "client_credentials",
+		platform_name=platform_name,
 	)
 
 

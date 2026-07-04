@@ -192,15 +192,43 @@ def get_session(company: str, customer: str = None, transaction_type: str = "sal
 
 
 @frappe.whitelist()
-def test_platform_credentials(platform_type, client_id, client_secret, api_base_url=None, platform_code=None):
+def test_platform_credentials(
+	platform_type,
+	client_id,
+	client_secret,
+	api_base_url=None,
+	platform_code=None,
+	auth_method=None,
+	platform_name=None,
+):
 	"""Probe credentials without persisting anything (used before saving a platform).
 
 	Returns ``{"status": "ok"|"error", "message": str}`` — never raises, so the
 	dialog can render the outcome inline.
 	"""
 	frappe.only_for(("System Manager", "Accounts Manager"))
+	if not auth_method and platform_name and frappe.db.exists("eTransactions Accredited Platform", platform_name):
+		auth_method = frappe.db.get_value("eTransactions Accredited Platform", platform_name, "auth_method")
+	auth_method = auth_method or "client_credentials"
+	if auth_method == "authorization_code":
+		if not (platform_name and _get_platform_token(platform_name).get("refresh_token")):
+			return {
+				"status": "error",
+				"message": _(
+					"This platform uses interactive onboarding: save it, then run"
+					" \"Connect account (onboarding)\" to obtain tokens before testing."
+				),
+			}
 	try:
-		client = _build_client(platform_type, client_id, client_secret, api_base_url, platform_code)
+		client = _build_client(
+			platform_type,
+			client_id,
+			client_secret,
+			api_base_url,
+			platform_code,
+			auth_method=auth_method,
+			platform_name=platform_name,
+		)
 		client.healthcheck()
 		return {"status": "ok", "message": _("Connection successful.")}
 	except Exception as e:

@@ -116,6 +116,80 @@ def on_submit(doc, method):
 				)
 
 
+def before_cancel(doc, method):
+	"""Guard cancelling an invoice already transmitted to the accredited platform.
+
+	A local cancel with no 'Cancelled' lifecycle status desyncs the accounting from
+	the platform, so direct cancellation is blocked and users are pointed at the
+	guided flow (:func:`cancel_with_lifecycle`), which reports the status first.
+	"""
+	if frappe.flags.etransactions_cancel_confirmed:
+		return
+	row = _transmitted_einvoice(doc.name)
+	if not row:
+		return
+	frappe.throw(
+		_(
+			"This invoice was transmitted to the accredited platform (flow {0})."
+			" Cancel it from the Sales Invoice form so the 'Cancelled' lifecycle"
+			" status is reported to the platform first."
+		).format(row.pa_flow_id)
+	)
+
+
+def _transmitted_einvoice(sales_invoice: str):
+	"""The Outgoing eInvoice live on the platform for this invoice, if any.
+
+	Errored/rejected flows never entered the buyer's circuit, so they don't
+	need a lifecycle status before cancellation.
+	"""
+	row = frappe.db.get_value(
+		"eInvoice",
+		{"sales_invoice": sales_invoice, "einvoice_type": "Outgoing"},
+		["name", "pa_flow_id", "pa_status"],
+		as_dict=True,
+	)
+	if not row or not row.pa_flow_id or (row.pa_status or "") in ("error", "rejected"):
+		return None
+	return row
+
+
+@frappe.whitelist(methods=["POST"])
+def cancel_with_lifecycle(sales_invoice: str):
+	"""Report the 'Cancelled' lifecycle status to the platform, then cancel.
+
+	The status is sent synchronously: this is a user-initiated action and a
+	platform failure must surface before the accounting cancellation happens.
+	Platforms that cannot carry the status (SuperPDP has no ``fr:`` code for it)
+	are skipped with a note and the invoice is still cancelled.
+	"""
+	doc = frappe.get_doc("Sales Invoice", sales_invoice)
+	doc.check_permission("cancel")
+
+	row = _transmitted_einvoice(sales_invoice)
+	if row:
+		from etransactions.plateforme_agreee.auto_status import _platform_supports
+
+		if _platform_supports(doc.company, "sales", "cancelled"):
+			frappe.get_doc("eInvoice", row.name).submit_lifecycle_status("cancelled")
+		else:
+			frappe.msgprint(
+				_(
+					"The accredited platform does not support the 'Cancelled' lifecycle"
+					" status: the invoice is cancelled locally only. Inform the buyer"
+					" through another channel."
+				),
+				indicator="orange",
+				alert=True,
+			)
+
+	frappe.flags.etransactions_cancel_confirmed = True
+	try:
+		doc.cancel()
+	finally:
+		frappe.flags.etransactions_cancel_confirmed = False
+
+
 @frappe.whitelist()
 def get_einvoice_status(sales_invoice: str) -> dict:
 	"""Return the current eInvoice validation state and PA status for a Sales Invoice."""

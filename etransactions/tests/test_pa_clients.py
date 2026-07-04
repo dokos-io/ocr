@@ -256,3 +256,90 @@ class TestOAuthOnboardingHelpers(UnitTestCase):
 		# rotated refresh token is adopted and persisted
 		self.assertEqual(client._refresh_token, "r2")
 		self.assertEqual(persisted["refresh_token"], "r2")
+
+
+class TestTimestampNormalization(UnitTestCase):
+	"""Platform ISO-8601 timestamps must land as DB-safe datetime strings on every
+	client — AFNOR/Esalink used to store the raw ``T``/``Z`` form."""
+
+	def test_to_db_datetime_z_suffix(self):
+		from etransactions.components.common import to_db_datetime
+
+		out = to_db_datetime("2026-06-23T20:02:28.826685Z")
+		self.assertNotIn("T", out)
+		self.assertNotIn("Z", out)
+		# DB-safe "%Y-%m-%d %H:%M:%S.%f"
+		from datetime import datetime
+
+		datetime.strptime(out, "%Y-%m-%d %H:%M:%S.%f")
+
+	def test_to_db_datetime_passthrough(self):
+		from etransactions.components.common import to_db_datetime
+
+		self.assertIsNone(to_db_datetime(None))
+		self.assertEqual(to_db_datetime("not-a-date"), "not-a-date")
+
+	def test_afnor_incoming_flows_are_normalized(self):
+		from etransactions.components.afnor import AFNORClient
+
+		client = AFNORClient("cid", "secret", base_url="https://pa.example")
+		client._access_token = "tok"
+		client._token_expires_at = float("inf")
+		payload = {
+			"results": [
+				{
+					"flowId": "F1",
+					"submittedAt": "2026-06-23T20:02:28Z",
+					"updatedAt": "2026-06-24T08:15:00Z",
+					"flowType": "SupplierInvoice",
+					"flowSyntax": "Factur-X",
+				}
+			]
+		}
+		with patch.object(client, "_request", return_value=_FakeResponse(payload)):
+			flows = client.list_incoming_invoices()
+		self.assertEqual(len(flows), 1)
+		self.assertNotIn("T", flows[0].submitted_at)
+		self.assertNotIn("Z", flows[0].updated_at)
+
+
+class TestIncomingPollWindow(UnitTestCase):
+	"""list_incoming_invoices(updated_after=...) must narrow the platform query
+	instead of paging the whole history on every hourly poll."""
+
+	def test_months_between(self):
+		from datetime import datetime
+
+		from etransactions.components.superpdp.client import _months_between
+
+		months = _months_between(datetime(2025, 11, 20), datetime(2026, 2, 3))
+		self.assertEqual(months, ["2025-11", "2025-12", "2026-01", "2026-02"])
+		self.assertEqual(
+			_months_between(datetime(2026, 7, 1), datetime(2026, 7, 4)), ["2026-07"]
+		)
+
+	def test_superpdp_uses_month_filters(self):
+		from datetime import datetime
+
+		client = _client()
+		with patch.object(client, "list_invoices", return_value=[]) as list_invoices:
+			client.list_incoming_invoices(updated_after=datetime.now())
+		list_invoices.assert_called_once()
+		self.assertRegex(list_invoices.call_args.kwargs.get("date", ""), r"^\d{4}-\d{2}$")
+
+	def test_superpdp_without_window_lists_everything(self):
+		client = _client()
+		with patch.object(client, "list_invoices", return_value=[]) as list_invoices:
+			client.list_incoming_invoices()
+		list_invoices.assert_called_once_with(direction="in")
+
+	def test_afnor_forwards_updated_after_as_utc(self):
+		from datetime import datetime
+
+		from etransactions.components.afnor import AFNORClient
+
+		client = AFNORClient("cid", "secret", base_url="https://pa.example")
+		with patch.object(client, "search_flows", return_value=[]) as search:
+			client.list_incoming_invoices(updated_after=datetime(2026, 6, 1, 12, 0, 0))
+		value = search.call_args.kwargs["updated_after"]
+		self.assertRegex(value, r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")

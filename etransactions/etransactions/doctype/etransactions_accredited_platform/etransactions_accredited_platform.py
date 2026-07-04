@@ -29,6 +29,7 @@ class eTransactionsAccreditedPlatform(Document):
 		last_health_check: DF.Datetime | None
 		last_health_message: DF.SmallText | None
 		last_health_status: DF.Literal["unknown", "ok", "error"]
+		last_incoming_poll: DF.Datetime | None
 		platform_code: DF.Data
 		platform_name: DF.Data
 		platform_type: DF.Literal["Custom", "SuperPDP", "Esalink"]

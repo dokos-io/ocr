@@ -1,11 +1,16 @@
 from pathlib import Path
 
+from frappe import _
 from lxml import objectify
 from saxonche import PySaxonProcessor
 
 from etransactions.utils import EInvoiceProfile
 
 PROFILE_TO_XSL = {
+	# MINIMUM and BASIC WL documents are not full EN16931 invoices: no bundled
+	# schematron applies to them, the accredited platform validates on submit.
+	EInvoiceProfile.MINIMUM: None,
+	EInvoiceProfile.BASIC_WL: None,
 	EInvoiceProfile.BASIC: "Factur-X_1.07.2_BASIC.xsl",
 	EInvoiceProfile.EN16931: "EN16931-CII-validation-preprocessed.xsl",
 	EInvoiceProfile.EXTENDED: "Factur-X_1.07.2_EXTENDED.xsl",
@@ -17,6 +22,17 @@ PROFILE_TO_XSL = {
 
 
 def get_validation_errors(xml_string: str, profile: EInvoiceProfile):
+	if profile not in PROFILE_TO_XSL:
+		raise ValueError(f"No schematron mapping for e-invoice profile {profile!r}")
+
+	stylesheet = PROFILE_TO_XSL[profile]
+	if stylesheet is None:
+		return [], [
+			_(
+				"The {0} profile has no local schematron; the accredited platform validates it on submit."
+			).format(profile.value)
+		]
+
 	if profile == EInvoiceProfile.CTC_FR:
 		# The bundled schematron is the generic Factur-X EXTENDED one (the
 		# cpro.gouv.fr CTC-FR schematron is not bundled). It rejects the French
@@ -29,7 +45,7 @@ def get_validation_errors(xml_string: str, profile: EInvoiceProfile):
 			get_guideline(EInvoiceProfile.CTC_FR),
 			get_guideline(EInvoiceProfile.EXTENDED),
 		)
-	return get_errors_from_stylesheet(xml_string, PROFILE_TO_XSL[profile])
+	return get_errors_from_stylesheet(xml_string, stylesheet)
 
 
 def get_errors_from_stylesheet(xml_string: str, stylesheet: str):

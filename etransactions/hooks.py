@@ -216,6 +216,7 @@ doc_events = {
 		"on_update": "etransactions.overrides.sales_invoice.on_update",
 		"before_submit": "etransactions.overrides.sales_invoice.before_submit",
 		"on_submit": "etransactions.overrides.sales_invoice.on_submit",
+		"before_cancel": "etransactions.overrides.sales_invoice.before_cancel",
 	},
 	"Sales Order": {
 		"validate": "etransactions.overrides.sales_order.on_validate",

@@ -20,6 +20,8 @@ from datetime import datetime, timedelta, timezone
 import frappe
 from frappe import _
 
+from etransactions.components.common import to_db_datetime as _to_db_datetime
+from etransactions.components.common import to_utc_iso
 from etransactions.components.superpdp.models import (
     DirectoryData,
     DirectoryLineData,
@@ -292,7 +294,7 @@ class AFNORClient:
         )
         return FlowResult(
             flow_id=res.get("flowId", ""),
-            submitted_at=res.get("submittedAt"),
+            submitted_at=_to_db_datetime(res.get("submittedAt")),
             syntax=res.get("flowSyntax") or syntax,
             flow_type="CustomerInvoice",
         )
@@ -303,21 +305,23 @@ class AFNORClient:
         ack = metadata.get("acknowledgement") or {}
         ack_status = ack.get("status", "Pending")
         status = self._ACK_STATUS_MAP.get(ack_status, "pending")
-        updated_at = metadata.get("updatedAt")
+        updated_at = _to_db_datetime(metadata.get("updatedAt"))
         error_details = self._collect_error_details(ack) if ack_status == "Error" else None
         return StatusResult(status=status, updated_at=updated_at, error_details=error_details)
 
-    def list_incoming_invoices(self) -> list[IncomingFlow]:
-        """Return all incoming SupplierInvoice flows from the last 30 days."""
+    def list_incoming_invoices(self, updated_after: datetime = None) -> list[IncomingFlow]:
+        """Return incoming SupplierInvoice flows updated after the given datetime
+        (defaults to the last 30 days per :meth:`search_flows`)."""
         results = self.search_flows(
             directions=["In"],
             flow_types=["SupplierInvoice"],
+            updated_after=to_utc_iso(updated_after),
         )
         return [
             IncomingFlow(
                 flow_id=f.get("flowId", ""),
-                submitted_at=f.get("submittedAt"),
-                updated_at=f.get("updatedAt"),
+                submitted_at=_to_db_datetime(f.get("submittedAt")),
+                updated_at=_to_db_datetime(f.get("updatedAt")),
                 flow_type=f.get("flowType", "SupplierInvoice"),
                 syntax=f.get("flowSyntax"),
             )
@@ -386,7 +390,7 @@ class AFNORClient:
         return LifecycleResult(
             state="sent",
             flow_id=res.get("flowId"),
-            submitted_at=res.get("submittedAt"),
+            submitted_at=_to_db_datetime(res.get("submittedAt")),
         )
 
     def list_incoming_lifecycle_flows(self) -> list[IncomingFlow]:
@@ -398,8 +402,8 @@ class AFNORClient:
         return [
             IncomingFlow(
                 flow_id=f.get("flowId", ""),
-                submitted_at=f.get("submittedAt"),
-                updated_at=f.get("updatedAt"),
+                submitted_at=_to_db_datetime(f.get("submittedAt")),
+                updated_at=_to_db_datetime(f.get("updatedAt")),
                 flow_type=f.get("flowType", "CustomerInvoiceLC"),
                 syntax=f.get("flowSyntax"),
             )

@@ -14,6 +14,7 @@ from datetime import datetime
 import frappe
 from frappe import _
 
+from etransactions.components.common import to_db_datetime as _to_db_datetime
 from etransactions.components.superpdp.models import (
     B2CPayment,
     B2CTransaction,
@@ -35,26 +36,16 @@ except ImportError:
     requests = None
 
 
-def _to_db_datetime(value: str | None) -> str | None:
-    """Normalize a platform ISO-8601 timestamp into a DB-safe datetime string.
-
-    SuperPDP returns UTC timestamps like ``2026-06-23T20:02:28.826685Z``; MySQL's
-    DATETIME columns reject the ``T``/``Z`` form, so convert to a naive datetime in
-    the site's timezone (``YYYY-MM-DD HH:MM:SS.ffffff``).
-    """
-    if not value:
-        return None
-    try:
-        dt = datetime.fromisoformat(value)
-    except (ValueError, TypeError):
-        return value
-    if dt.tzinfo is not None:
-        import pytz
-
-        from frappe.utils import get_system_timezone
-
-        dt = dt.astimezone(pytz.timezone(get_system_timezone())).replace(tzinfo=None)
-    return dt.strftime("%Y-%m-%d %H:%M:%S.%f")
+def _months_between(start: datetime, end: datetime) -> list[str]:
+    """Month strings (``YYYY-MM``) covering [start, end], oldest first."""
+    months = []
+    year, month = start.year, start.month
+    while (year, month) <= (end.year, end.month):
+        months.append(f"{year:04d}-{month:02d}")
+        month += 1
+        if month == 13:
+            year, month = year + 1, 1
+    return months
 
 
 def _ereporting_payload(obj) -> dict:
@@ -575,9 +566,20 @@ class SuperPDPClient:
         error_details = self._collect_error_details(events)
         return StatusResult(status=status, updated_at=updated_at, error_details=error_details)
 
-    def list_incoming_invoices(self) -> list[IncomingFlow]:
-        """Fetch all incoming invoices and return as platform-agnostic IncomingFlow list."""
-        invoices = self.list_invoices(direction="in")
+    def list_incoming_invoices(self, updated_after: datetime = None) -> list[IncomingFlow]:
+        """Fetch incoming invoices and return as platform-agnostic IncomingFlow list.
+
+        ``updated_after`` narrows the query to the months it covers — the API's
+        ``date`` filter is month-granular (e.g. ``2025-11``) — so hourly polls stop
+        paging through the whole invoice history. The caller's dedup against known
+        flow ids stays the correctness backstop.
+        """
+        if updated_after is None:
+            invoices = self.list_invoices(direction="in")
+        else:
+            invoices = []
+            for month in _months_between(updated_after, datetime.now()):
+                invoices.extend(self.list_invoices(direction="in", date=month))
         return [
             IncomingFlow(
                 flow_id=str(inv["id"]),

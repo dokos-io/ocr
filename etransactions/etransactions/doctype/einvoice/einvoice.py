@@ -511,10 +511,17 @@ class eInvoice(Document):
 				basic_errors, basic_warnings = get_validation_errors(xml_string, EInvoiceProfile.EN16931)
 				validation_errors += basic_errors
 				warnings += basic_warnings
-		except Exception:
-			msg = _("Cannot validate E Invoice schematron.")
+		except Exception as e:
+			# Validation must never block save, but the stored text has to say
+			# what actually failed instead of a generic message.
+			msg = _("Cannot validate E Invoice schematron: {0}").format(str(e))
 			self.validation_errors = msg
-			frappe.log_error(msg, reference_doctype=self.doctype, reference_name=self.name)
+			frappe.log_error(
+				frappe.get_traceback(),
+				title="Schematron validation crashed",
+				reference_doctype=self.doctype,
+				reference_name=self.name,
+			)
 			return
 
 		if any(validation_errors):

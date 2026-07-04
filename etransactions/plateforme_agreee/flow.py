@@ -1,7 +1,7 @@
 import frappe
 from frappe import _
 
-from etransactions.plateforme_agreee.session import get_client
+from etransactions.plateforme_agreee.session import get_client, get_platform_for_context
 from etransactions.plateforme_agreee import lifecycle_status
 from etransactions.etransactions.doctype.einvoicing_log.einvoicing_log import eInvoicingLog
 from etransactions.etransactions.doctype.einvoice_event.einvoice_event import record_event
@@ -408,8 +408,22 @@ def poll_incoming_flows():
 			eInvoicingLog.create_log(result)
 			continue
 
+		# Poll window: resume 1h before the last successful poll (fallback: the
+		# clients' own default window) so hourly runs stop re-listing the full
+		# history. The known_flow_ids dedup below stays the correctness backstop.
+		platform_name = get_platform_for_context(company, transaction_type="purchases")
+		last_poll = (
+			frappe.db.get_value("eTransactions Accredited Platform", platform_name, "last_incoming_poll")
+			if platform_name
+			else None
+		)
+		updated_after = (
+			frappe.utils.add_to_date(frappe.utils.get_datetime(last_poll), hours=-1) if last_poll else None
+		)
+		poll_started_at = frappe.utils.now_datetime()
+
 		try:
-			incoming_flows = client.list_incoming_invoices()
+			incoming_flows = client.list_incoming_invoices(updated_after=updated_after)
 		except Exception as e:
 			result["logs"].append(("error", f"Failed to list incoming invoices: {str(e)}"))
 			eInvoicingLog.create_log(result)
@@ -441,5 +455,14 @@ def poll_incoming_flows():
 				result["logs"].append(("info", f"Created eInvoice from incoming flow {flow.flow_id}"))
 			except Exception as e:
 				result["logs"].append(("error", f"Failed to create eInvoice from flow {flow.flow_id}: {str(e)}"))
+
+		if platform_name:
+			frappe.db.set_value(
+				"eTransactions Accredited Platform",
+				platform_name,
+				"last_incoming_poll",
+				poll_started_at,
+				update_modified=False,
+			)
 
 		eInvoicingLog.create_log(result)

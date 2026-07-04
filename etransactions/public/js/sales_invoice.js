@@ -41,6 +41,53 @@ frappe.ui.form.on("Sales Invoice", {
 		if (!frm.doc.etransaction_profile) return;
 		return etransactions.invoiceReadiness.gate(frm);
 	},
+
+	before_cancel(frm) {
+		// An invoice already transmitted to the accredited platform must report
+		// the "Cancelled" lifecycle status first — the server hook blocks a direct
+		// cancel, so route through the guided endpoint after confirmation.
+		if (!frm.doc.etransaction_profile) return;
+		return new Promise((resolve, reject) => {
+			frappe
+				.call({
+					method: "etransactions.overrides.sales_invoice.get_einvoice_status",
+					args: { sales_invoice: frm.doc.name },
+				})
+				.then((r) => {
+					const d = r.message || {};
+					const live = d.pa_flow_id && !["error", "rejected"].includes(d.pa_status || "");
+					if (!live) {
+						resolve();
+						return;
+					}
+					frappe.confirm(
+						__(
+							"This invoice was transmitted to the accredited platform (flow {0}).<br>" +
+								"The <b>Cancelled</b> lifecycle status will be reported to the platform, " +
+								"then the invoice will be cancelled. Continue?",
+							[frappe.utils.escape_html(d.pa_flow_id)]
+						),
+						() => {
+							frappe
+								.call({
+									method: "etransactions.overrides.sales_invoice.cancel_with_lifecycle",
+									args: { sales_invoice: frm.doc.name },
+									freeze: true,
+									freeze_message: __("Reporting the cancellation to the platform…"),
+								})
+								.then(() => {
+									frm.reload_doc();
+									// The server endpoint already cancelled the document.
+									reject();
+								})
+								.catch(reject);
+						},
+						() => reject()
+					);
+				})
+				.catch(() => resolve());
+		});
+	},
 });
 
 frappe.ui.form.on("Sales Taxes and Charges", {
