@@ -214,6 +214,11 @@ def _build_customer_payload(
 	identifier call is needed. The routing address (the directory line invoices are addressed
 	to) defaults to the SIREN under the French SIRENE scheme (0225); ``routing_address`` may
 	override it with a ``scheme:value`` identifier (e.g. a SIRET or a Peppol address).
+
+	API-user creation is deferred to the explicit :meth:`create_user` call in the registration
+	flow (``apiUser="N"``): the inline user Esalink would create with ``apiUser="Y"`` is keyed
+	off ``customerEmail`` (not guaranteed unique) and its credentials are not returned here, so
+	it is both redundant and a 400 risk.
 	"""
 	data = _company_base_customer_data(company)
 	if customer_data:
@@ -242,7 +247,9 @@ def _build_customer_payload(
 		"country": data["country"],
 		"activationPA": "Y",
 		"receptionPa": "Y",
-		"apiUser": "Y",
+		# "N": don't let Esalink create an inline API user (it 400s on the email-keyed
+		# user creation). We mint the API credentials explicitly via create_user() below.
+		"apiUser": "N",
 		"electronicAddresses": [{"electronicAddress": addressing_value, "qualifier": qualifier}],
 		"startDate": _start_date(),
 	}

@@ -286,6 +286,8 @@ class TestEsalinkProvisioningHelpers(UnitTestCase):
 			[{"electronicAddress": "315143296", "qualifier": "0225"}],
 		)
 		self.assertEqual(payload["customerLegalId"], "315143296")
+		# API user is minted explicitly via create_user(), not inline during customer creation.
+		self.assertEqual(payload["apiUser"], "N")
 
 	def test_payload_routing_address_override_parses_scheme(self):
 		"""A scheme:value routing address is parsed; the legal id stays the SIREN."""
