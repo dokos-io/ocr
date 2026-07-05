@@ -12,7 +12,11 @@ from frappe.model.document import Document
 
 from etransactions.controllers.entity_resolver import InvoiceEntityResolverMixin
 from etransactions.etransactions.doctype.einvoice.parser import eInvoiceParser
-from etransactions.etransactions.doctype.einvoice.generator import EInvoiceMapper, EInvoiceGenerator
+from etransactions.etransactions.doctype.einvoice.generator import (
+	EInvoiceGenerator,
+	EInvoiceMapper,
+	resolve_syntax,
+)
 from etransactions.schematron import get_validation_errors
 from etransactions.utils import EInvoiceProfile, get_drafthorse_schema
 
@@ -49,6 +53,7 @@ class eInvoice(Document):
 		buyer_reference: DF.Data | None
 		charge_total: DF.Currency
 		company: DF.Link | None
+		contract_reference: DF.Data | None
 		currency: DF.Link | None
 		due_date: DF.Date | None
 		due_payable: DF.Currency
@@ -78,6 +83,7 @@ class eInvoice(Document):
 		seller_postcode: DF.Data | None
 		seller_tax_id: DF.Data | None
 		supplier_invoices_basket: DF.Link | None
+		syntax: DF.Literal["CII", "UBL"]
 		tax_basis_total: DF.Currency
 		tax_total: DF.Currency
 		taxes: DF.Table[eInvoiceTradeTax]
@@ -120,7 +126,9 @@ class eInvoice(Document):
 		sales_invoice.run_method("before_einvoice_generation")
 
 		profile = EInvoiceProfile(sales_invoice.get("etransaction_profile"))
-		generator = EInvoiceGenerator(
+		self.syntax = resolve_syntax(self, sales_invoice)
+
+		generator_kwargs = dict(
 			profile=profile,
 			einvoice=self,
 			company=self.einvoice_data.company,
@@ -131,6 +139,17 @@ class eInvoice(Document):
 			seller_contact=self.einvoice_data.seller_contact,
 			buyer_contact=self.einvoice_data.buyer_contact,
 		)
+
+		if self.syntax == "UBL":
+			from etransactions.etransactions.doctype.einvoice.ubl_generator import UBLGenerator
+
+			generator = UBLGenerator(**generator_kwargs)
+			generator.create_einvoice()
+			self.einvoice_data.sales_invoice.run_method("after_einvoice_generation")
+			self.einvoice_xml = generator.serialize()
+			return
+
+		generator = EInvoiceGenerator(**generator_kwargs)
 		generator.create_einvoice()
 		doc = generator.get_einvoice()
 
@@ -140,6 +159,281 @@ class eInvoice(Document):
 
 	def on_submit(self):
 		self.add_seller_product_ids_to_items()
+
+	def on_trash(self):
+		if self.pa_flow_id:
+			frappe.throw(
+				_("Cannot delete an eInvoice that has been submitted to the accredited platform (Flow ID: {0}).").format(self.pa_flow_id)
+			)
+
+	@frappe.whitelist()
+	def send_to_plateform(self):
+		"""Submit this outgoing eInvoice to the accredited platform."""
+		self.check_permission("write")
+		if self.einvoice_type != "Outgoing":
+			frappe.throw(_("Only Outgoing eInvoices can be submitted to the accredited platform."))
+		# A healthy flow can't be re-sent. An errored or rejected flow may be
+		# resubmitted to retry after fixing the cause.
+		if self.pa_flow_id and self.pa_status not in ("error", "rejected"):
+			frappe.throw(_("This eInvoice has already been submitted to the accredited platform (Flow ID: {0}).").format(self.pa_flow_id))
+
+		# Guard against concurrent sends (enqueued auto-send racing a manual click):
+		# take a row lock and re-read, so only one submission can pass this point.
+		locked = frappe.db.get_value("eInvoice", self.name, ["pa_flow_id", "pa_status"], for_update=True, as_dict=True)
+		if locked and locked.pa_flow_id and locked.pa_status not in ("error", "rejected"):
+			frappe.throw(_("This eInvoice has already been submitted to the accredited platform."))
+
+		# A B2C invoice's buyer isn't reachable through the e-invoicing directory, so it
+		# is declared via e-reporting rather than submitted as a structured invoice. The
+		# auto-send path already filters these out; block the manual button here too so a
+		# user can't push one into the invoice endpoint (the platform would reject it with
+		# an opaque "receiver address does not exist in directory" error).
+		if self.pa_processing_rule == "B2C":
+			frappe.throw(
+				_(
+					"This invoice is classified B2C: the customer is not reachable through the "
+					"e-invoicing directory, so the sale is declared to the tax authority via "
+					"e-reporting, not submitted as a structured e-invoice.<br><br>"
+					"To send a structured invoice instead, register the customer in the directory "
+					"(set a valid SIREN and re-sync the directory) so an active routing line is "
+					"resolved — the invoice will then be classified B2B."
+				),
+				frappe.ValidationError,
+				title=_("B2C invoice — cannot be submitted to the platform"),
+			)
+
+		if not self.seller_electronic_address:
+			frappe.throw(
+				_(
+					"The seller's electronic address (BT-34) is missing from this eInvoice. "
+					"Set an email on the Company record, or configure the Electronic Address fields "
+					"(etransactions_electronic_address_scheme / etransactions_electronic_address) "
+					"on the Company, then re-save the Sales Invoice to regenerate the eInvoice."
+				)
+			)
+
+		from etransactions.plateforme_agreee.session import get_client
+
+		customer = None
+		if self.sales_invoice:
+			customer = frappe.db.get_value("Sales Invoice", self.sales_invoice, "customer")
+
+		client = get_client(self.company, customer=customer)
+		file_content, filename, syntax = self._get_file_for_pa()
+		processing_rule = self.pa_processing_rule or "B2B"
+
+		result = client.submit_invoice(
+			file_content,
+			filename,
+			syntax,
+			external_id=self.sales_invoice,
+			processing_rule=processing_rule,
+		)
+
+		# Use db_set to avoid re-triggering validate() which regenerates the XML
+		self.db_set({
+			"pa_flow_id": result.flow_id,
+			"pa_submitted_at": result.submitted_at,
+			"pa_updated_at": result.submitted_at,
+			"pa_status": "sent",
+			"pa_syntax": result.syntax,
+			"pa_flow_type": result.flow_type,
+			# Clear any error text from a previous (rejected) send on a successful resend.
+			"pa_error_details": None,
+		})
+
+	@frappe.whitelist()
+	def refresh_pa_status(self):
+		"""Poll the accredited platform for the latest flow state."""
+		self.check_permission("read")
+		if not self.pa_flow_id:
+			frappe.throw(_("This eInvoice has not been submitted to the accredited platform yet."))
+
+		from etransactions.plateforme_agreee.session import get_client
+
+		customer = None
+		if self.sales_invoice:
+			customer = frappe.db.get_value("Sales Invoice", self.sales_invoice, "customer")
+
+		client = get_client(self.company, customer=customer)
+		status = client.get_invoice_status(self.pa_flow_id)
+
+		update = {}
+		if status.status:
+			update["pa_status"] = status.status
+		if status.updated_at:
+			update["pa_updated_at"] = status.updated_at
+		if status.error_details:
+			update["pa_error_details"] = status.error_details
+		elif status.status and status.status not in ("error", "rejected"):
+			# Recovered flow: drop any stale error text from a previous poll.
+			update["pa_error_details"] = None
+
+		if update:
+			self.db_set(update)
+
+	@frappe.whitelist()
+	def submit_lifecycle_status(
+		self,
+		status: str,
+		comment: str | None = None,
+		reason_code: str | None = None,
+		reason_text: str | None = None,
+		amount: float | None = None,
+		currency: str | None = None,
+		payment_date: str | None = None,
+	):
+		"""Report an invoice lifecycle status to the accredited platform.
+
+		``status`` is a canonical status (etransactions.plateforme_agreee.lifecycle_status).
+		"""
+		from etransactions.plateforme_agreee import lifecycle_status
+		from etransactions.plateforme_agreee.session import get_client
+		from etransactions.etransactions.doctype.einvoice_event.einvoice_event import record_event
+		from etransactions.etransactions.doctype.einvoicing_log.einvoicing_log import eInvoicingLog
+
+		self.check_permission("write")
+		if not self.pa_flow_id:
+			frappe.throw(_("This eInvoice has not been submitted to the accredited platform yet."))
+		if status not in lifecycle_status.STATUSES:
+			frappe.throw(_("Unknown lifecycle status '{0}'.").format(status))
+
+		if lifecycle_status.reason_required(status):
+			if not reason_code:
+				frappe.throw(_("A reason code is required to report the status '{0}'.").format(lifecycle_status.label(status)))
+			if reason_code not in lifecycle_status.reason_codes(status):
+				frappe.throw(_("'{0}' is not a valid reason code for the status '{1}'.").format(reason_code, lifecycle_status.label(status)))
+			reason_text = reason_text or reason_code
+
+		details = None
+		if reason_code or reason_text or comment or amount is not None:
+			details = [{
+				"reason_code": reason_code,
+				"reason_text": reason_text,
+				"comment": comment,
+				"amount": amount,
+				"currency": currency,
+				"payment_date": payment_date,
+			}]
+
+		customer = None
+		if self.sales_invoice:
+			customer = frappe.db.get_value("Sales Invoice", self.sales_invoice, "customer")
+		transaction_type = "sales" if self.einvoice_type == "Outgoing" else "purchases"
+		client = get_client(self.company, customer=customer, transaction_type=transaction_type)
+
+		result = {
+			"operation_type": "lifecycle_send",
+			"origin": "Manual",
+			"company": self.company,
+			"new_count": 0,
+			"updated_count": 0,
+			"logs": [],
+		}
+
+		try:
+			res = client.submit_lifecycle_status(
+				flow_id=self.pa_flow_id,
+				status=status,
+				einvoice=self,
+				details=details,
+			)
+		except Exception as e:
+			result["logs"].append(("error", f"Failed to send status '{status}' for eInvoice {self.name}: {str(e)}"))
+			eInvoicingLog.create_log(result)
+			raise
+
+		record_event(
+			self.name,
+			direction="out",
+			status=status,
+			state=res.state,
+			pa_event_id=res.event_id,
+			pa_flow_id=res.flow_id or self.pa_flow_id,
+			reason_code=reason_code,
+			reason_text=reason_text,
+			comment=comment,
+			amount=amount,
+			currency=currency,
+			payment_date=payment_date,
+		)
+		result["new_count"] = 1
+		result["logs"].append(("info", f"Lifecycle status '{status}' sent for eInvoice {self.name}"))
+		eInvoicingLog.create_log(result)
+		return lifecycle_status.label(status)
+
+	def _get_file_for_pa(self) -> tuple[bytes, str, str]:
+		"""Return (file_bytes, filename, syntax) for PA submission.
+
+		UBL invoices are sent as raw XML (Factur-X embedding is CII-only).
+		Otherwise prefers the already-attached FacturX PDF
+		(einvoice_embedded_document), falling back to generating it on the fly.
+		"""
+		if self.get("syntax") == "UBL":
+			xml = self.einvoice_xml
+			if isinstance(xml, str):
+				xml = xml.encode("utf-8")
+			if not xml:
+				frappe.throw(_("The UBL XML has not been generated for this eInvoice."))
+			return xml, f"{self.sales_invoice}.xml", "UBL"
+
+		if self.einvoice_embedded_document:
+			file_doc = frappe.get_doc("File", {"file_url": self.einvoice_embedded_document})
+			file_path = file_doc.get_full_path()
+			with open(file_path, "rb") as f:
+				file_content = f.read()
+			return file_content, file_doc.file_name or f"{self.sales_invoice}.pdf", "Factur-X"
+
+		# Generate FacturX PDF on the fly
+		from etransactions.utils.facturx_pdf import FacturXPDFGenerator
+		generator = FacturXPDFGenerator(self.sales_invoice)
+		url = generator.attach_to_invoice()
+		# Re-read the file that was just attached
+		file_doc = frappe.get_last_doc("File", filters={"attached_to_doctype": "Sales Invoice", "attached_to_name": self.sales_invoice})
+		file_path = file_doc.get_full_path()
+		with open(file_path, "rb") as f:
+			file_content = f.read()
+		return file_content, file_doc.file_name or f"{self.sales_invoice}.pdf", "Factur-X"
+
+	@classmethod
+	def create_from_plateforme_flow(cls, flow, file_content: bytes, company: str) -> "eInvoice":
+		"""Create an Incoming eInvoice from a flow received from the accredited platform.
+
+		``flow`` is an IncomingFlow dataclass (etransactions.components.superpdp.models).
+		The on_update() hook automatically creates the Supplier Invoice.
+		"""
+		doc = frappe.new_doc("eInvoice")
+		doc.einvoice_type = "Incoming"
+		doc.company = company
+		doc.pa_flow_id = flow.flow_id
+		doc.pa_status = "done"
+		doc.pa_submitted_at = flow.submitted_at
+		doc.pa_updated_at = flow.updated_at or flow.submitted_at
+		doc.pa_flow_type = flow.flow_type
+		doc.pa_syntax = flow.syntax
+		doc.flags.ignore_permissions = True
+		doc.insert()
+
+		if file_content:
+			ext = "pdf" if (flow.syntax or "") == "Factur-X" else "xml"
+			filename = f"{doc.pa_flow_id}.{ext}"
+			file_doc = frappe.get_doc({
+				"doctype": "File",
+				"file_name": filename,
+				"attached_to_doctype": "eInvoice",
+				"attached_to_name": doc.name,
+				"attached_to_field": "einvoice_embedded_document",
+				"content": file_content,
+				"is_private": 1,
+			})
+			file_doc.flags.ignore_permissions = True
+			file_doc.insert()
+			doc.db_set("einvoice_embedded_document", file_doc.file_url)
+			doc.db_set("einvoice", file_doc.name)
+
+		_notify_incoming_einvoice(doc)
+
+		return doc
 
 	def onload(self):
 		if self.docstatus == 0:
@@ -240,16 +534,24 @@ class eInvoice(Document):
 
 		try:
 			invoice_profile = EInvoiceProfile(self.profile)
-			validation_errors, warnings = get_validation_errors(xml_string, invoice_profile)
+			syntax = self.get("syntax") or "CII"
+			validation_errors, warnings = get_validation_errors(xml_string, invoice_profile, syntax)
 
-			if invoice_profile == EInvoiceProfile.XRECHNUNG:
+			if invoice_profile == EInvoiceProfile.XRECHNUNG and syntax != "UBL":
 				basic_errors, basic_warnings = get_validation_errors(xml_string, EInvoiceProfile.EN16931)
 				validation_errors += basic_errors
 				warnings += basic_warnings
-		except Exception:
-			msg = _("Cannot validate E Invoice schematron.")
+		except Exception as e:
+			# Validation must never block save, but the stored text has to say
+			# what actually failed instead of a generic message.
+			msg = _("Cannot validate E Invoice schematron: {0}").format(str(e))
 			self.validation_errors = msg
-			frappe.log_error(msg, reference_doctype=self.doctype, reference_name=self.name)
+			frappe.log_error(
+				title="Schematron validation crashed",
+				message=frappe.get_traceback(),
+				reference_doctype=self.doctype,
+				reference_name=self.name,
+			)
 			return
 
 		if any(validation_errors):
@@ -267,6 +569,115 @@ class eInvoice(Document):
 
 		return doc.insert(ignore_mandatory=True, ignore_links=True)
 
+
+
+def _notify_incoming_einvoice(doc):
+	"""Best-effort: raise a bell notification for a legally-received e-invoice.
+
+	Inbound invoices arrive by silent hourly cron; without this, a received
+	e-invoice can sit unseen. Never blocks flow ingestion.
+	"""
+	try:
+		from frappe.desk.doctype.notification_log.notification_log import (
+			enqueue_create_notification,
+		)
+
+		users = frappe.get_all(
+			"Has Role",
+			filters={"role": "Accounts Manager", "parenttype": "User"},
+			pluck="parent",
+		)
+		users = [
+			u
+			for u in set(users)
+			if u not in ("Administrator", "Guest")
+			and frappe.db.get_value("User", u, "enabled")
+		]
+		if not users:
+			return
+
+		sender = doc.seller_name or doc.pa_flow_id or doc.name
+		enqueue_create_notification(
+			users,
+			{
+				"type": "Alert",
+				"document_type": "eInvoice",
+				"document_name": doc.name,
+				"subject": _("New e-invoice received from the accredited platform: {0}").format(sender),
+			},
+		)
+	except Exception:
+		frappe.log_error(
+			title="Incoming e-invoice notification failed",
+			message=frappe.get_traceback(),
+			reference_doctype="eInvoice",
+			reference_name=doc.name,
+		)
+
+
+@frappe.whitelist()
+def get_lifecycle_reason_codes(status: str) -> list[str]:
+	"""Return the allowed MDT-113 reason codes for a lifecycle status (for the UI)."""
+	from etransactions.plateforme_agreee import lifecycle_status
+	return lifecycle_status.reason_codes(status)
+
+
+@frappe.whitelist()
+def get_supported_lifecycle_statuses(einvoice: str) -> list[str]:
+	"""Canonical lifecycle statuses the eInvoice's platform can actually carry.
+
+	SuperPDP only accepts statuses with a native ``fr:`` code; CDAR platforms
+	(Esalink/AFNOR) carry every status with an MDT-105 code. The Report Status
+	dialog uses this to avoid offering statuses that would fail at send time.
+	"""
+	doc = frappe.get_doc("eInvoice", einvoice)
+	doc.check_permission("read")
+
+	from etransactions.plateforme_agreee import lifecycle_status
+	from etransactions.plateforme_agreee.session import get_platform_for_company
+
+	transaction_type = "sales" if doc.einvoice_type == "Outgoing" else "purchases"
+	platform = get_platform_for_company(doc.company, transaction_type=transaction_type)
+	if platform and platform.platform_type == "SuperPDP":
+		return [k for k, v in lifecycle_status.STATUSES.items() if v.get("superpdp")]
+	return [k for k, v in lifecycle_status.STATUSES.items() if v.get("mdt105")]
+
+
+@frappe.whitelist()
+def get_transaction_einvoice(doctype: str, name: str) -> dict | None:
+	"""Resolve the eInvoice (and its PA status) behind a Sales / Purchase Invoice.
+
+	Lets the transaction forms surface the lifecycle without leaving the document.
+	Returns ``None`` when no eInvoice has reached the platform yet.
+	"""
+	frappe.get_doc(doctype, name).check_permission("read")
+
+	einvoice = None
+	if doctype == "Sales Invoice":
+		einvoice = frappe.db.get_value(
+			"eInvoice", {"sales_invoice": name, "einvoice_type": "Outgoing"}, "name"
+		)
+	elif doctype == "Purchase Invoice":
+		einvoice = frappe.db.get_value("Supplier Invoice", {"original_invoice": name}, "einvoice")
+
+	if not einvoice:
+		return None
+
+	data = frappe.db.get_value(
+		"eInvoice", einvoice, ["name", "pa_status", "pa_flow_id", "einvoice_type"], as_dict=True
+	)
+	if not data or not data.pa_flow_id:
+		return None
+	data["side"] = "sale" if data.einvoice_type == "Outgoing" else "purchase"
+	return data
+
+
+@frappe.whitelist()
+def report_lifecycle_status(einvoice: str, status: str, **kwargs):
+	"""Thin wrapper so transaction forms can drive lifecycle on the linked eInvoice."""
+	doc = frappe.get_doc("eInvoice", einvoice)
+	doc.check_permission("write")
+	return doc.submit_lifecycle_status(status, **kwargs)
 
 
 @frappe.whitelist()

@@ -13,6 +13,7 @@
   "supplier_invoices_basket",
   "column_break_albz",
   "profile",
+  "syntax",
   "e_invoice_is_correct",
   "header_section",
   "issue_date",
@@ -28,6 +29,7 @@
   "column_break_metg",
   "company",
   "purchase_order",
+  "contract_reference",
   "section_break_oyba",
   "buyer_electronic_address_scheme",
   "column_break_remv",
@@ -43,6 +45,7 @@
   "seller_tab",
   "seller_name",
   "seller_tax_id",
+  "supplier_siren",
   "column_break_jjaa",
   "section_break_sqyh",
   "seller_electronic_address_scheme",
@@ -94,7 +97,21 @@
   "payee_iban",
   "payee_bic",
   "xml_tab",
-  "einvoice_xml"
+  "einvoice_xml",
+  "pa_tab",
+  "pa_directory_line",
+  "pa_processing_rule",
+  "column_break_pa_1",
+  "pa_flow_id",
+  "pa_status",
+  "pa_section_2",
+  "pa_submitted_at",
+  "pa_updated_at",
+  "column_break_pa_2",
+  "pa_flow_type",
+  "pa_syntax",
+  "pa_error_section",
+  "pa_error_details"
  ],
  "fields": [
   {
@@ -213,6 +230,14 @@
    "read_only": 1
   },
   {
+   "description": "Supplier SIREN parsed from an incoming invoice. Used as the issuer identifier when reporting lifecycle statuses back via CDAR.",
+   "fieldname": "supplier_siren",
+   "fieldtype": "Data",
+   "label": "Supplier SIREN",
+   "length": 9,
+   "read_only": 1
+  },
+  {
    "fieldname": "header_section",
    "fieldtype": "Section Break",
    "label": "Header"
@@ -323,6 +348,17 @@
    "in_standard_filter": 1,
    "label": "Profile",
    "options": "BASIC\nEN 16931\nEXTENDED\nXRECHNUNG",
+   "read_only": 1
+  },
+  {
+   "default": "CII",
+   "depends_on": "eval:doc.einvoice_type=='Outgoing'",
+   "description": "Syntax of the generated XML — resolved automatically: UBL (Peppol BIS 3.0) when the buyer is addressed through Peppol or the profile forces it, CII (Factur-X) otherwise.",
+   "fieldname": "syntax",
+   "fieldtype": "Select",
+   "in_standard_filter": 1,
+   "label": "Syntax",
+   "options": "CII\nUBL",
    "read_only": 1
   },
   {
@@ -525,6 +561,12 @@
    "label": "Buyer Reference"
   },
   {
+   "description": "Contract / public-procurement reference (numéro de marché, BT-12).",
+   "fieldname": "contract_reference",
+   "fieldtype": "Data",
+   "label": "Contract Reference"
+  },
+  {
    "default": "Incoming",
    "fieldname": "einvoice_type",
    "fieldtype": "Select",
@@ -633,6 +675,97 @@
    "label": "Payment Terms Template",
    "options": "Payment Terms Template",
    "read_only": 1
+  },
+  {
+   "fieldname": "pa_tab",
+   "fieldtype": "Tab Break",
+   "label": "Accredited Platform"
+  },
+  {
+   "fieldname": "pa_directory_line",
+   "fieldtype": "Link",
+   "label": "Directory Line",
+   "options": "eInvoicing Directory Line",
+   "depends_on": "eval:doc.einvoice_type==\"Outgoing\""
+  },
+  {
+   "default": "B2B",
+   "fieldname": "pa_processing_rule",
+   "fieldtype": "Select",
+   "label": "Processing Rule",
+   "options": "\nB2B\nB2G\nB2C\nB2Bi\nOutOfScope",
+   "depends_on": "eval:doc.einvoice_type==\"Outgoing\""
+  },
+  {
+   "fieldname": "column_break_pa_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "pa_flow_id",
+   "fieldtype": "Data",
+   "label": "Flow ID (PA)",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "pa_status",
+   "fieldtype": "Select",
+   "label": "PA Status",
+   "options": "\ncreated\nsent\npending\ndone\nerror\nrejected",
+   "read_only": 1,
+   "no_copy": 1,
+   "in_list_view": 0
+  },
+  {
+   "fieldname": "pa_section_2",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "pa_submitted_at",
+   "fieldtype": "Datetime",
+   "label": "Submitted At",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "pa_updated_at",
+   "fieldtype": "Datetime",
+   "label": "Last Updated At",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "column_break_pa_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "pa_flow_type",
+   "fieldtype": "Select",
+   "label": "Flow Type",
+   "options": "\nCustomerInvoice\nSupplierInvoice\nCustomerInvoiceLC\nSupplierInvoiceLC",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "pa_syntax",
+   "fieldtype": "Select",
+   "label": "Syntax",
+   "options": "\nFactur-X\nUBL\nCII",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "depends_on": "pa_error_details",
+   "fieldname": "pa_error_section",
+   "fieldtype": "Section Break",
+   "label": "Platform Errors"
+  },
+  {
+   "fieldname": "pa_error_details",
+   "fieldtype": "Text",
+   "label": "PA Error Details",
+   "read_only": 1,
+   "no_copy": 1
   }
  ],
  "in_create": 1,

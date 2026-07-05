@@ -6,6 +6,8 @@
  "engine": "InnoDB",
  "field_order": [
   "general_settings_tab",
+  "activation_section",
+  "enable_einvoicing",
   "column_break_qhyq",
   "ocr_service",
   "aws_textract_key",
@@ -15,6 +17,10 @@
   "facturx_section",
   "generate_facturx_on_submit",
   "block_submission_on_facturx_failure",
+  "block_submission_on_blocking_findings",
+  "default_etransaction_profile",
+  "french_ctc_section",
+  "default_business_process_code",
   "purchase_invoices_tab",
   "purchase_invoices_section",
   "no_purchase_order",
@@ -24,13 +30,33 @@
   "reconcile_with_purchase_receipts",
   "auto_submit_purchase_invoices",
   "max_difference_amount",
-  "max_difference_percentage_on_net_total"
+  "max_difference_percentage_on_net_total",
+  "accredited_platform_tab",
+  "platform_management_section",
+  "platform_html",
+  "lifecycle_status_section",
+  "auto_send_in_hand",
+  "auto_send_approved",
+  "auto_send_payment",
+  "auto_cancel_on_refusal"
  ],
  "fields": [
   {
    "fieldname": "general_settings_tab",
    "fieldtype": "Tab Break",
    "label": "General Settings"
+  },
+  {
+   "fieldname": "activation_section",
+   "fieldtype": "Section Break",
+   "label": "Activation"
+  },
+  {
+   "default": "0",
+   "description": "Show e-invoicing / eTransactions fields and actions on Customers, Suppliers and invoices. Off by default; the e-invoicing pipeline for a given customer is still driven by its eTransaction Profile.",
+   "fieldname": "enable_einvoicing",
+   "fieldtype": "Check",
+   "label": "Enable E-Invoicing"
   },
   {
    "fieldname": "sales_invoices_tab",
@@ -54,6 +80,32 @@
    "fieldname": "block_submission_on_facturx_failure",
    "fieldtype": "Check",
    "label": "Block submission if FacturX PDF generation fails"
+  },
+  {
+   "default": "0",
+   "description": "Refuse submitting a Sales Invoice while blocking e-invoicing findings remain (the readiness panel lists them). Off = findings are shown but submission is allowed.",
+   "fieldname": "block_submission_on_blocking_findings",
+   "fieldtype": "Check",
+   "label": "Block submission on blocking e-invoicing findings"
+  },
+  {
+   "description": "Applied automatically to customers with a SIREN and a French (or empty) primary address that have no profile yet. The profile is the master switch of the e-invoicing pipeline.",
+   "fieldname": "default_etransaction_profile",
+   "fieldtype": "Link",
+   "label": "Default eTransaction Profile for French B2B customers",
+   "options": "eTransaction Profile"
+  },
+  {
+   "fieldname": "french_ctc_section",
+   "fieldtype": "Section Break",
+   "label": "French CTC (PPF)"
+  },
+  {
+   "default": "B2",
+   "description": "Business process code (BT-23) carried by French CTC invoices. Must be one of B1, S1, M1, B2, S2, M2, B4, S4, M4, S5, S6, B7, S7 (BR-FR-08).",
+   "fieldname": "default_business_process_code",
+   "fieldtype": "Data",
+   "label": "Default Business Process Code (BT-23)"
   },
   {
    "fieldname": "purchase_invoices_tab",
@@ -146,13 +198,61 @@
    "fieldname": "auto_submit_purchase_invoices",
    "fieldtype": "Check",
    "label": "Auto submit purchase invoices after creation"
+  },
+  {
+   "fieldname": "accredited_platform_tab",
+   "fieldtype": "Tab Break",
+   "label": "eTransactions Accredited Platform"
+  },
+  {
+   "fieldname": "platform_management_section",
+   "fieldtype": "Section Break",
+   "label": "eTransactions Accredited Platform Management"
+  },
+  {
+   "fieldname": "platform_html",
+   "fieldtype": "HTML",
+   "label": "Manage Accredited Platforms"
+  },
+  {
+   "fieldname": "lifecycle_status_section",
+   "fieldtype": "Section Break",
+   "label": "Automatic Lifecycle Statuses"
+  },
+  {
+   "default": "1",
+   "description": "Send 'In Hand' (prise en charge) when a supplier invoice is created from an incoming e-invoice.",
+   "fieldname": "auto_send_in_hand",
+   "fieldtype": "Check",
+   "label": "Auto-send 'In Hand' on supplier invoice creation"
+  },
+  {
+   "default": "1",
+   "description": "Send 'Approved' (approuvée) when a purchase invoice linked to an incoming e-invoice is submitted.",
+   "fieldname": "auto_send_approved",
+   "fieldtype": "Check",
+   "label": "Auto-send 'Approved' on purchase invoice submission"
+  },
+  {
+   "default": "1",
+   "description": "Send payment statuses ('Payment Sent' / 'Payment Received') when a payment is submitted against a linked invoice.",
+   "fieldname": "auto_send_payment",
+   "fieldtype": "Check",
+   "label": "Auto-send payment statuses on payment submission"
+  },
+  {
+   "default": "0",
+   "description": "When the customer refuses an e-invoice (incoming 'Refused' status), automatically cancel the linked Sales Invoice. Off by default — cancellation is irreversible.",
+   "fieldname": "auto_cancel_on_refusal",
+   "fieldtype": "Check",
+   "label": "Auto-cancel Sales Invoice on refusal"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-04-23 09:00:00.000000",
+ "modified": "2026-05-08 15:49:12.623054",
  "modified_by": "Administrator",
  "module": "eTransactions",
  "name": "eTransactions Settings",

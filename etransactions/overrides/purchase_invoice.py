@@ -4,6 +4,19 @@ import frappe
 from frappe import _
 from frappe.utils import flt, fmt_money
 
+def on_submit(doc, method):
+	"""Best-effort: queue an international B2B (B2Bi) purchase for PPF e-reporting.
+
+	Never blocks the submission — failures are logged, not raised.
+	"""
+	try:
+		from etransactions.plateforme_agreee.ereporting import capture_purchase_transaction
+
+		capture_purchase_transaction(doc)
+	except Exception:
+		frappe.log_error(frappe.get_traceback(), _("e-reporting purchase capture failed"))
+
+
 def after_mapping(doc, method, purchase_order):
 	if purchase_order.get("supplier_invoice"):
 		doc.supplier_invoice = purchase_order.supplier_invoice

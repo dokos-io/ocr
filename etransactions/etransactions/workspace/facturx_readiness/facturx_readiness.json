@@ -2,12 +2,16 @@
  "app": "etransactions",
  "charts": [],
  "color": "#3b82f6",
- "content": "[{\"id\":\"fxWarnBlock01\",\"type\":\"custom_block\",\"data\":{\"custom_block_name\":\"FacturX Warning\",\"col\":12}},{\"id\":\"fxReadiness02\",\"type\":\"custom_block\",\"data\":{\"custom_block_name\":\"Customer Readiness Widget\",\"col\":12}},{\"id\":\"ZeihuDTZbM\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"fxTaxReady03\",\"type\":\"custom_block\",\"data\":{\"custom_block_name\":\"Item Tax Readiness Widget\",\"col\":12}},{\"id\":\"fxVatSpacer04\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"fxVatConfig05\",\"type\":\"custom_block\",\"data\":{\"custom_block_name\":\"VAT Configuration Widget\",\"col\":12}}]",
+ "content": "[{\"id\": \"fxWarnBlock01\", \"type\": \"custom_block\", \"data\": {\"custom_block_name\": \"FacturX Warning\", \"col\": 12}}, {\"id\": \"fxCompanyReady01b\", \"type\": \"custom_block\", \"data\": {\"custom_block_name\": \"Company Readiness Widget\", \"col\": 12}}, {\"id\": \"fxCompanySpacer\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"fxReadiness02\", \"type\": \"custom_block\", \"data\": {\"custom_block_name\": \"Customer Readiness Widget\", \"col\": 12}}, {\"id\": \"ZeihuDTZbM\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"fxTaxReady03\", \"type\": \"custom_block\", \"data\": {\"custom_block_name\": \"Item Tax Readiness Widget\", \"col\": 12}}, {\"id\": \"fxVatSpacer04\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"fxVatConfig05\", \"type\": \"custom_block\", \"data\": {\"custom_block_name\": \"VAT Configuration Widget\", \"col\": 12}}]",
  "creation": "2026-03-15 00:00:00",
  "custom_blocks": [
   {
    "custom_block_name": "FacturX Warning",
    "label": "FacturX Warning"
+  },
+  {
+   "custom_block_name": "Company Readiness Widget",
+   "label": "Company Readiness Widget"
   },
   {
    "custom_block_name": "Customer Readiness Widget",

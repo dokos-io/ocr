@@ -15,6 +15,9 @@ dependencies = [
     "drafthorse~=2025.1.0",
     "saxonche>=12.5.0,<13.0.0",
     "lxml==6.0.2",
+    # v0.10 — pinned by commit (no 0.10 tag upstream); 0.9 changed CDAR parse
+    # return shapes, so bump deliberately and re-run test_cdar.py.
+    "pyfrctc @ git+https://github.com/akretion/pyfrctc.git@17f8ff17d2975adc60bca937cb64fb1f539ab97a",
 ]
 
 [build-system]

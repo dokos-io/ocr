@@ -232,39 +232,10 @@ def _enrich_with_address_data(customers):
 
 
 def _get_issues(row):
-	issues = []
+	"""Delegate to the shared readiness predicates so the report, the workspace
+	widget and the per-party wizard never diverge."""
+	from etransactions.plateforme_agreee.readiness import party_findings_from_row
 
-	if not row.get("siren_number"):
-		issues.append(_("Missing SIREN Number"))
-
-	if not row.get("tax_id"):
-		issues.append(_("Missing Tax ID"))
-
-	if not row.get("customer_primary_contact"):
-		issues.append(_("No Primary Contact"))
-
-	# Email is not a blocking field — it will be filled automatically from the primary
-	# contact once the dedicated `einvoice_email` custom field is available.
-	if not row.get("email_id"):
-		issues.append(_("No Email (will be auto-filled from primary contact)"))
-
-	if not row.get("billing_address"):
-		issues.append(_("No Primary Billing Address"))
-	else:
-		if not row.get("siret_number"):
-			issues.append(_("Missing SIRET Number on billing address"))
-
-		missing = []
-		for field, label in (
-			("address_line1", _("Address Line 1")),
-			("city", _("City")),
-			("pincode", _("Pincode")),
-			("country", _("Country")),
-		):
-			if not row.get(field):
-				missing.append(label)
-
-		if missing:
-			issues.append(_("Incomplete billing address: {0}").format(", ".join(missing)))
-
-	return issues
+	norm = dict(row)
+	norm["resolved_address"] = row.get("billing_address")
+	return party_findings_from_row(norm, "Customer")

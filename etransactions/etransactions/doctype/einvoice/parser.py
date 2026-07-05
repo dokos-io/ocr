@@ -65,7 +65,7 @@ class eInvoiceParser:
 	def _parse_ubl(self, xml_bytes: bytes) -> None:
 		parse_ubl(xml_bytes, self.einvoice_document)
 		self.profile = self.einvoice_document.profile
-		self._validate_schematron(xml_bytes)
+		self._validate_schematron(xml_bytes, syntax="UBL")
 
 	def _parse_facturx(self, xml_bytes: bytes) -> None:
 		doc = eInvoiceParser.get_einvoice_document(xml_bytes)
@@ -106,23 +106,24 @@ class eInvoiceParser:
 		self.parse_billing_period(doc.trade.settlement.period)
 
 
-	def _validate_schematron(self, xml_bytes):
+	def _validate_schematron(self, xml_bytes, syntax: str = "CII"):
 		self.einvoice_document.validation_errors = ""
 		self.einvoice_document.validation_warnings = ""
 		xml_string = xml_bytes.decode("utf-8")
 
 		try:
 			validation_errors, validation_warnings = get_validation_errors(
-				xml_string, EInvoiceProfile(self.profile)
+				xml_string, EInvoiceProfile(self.profile), syntax
 			)
-		except Exception:
+		except Exception as e:
 			frappe.log_error(
-				title="E Invoice schematron validation",
+				title="Schematron validation crashed",
+				message=frappe.get_traceback(),
 				reference_doctype=self.einvoice_document.doctype,
 				reference_name=self.einvoice_document.name,
 			)
 			frappe.msgprint(
-				_("Could not validate E Invoice schematron. See Error Log for details."),
+				_("Could not validate E Invoice schematron: {0}. See Error Log for details.").format(str(e)),
 				alert=True,
 				indicator="orange",
 			)
@@ -145,6 +146,7 @@ class eInvoiceParser:
 		)
 		self.einvoice_document.seller_electronic_address = str(seller.electronic_address.uri_ID._text)
 		self.einvoice_document.seller_electronic_address_scheme = str(seller.electronic_address.uri_ID._scheme_id)
+		self.einvoice_document.supplier_siren = _seller_siren(seller, self.einvoice_document)
 		self.parse_address(seller.address, "seller")
 
 	def parse_buyer(self, buyer: TradeParty):
@@ -251,3 +253,31 @@ class eInvoiceParser:
 
 def flt_or_none(value) -> float | None:
 	return float(value) if value is not None else None
+
+
+def _seller_siren(seller, einvoice_document) -> str | None:
+	"""Best-effort SIREN of the seller for a parsed incoming invoice.
+
+	Prefers the legal-organization registration id (scheme 0002); falls back to
+	the electronic address (SIRET schemes 0009/0225) or the VAT/tax id. Returns
+	None when nothing usable is found — never raises, so parsing is unaffected.
+	"""
+	try:
+		legal_id = seller.legal_organization.id._text
+		digits = "".join(c for c in str(legal_id or "") if c.isdigit())
+		if len(digits) >= 9:
+			return digits[:9]
+	except Exception:
+		pass
+
+	scheme = (einvoice_document.seller_electronic_address_scheme or "").strip()
+	address_digits = "".join(c for c in (einvoice_document.seller_electronic_address or "") if c.isdigit())
+	if scheme in ("0009", "0225") and len(address_digits) >= 9:
+		return address_digits[:9]
+
+	tax_digits = "".join(c for c in (einvoice_document.seller_tax_id or "") if c.isdigit())
+	if len(tax_digits) == 9:
+		return tax_digits
+	if len(tax_digits) == 14:  # SIRET -> SIREN
+		return tax_digits[:9]
+	return None

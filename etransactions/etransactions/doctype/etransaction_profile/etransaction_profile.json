@@ -7,7 +7,8 @@
  "engine": "InnoDB",
  "field_order": [
   "profile",
-  "identifier_value"
+  "identifier_value",
+  "default_syntax"
  ],
  "fields": [
   {
@@ -24,6 +25,13 @@
    "in_list_view": 1,
    "label": "Identifier Value",
    "reqd": 1
+  },
+  {
+   "description": "Force the XML syntax for invoices using this profile. Leave empty to choose automatically (UBL for Peppol-addressed buyers, CII otherwise).",
+   "fieldname": "default_syntax",
+   "fieldtype": "Select",
+   "label": "Default Syntax",
+   "options": "\nCII\nUBL"
   }
  ],
  "grid_page_length": 50,

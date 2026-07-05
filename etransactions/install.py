@@ -16,6 +16,42 @@ def after_install():
 	add_custom_fields()
 	rename_ocr_to_etransactions()
 	frappe.delete_doc("Workspace", "Data Extraction", ignore_missing=True, force=True)
+	import_peppol_participant_identifier_schemes()
+
+
+def import_peppol_participant_identifier_schemes():
+	import os
+	from erpnext.edi.doctype.code_list.code_list_import import import_genericode_content, process_genericode_import
+
+	file_path = frappe.get_app_path("etransactions", "data", "peppol_participant_identifier_schemes.xml")
+	if not os.path.exists(file_path):
+		return
+
+	with open(file_path, "rb") as f:
+		content = f.read()
+
+	frappe.set_user("Administrator")
+	result = import_genericode_content(
+		doctype="Code List",
+		docname=None,
+		content=content,
+		file_name="peppol_participant_identifier_schemes.xml"
+	)
+
+	code_list_name = result["code_list"]
+	file_doc_name = result["file"]
+
+	if frappe.db.exists("Common Code", {"code_list": code_list_name}):
+		return
+
+	process_genericode_import(
+		code_list_name=code_list_name,
+		file_name=file_doc_name,
+		code_column="iso6523",
+		title_column="scheme-name",
+		description_column="usage",
+		filters=None
+	)
 
 
 def rename_ocr_to_etransactions():
@@ -224,21 +260,95 @@ CUSTOM_FIELDS_TO_DELETE = [
 		"fieldtype": "Link",
 		"options": "Pending Purchase Invoice Item",
 	},
+	# Removed: never read by any code path.
+	{
+		"dt": "Company",
+		"fieldname": "etransactions_seller_reference",
+		"fieldtype": "Data",
+	},
+	# Removed: redundant with siren_number; routing now keyed on SIRET/Address.
+	{
+		"dt": "Customer",
+		"fieldname": "directory_siren",
+		"fieldtype": "Data",
+	},
+	# Removed: duplicated erpnext France's standard Address.siret_number, which
+	# routing now matches on. See plateforme_agreee/routing.py::address_for_siret.
+	{
+		"dt": "Address",
+		"fieldname": "siret",
+		"fieldtype": "Data",
+	},
+	# Removed: the establishments table now lives inside the collapsible routing
+	# section (pa_directory_section); its standalone section break is obsolete.
+	{
+		"dt": "Customer",
+		"fieldname": "pa_establishments_section",
+		"fieldtype": "Section Break",
+	},
+	# Removed: the B2G references are establishment-/document-specific, not a
+	# per-customer default. The service code (BT-10) now lives on the Address and
+	# the contract number (BT-12) is entered per invoice/order.
+	{
+		"dt": "Customer",
+		"fieldname": "etransactions_buyer_reference",
+		"fieldtype": "Data",
+	},
+	{
+		"dt": "Customer",
+		"fieldname": "etransactions_contract_reference",
+		"fieldtype": "Data",
+	},
+	# Removed: Esalink partner credentials now live in site_config.json only (no
+	# per-company override); the Esalink account is created per company at platform setup.
+	*[
+		{"dt": "Company", "fieldname": fieldname}
+		for fieldname in (
+			"etransactions_esalink_section",
+			"etransactions_esalink_environment",
+			"etransactions_esalink_api_key",
+			"etransactions_esalink_partner_column",
+			"etransactions_esalink_partner_username",
+			"etransactions_esalink_partner_password",
+		)
+	],
+	# Removed: a supplier is the seller on incoming invoices — its electronic
+	# address (BT-34/BT-49) is never emitted by anything we generate. Only the
+	# Company and Customer endpoints are used (see einvoice/generator.py), so the
+	# supplier picker + save-time EAS guard were dead weight.
+	{"dt": "Supplier", "fieldname": "etransactions_electronic_address_scheme", "fieldtype": "Link"},
+	{"dt": "Supplier", "fieldname": "etransactions_electronic_address", "fieldtype": "Data"},
 ]
 
 
 def add_custom_fields():
 	click.secho("* Updating eTransactions Custom Fields")
-	_delete_ocr_custom_fields()
+	_delete_obsolete_custom_fields()
 
-	custom_fields = get_custom_fields()
+	custom_fields = _with_explicit_hidden(get_custom_fields())
 	create_custom_fields(custom_fields, ignore_validate=frappe.flags.in_patch, update=True)
 
 	for dt in custom_fields:
 		frappe.clear_cache(doctype=dt)
 
 
-def _delete_ocr_custom_fields():
+def _with_explicit_hidden(custom_fields):
+	"""Force an explicit ``hidden`` on every managed field.
+
+	create_custom_fields(update=True) only overrides keys present in the definition,
+	so a field whose definition omits ``hidden`` can keep a legacy stored hidden=1
+	forever — that is why the eTransactions tabs stayed hidden on installed sites even
+	when e-invoicing was enabled. Defaulting hidden to 0 here makes every install/migrate
+	reconcile it; the two intentionally hidden fields keep their explicit hidden=1
+	because ``df`` is spread last.
+	"""
+	return {
+		dt: [{"hidden": 0, **df} for df in fields]
+		for dt, fields in custom_fields.items()
+	}
+
+
+def _delete_obsolete_custom_fields():
 	for field in CUSTOM_FIELDS_TO_DELETE:
 		if frappe.db.exists("Custom Field", {"dt": field["dt"], "fieldname": field["fieldname"]}):
 			frappe.delete_doc("Custom Field", f"{field['dt']}-{field['fieldname']}", ignore_missing=True)

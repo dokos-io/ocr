@@ -95,6 +95,17 @@ class SupplierInvoiceDashboard {
 					status: ["in", ["Analysis Completed", "Error"]],
 				}),
 			},
+			{
+				label: __("Received via e-invoicing platform", null, "Supplier Invoice List"),
+				count: this.pa_incoming_count,
+				icon: "down-arrow",
+				color: this.pa_incoming_count > 0 ? "var(--purple-500)" : "var(--gray-500)",
+				bg: this.pa_incoming_count > 0 ? "var(--purple-100)" : "var(--bg-light-gray)",
+				action: () => frappe.set_route("List", "eInvoice", {
+					einvoice_type: "Incoming",
+					pa_flow_id: ["is", "set"],
+				}),
+			},
 		];
 
 		cards.forEach((card_settings) => {
@@ -130,12 +141,18 @@ class SupplierInvoiceDashboard {
 	}
 
 	async get_data() {
-		[this.basket_count, this.ocr_count] = await Promise.all([
+		[this.basket_count, this.ocr_count, this.pa_incoming_count] = await Promise.all([
 			frappe.db.count("Supplier Invoices Basket", {
 				filters: [["status", "in", ["Not Started", "In Progress"]]],
 			}),
 			frappe.db.count("OCR Request", {
 				filters: [["status", "in", ["Pending", "Error"]]],
+			}),
+			frappe.db.count("eInvoice", {
+				filters: [
+					["einvoice_type", "=", "Incoming"],
+					["pa_flow_id", "is", "set"],
+				],
 			}),
 		]);
 	}

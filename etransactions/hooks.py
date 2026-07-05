@@ -12,7 +12,7 @@ add_to_apps_screen = [
 		"logo": "/assets/etransactions/images/etransactions_solid.svg",
 		"title": "eTransactions",
 		"route": "/app/supplier-invoice",
-        "has_permission": "etransactions.check_app_permission",
+		"has_permission": "etransactions.check_app_permission",
 	},
 ]
 
@@ -41,6 +41,9 @@ app_include_css = "etransactions.bundle.css"
 # include js in doctype views
 doctype_js = {
 	"Communication" : "public/js/communication.js",
+	"Customer": "public/js/customer.js",
+	"Supplier": "public/js/supplier.js",
+	"Company": "public/js/company.js",
 	"Purchase Invoice": "public/js/purchase_invoice.js",
 	"Purchase Order": "public/js/purchase_order.js",
 	"Sales Invoice": "public/js/sales_invoice.js",
@@ -52,6 +55,9 @@ doctype_list_js = {
 	"Expense": "public/js/expense_list.js",
 	"Purchase Invoice": "public/js/purchase_invoice_list.js",
 }
+
+# Expose the e-invoicing activation flag (frappe.boot.einvoicing_enabled) to the client.
+boot_session = "etransactions.boot.boot_session"
 
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
@@ -185,6 +191,8 @@ doc_events = {
 		"on_submit": [
 			"etransactions.etransactions.doctype.ocr_request.ocr_request.update_ocr_request_status",
 			"etransactions.etransactions.doctype.supplier_invoice.supplier_invoice.set_pending_purchase_order_status",
+			"etransactions.plateforme_agreee.auto_status.on_purchase_invoice_submit",
+			"etransactions.overrides.purchase_invoice.on_submit",
 		],
 		"on_cancel": [
 			"etransactions.etransactions.doctype.ocr_request.ocr_request.update_ocr_request_status",
@@ -194,6 +202,9 @@ doc_events = {
 			"etransactions.overrides.purchase_invoice.after_mapping",
 		]
 	},
+	"Payment Entry": {
+		"on_submit": "etransactions.plateforme_agreee.auto_status.on_payment_entry_submit",
+	},
 	"Purchase Receipt": {
 		"on_submit": "etransactions.etransactions.doctype.supplier_invoice.supplier_invoice.auto_match_with_purchase_receipt",
 		"on_cancel": "etransactions.etransactions.doctype.supplier_invoice.supplier_invoice.remove_link_with_supplier_invoices",
@@ -201,11 +212,31 @@ doc_events = {
 	},
 	"Supplier Invoice": {
 		"on_close": "etransactions.etransactions.doctype.ocr_request.ocr_request.update_ocr_request_status",
+		"after_insert": "etransactions.plateforme_agreee.auto_status.on_supplier_invoice_after_insert",
 	},
 	"Sales Invoice": {
+		"validate": "etransactions.overrides.sales_invoice.on_validate",
 		"on_update": "etransactions.overrides.sales_invoice.on_update",
+		"before_submit": "etransactions.overrides.sales_invoice.before_submit",
 		"on_submit": "etransactions.overrides.sales_invoice.on_submit",
-	}
+		"before_cancel": "etransactions.overrides.sales_invoice.before_cancel",
+	},
+	"Sales Order": {
+		"validate": "etransactions.overrides.sales_order.on_validate",
+		"before_submit": "etransactions.overrides.sales_order.before_submit",
+	},
+	"Company": {
+		"validate": "etransactions.overrides.master_data.validate_electronic_address",
+		"on_update": "etransactions.plateforme_agreee.ereporting.on_company_update",
+	},
+	"Customer": {
+		"validate": [
+			"etransactions.overrides.master_data.validate_electronic_address",
+			"etransactions.overrides.master_data.apply_default_etransaction_profile",
+		],
+	},
+	# Supplier carries no electronic-address field (its endpoint is never emitted),
+	# so it needs no validate_electronic_address guard.
 }
 
 # Scheduled Tasks
@@ -216,10 +247,20 @@ scheduler_events = {
 	# 	"etransactions.tasks.all"
 	# ],
 	"hourly": [
-		"etransactions.etransactions.doctype.ocr_request.ocr_request.check_pending_analysis"
+		"etransactions.etransactions.doctype.ocr_request.ocr_request.check_pending_analysis",
+		"etransactions.plateforme_agreee.flow.poll_pending_outgoing_flows",
+		"etransactions.plateforme_agreee.flow.poll_incoming_flows",
+		"etransactions.plateforme_agreee.flow.poll_outgoing_lifecycle_events",
+		"etransactions.plateforme_agreee.flow.poll_incoming_lifecycle_flows",
+		"etransactions.plateforme_agreee.flow.submit_pending_ereporting_entries",
+		"etransactions.plateforme_agreee.flow.poll_ereporting_status",
+		"etransactions.plateforme_agreee.esalink_provisioning.poll_esalink_customer_statuses",
 	],
 	"daily": [
-		"etransactions.etransactions_hub.doctype.accounting_request.accounting_request.notify_overdue_requests"
+		"etransactions.plateforme_agreee.directory.sync_all_customers",
+		"etransactions.plateforme_agreee.session.run_all_health_checks",
+		"etransactions.etransactions.doctype.einvoicing_log.einvoicing_log.vacuum_old_logs",
+		"etransactions.etransactions_hub.doctype.accounting_request.accounting_request.notify_overdue_requests",
 	],
 	# "weekly": [
 	# 	"etransactions.tasks.weekly"

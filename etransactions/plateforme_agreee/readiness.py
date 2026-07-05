@@ -1,0 +1,861 @@
+# Copyright (c) 2026, Dokos SAS and Contributors
+# License: GNU General Public License v3. See license.txt
+
+"""Single source of truth for e-invoicing readiness checks.
+
+Two kinds of evaluation share one vocabulary of :class:`Finding`:
+
+* :func:`evaluate_party_readiness` — is a Customer / Supplier ready to be
+  invoiced electronically (identity, address, SIRET, routing)? Drives the
+  master-data readiness wizard, the FacturX Readiness workspace widget
+  (via :func:`customer_check_specs`) and the Customer eInvoice Readiness report.
+* :func:`evaluate_einvoice_readiness` — will *this* invoice produce a valid
+  e-invoice (seller data, routing line, taxes, payment schedule)? Drives the
+  live in-form panel (a dry run on the unsaved doc) and the server-side
+  ``on_validate`` warnings, so the two never disagree.
+
+A ``Finding`` carries a short ``label`` (for the compact in-form panel) and an
+optional rich ``detail`` (HTML, for desk ``msgprint``), plus a ``fix`` target so
+the UI can jump straight to the field or master that needs attention.
+"""
+
+from dataclasses import asdict, dataclass
+from typing import Callable
+
+import frappe
+from frappe import _
+
+from etransactions.utils import EInvoiceProfile
+from etransactions.utils.siren import is_valid_siren, vat_matches_siren
+
+# severity → desk indicator color
+INDICATOR = {"error": "red", "warning": "orange", "info": "blue"}
+
+_ADDRESS_SUBFIELDS = ("address_line1", "city", "pincode", "country")
+
+
+# ---------------------------------------------------------------------------
+# Finding
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class Finding:
+	"""A single readiness issue, in the shared status vocabulary."""
+
+	key: str
+	severity: str  # "error" | "warning" | "info"
+	label: str
+	detail: str | None = None  # optional rich HTML for desk msgprint
+	fix_field: str | None = None  # field on the current form to scroll to
+	fix_doctype: str | None = None  # related master to open
+	fix_name: str | None = None
+
+	def as_dict(self) -> dict:
+		return asdict(self)
+
+
+def as_dicts(findings: list[Finding]) -> list[dict]:
+	return [f.as_dict() for f in findings]
+
+
+# ---------------------------------------------------------------------------
+# Party check specifications (shared with the aggregate widget + report)
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class CheckSpec:
+	"""A party readiness criterion evaluated against a normalized row dict."""
+
+	key: str
+	label: str
+	blocking: bool
+	passes: Callable[[dict], bool]
+	fix_field: str | None = None
+	# "address" means the fix target is the row's resolved billing address.
+	fix_doctype: str | None = None
+
+	def as_result(self, count: int, total: int) -> dict:
+		"""Aggregate shape used by the FacturX Readiness workspace widget."""
+		return {
+			"key": self.key,
+			"label": self.label,
+			"complete": count,
+			"missing": total - count,
+			"total": total,
+			"pct": round(count / total * 100) if total else 0,
+			"blocking": self.blocking,
+		}
+
+
+def customer_check_specs() -> list[CheckSpec]:
+	"""Ordered customer readiness checks. Built per request so ``_()`` resolves."""
+	return [
+		CheckSpec("siren", _("SIREN number"), True, lambda r: bool(r.get("siren_number")), "siren_number"),
+		CheckSpec("siren_valid", _("Valid SIREN number"), False, _siren_valid, "siren_number"),
+		CheckSpec("tax_id", _("Tax ID (TVA)"), True, lambda r: bool(r.get("tax_id")), "tax_id"),
+		CheckSpec("siren_vat_match", _("SIREN matches VAT number"), False, _siren_vat_match, "siren_number"),
+		# Non-blocking, but without it the whole e-invoicing pipeline stays off.
+		CheckSpec(
+			"profile",
+			_("e-Invoicing profile"),
+			False,
+			lambda r: bool(r.get("etransaction_profile")),
+			"etransaction_profile",
+		),
+		CheckSpec(
+			"contact",
+			_("Primary contact"),
+			True,
+			lambda r: bool(r.get("customer_primary_contact")),
+			"customer_primary_contact",
+		),
+		# Non-blocking: auto-filled from the primary contact once the dedicated
+		# einvoice_email field exists.
+		CheckSpec("email", _("Contact email"), False, lambda r: bool(r.get("email_id"))),
+		CheckSpec(
+			"address",
+			_("Billing address"),
+			True,
+			lambda r: bool(r.get("resolved_address")),
+			"customer_primary_address",
+		),
+		CheckSpec("siret", _("SIRET on billing address"), True, _siret_ok, fix_doctype="address"),
+		CheckSpec("addr_fields", _("Complete billing address"), True, _addr_fields_ok, fix_doctype="address"),
+		# Identity must not drift away from what the directory was synced against:
+		# the routing lines would then belong to a different legal entity.
+		CheckSpec(
+			"siren_unchanged",
+			_("SIREN changed since directory sync — create a new customer instead"),
+			True,
+			_siren_unchanged,
+			"siren_number",
+		),
+		CheckSpec(
+			"siret_unchanged",
+			_("Public-sector SIRET changed since directory sync — create a new customer instead"),
+			True,
+			_siret_unchanged,
+			fix_doctype="address",
+		),
+		# A "peppol" directory choice only works on a platform that can serve the
+		# Peppol directory (SuperPDP); AFNOR/Esalink silently serve PPF data.
+		CheckSpec(
+			"peppol_directory_supported",
+			_("Peppol directory requested but the platform only serves the French (PPF) directory"),
+			False,
+			_peppol_directory_supported,
+			"directory_type",
+		),
+	]
+
+
+def supplier_check_specs() -> list[CheckSpec]:
+	"""Lighter supplier checks — routing is the buyer's (company's) concern."""
+	return [
+		CheckSpec("siren", _("SIREN number"), True, lambda r: bool(r.get("siren_number")), "siren_number"),
+		CheckSpec("siren_valid", _("Valid SIREN number"), False, _siren_valid, "siren_number"),
+		CheckSpec("tax_id", _("Tax ID (TVA)"), True, lambda r: bool(r.get("tax_id")), "tax_id"),
+		CheckSpec("siren_vat_match", _("SIREN matches VAT number"), False, _siren_vat_match, "siren_number"),
+		CheckSpec(
+			"address",
+			_("Primary address"),
+			True,
+			lambda r: bool(r.get("resolved_address")),
+			"supplier_primary_address",
+		),
+		CheckSpec("siret", _("SIRET on address"), True, _siret_ok, fix_doctype="address"),
+	]
+
+
+def company_check_specs() -> list[CheckSpec]:
+	"""Seller-side readiness: the company's own e-invoicing master data.
+
+	A tenant can show 100% customer readiness and still fail every invoice on
+	seller checks — these mirror the invoice-level ``_seller_findings``.
+	"""
+	return [
+		CheckSpec("siren", _("SIREN number"), True, lambda r: bool(r.get("siren_number")), "siren_number"),
+		CheckSpec(
+			"siren_valid",
+			_("Valid SIREN number"),
+			False,
+			lambda r: not r.get("siren_number") or is_valid_siren(r.get("siren_number")),
+			"siren_number",
+		),
+		CheckSpec("tax_id", _("Tax ID (TVA)"), True, lambda r: bool(r.get("tax_id")), "tax_id"),
+		CheckSpec(
+			"siren_vat_match",
+			_("SIREN matches VAT number"),
+			False,
+			lambda r: vat_matches_siren(r.get("tax_id"), r.get("siren_number")),
+			"tax_id",
+		),
+		CheckSpec("address", _("Default company address"), True, lambda r: bool(r.get("resolved_address"))),
+		CheckSpec("addr_fields", _("Complete company address"), True, _addr_fields_ok, fix_doctype="address"),
+		CheckSpec(
+			"electronic_address",
+			_("Electronic address (BT-34)"),
+			True,
+			_company_electronic_address_ok,
+			"email",
+		),
+		CheckSpec(
+			"vat_regime",
+			_("VAT regime (e-reporting)"),
+			False,
+			lambda r: bool(r.get("etransactions_vat_regime")),
+			"etransactions_vat_regime",
+		),
+		CheckSpec("platform", _("Active accredited platform"), False, _company_has_platform),
+	]
+
+
+def _company_electronic_address_ok(r: dict) -> bool:
+	if r.get("etransactions_electronic_address_scheme") and r.get("etransactions_electronic_address"):
+		return True
+	return bool(r.get("email"))
+
+
+def _company_has_platform(r: dict) -> bool:
+	return bool(
+		frappe.db.exists("eTransactions Accredited Platform", {"company": r.get("name"), "is_active": 1})
+	)
+
+
+def _company_row(company: str) -> dict:
+	row = frappe.db.get_value(
+		"Company",
+		company,
+		[
+			"name",
+			"siren_number",
+			"tax_id",
+			"email",
+			"etransactions_electronic_address_scheme",
+			"etransactions_electronic_address",
+			"etransactions_vat_regime",
+		],
+		as_dict=True,
+	) or {}
+	_attach_address(row, "Company", company, None)
+	return row
+
+
+def _siren_valid(r: dict) -> bool:
+	"""SIREN passes the Luhn checksum, when one is present.
+
+	Peppol participants are identified by foreign / non-SIREN ids (e.g. the
+	SuperPDP sandbox display number ``000000001``), so the check only applies to
+	the French national directory (PPF). Presence is covered by the blocking
+	``siren`` check, so an empty SIREN does not warn here.
+	"""
+	if r.get("directory_type") == "peppol" or not r.get("siren_number"):
+		return True
+	return is_valid_siren(r.get("siren_number"))
+
+
+def _siren_vat_match(r: dict) -> bool:
+	"""SIREN is consistent with the SIREN embedded in the French VAT number."""
+	if r.get("directory_type") == "peppol":
+		return True
+	return vat_matches_siren(r.get("tax_id"), r.get("siren_number"))
+
+
+def _siret_ok(r: dict) -> bool:
+	return bool(r.get("resolved_address")) and bool(r.get("siret_number"))
+
+
+def _siren_unchanged(r: dict) -> bool:
+	"""SIREN still matches the one the directory was last synced against.
+
+	Passes when the party was never synced (no pinned SIREN) or the values agree.
+	"""
+	pinned = r.get("directory_query_siren")
+	return not pinned or pinned == r.get("siren_number")
+
+
+def _siret_unchanged(r: dict) -> bool:
+	"""Public-sector SIRET still matches the one the directory was synced against.
+
+	Only public entities are addressed by SIRET; for everyone else this passes.
+	"""
+	if r.get("directory_entity_type") != "public":
+		return True
+	pinned = r.get("directory_query_siret")
+	return not pinned or pinned == r.get("siret_number")
+
+
+def _addr_fields_ok(r: dict) -> bool:
+	return bool(r.get("resolved_address")) and all(r.get(f) for f in _ADDRESS_SUBFIELDS)
+
+
+def _peppol_directory_supported(r: dict) -> bool:
+	"""Passes unless the party requests the Peppol directory on a PPF-only platform."""
+	if (r.get("directory_type") or "") != "peppol":
+		return True
+	return _sales_platform_serves_peppol()
+
+
+def _sales_platform_serves_peppol() -> bool:
+	"""Whether the default company's sales platform can serve the Peppol directory.
+
+	Memoized per request: the aggregate widget evaluates this for every customer.
+	"""
+	cached = getattr(frappe.local, "_etransactions_peppol_dir_support", None)
+	if cached is None:
+		from etransactions.plateforme_agreee.session import get_platform_for_company
+
+		company = frappe.defaults.get_global_default("company")
+		platform = get_platform_for_company(company) if company else None
+		cached = bool(platform) and platform.platform_type == "SuperPDP"
+		frappe.local._etransactions_peppol_dir_support = cached
+	return cached
+
+
+# ---------------------------------------------------------------------------
+# Party readiness (single party)
+# ---------------------------------------------------------------------------
+
+
+@frappe.whitelist()
+def evaluate_party_readiness(party_type: str, party: str) -> list[dict]:
+	"""Return the readiness findings for one Customer / Supplier."""
+	if party_type not in ("Customer", "Supplier"):
+		return []
+	frappe.has_permission(party_type, "read", doc=party, throw=True)
+	if party_type == "Customer":
+		row = _customer_row(party)
+		specs = customer_check_specs()
+	elif party_type == "Supplier":
+		row = _supplier_row(party)
+		specs = supplier_check_specs()
+	else:
+		return []
+
+	findings: list[Finding] = []
+	for c in specs:
+		if c.passes(row):
+			continue
+		fix_doctype = fix_name = None
+		if c.fix_doctype == "address" and row.get("resolved_address"):
+			fix_doctype, fix_name = "Address", row["resolved_address"]
+		findings.append(
+			Finding(
+				key=c.key,
+				severity="error" if c.blocking else "warning",
+				label=c.label,
+				fix_field=c.fix_field,
+				fix_doctype=fix_doctype,
+				fix_name=fix_name,
+			)
+		)
+	return as_dicts(findings)
+
+
+def party_findings_from_row(row: dict, party_type: str = "Customer") -> list[str]:
+	"""Plain-text issue labels for an already-fetched, address-enriched row.
+
+	Used by the Customer eInvoice Readiness report so its bulk query and the
+	per-party evaluator apply the very same predicates.
+	"""
+	specs = customer_check_specs() if party_type == "Customer" else supplier_check_specs()
+	return [c.label for c in specs if not c.passes(row)]
+
+
+def _customer_row(party: str) -> dict:
+	row = frappe.db.get_value(
+		"Customer",
+		party,
+		[
+			"siren_number",
+			"tax_id",
+			"directory_type",
+			"directory_entity_type",
+			"directory_query_siren",
+			"directory_query_siret",
+			"customer_primary_contact",
+			"email_id",
+			"customer_primary_address",
+			"etransaction_profile",
+		],
+		as_dict=True,
+	) or {}
+	_attach_address(row, "Customer", party, row.get("customer_primary_address"))
+	return row
+
+
+def _supplier_row(party: str) -> dict:
+	fields = ["tax_id", "supplier_primary_address"]
+	if frappe.get_meta("Supplier").has_field("siren_number"):
+		fields.append("siren_number")
+	row = frappe.db.get_value("Supplier", party, fields, as_dict=True) or {}
+	_attach_address(row, "Supplier", party, row.get("supplier_primary_address"))
+	return row
+
+
+def _attach_address(row: dict, party_type: str, party: str, named_address: str | None) -> None:
+	"""Resolve the party's primary billing address and merge its fields in place.
+
+	Resolution: the explicit ``*_primary_address`` link, else any linked Address
+	flagged ``is_primary_address``.
+	"""
+	addr_fields = ("siret_number", *_ADDRESS_SUBFIELDS)
+	address_name = named_address
+	if not address_name:
+		linked = frappe.get_all(
+			"Dynamic Link",
+			filters={"parenttype": "Address", "link_doctype": party_type, "link_name": party},
+			pluck="parent",
+		)
+		if linked:
+			address_name = frappe.db.get_value(
+				"Address", {"name": ["in", linked], "is_primary_address": 1, "disabled": 0}, "name"
+			)
+
+	row["resolved_address"] = None
+	for f in addr_fields:
+		row[f] = None
+
+	if not address_name:
+		return
+
+	addr = frappe.db.get_value("Address", address_name, addr_fields, as_dict=True)
+	if not addr:
+		return
+	row["resolved_address"] = address_name
+	for f in addr_fields:
+		row[f] = addr.get(f)
+
+
+# ---------------------------------------------------------------------------
+# Invoice readiness (this document)
+# ---------------------------------------------------------------------------
+
+
+@frappe.whitelist()
+def check_invoice_readiness(doc) -> list[dict]:
+	"""Dry-run readiness for an in-memory (possibly unsaved) invoice.
+
+	Combines invoice-level findings with the party's master-data readiness, so
+	the form can flag problems *as the user builds the invoice* — no persisted
+	eInvoice required. Party findings point Fix at the party master.
+	"""
+	if isinstance(doc, str):
+		doc = frappe.parse_json(doc)
+	invoice = frappe.get_doc(doc)
+	invoice.check_permission("read")
+	invoice.flags.ignore_mandatory = True
+
+	result: list[dict] = []
+	party_type = party = None
+	if invoice.doctype == "Sales Invoice":
+		result += as_dicts(evaluate_einvoice_readiness(invoice))
+		result += as_dicts(_ereporting_findings(invoice))
+		party_type, party = "Customer", invoice.get("customer")
+	elif invoice.doctype == "Purchase Invoice":
+		party_type, party = "Supplier", invoice.get("supplier")
+
+	if party:
+		for pf in evaluate_party_readiness(party_type, party):
+			if not pf.get("fix_doctype"):
+				pf["fix_doctype"], pf["fix_name"], pf["fix_field"] = party_type, party, None
+			pf["label"] = _("{0}: {1}").format(_(party_type), pf["label"])
+			result.append(pf)
+	return result
+
+
+def _ereporting_findings(doc) -> list[Finding]:
+	"""Findings for a sale that will be reported to the PPF as B2C e-reporting.
+
+	Independent of the e-invoice profile: B2C/foreign sales are reported as
+	aggregated data, not structured invoices.
+	"""
+	out: list[Finding] = []
+	try:
+		from etransactions.plateforme_agreee.classification import TransactionClass, classify_transaction
+		from etransactions.plateforme_agreee.ereporting import should_ereport_sale
+		if not should_ereport_sale(doc):
+			return out
+		cls = classify_transaction(doc.company, "Customer", doc.customer, doc.get("customer_address"))
+	except Exception:
+		return out
+
+	if cls == TransactionClass.B2BI:
+		scope_msg = _("This sale will be reported to the PPF as international B2B (B2Bi) e-reporting data.")
+	else:
+		scope_msg = _("This sale will be reported to the PPF as B2C e-reporting data.")
+	out.append(Finding("ereporting_scope", "info", scope_msg))
+	if doc.get("company") and not frappe.db.get_value("Company", doc.company, "etransactions_vat_regime"):
+		company = frappe.utils.sanitize_html(doc.company)
+		out.append(
+			Finding(
+				"ereporting_vat_regime",
+				"warning",
+				_("Company VAT regime not set for e-reporting"),
+				detail=_(
+					"Set the <b>VAT Regime</b> in <a href='/app/company/{0}'>Company settings</a> so "
+					"e-reporting is declared to the French tax administration (PPF) on the correct schedule."
+				).format(company),
+				fix_doctype="Company",
+				fix_name=doc.company,
+			)
+		)
+	return out
+
+
+def evaluate_einvoice_readiness(doc) -> list[Finding]:
+	"""Findings for a Sales Invoice (extensible to Purchase Invoice).
+
+	Pure: never mutates ``doc``. Safe to run on an unsaved, in-memory doc — it
+	resolves routing via :func:`resolve_routing` rather than relying on a
+	persisted eInvoice.
+	"""
+	if getattr(doc, "doctype", None) != "Sales Invoice":
+		return []
+	if not doc.get("etransaction_profile"):
+		# The profile is the master switch for the whole e-invoicing pipeline:
+		# without it, no eInvoice is ever generated. Surface that instead of
+		# staying silent when the transaction clearly belongs to the CTC scope.
+		return _profile_findings(doc)
+
+	findings: list[Finding] = []
+	findings += _seller_findings(doc)
+	findings += _routing_findings(doc)
+	findings += _tax_findings(doc)
+	findings += _payment_schedule_findings(doc)
+	return findings
+
+
+def _profile_findings(doc) -> list[Finding]:
+	"""Warn when a B2B/B2G invoice has no eTransaction Profile (silent kill-switch)."""
+	if not (doc.get("company") and doc.get("customer")):
+		return []
+	try:
+		from etransactions.plateforme_agreee.classification import (
+			TransactionClass,
+			classify_transaction,
+		)
+
+		cls = classify_transaction(
+			doc.get("company"), "Customer", doc.get("customer"), doc.get("customer_address")
+		)
+	except Exception:
+		return []
+	if cls not in (TransactionClass.B2B_DOMESTIC, TransactionClass.B2G):
+		return []
+
+	customer = frappe.utils.sanitize_html(doc.get("customer"))
+	return [
+		Finding(
+			"missing_profile",
+			"warning",
+			_("No e-invoice will be generated: the customer has no e-invoicing profile"),
+			detail=_(
+				"This invoice is classified <b>{0}</b> and falls under the French e-invoicing"
+				" mandate, but no <b>eTransaction Profile</b> is set — so no electronic invoice"
+				" will be generated or transmitted. Set a profile (e.g. EN16931) on the"
+				" <a href='/app/customer/{1}'>customer</a> or on this invoice."
+			).format(cls.value, customer),
+			fix_doctype="Customer",
+			fix_name=doc.get("customer"),
+			fix_field="etransaction_profile",
+		)
+	]
+
+
+def _seller_findings(doc) -> list[Finding]:
+	out: list[Finding] = []
+	if not doc.get("company"):
+		return out
+	company = frappe.utils.sanitize_html(doc.company)
+
+	if not doc.get("company_address"):
+		out.append(
+			Finding(
+				"seller_address",
+				"error",
+				_("Seller address is missing (BR-08, BR-09)"),
+				detail=_(
+					"The seller postal address is missing from the e-invoice (rules BR-08, BR-09). "
+					"Select a <b>Company Address</b> on this invoice, or add a default address to your company "
+					"in <a href='/app/company/{0}'>Company settings</a>."
+				).format(company),
+				fix_field="company_address",
+			)
+		)
+
+	company_siren = frappe.db.get_value("Company", doc.company, "siren_number")
+	if not doc.get("company_tax_id") and not company_siren:
+		out.append(
+			Finding(
+				"seller_tax_id",
+				"error",
+				_("Seller tax ID is missing (BR-S-02)"),
+				detail=_(
+					"The seller tax identification number is missing from the e-invoice (rules BR-S-02, BR-CO-26). "
+					"Add a <b>Tax ID</b> (VAT/TVA intracommunautaire) in <a href='/app/company/{0}'>Company settings</a>, "
+					"or a <b>SIREN number</b> (numéro SIREN) in the same page."
+				).format(company),
+				fix_doctype="Company",
+				fix_name=doc.company,
+				fix_field="tax_id",
+			)
+		)
+
+	if doc.get("customer_address"):
+		address_country = frappe.db.get_value("Address", doc.customer_address, "country")
+		if not address_country:
+			out.append(
+				Finding(
+					"buyer_country",
+					"error",
+					_("Buyer address has no country (BR-09)"),
+					detail=_(
+						"The buyer address has no country set (rule BR-09). "
+						"Add a country to the address <a href='/app/address/{0}'>{0}</a>."
+					).format(frappe.utils.sanitize_html(doc.customer_address)),
+					fix_doctype="Address",
+					fix_name=doc.customer_address,
+				)
+			)
+
+	if not _seller_has_electronic_address(doc):
+		out.append(
+			Finding(
+				"seller_electronic_address",
+				"error",
+				_("Seller electronic address is missing (BT-34)"),
+				detail=_(
+					"The seller electronic address (BT-34) will be missing from the e-invoice, "
+					"which is required by the accredited platform (e.g. SuperPDP). "
+					"Fix this by doing one of the following:<br><br>"
+					"<b>Option 1</b> — Add an <b>Email</b> to your company in "
+					"<a href='/app/company/{0}'>Company settings</a>.<br>"
+					"<b>Option 2</b> — Set a <b>Company Contact</b> on this invoice with an email address.<br>"
+					"<b>Option 3</b> — Configure <b>Electronic Address Scheme</b> and <b>Electronic Address</b> "
+					"on the Company record (e.g. SIREN with scheme 0002)."
+				).format(company),
+				fix_doctype="Company",
+				fix_name=doc.company,
+				fix_field="email",
+			)
+		)
+	return out
+
+
+def _seller_has_electronic_address(doc) -> bool:
+	company_doc = frappe.db.get_value(
+		"Company",
+		doc.company,
+		["etransactions_electronic_address_scheme", "etransactions_electronic_address", "email"],
+		as_dict=True,
+	)
+	if company_doc:
+		if company_doc.etransactions_electronic_address_scheme and company_doc.etransactions_electronic_address:
+			return True
+		if company_doc.email:
+			return True
+	if doc.get("company_contact_person"):
+		if frappe.db.get_value("Contact", doc.company_contact_person, "email_id"):
+			return True
+	return False
+
+
+def _routing_findings(doc) -> list[Finding]:
+	"""Accredited-platform routing checks (only when a platform is configured)."""
+	from etransactions.plateforme_agreee.session import get_platform_settings
+
+	out: list[Finding] = []
+	if not doc.get("company") or not get_platform_settings(doc.company):
+		return out
+
+	entity_type = frappe.db.get_value("Customer", doc.customer, "directory_entity_type") if doc.get("customer") else None
+	if entity_type not in ("private", "public"):
+		return out
+
+	from etransactions.plateforme_agreee.routing import resolve_routing
+
+	line = resolve_routing("Customer", doc.customer, doc.get("customer_address"))
+	if not line:
+		out.append(
+			Finding(
+				"routing_line",
+				"warning",
+				_("No accredited-platform routing line for this establishment"),
+				detail=_(
+					"No accredited platform directory line could be resolved for this customer's "
+					"establishment. Set a default routing line on the customer, or sync the directory."
+				),
+			)
+		)
+	elif frappe.db.get_value("eInvoicing Directory Line", line, "commitment_required") and not doc.get("po_no"):
+		out.append(
+			Finding(
+				"commitment_reference",
+				"warning",
+				_("Routing requires a commitment reference"),
+				detail=_("The selected directory line requires a commitment reference (Customer's Purchase Order No)."),
+				fix_field="po_no",
+			)
+		)
+
+	if entity_type == "public" and not doc.get("etransactions_buyer_reference"):
+		out.append(
+			Finding(
+				"b2g_service_code",
+				"warning",
+				_("B2G service code (BT-10) is usually required"),
+				detail=_(
+					"This is a B2G invoice (public entity). The <b>service code</b> (code service exécutant, "
+					"BT-10 Buyer Reference) is usually required by Chorus Pro. Set it on the invoice or on the customer's billing address."
+				),
+				fix_field="etransactions_buyer_reference",
+			)
+		)
+	return out
+
+
+def _tax_findings(doc) -> list[Finding]:
+	out: list[Finding] = []
+	taxes_label = _(doc.meta.get_label("taxes")) if getattr(doc, "meta", None) else _("Taxes")
+	for tax_row in doc.get("taxes") or []:
+		if tax_row.charge_type == "On Item Quantity":
+			out.append(
+				Finding(
+					f"tax_qty_{tax_row.idx}",
+					"warning",
+					_("{0} row #{1}: Type '{2}' is not supported in e-invoice").format(
+						taxes_label, tax_row.idx, _(tax_row.charge_type)
+					),
+				)
+			)
+		if tax_row.charge_type == "Actual" and EInvoiceProfile(doc.etransaction_profile) < EInvoiceProfile.EXTENDED:
+			out.append(
+				Finding(
+					f"tax_actual_{tax_row.idx}",
+					"warning",
+					_(
+						"{0} row #{1}: The charge type 'Actual' is only supported in the eInvoice profiles "
+						"'EXTENDED' and 'FACTUR-X'."
+					).format(taxes_label, tax_row.idx),
+				)
+			)
+	return out
+
+
+def _payment_schedule_findings(doc) -> list[Finding]:
+	from frappe.utils.data import date_diff
+
+	out: list[Finding] = []
+	ps_label = _(doc.meta.get_label("payment_schedule")) if getattr(doc, "meta", None) else _("Payment Schedule")
+	modes_of_payment = set()
+	for ps in doc.get("payment_schedule") or []:
+		if ps.discount_date and date_diff(ps.discount_date, doc.posting_date) < 0:
+			out.append(
+				Finding(
+					f"discount_date_{ps.idx}",
+					"warning",
+					_("{0} row #{1}: Discount Date should be after Posting Date").format(ps_label, ps.idx),
+				)
+			)
+		if ps.mode_of_payment:
+			modes_of_payment.add(ps.mode_of_payment)
+
+	if len(modes_of_payment) > 1:
+		out.append(
+			Finding(
+				"multiple_modes",
+				"warning",
+				_("{0}: Only one mode of payment will be considered in the e-invoice.").format(ps_label),
+			)
+		)
+
+	if doc.get("discount_amount"):
+		out.append(
+			Finding(
+				"doc_discount",
+				"warning",
+				_("A document level discount is currently not supported in the e-invoice."),
+			)
+		)
+	return out
+
+
+# ---------------------------------------------------------------------------
+# Platform / schematron errors -> fixable findings
+# ---------------------------------------------------------------------------
+
+# Keyword → fix target. First matching rule wins; matched case-insensitively
+# against the raw platform/schematron message. ``target`` resolves to a master
+# (Customer / Company) or a setting the user can act on.
+_ERROR_FIX_RULES = (
+	("customer", ("annuaire", "directory", "validateur", "validator", "receiver", "destinataire", "routing")),
+	("company", ("bt-34", "uriid", "électronique", "electronic address", "br-fr-23")),
+	("company", ("mention", "pénalit", "penalit", "escompte", "recouvrement", "br-fr-05")),
+	("settings", ("bt-23", "business process", "processus", "br-fr-08")),
+)
+
+
+def _split_reasons(text: str | None) -> list[str]:
+	"""Split a stored error blob (``\\n`` or ``; `` separated) into clean lines."""
+	if not text:
+		return []
+	parts: list[str] = []
+	for chunk in str(text).replace("; ", "\n").split("\n"):
+		chunk = chunk.strip()
+		if chunk and chunk not in parts:
+			parts.append(chunk)
+	return parts
+
+
+def _platform_finding(key: str, message: str, severity: str, company: str | None, customer: str | None) -> Finding:
+	"""Map one platform/schematron message to a Finding with a fix target."""
+	low = message.lower()
+	target = None
+	for tgt, keywords in _ERROR_FIX_RULES:
+		if any(kw in low for kw in keywords):
+			target = tgt
+			break
+
+	finding = Finding(key=key, severity=severity, label=message)
+	if target == "customer" and customer:
+		finding.fix_doctype, finding.fix_name = "Customer", customer
+	elif target == "company" and company:
+		finding.fix_doctype, finding.fix_name = "Company", company
+	elif target == "settings":
+		finding.fix_doctype, finding.fix_name = "eTransactions Settings", "eTransactions Settings"
+	return finding
+
+
+def findings_from_platform_errors(einvoice: str) -> list[dict]:
+	"""Findings for the platform rejection reasons and schematron validation issues
+	stored on an eInvoice, each mapped to a fix target where recognisable.
+
+	Lets the Sales Invoice surface *why* a send failed and *where to fix it*
+	without the user opening the eInvoice. Unmapped messages still show in full.
+	"""
+	row = frappe.db.get_value(
+		"eInvoice",
+		einvoice,
+		["company", "sales_invoice", "pa_error_details", "validation_errors", "validation_warnings"],
+		as_dict=True,
+	)
+	if not row:
+		return []
+
+	customer = (
+		frappe.db.get_value("Sales Invoice", row.sales_invoice, "customer")
+		if row.sales_invoice
+		else None
+	)
+
+	out: list[Finding] = []
+	for i, msg in enumerate(_split_reasons(row.pa_error_details)):
+		out.append(_platform_finding(f"pa_{i}", msg, "error", row.company, customer))
+	for i, msg in enumerate(_split_reasons(row.validation_errors)):
+		out.append(_platform_finding(f"val_{i}", msg, "error", row.company, customer))
+	for i, msg in enumerate(_split_reasons(row.validation_warnings)):
+		out.append(_platform_finding(f"valw_{i}", msg, "warning", row.company, customer))
+	return as_dicts(out)

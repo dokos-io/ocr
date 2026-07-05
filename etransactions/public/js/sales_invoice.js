@@ -3,7 +3,21 @@
 
 frappe.ui.form.on("Sales Invoice", {
 	refresh(frm) {
-		if (frm.doc.docstatus === 1 && frm.doc.etransaction_profile) {
+		// eTransactions is opt-in per site: nothing e-invoicing shows unless the
+		// feature is activated in eTransactions Settings.
+		if (!frappe.boot.einvoicing_enabled) return;
+
+		// B2C / foreign sales are e-reported (no structured profile), so show
+		// their PPF e-reporting status independently of the e-invoice profile.
+		if (frm.doc.docstatus === 1) _show_ereporting(frm);
+
+		// The readiness panel runs even without a profile (it flags the missing
+		// profile itself); the eInvoice buttons only make sense with one.
+		etransactions.invoiceReadiness.refresh(frm);
+
+		if (!frm.doc.etransaction_profile) return;
+
+		if (frm.doc.docstatus === 1) {
 			frm.add_custom_button(__("Download FacturX Invoice"), () => {
 				frappe.call({
 					method: "etransactions.overrides.sales_invoice.get_facturx_pdf",
@@ -14,98 +28,195 @@ frappe.ui.form.on("Sales Invoice", {
 						if (r.message) window.open(r.message);
 					},
 				});
-			}, __("eInvoice"));
-		}
+			}, __("eInvoicing"));
 
-		if (frm.doc.docstatus === 0 && frm.doc.etransaction_profile && !frm.is_new()) {
-			_refresh_einvoice_status(frm);
+			_add_pa_buttons(frm);
+			_attach_lifecycle(frm);
 		}
 	},
 
-	after_save(frm) {
-		if (frm.doc.docstatus === 0 && frm.doc.etransaction_profile) {
-			_refresh_einvoice_status(frm);
-		}
+	etransaction_profile: (frm) => _readiness(frm),
+	customer: (frm) => _readiness(frm),
+	customer_address: (frm) => _readiness(frm),
+	company: (frm) => _readiness(frm),
+	company_address: (frm) => _readiness(frm),
+	po_no: (frm) => _readiness(frm),
+	after_save: (frm) => _readiness(frm),
+
+	before_submit(frm) {
+		if (!frm.doc.etransaction_profile) return;
+		return etransactions.invoiceReadiness.gate(frm);
+	},
+
+	before_cancel(frm) {
+		// An invoice already transmitted to the accredited platform must report
+		// the "Cancelled" lifecycle status first — the server hook blocks a direct
+		// cancel, so route through the guided endpoint after confirmation.
+		if (!frm.doc.etransaction_profile) return;
+		return new Promise((resolve, reject) => {
+			frappe
+				.call({
+					method: "etransactions.overrides.sales_invoice.get_einvoice_status",
+					args: { sales_invoice: frm.doc.name },
+				})
+				.then((r) => {
+					const d = r.message || {};
+					const live = d.pa_flow_id && !["error", "rejected"].includes(d.pa_status || "");
+					if (!live) {
+						resolve();
+						return;
+					}
+					frappe.confirm(
+						__(
+							"This invoice was transmitted to the accredited platform (flow {0}).<br>" +
+								"The <b>Cancelled</b> lifecycle status will be reported to the platform, " +
+								"then the invoice will be cancelled. Continue?",
+							[frappe.utils.escape_html(d.pa_flow_id)]
+						),
+						() => {
+							frappe
+								.call({
+									method: "etransactions.overrides.sales_invoice.cancel_with_lifecycle",
+									args: { sales_invoice: frm.doc.name },
+									freeze: true,
+									freeze_message: __("Reporting the cancellation to the platform…"),
+								})
+								.then(() => {
+									frm.reload_doc();
+									// The server endpoint already cancelled the document.
+									reject();
+								})
+								.catch(reject);
+						},
+						() => reject()
+					);
+				})
+				.catch(() => resolve());
+		});
 	},
 });
 
-function _refresh_einvoice_status(frm) {
+frappe.ui.form.on("Sales Taxes and Charges", {
+	charge_type: (frm) => _readiness(frm),
+	taxes_remove: (frm) => _readiness(frm),
+});
+
+// The readiness panel only makes sense when e-invoicing is activated site-wide.
+function _readiness(frm) {
+	if (!frappe.boot.einvoicing_enabled) return;
+	etransactions.invoiceReadiness.refresh(frm);
+}
+
+function _show_ereporting(frm) {
 	frappe.call({
-		method: "etransactions.overrides.sales_invoice.get_einvoice_status",
-		args: { sales_invoice: frm.doc.name },
+		method: "etransactions.plateforme_agreee.ereporting.get_source_ereporting",
+		args: { doctype: frm.doctype, name: frm.doc.name },
 		callback(r) {
-			const data = r.message;
+			const e = r.message;
+			if (!e || !e.name) return;
+			const colors = { pending: "orange", sent: "blue", error: "red" };
+			frm.dashboard.add_indicator(
+				__("PPF e-reporting: {0}", [e.state]),
+				colors[e.state] || "gray"
+			);
+		},
+	});
+}
 
-			if (!data || !data.einvoice) {
-				_render_status(frm, "gray", __("No eInvoice generated yet."), null, true);
-				return;
-			}
-
-			const { einvoice, errors, warnings, has_iban } = data;
-
-			if (errors) {
-				_render_status(frm, "red", errors, einvoice, has_iban);
-			} else if (warnings || !has_iban) {
-				_render_status(frm, "orange", warnings, einvoice, has_iban);
-			} else {
-				_render_status(frm, "green", "", einvoice, has_iban);
+function _attach_lifecycle(frm) {
+	frappe.call({
+		method: "etransactions.etransactions.doctype.einvoice.einvoice.get_transaction_einvoice",
+		args: { doctype: frm.doctype, name: frm.doc.name },
+		callback(r) {
+			if (r.message) {
+				etransactions.lifecycle.attach(frm, {
+					einvoice: r.message.name,
+					side: r.message.side,
+					pa_status: r.message.pa_status,
+					group: __("eInvoicing"),
+				});
 			}
 		},
 	});
 }
 
-function _render_status(frm, color, message, einvoice_name, has_iban) {
-	const field = frm.fields_dict.etransactions_status_html;
-	if (!field) return;
+function _add_pa_buttons(frm) {
+	frappe.call({
+		method: "etransactions.overrides.sales_invoice.get_einvoice_status",
+		args: { sales_invoice: frm.doc.name },
+		callback(r) {
+			const data = r.message;
+			if (!data || !data.einvoice) return;
 
-	const wrapper = document.createElement("div");
-	wrapper.style.padding = "8px 0";
+			const pa_status = data.pa_status;
+			const pa_flow_id = data.pa_flow_id;
 
-	const pill = document.createElement("span");
-	pill.className = `indicator-pill ${color}`;
+			// At-a-glance platform status on the dashboard.
+			if (pa_status) {
+				const colors = {
+					rejected: "red",
+					error: "red",
+					done: "green",
+					pending: "blue",
+					sent: "blue",
+					created: "gray",
+				};
+				frm.dashboard.add_indicator(
+					__("e-invoice: {0}", [pa_status]),
+					colors[pa_status] || "gray"
+				);
+			}
 
-	const labels = { green: __("eInvoice valid"), orange: __("eInvoice warnings"), red: __("eInvoice errors"), gray: __("eInvoice pending") };
-	pill.textContent = labels[color] || color;
-	wrapper.appendChild(pill);
+			if (!pa_flow_id || ["created", "", "error", "rejected"].includes(pa_status || "")) {
+				frm.add_custom_button(__("Send to the accredited platform"), () => {
+					const send = () => {
+						frappe.call({
+							method: "etransactions.overrides.sales_invoice.send_to_plateform",
+							args: { sales_invoice: frm.doc.name },
+							freeze: true,
+							freeze_message: __("Submitting to accredited platform…"),
+							callback() {
+								frm.reload_doc();
+							},
+						});
+					};
+					if (pa_status === "error" || pa_status === "rejected") {
+						// Show the previous rejection reasons so the user can confirm
+						// they've been addressed before resending.
+						frappe.call({
+							method: "etransactions.overrides.sales_invoice.get_einvoice_panel",
+							args: { sales_invoice: frm.doc.name },
+							callback(p) {
+								const reasons = ((p.message || {}).problems || []).map(
+									(f) => `<li>${frappe.utils.escape_html(f.label)}</li>`
+								).join("");
+								frappe.confirm(
+									`${__("The previous submission was rejected by the accredited platform:")}
+									${reasons ? `<ul style="margin-top:8px">${reasons}</ul>` : ""}
+									${__("Send this e-invoice again?")}`,
+									send
+								);
+							},
+						});
+					} else {
+						send();
+					}
+				}, __("eInvoicing"));
+			}
 
-	const lines = (message || "").split("\n").filter(Boolean);
-	if (lines.length) {
-		const ul = document.createElement("ul");
-		ul.style.cssText = "font-size:var(--text-sm);color:var(--text-muted);margin:6px 0 4px 16px;";
-		lines.slice(0, 5).forEach(line => {
-			const li = document.createElement("li");
-			li.textContent = line;
-			ul.appendChild(li);
-		});
-		if (lines.length > 5) {
-			const li = document.createElement("li");
-			li.textContent = __("{0} more…", [lines.length - 5]);
-			ul.appendChild(li);
-		}
-		wrapper.appendChild(ul);
-	}
-
-	if (!has_iban) {
-		const hint = document.createElement("div");
-		hint.style.cssText = "font-size:var(--text-sm);color:var(--text-muted);margin-top:4px;";
-		const link = document.createElement("a");
-		link.href = "/app/bank-account";
-		link.textContent = __("Set up payment IBAN →");
-		hint.appendChild(document.createTextNode(__("No payment IBAN configured.") + " "));
-		hint.appendChild(link);
-		wrapper.appendChild(hint);
-	}
-
-	if (einvoice_name) {
-		const nav = document.createElement("div");
-		nav.style.cssText = "font-size:var(--text-sm);margin-top:6px;";
-		const link = document.createElement("a");
-		link.href = frappe.utils.get_form_link("eInvoice", einvoice_name);
-		link.textContent = __("Open eInvoice →");
-		nav.appendChild(link);
-		wrapper.appendChild(nav);
-	}
-
-	field.wrapper.innerHTML = "";
-	field.wrapper.appendChild(wrapper);
+			if (pa_flow_id) {
+				frm.add_custom_button(__("Refresh PA Status"), () => {
+					frappe.call({
+						method: "etransactions.overrides.sales_invoice.refresh_pa_status",
+						args: { sales_invoice: frm.doc.name },
+						freeze: true,
+						freeze_message: __("Refreshing status…"),
+						callback() {
+							frm.reload_doc();
+						},
+					});
+				}, __("eInvoicing"));
+			}
+		},
+	});
 }

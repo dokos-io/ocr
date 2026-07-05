@@ -1,11 +1,14 @@
 # Copyright (c) 2026, Dokos SAS and Contributors
 # License: GNU General Public License v3. See license.txt
 
-from dataclasses import dataclass
-from typing import Callable
-
 import frappe
 from frappe import _
+
+from etransactions.plateforme_agreee.readiness import (
+	_company_row,
+	company_check_specs,
+	customer_check_specs,
+)
 
 # ---------------------------------------------------------------------------
 # Shared helpers
@@ -28,80 +31,6 @@ def _finalize_groups(by_group: dict) -> list:
 
 
 # ---------------------------------------------------------------------------
-# Check definition
-# ---------------------------------------------------------------------------
-
-
-@dataclass
-class _Check:
-	"""A single readiness criterion for the widget."""
-
-	key: str
-	label: str  # must be set at request time via _()
-	blocking: bool
-	passes: Callable[[dict], bool]
-
-	def as_result(self, count: int, total: int) -> dict:
-		return {
-			"key": self.key,
-			"label": self.label,
-			"complete": count,
-			"missing": total - count,
-			"total": total,
-			"pct": _pct(count, total),
-			"blocking": self.blocking,
-		}
-
-
-# ---------------------------------------------------------------------------
-# Customer check predicates
-# ---------------------------------------------------------------------------
-
-
-def _siret_ok(r: dict) -> bool:
-	return bool(r.get("resolved_address")) and bool(r.get("siret_number"))
-
-
-def _addr_fields_ok(r: dict) -> bool:
-	return bool(r.get("resolved_address")) and all(
-		r.get(f) for f in ("address_line1", "city", "pincode", "country")
-	)
-
-
-def _customer_checks() -> list[_Check]:
-	"""
-	Ordered list of customer readiness checks.
-	Called inside the request so _() translations are applied correctly.
-	"""
-	return [
-		_Check("siren", _("SIREN Number"), blocking=True, passes=lambda r: bool(r.get("siren_number"))),
-		_Check("tax_id", _("Tax ID"), blocking=True, passes=lambda r: bool(r.get("tax_id"))),
-		_Check(
-			"contact",
-			_("Primary Contact"),
-			blocking=True,
-			passes=lambda r: bool(r.get("customer_primary_contact")),
-		),
-		_Check(
-			"email",
-			_("Email"),
-			# Non-blocking — will be auto-filled from the primary contact once the
-			# dedicated `einvoice_email` custom field is available.
-			blocking=False,
-			passes=lambda r: bool(r.get("email_id")),
-		),
-		_Check(
-			"address",
-			_("Billing Address"),
-			blocking=True,
-			passes=lambda r: bool(r.get("resolved_address")),
-		),
-		_Check("siret", _("SIRET on Address"), blocking=True, passes=_siret_ok),
-		_Check("addr_fields", _("Address Fields"), blocking=True, passes=_addr_fields_ok),
-	]
-
-
-# ---------------------------------------------------------------------------
 # API endpoints
 # ---------------------------------------------------------------------------
 
@@ -119,7 +48,7 @@ def get_customer_readiness_data() -> dict:
 
 	_enrich_customer_addresses(customers)
 
-	checks = _customer_checks()
+	checks = customer_check_specs()
 	counts = {c.key: 0 for c in checks}
 	by_group: dict = {}
 	ready = 0
@@ -138,6 +67,42 @@ def get_customer_readiness_data() -> dict:
 		grp["total"] += 1
 		if is_ready:
 			grp["ready"] += 1
+
+	return {
+		"total": total,
+		"ready": ready,
+		"ready_pct": _pct(ready, total),
+		"checks": [c.as_result(counts[c.key], total) for c in checks],
+		"by_group": _finalize_groups(by_group),
+	}
+
+
+@frappe.whitelist()
+def get_company_readiness_data() -> dict:
+	"""Seller-side readiness for the FacturX Readiness workspace widget.
+
+	One row per active company (there are few), evaluated against
+	``company_check_specs`` — the missing counterpart of the customer widget.
+	"""
+	companies = frappe.get_all("Company", pluck="name")
+	total = len(companies)
+	if not total:
+		return {"total": 0, "ready": 0, "ready_pct": 0, "checks": [], "by_group": []}
+
+	checks = company_check_specs()
+	counts = {c.key: 0 for c in checks}
+	by_group: dict = {}
+	ready = 0
+
+	for name in companies:
+		row = _company_row(name)
+		is_ready = all(c.passes(row) for c in checks if c.blocking)
+		if is_ready:
+			ready += 1
+		for c in checks:
+			if c.passes(row):
+				counts[c.key] += 1
+		by_group[name] = {"group": name, "total": 1, "ready": 1 if is_ready else 0}
 
 	return {
 		"total": total,
@@ -394,6 +359,11 @@ def _fetch_customers() -> list:
 			Customer.customer_primary_contact,
 			Customer.email_id,
 			Customer.customer_primary_address,
+			Customer.etransaction_profile,
+			Customer.directory_type,
+			Customer.directory_entity_type,
+			Customer.directory_query_siren,
+			Customer.directory_query_siret,
 		)
 		.where(Customer.disabled == 0)
 		.run(as_dict=True)

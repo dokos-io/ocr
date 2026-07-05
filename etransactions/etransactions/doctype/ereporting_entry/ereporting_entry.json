@@ -1,0 +1,213 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "hash",
+ "creation": "2026-06-23 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "company",
+  "kind",
+  "role_code",
+  "transaction_class",
+  "column_break_main",
+  "date",
+  "currency",
+  "state",
+  "source_section",
+  "reference_doctype",
+  "reference_name",
+  "amounts_section",
+  "category_code",
+  "tax_due_date_type_code",
+  "tax_exclusive_amount",
+  "tax_total",
+  "subtotals",
+  "pa_section",
+  "pa_entry_id",
+  "declaration",
+  "error_details"
+ ],
+ "fields": [
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1
+  },
+  {
+   "description": "transaction = sale/purchase data (10.1/10.3); payment = payment data (10.2/10.4).",
+   "fieldname": "kind",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Kind",
+   "options": "transaction\npayment",
+   "reqd": 1
+  },
+  {
+   "description": "SE when we are the seller, BY when we are the buyer.",
+   "fieldname": "role_code",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Role Code",
+   "options": "SE\nBY",
+   "reqd": 1
+  },
+  {
+   "description": "B2C = aggregated B2C reporting (10.3/10.4); B2Bi = unitary international B2B reporting (10.1/10.2).",
+   "fieldname": "transaction_class",
+   "fieldtype": "Select",
+   "in_standard_filter": 1,
+   "label": "Transaction Class",
+   "options": "B2C\nB2Bi"
+  },
+  {
+   "fieldname": "column_break_main",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "currency",
+   "fieldtype": "Link",
+   "label": "Currency",
+   "options": "Currency"
+  },
+  {
+   "default": "pending",
+   "fieldname": "state",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "State",
+   "options": "pending\nsent\nerror",
+   "read_only": 1
+  },
+  {
+   "fieldname": "source_section",
+   "fieldtype": "Section Break",
+   "label": "Source Document"
+  },
+  {
+   "fieldname": "reference_doctype",
+   "fieldtype": "Link",
+   "label": "Reference Document Type",
+   "options": "DocType"
+  },
+  {
+   "fieldname": "reference_name",
+   "fieldtype": "Dynamic Link",
+   "label": "Reference Name",
+   "options": "reference_doctype"
+  },
+  {
+   "fieldname": "amounts_section",
+   "fieldtype": "Section Break",
+   "label": "Amounts"
+  },
+  {
+   "description": "Z12-012 transaction category (TLB1/TPS1/TNT1/TMA1). Transactions only.",
+   "fieldname": "category_code",
+   "fieldtype": "Data",
+   "label": "Category Code"
+  },
+  {
+   "fieldname": "tax_due_date_type_code",
+   "fieldtype": "Data",
+   "label": "Tax Due Date Type Code"
+  },
+  {
+   "fieldname": "tax_exclusive_amount",
+   "fieldtype": "Float",
+   "label": "Tax Exclusive Amount"
+  },
+  {
+   "fieldname": "tax_total",
+   "fieldtype": "Float",
+   "label": "Tax Total"
+  },
+  {
+   "fieldname": "subtotals",
+   "fieldtype": "Table",
+   "label": "Subtotals",
+   "options": "eReporting Entry Subtotal"
+  },
+  {
+   "fieldname": "pa_section",
+   "fieldtype": "Section Break",
+   "label": "Platform"
+  },
+  {
+   "fieldname": "pa_entry_id",
+   "fieldtype": "Data",
+   "label": "Platform Entry ID",
+   "read_only": 1
+  },
+  {
+   "fieldname": "declaration",
+   "fieldtype": "Link",
+   "label": "Declaration",
+   "options": "eReporting Declaration",
+   "read_only": 1
+  },
+  {
+   "fieldname": "error_details",
+   "fieldtype": "Small Text",
+   "label": "Error Details",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-06-23 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "eTransactions",
+ "name": "eReporting Entry",
+ "naming_rule": "Random",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Accounts Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "report": 1,
+   "role": "Accounts User"
+  }
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

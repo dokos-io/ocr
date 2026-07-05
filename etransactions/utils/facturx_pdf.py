@@ -15,6 +15,7 @@ _PROFILE_TO_FACTURX_LEVEL: dict[EInvoiceProfile, str] = {
 	EInvoiceProfile.EN16931: "en16931",
 	EInvoiceProfile.XRECHNUNG: "en16931",  # XRechnung is EN16931-compliant; guideline URI carried in XML
 	EInvoiceProfile.EXTENDED: "extended",
+	EInvoiceProfile.CTC_FR: "extended",  # CTC-FR is Extended-based; FR guideline carried in XML
 }
 
 

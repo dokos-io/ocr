@@ -10,3 +10,7 @@ etransactions.patches.update_communication_reference_doctype # 20260415
 etransactions.patches.rename_accounting_hub_module # 20260613
 etransactions.patches.resync_supplier_invoice_sequence # 20260619
 etransactions.patches.migrate_original_invoice_to_credit_note_allocation # 20260629
+etransactions.patches.import_peppol_code_lists
+etransactions.patches.unhide_master_data_etransactions_tab # 20260622
+etransactions.patches.unhide_master_data_einvoicing_fields # 20260623
+etransactions.patches.set_default_enable_einvoicing # 20260705
