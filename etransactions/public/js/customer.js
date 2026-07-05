@@ -3,6 +3,10 @@
 
 frappe.ui.form.on("Customer", {
 	refresh(frm) {
+		// eTransactions is opt-in per site: nothing e-invoicing shows unless the
+		// feature is activated in eTransactions Settings.
+		if (!frappe.boot.einvoicing_enabled) return;
+
 		if (frm.fields_dict.etransactions_wizard_html && etransactions.EinvoiceReadinessIndicator) {
 			frm._et_readiness = frm._et_readiness || new etransactions.EinvoiceReadinessIndicator(frm);
 			// The widget surfaces the single "Sync directory" action; we own the
@@ -20,7 +24,7 @@ frappe.ui.form.on("Customer", {
 		}));
 
 		if (etransactions.sirene) {
-			frm.add_custom_button(__("Fill from SIRENE"), () => etransactions.sirene.open(frm));
+			frm.add_custom_button(__("Fill from SIRENE"), () => etransactions.sirene.open(frm), __("eInvoicing"));
 		}
 
 		_render_establishments(frm);

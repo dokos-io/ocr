@@ -5,6 +5,15 @@ frappe.ui.form.on("eTransactions Settings", {
 	refresh(frm) {
 		_render_platform_management(frm);
 	},
+
+	enable_einvoicing(frm) {
+		// The flag is read into frappe.boot at page load, so open forms only
+		// reflect the change after a reload.
+		frappe.show_alert({
+			message: __("Reload your open forms for this change to take effect."),
+			indicator: "blue",
+		});
+	},
 });
 
 function _render_platform_management(frm) {

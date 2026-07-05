@@ -90,6 +90,7 @@ sales_invoicing_fields = [
 		"fieldtype": "Tab Break",
 		"label": _("eInvoice"),
 		"insert_after": "terms",
+		"depends_on": "eval:frappe.boot.einvoicing_enabled",
 	},
 	{
 		"fieldname": "etransaction_profile",
@@ -129,6 +130,7 @@ purchase_invoicing_fields = [
 		"fieldtype": "Tab Break",
 		"label": _("eInvoice"),
 		"insert_after": "terms",
+		"depends_on": "eval:frappe.boot.einvoicing_enabled",
 	},
 	{
 		"fieldname": "etransactions_status_html",

@@ -56,6 +56,9 @@ doctype_list_js = {
 	"Purchase Invoice": "public/js/purchase_invoice_list.js",
 }
 
+# Expose the e-invoicing activation flag (frappe.boot.einvoicing_enabled) to the client.
+boot_session = "etransactions.boot.boot_session"
+
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
 

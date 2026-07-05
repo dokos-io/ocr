@@ -3,6 +3,10 @@
 
 frappe.ui.form.on("Sales Invoice", {
 	refresh(frm) {
+		// eTransactions is opt-in per site: nothing e-invoicing shows unless the
+		// feature is activated in eTransactions Settings.
+		if (!frappe.boot.einvoicing_enabled) return;
+
 		// B2C / foreign sales are e-reported (no structured profile), so show
 		// their PPF e-reporting status independently of the e-invoice profile.
 		if (frm.doc.docstatus === 1) _show_ereporting(frm);
@@ -24,20 +28,20 @@ frappe.ui.form.on("Sales Invoice", {
 						if (r.message) window.open(r.message);
 					},
 				});
-			}, __("eInvoice"));
+			}, __("eInvoicing"));
 
 			_add_pa_buttons(frm);
 			_attach_lifecycle(frm);
 		}
 	},
 
-	etransaction_profile: (frm) => etransactions.invoiceReadiness.refresh(frm),
-	customer: (frm) => etransactions.invoiceReadiness.refresh(frm),
-	customer_address: (frm) => etransactions.invoiceReadiness.refresh(frm),
-	company: (frm) => etransactions.invoiceReadiness.refresh(frm),
-	company_address: (frm) => etransactions.invoiceReadiness.refresh(frm),
-	po_no: (frm) => etransactions.invoiceReadiness.refresh(frm),
-	after_save: (frm) => etransactions.invoiceReadiness.refresh(frm),
+	etransaction_profile: (frm) => _readiness(frm),
+	customer: (frm) => _readiness(frm),
+	customer_address: (frm) => _readiness(frm),
+	company: (frm) => _readiness(frm),
+	company_address: (frm) => _readiness(frm),
+	po_no: (frm) => _readiness(frm),
+	after_save: (frm) => _readiness(frm),
 
 	before_submit(frm) {
 		if (!frm.doc.etransaction_profile) return;
@@ -93,9 +97,15 @@ frappe.ui.form.on("Sales Invoice", {
 });
 
 frappe.ui.form.on("Sales Taxes and Charges", {
-	charge_type: (frm) => etransactions.invoiceReadiness.refresh(frm),
-	taxes_remove: (frm) => etransactions.invoiceReadiness.refresh(frm),
+	charge_type: (frm) => _readiness(frm),
+	taxes_remove: (frm) => _readiness(frm),
 });
+
+// The readiness panel only makes sense when e-invoicing is activated site-wide.
+function _readiness(frm) {
+	if (!frappe.boot.einvoicing_enabled) return;
+	etransactions.invoiceReadiness.refresh(frm);
+}
 
 function _show_ereporting(frm) {
 	frappe.call({
@@ -123,6 +133,7 @@ function _attach_lifecycle(frm) {
 					einvoice: r.message.name,
 					side: r.message.side,
 					pa_status: r.message.pa_status,
+					group: __("eInvoicing"),
 				});
 			}
 		},
@@ -190,7 +201,7 @@ function _add_pa_buttons(frm) {
 					} else {
 						send();
 					}
-				}, __("Accredited platform"));
+				}, __("eInvoicing"));
 			}
 
 			if (pa_flow_id) {
@@ -204,7 +215,7 @@ function _add_pa_buttons(frm) {
 							frm.reload_doc();
 						},
 					});
-				}, __("Accredited platform"));
+				}, __("eInvoicing"));
 			}
 		},
 	});

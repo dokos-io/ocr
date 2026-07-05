@@ -6,6 +6,8 @@
  "engine": "InnoDB",
  "field_order": [
   "general_settings_tab",
+  "activation_section",
+  "enable_einvoicing",
   "column_break_qhyq",
   "ocr_service",
   "aws_textract_key",
@@ -49,6 +51,18 @@
    "fieldname": "general_settings_tab",
    "fieldtype": "Tab Break",
    "label": "General Settings"
+  },
+  {
+   "fieldname": "activation_section",
+   "fieldtype": "Section Break",
+   "label": "Activation"
+  },
+  {
+   "default": "0",
+   "description": "Show e-invoicing / eTransactions fields and actions on Customers, Suppliers and invoices. Off by default; the e-invoicing pipeline for a given customer is still driven by its eTransaction Profile.",
+   "fieldname": "enable_einvoicing",
+   "fieldtype": "Check",
+   "label": "Enable E-Invoicing"
   },
   {
    "fieldname": "sales_invoices_tab",

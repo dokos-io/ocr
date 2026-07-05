@@ -14,6 +14,7 @@ customer_fields = [
 		"fieldtype": "Tab Break",
 		"label": _("eTransactions"),
 		"insert_after": "selling_party_html",
+		"depends_on": "eval:frappe.boot.einvoicing_enabled",
 	},
 	# Readiness indicator (hero): a status pill + fixable checklist, a one-line
 	# routing summary and the single primary action (Sync directory), rendered by
@@ -186,7 +187,8 @@ company_fields = [
 			"fieldname": "etransactions_tab",
 			"fieldtype": "Tab Break",
 			"label": _("eTransactions"),
-			"insert_after": "connections_tab"
+			"insert_after": "connections_tab",
+			"depends_on": "eval:frappe.boot.einvoicing_enabled",
 		},
 		{
 			"fieldname": "etransactions_electronic_address_scheme",
@@ -254,6 +256,7 @@ customer_group_fields = [
 		"options": "eTransactions Accredited Platform",
 		"insert_after": "parent_customer_group",
 		"description": _("Override the default eTransactions Accredited Platform for customers in this group"),
+		"depends_on": "eval:frappe.boot.einvoicing_enabled",
 	},
 ]
 
@@ -273,6 +276,7 @@ supplier_fields = [
 		"fieldtype": "Tab Break",
 		"label": _("eTransactions"),
 		"insert_after": "default_price_list",
+		"depends_on": "eval:frappe.boot.einvoicing_enabled",
 	},
 	{
 		"fieldname": "etransactions_wizard_html",
@@ -306,6 +310,7 @@ address_fields = [
 		"fieldtype": "Section Break",
 		"insert_after": "siret_number",
 		"collapsible": 1,
+		"depends_on": "eval:frappe.boot.einvoicing_enabled",
 	},
 	{
 		"fieldname": "etransactions_buyer_reference",

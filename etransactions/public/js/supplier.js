@@ -3,6 +3,10 @@
 
 frappe.ui.form.on("Supplier", {
 	refresh(frm) {
+		// eTransactions is opt-in per site: nothing e-invoicing shows unless the
+		// feature is activated in eTransactions Settings.
+		if (!frappe.boot.einvoicing_enabled) return;
+
 		if (frm.fields_dict.etransactions_wizard_html && etransactions.EinvoiceReadinessIndicator) {
 			frm._et_readiness = frm._et_readiness || new etransactions.EinvoiceReadinessIndicator(frm);
 			frm._et_readiness.refresh();
@@ -14,7 +18,7 @@ frappe.ui.form.on("Supplier", {
 		}));
 
 		if (etransactions.sirene) {
-			frm.add_custom_button(__("Fill from SIRENE"), () => etransactions.sirene.open(frm));
+			frm.add_custom_button(__("Fill from SIRENE"), () => etransactions.sirene.open(frm), __("eInvoicing"));
 		}
 	},
 });
