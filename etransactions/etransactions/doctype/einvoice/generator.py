@@ -60,6 +60,48 @@ duty_tax_fee_category_codes = CommonCodeRetriever(["urn:xoev-de:kosit:codeliste:
 vat_exemption_reason_codes = CommonCodeRetriever(["urn:xoev-de:kosit:codeliste:vatex_1"], "vatex-eu-ae")
 
 
+def resolve_syntax(einvoice, sales_invoice) -> str:
+	"""Choose the outbound XML syntax (CII or UBL) for an Outgoing eInvoice.
+
+	Resolution order:
+	1. The eTransaction Profile's ``default_syntax`` (explicit override).
+	2. UBL when the buyer is addressed through the Peppol network — the
+	   Customer's ``directory_type`` is ``peppol`` or the resolved directory-line
+	   identifier carries a non-French scheme (≠ 0225).
+	3. CII (Factur-X) otherwise.
+
+	UBL carries only the EN16931 core + Peppol CIUS, so profiles below EN16931
+	or above it (EXTENDED / CTC-FR) always fall back to CII.
+	"""
+	profile_name = sales_invoice.get("etransaction_profile")
+	try:
+		profile = EInvoiceProfile(profile_name)
+	except ValueError:
+		return "CII"
+	if profile not in (EInvoiceProfile.EN16931, EInvoiceProfile.XRECHNUNG):
+		return "CII"
+
+	default_syntax = frappe.db.get_value("eTransaction Profile", profile_name, "default_syntax")
+	if default_syntax in ("CII", "UBL"):
+		return default_syntax
+
+	customer = sales_invoice.get("customer")
+	if customer and frappe.db.get_value("Customer", customer, "directory_type") == "peppol":
+		return "UBL"
+
+	from etransactions.plateforme_agreee.routing import resolve_routing
+
+	line = einvoice.get("pa_directory_line") or resolve_routing(
+		"Customer", customer, sales_invoice.get("customer_address")
+	)
+	if line:
+		identifier = frappe.db.get_value("eInvoicing Directory Line", line, "identifier") or ""
+		if ":" in identifier and not identifier.startswith("0225:"):
+			return "UBL"
+
+	return "CII"
+
+
 class EInvoiceMapper:
 	def __init__(self, einvoice: eInvoice):
 		self.einvoice = einvoice

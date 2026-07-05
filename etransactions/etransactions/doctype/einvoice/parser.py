@@ -65,7 +65,7 @@ class eInvoiceParser:
 	def _parse_ubl(self, xml_bytes: bytes) -> None:
 		parse_ubl(xml_bytes, self.einvoice_document)
 		self.profile = self.einvoice_document.profile
-		self._validate_schematron(xml_bytes)
+		self._validate_schematron(xml_bytes, syntax="UBL")
 
 	def _parse_facturx(self, xml_bytes: bytes) -> None:
 		doc = eInvoiceParser.get_einvoice_document(xml_bytes)
@@ -106,19 +106,19 @@ class eInvoiceParser:
 		self.parse_billing_period(doc.trade.settlement.period)
 
 
-	def _validate_schematron(self, xml_bytes):
+	def _validate_schematron(self, xml_bytes, syntax: str = "CII"):
 		self.einvoice_document.validation_errors = ""
 		self.einvoice_document.validation_warnings = ""
 		xml_string = xml_bytes.decode("utf-8")
 
 		try:
 			validation_errors, validation_warnings = get_validation_errors(
-				xml_string, EInvoiceProfile(self.profile)
+				xml_string, EInvoiceProfile(self.profile), syntax
 			)
 		except Exception as e:
 			frappe.log_error(
-				frappe.get_traceback(),
 				title="Schematron validation crashed",
+				message=frappe.get_traceback(),
 				reference_doctype=self.einvoice_document.doctype,
 				reference_name=self.einvoice_document.name,
 			)

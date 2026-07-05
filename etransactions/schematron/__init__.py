@@ -21,19 +21,33 @@ PROFILE_TO_XSL = {
 }
 
 
-def get_validation_errors(xml_string: str, profile: EInvoiceProfile):
+# UBL 2.1 documents are validated against the EN16931 core rules plus the
+# Peppol BIS 3.0 CIUS (the builder always emits the BIS CustomizationID).
+# Compiled XSLTs from phax/phive-rules (openpeppol 2026.5 ruleset); sources:
+# CEN/TC434 schematron (EN16931) and OpenPeppol peppol-bis-invoice-3.
+UBL_XSL = ["EN16931-UBL-validation.xslt", "PEPPOL-EN16931-UBL.xslt"]
+
+
+def get_stylesheets(profile: EInvoiceProfile, syntax: str = "CII") -> list[str] | None:
+	"""Stylesheets to run for a document, or None when no local schematron applies."""
+	if syntax == "UBL":
+		return UBL_XSL
 	if profile not in PROFILE_TO_XSL:
 		raise ValueError(f"No schematron mapping for e-invoice profile {profile!r}")
-
 	stylesheet = PROFILE_TO_XSL[profile]
-	if stylesheet is None:
+	return None if stylesheet is None else [stylesheet]
+
+
+def get_validation_errors(xml_string: str, profile: EInvoiceProfile, syntax: str = "CII"):
+	stylesheets = get_stylesheets(profile, syntax)
+	if stylesheets is None:
 		return [], [
 			_(
 				"The {0} profile has no local schematron; the accredited platform validates it on submit."
 			).format(profile.value)
 		]
 
-	if profile == EInvoiceProfile.CTC_FR:
+	if syntax != "UBL" and profile == EInvoiceProfile.CTC_FR:
 		# The bundled schematron is the generic Factur-X EXTENDED one (the
 		# cpro.gouv.fr CTC-FR schematron is not bundled). It rejects the French
 		# BT-24 guideline URN, so validate with the guideline swapped to the
@@ -45,7 +59,14 @@ def get_validation_errors(xml_string: str, profile: EInvoiceProfile):
 			get_guideline(EInvoiceProfile.CTC_FR),
 			get_guideline(EInvoiceProfile.EXTENDED),
 		)
-	return get_errors_from_stylesheet(xml_string, stylesheet)
+
+	errors: list[str] = []
+	warnings: list[str] = []
+	for stylesheet in stylesheets:
+		sheet_errors, sheet_warnings = get_errors_from_stylesheet(xml_string, stylesheet)
+		errors += sheet_errors
+		warnings += sheet_warnings
+	return errors, warnings
 
 
 def get_errors_from_stylesheet(xml_string: str, stylesheet: str):

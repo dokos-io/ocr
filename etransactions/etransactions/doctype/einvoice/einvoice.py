@@ -12,7 +12,11 @@ from frappe.model.document import Document
 
 from etransactions.controllers.entity_resolver import InvoiceEntityResolverMixin
 from etransactions.etransactions.doctype.einvoice.parser import eInvoiceParser
-from etransactions.etransactions.doctype.einvoice.generator import EInvoiceMapper, EInvoiceGenerator
+from etransactions.etransactions.doctype.einvoice.generator import (
+	EInvoiceGenerator,
+	EInvoiceMapper,
+	resolve_syntax,
+)
 from etransactions.schematron import get_validation_errors
 from etransactions.utils import EInvoiceProfile, get_drafthorse_schema
 
@@ -79,6 +83,7 @@ class eInvoice(Document):
 		seller_postcode: DF.Data | None
 		seller_tax_id: DF.Data | None
 		supplier_invoices_basket: DF.Link | None
+		syntax: DF.Literal["CII", "UBL"]
 		tax_basis_total: DF.Currency
 		tax_total: DF.Currency
 		taxes: DF.Table[eInvoiceTradeTax]
@@ -121,7 +126,9 @@ class eInvoice(Document):
 		sales_invoice.run_method("before_einvoice_generation")
 
 		profile = EInvoiceProfile(sales_invoice.get("etransaction_profile"))
-		generator = EInvoiceGenerator(
+		self.syntax = resolve_syntax(self, sales_invoice)
+
+		generator_kwargs = dict(
 			profile=profile,
 			einvoice=self,
 			company=self.einvoice_data.company,
@@ -132,6 +139,17 @@ class eInvoice(Document):
 			seller_contact=self.einvoice_data.seller_contact,
 			buyer_contact=self.einvoice_data.buyer_contact,
 		)
+
+		if self.syntax == "UBL":
+			from etransactions.etransactions.doctype.einvoice.ubl_generator import UBLGenerator
+
+			generator = UBLGenerator(**generator_kwargs)
+			generator.create_einvoice()
+			self.einvoice_data.sales_invoice.run_method("after_einvoice_generation")
+			self.einvoice_xml = generator.serialize()
+			return
+
+		generator = EInvoiceGenerator(**generator_kwargs)
 		generator.create_einvoice()
 		doc = generator.get_einvoice()
 
@@ -347,9 +365,18 @@ class eInvoice(Document):
 	def _get_file_for_pa(self) -> tuple[bytes, str, str]:
 		"""Return (file_bytes, filename, syntax) for PA submission.
 
-		Prefers the already-attached FacturX PDF (einvoice_embedded_document).
-		Falls back to generating the PDF on the fly.
+		UBL invoices are sent as raw XML (Factur-X embedding is CII-only).
+		Otherwise prefers the already-attached FacturX PDF
+		(einvoice_embedded_document), falling back to generating it on the fly.
 		"""
+		if self.get("syntax") == "UBL":
+			xml = self.einvoice_xml
+			if isinstance(xml, str):
+				xml = xml.encode("utf-8")
+			if not xml:
+				frappe.throw(_("The UBL XML has not been generated for this eInvoice."))
+			return xml, f"{self.sales_invoice}.xml", "UBL"
+
 		if self.einvoice_embedded_document:
 			file_doc = frappe.get_doc("File", {"file_url": self.einvoice_embedded_document})
 			file_path = file_doc.get_full_path()
@@ -505,9 +532,10 @@ class eInvoice(Document):
 
 		try:
 			invoice_profile = EInvoiceProfile(self.profile)
-			validation_errors, warnings = get_validation_errors(xml_string, invoice_profile)
+			syntax = self.get("syntax") or "CII"
+			validation_errors, warnings = get_validation_errors(xml_string, invoice_profile, syntax)
 
-			if invoice_profile == EInvoiceProfile.XRECHNUNG:
+			if invoice_profile == EInvoiceProfile.XRECHNUNG and syntax != "UBL":
 				basic_errors, basic_warnings = get_validation_errors(xml_string, EInvoiceProfile.EN16931)
 				validation_errors += basic_errors
 				warnings += basic_warnings
@@ -517,8 +545,8 @@ class eInvoice(Document):
 			msg = _("Cannot validate E Invoice schematron: {0}").format(str(e))
 			self.validation_errors = msg
 			frappe.log_error(
-				frappe.get_traceback(),
 				title="Schematron validation crashed",
+				message=frappe.get_traceback(),
 				reference_doctype=self.doctype,
 				reference_name=self.name,
 			)

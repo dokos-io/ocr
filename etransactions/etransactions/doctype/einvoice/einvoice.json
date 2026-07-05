@@ -13,6 +13,7 @@
   "supplier_invoices_basket",
   "column_break_albz",
   "profile",
+  "syntax",
   "e_invoice_is_correct",
   "header_section",
   "issue_date",
@@ -347,6 +348,17 @@
    "in_standard_filter": 1,
    "label": "Profile",
    "options": "BASIC\nEN 16931\nEXTENDED\nXRECHNUNG",
+   "read_only": 1
+  },
+  {
+   "default": "CII",
+   "depends_on": "eval:doc.einvoice_type=='Outgoing'",
+   "description": "Syntax of the generated XML — resolved automatically: UBL (Peppol BIS 3.0) when the buyer is addressed through Peppol or the profile forces it, CII (Factur-X) otherwise.",
+   "fieldname": "syntax",
+   "fieldtype": "Select",
+   "in_standard_filter": 1,
+   "label": "Syntax",
+   "options": "CII\nUBL",
    "read_only": 1
   },
   {

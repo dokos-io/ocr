@@ -75,22 +75,26 @@ def on_submit(doc, method):
 
 	settings: eTransactionsSettings = frappe.get_single("eTransactions Settings")
 	if settings.generate_facturx_on_submit:
-		_create_update_einvoice(doc)
+		einvoice = _create_update_einvoice(doc)
 
-		from etransactions.utils.facturx_pdf import FacturXPDFGenerator
-		try:
-			FacturXPDFGenerator(doc.name).attach_to_invoice()
-		except Exception:
-			frappe.log_error(frappe.get_traceback(), _("FacturX PDF Generation Failed"))
-			if settings.block_submission_on_facturx_failure:
-				frappe.throw(
-					_("The FacturX PDF could not be generated. Submission has been blocked. Please check the error log.")
+		# Factur-X embedding is CII-only: a UBL eInvoice is sent as raw XML, so
+		# no hybrid PDF is generated (leaving einvoice_embedded_document empty
+		# guarantees _get_file_for_pa takes the raw-XML branch).
+		if not (einvoice and einvoice.get("syntax") == "UBL"):
+			from etransactions.utils.facturx_pdf import FacturXPDFGenerator
+			try:
+				FacturXPDFGenerator(doc.name).attach_to_invoice()
+			except Exception:
+				frappe.log_error(frappe.get_traceback(), _("FacturX PDF Generation Failed"))
+				if settings.block_submission_on_facturx_failure:
+					frappe.throw(
+						_("The FacturX PDF could not be generated. Submission has been blocked. Please check the error log.")
+					)
+				frappe.msgprint(
+					_("The FacturX PDF could not be generated. Please check the error log."),
+					alert=True,
+					indicator="orange",
 				)
-			frappe.msgprint(
-				_("The FacturX PDF could not be generated. Please check the error log."),
-				alert=True,
-				indicator="orange",
-			)
 
 	# accredited platform submission
 	from etransactions.plateforme_agreee.session import get_platform_settings
