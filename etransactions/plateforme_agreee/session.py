@@ -15,10 +15,28 @@ from frappe.utils import now_datetime
 #   ``directory_registration`` advertises managing the company's own directory
 #   entries (Peppol / PPF). Only SuperPDP exposes these endpoints; CDAR platforms
 #   register the company through their own portal.
+#   ``directory_registration_via_partner`` advertises own-entry management
+#   through the integrator/partner API (Esalink HUBTIMIZE): requests are
+#   validated by the platform and take effect at a start date ≥10 days out.
 PLATFORM_CAPABILITIES = {
-	"SuperPDP": {"self_provision": False, "ereporting": True, "directory_registration": True},
-	"Esalink": {"self_provision": False, "ereporting": False, "directory_registration": False},
-	"Custom": {"self_provision": False, "ereporting": False, "directory_registration": False},
+	"SuperPDP": {
+		"self_provision": False,
+		"ereporting": True,
+		"directory_registration": True,
+		"directory_registration_via_partner": False,
+	},
+	"Esalink": {
+		"self_provision": False,
+		"ereporting": False,
+		"directory_registration": False,
+		"directory_registration_via_partner": True,
+	},
+	"Custom": {
+		"self_provision": False,
+		"ereporting": False,
+		"directory_registration": False,
+		"directory_registration_via_partner": False,
+	},
 }
 
 

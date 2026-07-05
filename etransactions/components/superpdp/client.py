@@ -76,6 +76,10 @@ class SuperPDPClient:
 
     BASE_URL = "https://api.superpdp.tech"
 
+    # This platform can serve the Peppol directory in addition to the French
+    # (PPF) one — get_directory_for_siren honours directory_type="peppol".
+    supports_peppol_directory = True
+
     # Event status_code → internal pa_status priority weights. "rejected" outranks
     # "error" so a terminal platform rejection dominates the derived status.
     _STATUS_WEIGHT = {"rejected": 5, "error": 4, "done": 3, "pending": 2, "sent": 1}

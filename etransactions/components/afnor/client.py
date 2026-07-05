@@ -48,6 +48,11 @@ class AFNORClient:
     request cycle.
     """
 
+    # The AFNOR spec only exposes the French national directory:
+    # get_directory_for_siren accepts directory_type for interface parity but
+    # always serves PPF data (callers warn when "peppol" was requested).
+    supports_peppol_directory = False
+
     # AFNOR-standard paths
     _TOKEN_PATH = "/v1/oauth2/token"
     _FLOWS_PATH = "/v1/flows"

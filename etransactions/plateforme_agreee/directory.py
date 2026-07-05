@@ -31,6 +31,18 @@ def sync_customer_directory(customer: str, company: str = None):
 		"logs": [],
 	}
 
+	if frappe.db.get_value("Customer", customer, "directory_type") == "peppol" and not getattr(
+		client, "supports_peppol_directory", False
+	):
+		frappe.msgprint(
+			_(
+				"This customer requests the <b>Peppol</b> directory, but the configured platform"
+				" only serves the French (PPF) directory. The sync ran against the PPF directory"
+				" instead — use a platform with Peppol directory support for Peppol routing."
+			),
+			indicator="orange",
+		)
+
 	_sync_customer_directory(customer, client, result)
 	eInvoicingLog.create_log(result)
 
@@ -273,6 +285,15 @@ def _sync_customer_directory(customer_name: str, client, result: dict):
 	if not siren:
 		result["logs"].append(("warning", f"Customer {customer_name} has no SIREN number. Skipping."))
 		return
+
+	if directory_type == "peppol" and not getattr(client, "supports_peppol_directory", False):
+		# AFNOR/Esalink expose only the French national directory: honouring the
+		# request silently would return PPF data labelled as Peppol.
+		result["logs"].append((
+			"warning",
+			f"Customer {customer_name} requests the Peppol directory but the platform only serves "
+			"the French (PPF) directory — synced against the PPF directory instead.",
+		))
 
 	directory_data = client.get_directory_for_siren(siren, directory_type)
 

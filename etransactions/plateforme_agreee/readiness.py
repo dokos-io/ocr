@@ -131,6 +131,15 @@ def customer_check_specs() -> list[CheckSpec]:
 			_siret_unchanged,
 			fix_doctype="address",
 		),
+		# A "peppol" directory choice only works on a platform that can serve the
+		# Peppol directory (SuperPDP); AFNOR/Esalink silently serve PPF data.
+		CheckSpec(
+			"peppol_directory_supported",
+			_("Peppol directory requested but the platform only serves the French (PPF) directory"),
+			False,
+			_peppol_directory_supported,
+			"directory_type",
+		),
 	]
 
 
@@ -198,6 +207,29 @@ def _siret_unchanged(r: dict) -> bool:
 
 def _addr_fields_ok(r: dict) -> bool:
 	return bool(r.get("resolved_address")) and all(r.get(f) for f in _ADDRESS_SUBFIELDS)
+
+
+def _peppol_directory_supported(r: dict) -> bool:
+	"""Passes unless the party requests the Peppol directory on a PPF-only platform."""
+	if (r.get("directory_type") or "") != "peppol":
+		return True
+	return _sales_platform_serves_peppol()
+
+
+def _sales_platform_serves_peppol() -> bool:
+	"""Whether the default company's sales platform can serve the Peppol directory.
+
+	Memoized per request: the aggregate widget evaluates this for every customer.
+	"""
+	cached = getattr(frappe.local, "_etransactions_peppol_dir_support", None)
+	if cached is None:
+		from etransactions.plateforme_agreee.session import get_platform_for_company
+
+		company = frappe.defaults.get_global_default("company")
+		platform = get_platform_for_company(company) if company else None
+		cached = bool(platform) and platform.platform_type == "SuperPDP"
+		frappe.local._etransactions_peppol_dir_support = cached
+	return cached
 
 
 # ---------------------------------------------------------------------------

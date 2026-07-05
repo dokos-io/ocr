@@ -178,3 +178,92 @@ class TestEsalinkProvisioningHelpers(UnitTestCase):
 			out = prov.provision_company("ACME")
 		self.assertEqual(out["state"], "existing")
 		self.assertEqual(out["customer_id"], "42")
+
+
+class TestEsalinkIdentifierManagement(UnitTestCase):
+	"""Partner-API identifier CRUD used for the company's own directory entries."""
+
+	def test_search_identifiers_paginates(self):
+		client = _partner()
+		pages = [
+			_FakeResponse({"total": 3, "offset": 0, "limit": 2, "identifiers": [
+				{"identifier": "111", "qualifier": "0225", "identifierStatus": "DONE"},
+				{"identifier": "222", "qualifier": "0225", "identifierStatus": "NEW"},
+			]}),
+			_FakeResponse({"total": 3, "offset": 2, "limit": 2, "identifiers": [
+				{"identifier": "333", "qualifier": "0088", "identifierStatus": "IN_PROGRESS"},
+			]}),
+		]
+		with patch.object(client, "_request", side_effect=pages) as req:
+			rows = client.search_identifiers(42, limit=2)
+		self.assertEqual([r["identifier"] for r in rows], ["111", "222", "333"])
+		self.assertEqual(req.call_count, 2)
+		args, kwargs = req.call_args_list[1]
+		self.assertEqual(kwargs["params"], {"offset": 2, "limit": 2})
+
+	def test_delete_identifier_uses_query_params(self):
+		client = _partner()
+		with patch.object(client, "_request", return_value=_FakeResponse()) as req:
+			client.delete_identifier(42, "315143296", "0225")
+		args, kwargs = req.call_args
+		self.assertEqual(args[0], "DELETE")
+		self.assertEqual(args[1], "/v1/customerPA/42/identifier")
+		self.assertEqual(kwargs["params"], {"identifier": "315143296", "qualifier": "0225"})
+
+	def test_update_identifier_body(self):
+		client = _partner()
+		with patch.object(client, "_request", return_value=_FakeResponse({})) as req:
+			client.update_identifier(42, "315143296", "0225", start_date="20-07-2026")
+		args, kwargs = req.call_args
+		self.assertEqual(args[0], "PUT")
+		self.assertEqual(kwargs["json"], {"startDate": "20-07-2026"})
+
+
+class TestEsalinkDirectoryAdapter(UnitTestCase):
+	"""The own-directory dialog adapter over the partner identifier API."""
+
+	def _adapter(self):
+		from etransactions.plateforme_agreee.own_directory import EsalinkDirectoryAdapter
+
+		with patch(
+			"etransactions.plateforme_agreee.esalink_provisioning._partner_client",
+			return_value=MagicMock(),
+		):
+			return EsalinkDirectoryAdapter(42)
+
+	def test_list_maps_to_dialog_shape(self):
+		adapter = self._adapter()
+		adapter.client.search_identifiers.return_value = [
+			{"identifier": "315143296", "qualifier": "0225", "identifierStatus": "DONE"},
+			{"identifier": "1234567890123", "qualifier": "0088", "identifierStatus": "NEW"},
+		]
+		entries = adapter.list_directory_entries()
+		self.assertEqual(entries[0]["id"], "0225:315143296")
+		self.assertEqual(entries[0]["directory"], "ppf")
+		self.assertEqual(entries[0]["status"], "DONE")
+		self.assertEqual(entries[1]["directory"], "peppol")
+
+	def test_create_ppf_defaults_qualifier(self):
+		adapter = self._adapter()
+		adapter.client.create_identifier.return_value = {"identifierStatus": "NEW"}
+		entry = adapter.create_directory_entry("315143296", "ppf")
+		kwargs = adapter.client.create_identifier.call_args.kwargs
+		self.assertEqual(kwargs["addressing_identifier"], "315143296")
+		self.assertEqual(kwargs["addressing_qualifier"], "0225")
+		self.assertTrue(kwargs["start_date"])
+		self.assertEqual(entry["id"], "0225:315143296")
+
+	def test_create_peppol_requires_scheme(self):
+		import frappe
+
+		adapter = self._adapter()
+		with self.assertRaises(frappe.ValidationError):
+			adapter.create_directory_entry("1234567890123", "peppol")
+		adapter.client.create_identifier.return_value = {"identifierStatus": "NEW"}
+		entry = adapter.create_directory_entry("0088:1234567890123", "peppol")
+		self.assertEqual(entry["id"], "0088:1234567890123")
+
+	def test_delete_splits_entry_id(self):
+		adapter = self._adapter()
+		adapter.delete_directory_entry("0225:315143296")
+		adapter.client.delete_identifier.assert_called_once_with(42, "315143296", "0225")

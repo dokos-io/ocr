@@ -52,3 +52,42 @@ class TestLifecycleStatus(UnitTestCase):
 		self.assertTrue(ls.is_warning("refused"))
 		self.assertTrue(ls.is_warning("dispute"))
 		self.assertFalse(ls.is_warning("approved"))
+
+
+class TestSupportedLifecycleStatuses(UnitTestCase):
+	"""The Report Status dialog only offers statuses the platform can carry."""
+
+	def _supported(self, platform_type):
+		from types import SimpleNamespace
+		from unittest.mock import patch
+
+		from etransactions.etransactions.doctype.einvoice.einvoice import (
+			get_supported_lifecycle_statuses,
+		)
+
+		doc = SimpleNamespace(einvoice_type="Incoming", company="_Test Company")
+		doc.check_permission = lambda perm: None
+		platform = SimpleNamespace(platform_type=platform_type) if platform_type else None
+		with (
+			patch("frappe.get_doc", return_value=doc),
+			patch(
+				"etransactions.plateforme_agreee.session.get_platform_for_company",
+				return_value=platform,
+			),
+		):
+			return get_supported_lifecycle_statuses("EINV-1")
+
+	def test_superpdp_filters_to_fr_codes(self):
+		supported = self._supported("SuperPDP")
+		# Statuses without a native fr: code must not be offered on SuperPDP.
+		self.assertNotIn("cancelled", supported)
+		self.assertNotIn("refused", supported)
+		self.assertIn("dispute", supported)
+		self.assertEqual(
+			set(supported), {k for k, v in ls.STATUSES.items() if v.get("superpdp")}
+		)
+
+	def test_cdar_platforms_carry_everything(self):
+		for platform_type in ("Esalink", "Custom", None):
+			supported = self._supported(platform_type)
+			self.assertEqual(set(supported), set(ls.STATUSES.keys()))

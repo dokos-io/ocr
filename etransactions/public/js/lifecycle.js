@@ -44,12 +44,21 @@ etransactions.lifecycle = {
 
 	attach(frm, { einvoice, side, pa_status }) {
 		frm._et_lc = { einvoice, side, pa_status };
-		this.add_buttons(frm, side);
+		// Only offer statuses the linked platform can actually carry (SuperPDP
+		// lacks fr: codes for some) — avoids a send-time failure.
+		frappe
+			.xcall(
+				"etransactions.etransactions.doctype.einvoice.einvoice.get_supported_lifecycle_statuses",
+				{ einvoice }
+			)
+			.then((supported) => this.add_buttons(frm, side, supported || null))
+			.catch(() => this.add_buttons(frm, side, null));
 		this.render_timeline(frm);
 	},
 
-	add_buttons(frm, side) {
+	add_buttons(frm, side, supported) {
 		(this.STATUSES[side] || []).forEach((def) => {
+			if (supported && !supported.includes(def.status)) return;
 			frm.add_custom_button(def.label, () => this.send_status(frm, def), __("Report Status"));
 		});
 	},

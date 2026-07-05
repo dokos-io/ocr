@@ -44,6 +44,7 @@ frappe.ui.form.on("eTransactions Accredited Platform", {
 			}
 
 			if (frm.doc.platform_type === "Esalink" && frm.doc.esalink_customer_id) {
+				frm.add_custom_button(__("Directory registration"), () => open_directory_dialog(frm));
 				frm.add_custom_button(__("Refresh Esalink status"), () => {
 					frappe.call({
 						method: "etransactions.plateforme_agreee.esalink_provisioning.refresh_customer_status",
@@ -143,13 +144,28 @@ frappe.ui.form.on("eTransactions Accredited Platform", {
 	},
 });
 
-// --- Directory registration (own company entries, SuperPDP only) -------------
+// --- Directory registration (own company entries) ----------------------------
+// SuperPDP: native own-entry endpoints (immediate). Esalink: identifier requests
+// through the partner API — validated by Esalink, effective at a start date
+// ≥10 days out.
 
 function open_directory_dialog(frm) {
+	const is_esalink = frm.doc.platform_type === "Esalink";
 	const d = new frappe.ui.Dialog({
 		title: __("Directory registration"),
 		size: "large",
 		fields: [
+			...(is_esalink
+				? [
+						{
+							fieldtype: "HTML",
+							fieldname: "esalink_note",
+							options: `<div class="text-muted small" style="margin-bottom:8px">${__(
+								"Esalink validates each identifier request; it becomes effective at a start date at least 10 days in the future."
+							)}</div>`,
+						},
+					]
+				: []),
 			{ fieldtype: "HTML", fieldname: "entries_html" },
 			{ fieldtype: "Section Break", label: __("Add an entry") },
 			{

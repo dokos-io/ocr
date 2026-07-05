@@ -204,6 +204,72 @@ class EsalinkPartnerClient(_HubtimizeTransport, AFNORClient):
         )
         return resp.json() if resp.content else {}
 
+    def search_identifiers(self, customer_id: int, limit: int = 100) -> list[dict]:
+        """``POST /v1/customerPA/{id}/identifier/search`` — all identifiers, paginated."""
+        identifiers: list[dict] = []
+        offset = 0
+        while True:
+            resp = self._request(
+                "POST",
+                f"{self._CUSTOMER_PATH}/{customer_id}/identifier/search",
+                params={"offset": offset, "limit": limit},
+                json={},
+            )
+            data = resp.json() or {}
+            page = data.get("identifiers") or []
+            identifiers.extend(page)
+            offset += len(page)
+            if not page or offset >= (data.get("total") or 0):
+                break
+        return identifiers
+
+    def get_identifier(self, customer_id: int, identifier: str, qualifier: str) -> dict:
+        """``GET /v1/customerPA/{id}/identifier`` — one identifier by value+qualifier."""
+        resp = self._request(
+            "GET",
+            f"{self._CUSTOMER_PATH}/{customer_id}/identifier",
+            params={"identifier": identifier, "qualifier": qualifier},
+        )
+        return resp.json()
+
+    def update_identifier(
+        self,
+        customer_id: int,
+        identifier: str,
+        qualifier: str,
+        *,
+        start_date: str = None,
+        end_date: str = None,
+    ) -> dict:
+        """``PUT /v1/customerPA/{id}/identifier`` — reschedule an identifier.
+
+        Dates are ``DD-MM-YYYY``; Esalink only allows updates for identifiers in
+        status NEW/REFUSED/DONE (platform errors are surfaced as-is).
+        """
+        body = {}
+        if start_date:
+            body["startDate"] = start_date
+        if end_date:
+            body["endDate"] = end_date
+        resp = self._request(
+            "PUT",
+            f"{self._CUSTOMER_PATH}/{customer_id}/identifier",
+            params={"identifier": identifier, "qualifier": qualifier},
+            json=body,
+        )
+        return resp.json() if resp.content else {}
+
+    def delete_identifier(self, customer_id: int, identifier: str, qualifier: str) -> None:
+        """``DELETE /v1/customerPA/{id}/identifier`` — remove an identifier.
+
+        Only allowed for statuses NEW/REFUSED/DONE (platform errors surfaced as-is).
+        """
+        self._request(
+            "DELETE",
+            f"{self._CUSTOMER_PATH}/{customer_id}/identifier",
+            params={"identifier": identifier, "qualifier": qualifier},
+        )
+
     def get_customer(self, customer_id: int) -> dict:
         """``GET /v1/customerPA/{id}`` → customer detail incl. ``activationStatus``."""
         resp = self._request("GET", f"{self._CUSTOMER_PATH}/{customer_id}")

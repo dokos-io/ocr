@@ -431,6 +431,8 @@ class eInvoice(Document):
 			doc.db_set("einvoice_embedded_document", file_doc.file_url)
 			doc.db_set("einvoice", file_doc.name)
 
+		_notify_incoming_einvoice(doc)
+
 		return doc
 
 	def onload(self):
@@ -569,11 +571,76 @@ class eInvoice(Document):
 
 
 
+def _notify_incoming_einvoice(doc):
+	"""Best-effort: raise a bell notification for a legally-received e-invoice.
+
+	Inbound invoices arrive by silent hourly cron; without this, a received
+	e-invoice can sit unseen. Never blocks flow ingestion.
+	"""
+	try:
+		from frappe.desk.doctype.notification_log.notification_log import (
+			enqueue_create_notification,
+		)
+
+		users = frappe.get_all(
+			"Has Role",
+			filters={"role": "Accounts Manager", "parenttype": "User"},
+			pluck="parent",
+		)
+		users = [
+			u
+			for u in set(users)
+			if u not in ("Administrator", "Guest")
+			and frappe.db.get_value("User", u, "enabled")
+		]
+		if not users:
+			return
+
+		sender = doc.seller_name or doc.pa_flow_id or doc.name
+		enqueue_create_notification(
+			users,
+			{
+				"type": "Alert",
+				"document_type": "eInvoice",
+				"document_name": doc.name,
+				"subject": _("New e-invoice received from the accredited platform: {0}").format(sender),
+			},
+		)
+	except Exception:
+		frappe.log_error(
+			title="Incoming e-invoice notification failed",
+			message=frappe.get_traceback(),
+			reference_doctype="eInvoice",
+			reference_name=doc.name,
+		)
+
+
 @frappe.whitelist()
 def get_lifecycle_reason_codes(status: str) -> list[str]:
 	"""Return the allowed MDT-113 reason codes for a lifecycle status (for the UI)."""
 	from etransactions.plateforme_agreee import lifecycle_status
 	return lifecycle_status.reason_codes(status)
+
+
+@frappe.whitelist()
+def get_supported_lifecycle_statuses(einvoice: str) -> list[str]:
+	"""Canonical lifecycle statuses the eInvoice's platform can actually carry.
+
+	SuperPDP only accepts statuses with a native ``fr:`` code; CDAR platforms
+	(Esalink/AFNOR) carry every status with an MDT-105 code. The Report Status
+	dialog uses this to avoid offering statuses that would fail at send time.
+	"""
+	doc = frappe.get_doc("eInvoice", einvoice)
+	doc.check_permission("read")
+
+	from etransactions.plateforme_agreee import lifecycle_status
+	from etransactions.plateforme_agreee.session import get_platform_for_company
+
+	transaction_type = "sales" if doc.einvoice_type == "Outgoing" else "purchases"
+	platform = get_platform_for_company(doc.company, transaction_type=transaction_type)
+	if platform and platform.platform_type == "SuperPDP":
+		return [k for k, v in lifecycle_status.STATUSES.items() if v.get("superpdp")]
+	return [k for k, v in lifecycle_status.STATUSES.items() if v.get("mdt105")]
 
 
 @frappe.whitelist()
