@@ -142,6 +142,38 @@ class TestEsalinkPartnerClient(UnitTestCase):
 			req.call_args[0], ("POST", "/v1/customerPA/5/resend-kyc-onboarding-email")
 		)
 
+	def test_search_customers_posts_to_search(self):
+		client = _partner()
+		with patch.object(
+			client, "_request", return_value=_FakeResponse({"customers": [], "total": 0})
+		) as req:
+			out = client.search_customers(limit=50, offset=10)
+		self.assertEqual(req.call_args[0], ("POST", "/v1/customerPA/search"))
+		self.assertEqual(req.call_args[1]["params"], {"offset": 10, "limit": 50})
+		self.assertEqual(out, {"customers": [], "total": 0})
+
+	def test_find_customer_by_legal_id_matches_across_pages(self):
+		client = _partner()
+		pages = [
+			_FakeResponse({"total": 3, "offset": 0, "limit": 2, "customers": [
+				{"customerId": 1, "customerLegalId": "111111111"},
+				{"customerId": 2, "customerLegalId": "222222222"},
+			]}),
+			_FakeResponse({"total": 3, "offset": 2, "limit": 2, "customers": [
+				{"customerId": 3, "customerLegalId": "315143296"},
+			]}),
+		]
+		with patch.object(client, "_request", side_effect=pages):
+			self.assertEqual(client.find_customer_by_legal_id("315143296"), 3)
+
+	def test_find_customer_by_legal_id_returns_none_when_absent(self):
+		client = _partner()
+		page = _FakeResponse({"total": 1, "offset": 0, "limit": 100, "customers": [
+			{"customerId": 1, "customerLegalId": "111111111"},
+		]})
+		with patch.object(client, "_request", return_value=page):
+			self.assertIsNone(client.find_customer_by_legal_id("999999999"))
+
 
 class TestEsalinkProvisioningHelpers(UnitTestCase):
 	def test_start_date_is_at_least_ten_days_ahead(self):
@@ -157,11 +189,7 @@ class TestEsalinkProvisioningHelpers(UnitTestCase):
 			self.assertEqual(prov._country_iso("France"), "FR")
 		self.assertEqual(prov._country_iso(None), "FR")
 
-	def test_resolve_company_list_parses_inputs(self):
-		self.assertEqual(prov._resolve_company_list('["A","B"]'), ["A", "B"])
-		self.assertEqual(prov._resolve_company_list("A, B"), ["A", "B"])
-
-	def test_provision_company_is_idempotent(self):
+	def test_register_is_idempotent(self):
 		existing = {
 			"name": "Esalink — ACME",
 			"esalink_customer_id": "42",
@@ -172,12 +200,189 @@ class TestEsalinkProvisioningHelpers(UnitTestCase):
 			patch.object(
 				prov,
 				"_partner_client",
-				side_effect=AssertionError("must not provision again"),
+				side_effect=AssertionError("must not register again"),
 			),
 		):
-			out = prov.provision_company("ACME")
+			out = prov.register_esalink_company("ACME")
 		self.assertEqual(out["state"], "existing")
 		self.assertEqual(out["customer_id"], "42")
+
+	def test_register_reuses_existing_customer_by_siren(self):
+		"""A company already present on Esalink (by SIREN) is reused, not re-created."""
+		import etransactions.plateforme_agreee.session as session
+
+		partner = MagicMock()
+		partner.find_customer_by_legal_id.return_value = 55
+		partner.create_user.return_value = {"clientId": "c-1", "clientSecret": "s-1"}
+		fake_doc = MagicMock()
+		fake_doc.name = "Esalink — ACME"
+		fake_doc.get.return_value = None
+		with (
+			patch.object(prov, "_existing_esalink_platform", return_value=None),
+			patch.object(prov, "_enhance_company"),
+			patch.object(
+				prov, "_build_customer_payload", return_value={"customerLegalId": "315143296"}
+			),
+			patch.object(prov, "_partner_client", return_value=partner),
+			patch("frappe.new_doc", return_value=fake_doc),
+			patch.object(
+				session, "check_platform_health", return_value={"status": "ok", "message": "ok"}
+			),
+		):
+			out = prov.register_esalink_company("ACME")
+		partner.find_customer_by_legal_id.assert_called_once_with("315143296")
+		partner.create_customer.assert_not_called()
+		partner.create_user.assert_called_once_with(55)
+		self.assertEqual(out["state"], "reused")
+		self.assertEqual(out["customer_id"], "55")
+
+	def test_register_creates_customer_when_absent(self):
+		"""No Esalink customer for the SIREN → create_customer then create_user."""
+		import etransactions.plateforme_agreee.session as session
+
+		partner = MagicMock()
+		partner.find_customer_by_legal_id.return_value = None
+		partner.create_customer.return_value = 77
+		partner.create_user.return_value = {"clientId": "c-2", "clientSecret": "s-2"}
+		fake_doc = MagicMock()
+		fake_doc.name = "Esalink — ACME"
+		fake_doc.get.return_value = None
+		with (
+			patch.object(prov, "_existing_esalink_platform", return_value=None),
+			patch.object(prov, "_enhance_company"),
+			patch.object(
+				prov, "_build_customer_payload", return_value={"customerLegalId": "315143296"}
+			),
+			patch.object(prov, "_partner_client", return_value=partner),
+			patch("frappe.new_doc", return_value=fake_doc),
+			patch.object(
+				session, "check_platform_health", return_value={"status": "ok", "message": "ok"}
+			),
+		):
+			out = prov.register_esalink_company("ACME")
+		partner.create_customer.assert_called_once()
+		partner.create_user.assert_called_once_with(77)
+		self.assertEqual(out["state"], "created")
+		self.assertEqual(out["customer_id"], "77")
+
+	_BASE_CUSTOMER = {
+		"customerName": "ACME",
+		"customerLegalId": "315143296",
+		"customerVat": "",
+		"customerEmail": "a@b.fr",
+		"addressLine1": "1 rue",
+		"addressLine2": "",
+		"postalCode": "75001",
+		"city": "Paris",
+		"country": "FR",
+	}
+
+	def test_payload_routing_address_defaults_to_siren(self):
+		"""No routing address supplied → 0225:<SIREN> registered as the directory line."""
+		with patch.object(prov, "_company_base_customer_data", return_value=dict(self._BASE_CUSTOMER)):
+			payload = prov._build_customer_payload("ACME")
+		self.assertEqual(
+			payload["electronicAddresses"],
+			[{"electronicAddress": "315143296", "qualifier": "0225"}],
+		)
+		self.assertEqual(payload["customerLegalId"], "315143296")
+
+	def test_payload_routing_address_override_parses_scheme(self):
+		"""A scheme:value routing address is parsed; the legal id stays the SIREN."""
+		with patch.object(prov, "_company_base_customer_data", return_value=dict(self._BASE_CUSTOMER)):
+			payload = prov._build_customer_payload(
+				"ACME", routing_address="0088:1234567890123"
+			)
+		self.assertEqual(
+			payload["electronicAddresses"],
+			[{"electronicAddress": "1234567890123", "qualifier": "0088"}],
+		)
+		self.assertEqual(payload["customerLegalId"], "315143296")
+
+	def test_register_updates_named_platform_row(self):
+		"""platform_name targets that exact (pre-created) row instead of creating a new one."""
+		import etransactions.plateforme_agreee.session as session
+
+		existing = {
+			"name": "Esalink — ACME (Sales)",
+			"esalink_customer_id": None,
+			"esalink_customer_status": None,
+			"is_active": 0,
+		}
+		partner = MagicMock()
+		partner.find_customer_by_legal_id.return_value = None
+		partner.create_customer.return_value = 99
+		partner.create_user.return_value = {"clientId": "c-9", "clientSecret": "s-9"}
+		fake_doc = MagicMock()
+		fake_doc.name = "Esalink — ACME (Sales)"
+		fake_doc.get.return_value = None
+		with (
+			patch.object(prov, "_target_esalink_platform", return_value=existing) as target,
+			patch.object(prov, "_enhance_company"),
+			patch.object(
+				prov, "_build_customer_payload", return_value={"customerLegalId": "315143296"}
+			),
+			patch.object(prov, "_partner_client", return_value=partner),
+			patch("frappe.get_doc", return_value=fake_doc) as get_doc,
+			patch("frappe.new_doc", side_effect=AssertionError("must update the named row")),
+			patch.object(
+				session, "check_platform_health", return_value={"status": "ok", "message": "ok"}
+			),
+		):
+			out = prov.register_esalink_company(
+				"ACME", platform_name="Esalink — ACME (Sales)"
+			)
+		target.assert_called_once_with("ACME", "Esalink — ACME (Sales)")
+		get_doc.assert_called_once_with(
+			"eTransactions Accredited Platform", "Esalink — ACME (Sales)"
+		)
+		fake_doc.update.assert_called_once()
+		self.assertEqual(out["platform_name"], "Esalink — ACME (Sales)")
+		self.assertEqual(out["customer_id"], "99")
+
+	def test_registration_status_not_registered(self):
+		import frappe
+
+		row = frappe._dict(
+			{
+				"company": "ACME",
+				"esalink_customer_id": None,
+				"esalink_customer_status": None,
+				"is_active": 0,
+				"esalink_environment": "test",
+			}
+		)
+
+		def gv(doctype, *args, **kwargs):
+			return "315143296" if doctype == "Company" else row
+
+		with patch("frappe.db.get_value", side_effect=gv):
+			out = prov.esalink_registration_status("P1")
+		self.assertFalse(out["registered"])
+		self.assertEqual(out["routing_address"], "0225:315143296")
+
+	def test_registration_status_registered(self):
+		import frappe
+
+		row = frappe._dict(
+			{
+				"company": "ACME",
+				"esalink_customer_id": "42",
+				"esalink_customer_status": "ACTIVE",
+				"is_active": 1,
+				"esalink_environment": "prod",
+			}
+		)
+
+		def gv(doctype, *args, **kwargs):
+			return "315143296" if doctype == "Company" else row
+
+		with patch("frappe.db.get_value", side_effect=gv):
+			out = prov.esalink_registration_status("P1")
+		self.assertTrue(out["registered"])
+		self.assertEqual(out["customer_id"], "42")
+		self.assertEqual(out["customer_status"], "ACTIVE")
+		self.assertEqual(out["routing_address"], "0225:315143296")
 
 
 class TestEsalinkIdentifierManagement(UnitTestCase):

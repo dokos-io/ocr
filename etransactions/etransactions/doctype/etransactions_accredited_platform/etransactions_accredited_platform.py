@@ -24,6 +24,7 @@ class eTransactionsAccreditedPlatform(Document):
 		company: DF.Link
 		description: DF.Text | None
 		directory_refresh_days: DF.Int
+		esalink_environment: DF.Literal["test", "prod"]
 		is_active: DF.Check
 		is_sandbox: DF.Check
 		last_health_check: DF.Datetime | None
@@ -41,6 +42,23 @@ class eTransactionsAccreditedPlatform(Document):
 			self.platform_code = "superpdp"
 		elif self.platform_type == "Esalink":
 			self.platform_code = "esalink"
+		self._require_credentials()
+
+	def _require_credentials(self):
+		"""Require Client ID/Secret on the record.
+
+		Esalink is exempt: its credentials are minted during registration and stay blank
+		until the account is created.
+		"""
+		if self.platform_type == "Esalink":
+			return
+		missing = []
+		if not self.get("client_id"):
+			missing.append(_("Client ID"))
+		if not self.get("client_secret"):
+			missing.append(_("Client Secret"))
+		if missing:
+			frappe.throw(_("Enter {0}.").format(", ".join(missing)))
 
 
 @frappe.whitelist()
@@ -54,7 +72,7 @@ def get_platforms(company=None, transaction_type=None):
 
 	platforms = frappe.get_all(
 		"eTransactions Accredited Platform",
-		fields=["name", "platform_name", "platform_type", "platform_code", "company", "transaction_type", "is_active", "api_base_url", "description", "auto_send_on_submit", "is_sandbox", "directory_refresh_days", "last_health_status", "last_health_check", "last_health_message"],
+		fields=["name", "platform_name", "platform_type", "platform_code", "company", "transaction_type", "is_active", "api_base_url", "description", "auto_send_on_submit", "is_sandbox", "esalink_environment", "esalink_customer_id", "esalink_customer_status", "directory_refresh_days", "last_health_status", "last_health_check", "last_health_message"],
 		filters=filters,
 		order_by="company, platform_name"
 	)
