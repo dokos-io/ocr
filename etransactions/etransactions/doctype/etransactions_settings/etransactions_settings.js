@@ -418,17 +418,28 @@ function _open_platform_dialog(frm, existing_name = null, preset_type = null) {
 // --- Bulk Esalink provisioning (create an account per company) ---------------
 
 function _open_esalink_provision_dialog(frm) {
-	if (!frm.doc.esalink_partner_username || !frm.doc.esalink_api_key) {
-		frappe.msgprint({
-			title: __("Esalink partner connection required"),
-			indicator: "orange",
-			message: __(
-				"Set the Esalink partner username, password and API key in the section above, then save, before provisioning companies."
-			),
+	// The password is a Password field (unreadable client-side): probe the
+	// full partner config server-side (booleans only, no secrets).
+	frappe
+		.xcall("etransactions.plateforme_agreee.esalink_provisioning.partner_config_ready")
+		.then((cfg) => {
+			const missing = ["username", "password", "api_key"].filter((k) => !(cfg || {})[k]);
+			if (missing.length) {
+				frappe.msgprint({
+					title: __("Esalink partner connection required"),
+					indicator: "orange",
+					message: __(
+						"Set the Esalink partner username, password and API key in the section above, then save, before provisioning companies. Missing: {0}",
+						[missing.join(", ")]
+					),
+				});
+				return;
+			}
+			_show_esalink_provision_dialog(frm);
 		});
-		return;
-	}
+}
 
+function _show_esalink_provision_dialog(frm) {
 	const d = new frappe.ui.Dialog({
 		title: __("Provision Esalink for companies"),
 		size: "large",
@@ -446,7 +457,9 @@ function _open_esalink_provision_dialog(frm) {
 				label: __("Companies"),
 				options: "Company",
 				description: __("Leave empty to provision every company without an Esalink account."),
+				onchange: () => _load_provision_preflight(d),
 			},
+			{ fieldtype: "HTML", fieldname: "preflight" },
 			{ fieldtype: "HTML", fieldname: "results" },
 		],
 		primary_action_label: __("Provision"),
@@ -465,6 +478,48 @@ function _open_esalink_provision_dialog(frm) {
 		},
 	});
 	d.show();
+	_load_provision_preflight(d);
+}
+
+// Pre-flight: show each target company's data readiness (SIREN, address, email)
+// before running, instead of discovering missing data one failed row at a time.
+function _load_provision_preflight(d) {
+	const companies = (d.get_value("companies") || []).map((c) => c.company || c);
+	const $wrap = d.fields_dict.preflight.$wrapper;
+	$wrap.html(`<div class="text-muted small">${__("Checking company data…")}</div>`);
+	frappe
+		.xcall("etransactions.plateforme_agreee.esalink_provisioning.provisioning_preflight", {
+			companies: JSON.stringify(companies),
+		})
+		.then((rows) => {
+			if (!(rows || []).length) {
+				$wrap.html(`<div class="text-muted small">${__("No companies to provision.")}</div>`);
+				return;
+			}
+			const body = rows
+				.map((row) => {
+					const badge = row.ready
+						? `<span class="indicator green">${__("Ready")}</span>`
+						: `<span class="indicator orange">${__("Missing data")}</span>`;
+					const issues = (row.issues || [])
+						.map((i) => frappe.utils.escape_html(i))
+						.join("<br>");
+					return `<tr>
+						<td>${frappe.utils.escape_html(row.company || "")}</td>
+						<td>${badge}</td>
+						<td class="small text-muted">${issues}</td>
+					</tr>`;
+				})
+				.join("");
+			$wrap.html(`
+				<table class="table table-bordered" style="margin-top:6px">
+					<thead><tr>
+						<th>${__("Company")}</th><th>${__("Preflight")}</th><th>${__("Issues")}</th>
+					</tr></thead>
+					<tbody>${body}</tbody>
+				</table>`);
+		})
+		.catch(() => $wrap.empty());
 }
 
 function _render_provision_results(d, rows) {

@@ -118,44 +118,72 @@ def _company_email(company: str, address) -> str | None:
 	return None
 
 
+def check_company_provisioning_readiness(company: str) -> list[str]:
+	"""Issues preventing this company from being provisioned on Esalink.
+
+	Shared by the payload builder (which throws on them) and the preflight
+	column of the provisioning dialog (which shows them before running).
+	"""
+	issues: list[str] = []
+	co = frappe.get_doc("Company", company)
+	if not (co.get("siren_number") or "").strip():
+		issues.append(_("No SIREN number"))
+
+	address = _company_address(company)
+	if not address:
+		issues.append(_("No default address"))
+	else:
+		missing = [f for f in ("address_line1", "city", "pincode") if not address.get(f)]
+		if missing:
+			issues.append(_("Incomplete address (missing: {0})").format(", ".join(missing)))
+
+	if not _company_email(company, address):
+		issues.append(_("No contact email (needed for the KYC onboarding email)"))
+
+	return issues
+
+
+@frappe.whitelist()
+def partner_config_ready() -> dict:
+	"""Boolean-only probe of the partner credentials (never returns secrets)."""
+	frappe.only_for(PROVISION_ROLES)
+	cfg = esalink_partner_config()
+	return {
+		"username": bool(cfg.get("username")),
+		"password": bool(cfg.get("password")),
+		"api_key": bool(cfg.get("api_key")),
+	}
+
+
+@frappe.whitelist()
+def provisioning_preflight(companies=None) -> list[dict]:
+	"""Per-company readiness for the provisioning dialog: ``[{company, ready, issues}]``."""
+	frappe.only_for(PROVISION_ROLES)
+	out = []
+	for company in _resolve_company_list(companies):
+		issues = check_company_provisioning_readiness(company)
+		out.append({"company": company, "ready": not issues, "issues": issues})
+	return out
+
+
 def _company_customer_payload(company: str) -> dict:
 	"""Build the ``CreateCustomerDTO`` for a company, validating required data.
 
 	Passing ``electronicAddresses`` makes Esalink register the directory line (0225
 	scheme = French SIRENE), so no separate identifier call is needed.
 	"""
-	co = frappe.get_doc("Company", company)
-	siren = (co.get("siren_number") or "").strip()
-	if not siren:
+	issues = check_company_provisioning_readiness(company)
+	if issues:
 		frappe.throw(
-			_(
-				"Company {0} has no SIREN number — set it before provisioning Esalink."
-			).format(company)
-		)
-
-	address = _company_address(company)
-	if not address:
-		frappe.throw(
-			_(
-				"Company {0} has no default address — required for Esalink provisioning."
-			).format(company)
-		)
-
-	missing = [f for f in ("address_line1", "city", "pincode") if not address.get(f)]
-	if missing:
-		frappe.throw(
-			_("Company {0} address is incomplete (missing: {1}).").format(
-				company, ", ".join(missing)
+			_("Company {0} is not ready for Esalink provisioning: {1}").format(
+				company, "; ".join(issues)
 			)
 		)
 
+	co = frappe.get_doc("Company", company)
+	siren = (co.get("siren_number") or "").strip()
+	address = _company_address(company)
 	email = _company_email(company, address)
-	if not email:
-		frappe.throw(
-			_(
-				"No contact email found for company {0} — Esalink needs it to send the KYC onboarding email."
-			).format(company)
-		)
 
 	payload = {
 		"customerName": co.get("company_name") or company,

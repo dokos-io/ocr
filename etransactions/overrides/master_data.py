@@ -60,3 +60,36 @@ def eas_scheme_query(doctype, txt, searchfield, start, page_len, filters):
 		page_length=page_len,
 		as_list=True,
 	)
+
+
+def apply_default_etransaction_profile(doc, method=None):
+	"""Default the e-invoicing profile on French B2B customers (Customer.validate).
+
+	The eTransaction Profile is the master switch for the whole pipeline — a
+	missing profile silently disables e-invoicing. When eTransactions Settings
+	carries a ``default_etransaction_profile``, apply it to customers that look
+	like French businesses (SIREN present, primary address French or unset),
+	with a message so the change is never silent.
+	"""
+	if doc.get("etransaction_profile") or not doc.get("siren_number"):
+		return
+
+	default_profile = frappe.db.get_single_value(
+		"eTransactions Settings", "default_etransaction_profile"
+	)
+	if not default_profile:
+		return
+
+	address = doc.get("customer_primary_address")
+	if address and frappe.db.get_value("Address", address, "country") not in (None, "France"):
+		return
+
+	doc.etransaction_profile = default_profile
+	frappe.msgprint(
+		_(
+			"The default e-invoicing profile <b>{0}</b> was applied to this customer"
+			" (configured in eTransactions Settings)."
+		).format(frappe.utils.sanitize_html(default_profile)),
+		alert=True,
+		indicator="blue",
+	)

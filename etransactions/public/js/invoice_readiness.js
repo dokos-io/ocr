@@ -10,7 +10,10 @@ frappe.provide("etransactions");
 etransactions.invoiceReadiness = {
 	refresh(frm) {
 		if (!frm.fields_dict.etransactions_status_html) return;
-		if (frm.doctype === "Sales Invoice" && !frm.doc.etransaction_profile) return;
+		// No profile is NOT a reason to stay silent on a Sales Invoice: the
+		// server reports "missing profile" as a finding for B2B/B2G customers
+		// (the profile is the pipeline's master switch).
+		if (frm.doctype === "Sales Invoice" && !frm.doc.customer) return;
 		if (frm.doctype === "Purchase Invoice" && !frm.doc.supplier) return;
 		frm._et_live = frm._et_live || frappe.utils.debounce(() => this._fetch(frm), 350);
 		frm._et_live();
@@ -118,15 +121,24 @@ etransactions.invoiceReadiness = {
 	},
 
 	// Consolidated pre-submit gate: one confirm listing all blocking issues.
+	// When the server-side hard gate is on (eTransactions Settings), skip the
+	// confirm — before_submit refuses the submission with the same list.
 	gate(frm) {
 		return new Promise((resolve, reject) => {
 			frappe.call({
 				method: "etransactions.plateforme_agreee.readiness.check_invoice_readiness",
 				args: { doc: frm.doc },
-				callback: (r) => {
+				callback: async (r) => {
 					const errors = (r.message || []).filter((f) => f.severity === "error");
 					if (!errors.length) {
 						resolve();
+						return;
+					}
+					const hard_gate = await frappe.db
+						.get_single_value("eTransactions Settings", "block_submission_on_blocking_findings")
+						.catch(() => 0);
+					if (hard_gate) {
+						resolve(); // the server hook enforces and lists the issues
 						return;
 					}
 					const list = errors

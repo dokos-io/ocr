@@ -13,27 +13,27 @@ if TYPE_CHECKING:
 
 
 def on_validate(doc, method):
-	if not doc.etransaction_profile:
-		return
+	if doc.etransaction_profile:
+		# Mutations first so the readiness evaluation sees the final values.
+		_apply_address_buyer_reference(doc)
+		_propagate_routing_from_order(doc)
 
-	# Mutations first so the readiness evaluation sees the final values.
-	_apply_address_buyer_reference(doc)
-	_propagate_routing_from_order(doc)
+		# Record the regulated-flow determination (single source of truth) so the user
+		# can see why an invoice will (or won't) be sent, and apply B2G handling.
+		from etransactions.plateforme_agreee.classification import TransactionClass, classify_transaction
 
-	# Record the regulated-flow determination (single source of truth) so the user
-	# can see why an invoice will (or won't) be sent, and apply B2G handling.
-	from etransactions.plateforme_agreee.classification import TransactionClass, classify_transaction
+		if doc.customer:
+			cls = classify_transaction(doc.company, "Customer", doc.customer, doc.customer_address)
+			doc.etransactions_flow_class = cls.value
 
-	if doc.customer:
-		cls = classify_transaction(doc.company, "Customer", doc.customer, doc.customer_address)
-		doc.etransactions_flow_class = cls.value
-
-		from etransactions.plateforme_agreee.session import get_platform_settings
-		if get_platform_settings(doc.company) and cls == TransactionClass.B2G:
-			_apply_b2g(doc)
+			from etransactions.plateforme_agreee.session import get_platform_settings
+			if get_platform_settings(doc.company) and cls == TransactionClass.B2G:
+				_apply_b2g(doc)
 
 	# Single source of truth for all e-invoice warnings (shared with the live
-	# in-form panel via check_invoice_readiness).
+	# in-form panel via check_invoice_readiness). Runs even without a profile:
+	# a missing profile on a B2B/B2G invoice is itself a finding — otherwise
+	# the whole pipeline is silently disabled.
 	from etransactions.plateforme_agreee.readiness import evaluate_einvoice_readiness, INDICATOR
 	for finding in evaluate_einvoice_readiness(doc):
 		frappe.msgprint(
@@ -56,12 +56,48 @@ def on_update(doc, method):
 
 def before_submit(doc, method):
 	"""Confirmation-time directory sync, honouring the platform's
-	``directory_sync_on_submit`` mode (blocking/not_blocking/no)."""
-	if not doc.get("customer"):
-		return
-	from etransactions.plateforme_agreee.directory import maybe_sync_on_confirm
+	``directory_sync_on_submit`` mode (blocking/not_blocking/no), then the
+	optional hard gate on blocking e-invoicing findings."""
+	if doc.get("customer"):
+		from etransactions.plateforme_agreee.directory import maybe_sync_on_confirm
 
-	maybe_sync_on_confirm(doc.company, doc.customer, origin=f"Sales Invoice {doc.name}")
+		maybe_sync_on_confirm(doc.company, doc.customer, origin=f"Sales Invoice {doc.name}")
+
+	_block_on_blocking_findings(doc)
+
+
+def _block_on_blocking_findings(doc):
+	"""Server-side submit gate (opt-in via eTransactions Settings).
+
+	The JS confirm can be bypassed (and resolves on error); when
+	``block_submission_on_blocking_findings`` is on, submission is refused while
+	blocking findings remain, so a rejection is not discovered asynchronously
+	after the PA send.
+	"""
+	if not doc.get("etransaction_profile"):
+		return
+	if not frappe.db.get_single_value("eTransactions Settings", "block_submission_on_blocking_findings"):
+		return
+
+	from etransactions.plateforme_agreee.readiness import evaluate_einvoice_readiness, evaluate_party_readiness
+
+	errors = [f.detail or f.label for f in evaluate_einvoice_readiness(doc) if f.severity == "error"]
+	if doc.get("customer"):
+		errors += [
+			_("{0}: {1}").format(_("Customer"), pf.get("label"))
+			for pf in evaluate_party_readiness("Customer", doc.customer)
+			if pf.get("severity") == "error"
+		]
+
+	if errors:
+		items = "".join(f"<li>{e}</li>" for e in errors)
+		frappe.throw(
+			_(
+				"This invoice cannot be submitted while blocking e-invoicing issues remain"
+				" (enforced by eTransactions Settings):<ul>{0}</ul>"
+			).format(items),
+			title=_("E-invoicing readiness"),
+		)
 
 
 def on_submit(doc, method):

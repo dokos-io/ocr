@@ -4,7 +4,11 @@
 import frappe
 from frappe import _
 
-from etransactions.plateforme_agreee.readiness import customer_check_specs
+from etransactions.plateforme_agreee.readiness import (
+	_company_row,
+	company_check_specs,
+	customer_check_specs,
+)
 
 # ---------------------------------------------------------------------------
 # Shared helpers
@@ -63,6 +67,42 @@ def get_customer_readiness_data() -> dict:
 		grp["total"] += 1
 		if is_ready:
 			grp["ready"] += 1
+
+	return {
+		"total": total,
+		"ready": ready,
+		"ready_pct": _pct(ready, total),
+		"checks": [c.as_result(counts[c.key], total) for c in checks],
+		"by_group": _finalize_groups(by_group),
+	}
+
+
+@frappe.whitelist()
+def get_company_readiness_data() -> dict:
+	"""Seller-side readiness for the FacturX Readiness workspace widget.
+
+	One row per active company (there are few), evaluated against
+	``company_check_specs`` — the missing counterpart of the customer widget.
+	"""
+	companies = frappe.get_all("Company", pluck="name")
+	total = len(companies)
+	if not total:
+		return {"total": 0, "ready": 0, "ready_pct": 0, "checks": [], "by_group": []}
+
+	checks = company_check_specs()
+	counts = {c.key: 0 for c in checks}
+	by_group: dict = {}
+	ready = 0
+
+	for name in companies:
+		row = _company_row(name)
+		is_ready = all(c.passes(row) for c in checks if c.blocking)
+		if is_ready:
+			ready += 1
+		for c in checks:
+			if c.passes(row):
+				counts[c.key] += 1
+		by_group[name] = {"group": name, "total": 1, "ready": 1 if is_ready else 0}
 
 	return {
 		"total": total,
@@ -319,6 +359,11 @@ def _fetch_customers() -> list:
 			Customer.customer_primary_contact,
 			Customer.email_id,
 			Customer.customer_primary_address,
+			Customer.etransaction_profile,
+			Customer.directory_type,
+			Customer.directory_entity_type,
+			Customer.directory_query_siren,
+			Customer.directory_query_siret,
 		)
 		.where(Customer.disabled == 0)
 		.run(as_dict=True)

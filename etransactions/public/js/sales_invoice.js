@@ -7,9 +7,11 @@ frappe.ui.form.on("Sales Invoice", {
 		// their PPF e-reporting status independently of the e-invoice profile.
 		if (frm.doc.docstatus === 1) _show_ereporting(frm);
 
-		if (!frm.doc.etransaction_profile) return;
-
+		// The readiness panel runs even without a profile (it flags the missing
+		// profile itself); the eInvoice buttons only make sense with one.
 		etransactions.invoiceReadiness.refresh(frm);
+
+		if (!frm.doc.etransaction_profile) return;
 
 		if (frm.doc.docstatus === 1) {
 			frm.add_custom_button(__("Download FacturX Invoice"), () => {

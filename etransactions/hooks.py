@@ -227,7 +227,10 @@ doc_events = {
 		"on_update": "etransactions.plateforme_agreee.ereporting.on_company_update",
 	},
 	"Customer": {
-		"validate": "etransactions.overrides.master_data.validate_electronic_address",
+		"validate": [
+			"etransactions.overrides.master_data.validate_electronic_address",
+			"etransactions.overrides.master_data.apply_default_etransaction_profile",
+		],
 	},
 	"Supplier": {
 		"validate": "etransactions.overrides.master_data.validate_electronic_address",

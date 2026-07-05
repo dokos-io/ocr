@@ -194,3 +194,63 @@ class TestPlatformErrorMapping(UnitTestCase):
 		finding = _platform_finding("k", "some opaque platform error", "error", "DKY", "ACME")
 		self.assertIsNone(finding.fix_doctype)
 		self.assertEqual(finding.label, "some opaque platform error")
+
+
+class TestProfileKillSwitch(UnitTestCase):
+	"""A missing eTransaction Profile on a B2B/B2G invoice must surface as a
+	finding instead of silently disabling the whole pipeline."""
+
+	def _findings(self, cls_name):
+		from types import SimpleNamespace
+		from unittest.mock import patch
+
+		from etransactions.plateforme_agreee.classification import TransactionClass
+		from etransactions.plateforme_agreee.readiness import evaluate_einvoice_readiness
+
+		doc = SimpleNamespace(
+			doctype="Sales Invoice",
+			get=lambda k, d=None: {
+				"etransaction_profile": None,
+				"company": "_Test Company",
+				"customer": "_Test Customer",
+				"customer_address": None,
+			}.get(k, d),
+		)
+		with patch(
+			"etransactions.plateforme_agreee.classification.classify_transaction",
+			return_value=TransactionClass(cls_name),
+		):
+			return evaluate_einvoice_readiness(doc)
+
+	def test_b2b_without_profile_warns(self):
+		findings = self._findings("B2B")
+		self.assertEqual([f.key for f in findings], ["missing_profile"])
+		self.assertEqual(findings[0].severity, "warning")
+		self.assertEqual(findings[0].fix_field, "etransaction_profile")
+
+	def test_b2c_without_profile_stays_silent(self):
+		self.assertEqual(self._findings("B2C"), [])
+
+
+class TestCompanyChecks(UnitTestCase):
+	"""Seller-side readiness specs (company widget)."""
+
+	def test_specs_tolerate_empty_row(self):
+		from etransactions.plateforme_agreee.readiness import company_check_specs
+
+		for spec in company_check_specs():
+			spec.passes({})  # must not crash
+
+	def test_electronic_address_paths(self):
+		from etransactions.plateforme_agreee.readiness import _company_electronic_address_ok
+
+		self.assertFalse(_company_electronic_address_ok({}))
+		self.assertTrue(_company_electronic_address_ok({"email": "billing@x.fr"}))
+		self.assertTrue(
+			_company_electronic_address_ok(
+				{
+					"etransactions_electronic_address_scheme": "0002",
+					"etransactions_electronic_address": "824710776",
+				}
+			)
+		)

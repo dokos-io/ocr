@@ -15,6 +15,8 @@
   "facturx_section",
   "generate_facturx_on_submit",
   "block_submission_on_facturx_failure",
+  "block_submission_on_blocking_findings",
+  "default_etransaction_profile",
   "french_ctc_section",
   "default_business_process_code",
   "purchase_invoices_tab",
@@ -70,6 +72,20 @@
    "fieldname": "block_submission_on_facturx_failure",
    "fieldtype": "Check",
    "label": "Block submission if FacturX PDF generation fails"
+  },
+  {
+   "default": "0",
+   "description": "Refuse submitting a Sales Invoice while blocking e-invoicing findings remain (the readiness panel lists them). Off = findings are shown but submission is allowed.",
+   "fieldname": "block_submission_on_blocking_findings",
+   "fieldtype": "Check",
+   "label": "Block submission on blocking e-invoicing findings"
+  },
+  {
+   "description": "Applied automatically to customers with a SIREN and a French (or empty) primary address that have no profile yet. The profile is the master switch of the e-invoicing pipeline.",
+   "fieldname": "default_etransaction_profile",
+   "fieldtype": "Link",
+   "label": "Default eTransaction Profile for French B2B customers",
+   "options": "eTransaction Profile"
   },
   {
    "fieldname": "french_ctc_section",

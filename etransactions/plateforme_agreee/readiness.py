@@ -96,6 +96,14 @@ def customer_check_specs() -> list[CheckSpec]:
 		CheckSpec("siren_valid", _("Valid SIREN number"), False, _siren_valid, "siren_number"),
 		CheckSpec("tax_id", _("Tax ID (TVA)"), True, lambda r: bool(r.get("tax_id")), "tax_id"),
 		CheckSpec("siren_vat_match", _("SIREN matches VAT number"), False, _siren_vat_match, "siren_number"),
+		# Non-blocking, but without it the whole e-invoicing pipeline stays off.
+		CheckSpec(
+			"profile",
+			_("e-Invoicing profile"),
+			False,
+			lambda r: bool(r.get("etransaction_profile")),
+			"etransaction_profile",
+		),
 		CheckSpec(
 			"contact",
 			_("Primary contact"),
@@ -159,6 +167,80 @@ def supplier_check_specs() -> list[CheckSpec]:
 		),
 		CheckSpec("siret", _("SIRET on address"), True, _siret_ok, fix_doctype="address"),
 	]
+
+
+def company_check_specs() -> list[CheckSpec]:
+	"""Seller-side readiness: the company's own e-invoicing master data.
+
+	A tenant can show 100% customer readiness and still fail every invoice on
+	seller checks — these mirror the invoice-level ``_seller_findings``.
+	"""
+	return [
+		CheckSpec("siren", _("SIREN number"), True, lambda r: bool(r.get("siren_number")), "siren_number"),
+		CheckSpec(
+			"siren_valid",
+			_("Valid SIREN number"),
+			False,
+			lambda r: not r.get("siren_number") or is_valid_siren(r.get("siren_number")),
+			"siren_number",
+		),
+		CheckSpec("tax_id", _("Tax ID (TVA)"), True, lambda r: bool(r.get("tax_id")), "tax_id"),
+		CheckSpec(
+			"siren_vat_match",
+			_("SIREN matches VAT number"),
+			False,
+			lambda r: vat_matches_siren(r.get("tax_id"), r.get("siren_number")),
+			"tax_id",
+		),
+		CheckSpec("address", _("Default company address"), True, lambda r: bool(r.get("resolved_address"))),
+		CheckSpec("addr_fields", _("Complete company address"), True, _addr_fields_ok, fix_doctype="address"),
+		CheckSpec(
+			"electronic_address",
+			_("Electronic address (BT-34)"),
+			True,
+			_company_electronic_address_ok,
+			"email",
+		),
+		CheckSpec(
+			"vat_regime",
+			_("VAT regime (e-reporting)"),
+			False,
+			lambda r: bool(r.get("etransactions_vat_regime")),
+			"etransactions_vat_regime",
+		),
+		CheckSpec("platform", _("Active accredited platform"), False, _company_has_platform),
+	]
+
+
+def _company_electronic_address_ok(r: dict) -> bool:
+	if r.get("etransactions_electronic_address_scheme") and r.get("etransactions_electronic_address"):
+		return True
+	return bool(r.get("email"))
+
+
+def _company_has_platform(r: dict) -> bool:
+	return bool(
+		frappe.db.exists("eTransactions Accredited Platform", {"company": r.get("name"), "is_active": 1})
+	)
+
+
+def _company_row(company: str) -> dict:
+	row = frappe.db.get_value(
+		"Company",
+		company,
+		[
+			"name",
+			"siren_number",
+			"tax_id",
+			"email",
+			"etransactions_electronic_address_scheme",
+			"etransactions_electronic_address",
+			"etransactions_vat_regime",
+		],
+		as_dict=True,
+	) or {}
+	_attach_address(row, "Company", company, None)
+	return row
 
 
 def _siren_valid(r: dict) -> bool:
@@ -296,6 +378,7 @@ def _customer_row(party: str) -> dict:
 			"customer_primary_contact",
 			"email_id",
 			"customer_primary_address",
+			"etransaction_profile",
 		],
 		as_dict=True,
 	) or {}
@@ -432,7 +515,10 @@ def evaluate_einvoice_readiness(doc) -> list[Finding]:
 	if getattr(doc, "doctype", None) != "Sales Invoice":
 		return []
 	if not doc.get("etransaction_profile"):
-		return []
+		# The profile is the master switch for the whole e-invoicing pipeline:
+		# without it, no eInvoice is ever generated. Surface that instead of
+		# staying silent when the transaction clearly belongs to the CTC scope.
+		return _profile_findings(doc)
 
 	findings: list[Finding] = []
 	findings += _seller_findings(doc)
@@ -440,6 +526,43 @@ def evaluate_einvoice_readiness(doc) -> list[Finding]:
 	findings += _tax_findings(doc)
 	findings += _payment_schedule_findings(doc)
 	return findings
+
+
+def _profile_findings(doc) -> list[Finding]:
+	"""Warn when a B2B/B2G invoice has no eTransaction Profile (silent kill-switch)."""
+	if not (doc.get("company") and doc.get("customer")):
+		return []
+	try:
+		from etransactions.plateforme_agreee.classification import (
+			TransactionClass,
+			classify_transaction,
+		)
+
+		cls = classify_transaction(
+			doc.get("company"), "Customer", doc.get("customer"), doc.get("customer_address")
+		)
+	except Exception:
+		return []
+	if cls not in (TransactionClass.B2B_DOMESTIC, TransactionClass.B2G):
+		return []
+
+	customer = frappe.utils.sanitize_html(doc.get("customer"))
+	return [
+		Finding(
+			"missing_profile",
+			"warning",
+			_("No e-invoice will be generated: the customer has no e-invoicing profile"),
+			detail=_(
+				"This invoice is classified <b>{0}</b> and falls under the French e-invoicing"
+				" mandate, but no <b>eTransaction Profile</b> is set — so no electronic invoice"
+				" will be generated or transmitted. Set a profile (e.g. EN16931) on the"
+				" <a href='/app/customer/{1}'>customer</a> or on this invoice."
+			).format(cls.value, customer),
+			fix_doctype="Customer",
+			fix_name=doc.get("customer"),
+			fix_field="etransaction_profile",
+		)
+	]
 
 
 def _seller_findings(doc) -> list[Finding]:
@@ -475,6 +598,9 @@ def _seller_findings(doc) -> list[Finding]:
 					"Add a <b>Tax ID</b> (VAT/TVA intracommunautaire) in <a href='/app/company/{0}'>Company settings</a>, "
 					"or a <b>SIREN number</b> (numéro SIREN) in the same page."
 				).format(company),
+				fix_doctype="Company",
+				fix_name=doc.company,
+				fix_field="tax_id",
 			)
 		)
 
@@ -511,6 +637,9 @@ def _seller_findings(doc) -> list[Finding]:
 					"<b>Option 3</b> — Configure <b>Electronic Address Scheme</b> and <b>Electronic Address</b> "
 					"on the Company record (e.g. SIREN with scheme 0002)."
 				).format(company),
+				fix_doctype="Company",
+				fix_name=doc.company,
+				fix_field="email",
 			)
 		)
 	return out
