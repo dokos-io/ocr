@@ -93,13 +93,19 @@ class IntegrationTesteTransactionsAccreditedPlatform(IntegrationTestCase):
 
 		# Esalink may be saved with blank creds (minted later); the fallback is gone, so a
 		# blank record yields (None, None) even when site_config carries matching keys.
-		esalink = frappe.get_doc({
-			"doctype": "eTransactions Accredited Platform",
-			"platform_name": "Esalink Cred Test",
-			"platform_type": "Esalink",
-			"company": frappe.defaults.get_global_default("company") or "_Test Company",
-			"transaction_type": "Both",
-		}).insert(ignore_permissions=True)
+		# The partner-config gate is orthogonal to what this test checks, so it's stubbed
+		# out to let the blank Esalink row insert.
+		with patch(
+			"etransactions.plateforme_agreee.esalink_provisioning.partner_credentials_configured",
+			return_value=True,
+		):
+			esalink = frappe.get_doc({
+				"doctype": "eTransactions Accredited Platform",
+				"platform_name": "Esalink Cred Test",
+				"platform_type": "Esalink",
+				"company": frappe.defaults.get_global_default("company") or "_Test Company",
+				"transaction_type": "Both",
+			}).insert(ignore_permissions=True)
 		with patch.dict(
 			frappe.conf,
 			{"esalink_client_id": "confid", "esalink_client_secret": "confsec"},
