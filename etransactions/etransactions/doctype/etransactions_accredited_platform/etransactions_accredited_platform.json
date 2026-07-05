@@ -31,6 +31,7 @@
   "last_health_message",
   "last_incoming_poll",
   "esalink_account_section",
+  "esalink_environment",
   "esalink_customer_id",
   "esalink_user_id",
   "esalink_customer_status"
@@ -160,13 +161,12 @@
    "fieldname": "client_id",
    "fieldtype": "Password",
    "label": "Client ID",
-   "reqd": 1
+   "description": "Leave blank to use the site_config.json keys <platform_code>_client_id / _client_secret."
   },
   {
    "fieldname": "client_secret",
    "fieldtype": "Password",
-   "label": "Client Secret",
-   "reqd": 1
+   "label": "Client Secret"
   },
   {
    "fieldname": "health_section",
@@ -205,6 +205,15 @@
    "fieldname": "esalink_account_section",
    "fieldtype": "Section Break",
    "label": "Esalink Account"
+  },
+  {
+   "default": "test",
+   "depends_on": "eval:doc.platform_type === 'Esalink'",
+   "fieldname": "esalink_environment",
+   "fieldtype": "Select",
+   "label": "Esalink Environment",
+   "options": "test\nprod",
+   "description": "test = https://ppd.hubtimize.fr, prod = https://hubtimize.fr"
   },
   {
    "fieldname": "esalink_customer_id",

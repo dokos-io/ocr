@@ -17,7 +17,11 @@ Two implementations sit behind the same dialog:
 import frappe
 from frappe import _
 
-from etransactions.plateforme_agreee.session import _build_client, platform_supports
+from etransactions.plateforme_agreee.session import (
+	_build_client,
+	_platform_credentials,
+	platform_supports,
+)
 
 
 class EsalinkDirectoryAdapter:
@@ -107,15 +111,17 @@ def _get_directory_client(platform_name: str):
 		frappe.throw(
 			_("Directory registration is not supported on {0} platforms.").format(doc.platform_type)
 		)
+	client_id, client_secret = _platform_credentials(doc)
 	return _build_client(
 		doc.platform_type,
-		doc.get_password("client_id"),
-		doc.get_password("client_secret", raise_exception=False),
+		client_id,
+		client_secret,
 		api_base_url=doc.api_base_url,
 		platform_code=doc.platform_code,
 		sandbox=bool(doc.is_sandbox),
 		auth_method=doc.get("auth_method") or "client_credentials",
 		platform_name=platform_name,
+		company=doc.company,
 	)
 
 

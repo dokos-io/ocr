@@ -51,6 +51,17 @@ def get_platform_capabilities() -> dict:
 	return PLATFORM_CAPABILITIES
 
 
+def _platform_credentials(doc):
+	"""(client_id, client_secret) from the platform doc.
+
+	Custom/SuperPDP credentials are entered on the record; Esalink credentials are minted
+	during registration and stored on the record too.
+	"""
+	cid = doc.get_password("client_id", raise_exception=False)
+	secret = doc.get_password("client_secret", raise_exception=False)
+	return cid, secret
+
+
 def _build_client(
 	platform_type,
 	client_id,
@@ -60,6 +71,8 @@ def _build_client(
 	sandbox=False,
 	auth_method="client_credentials",
 	platform_name=None,
+	company=None,
+	esalink_environment=None,
 ):
 	"""Instantiate the right PA client from raw credentials.
 
@@ -92,12 +105,13 @@ def _build_client(
 
 	# Esalink (HUBTIMIZE) — native AFNOR-style client with the hubtimize-api-key header.
 	# Credentials are the company's minted clientId/clientSecret; the api-key and base
-	# URL are environment-level and read from eTransactions Settings.
+	# URL are resolved per-company (Company field → site_config fallback).
 	from etransactions.components.esalink import EsalinkClient, base_url_for_environment
 	from etransactions.plateforme_agreee.esalink_provisioning import esalink_runtime_config
 
 	cfg = esalink_runtime_config()
-	base = api_base_url or base_url_for_environment(cfg["environment"])
+	env = esalink_environment or cfg["environment"]
+	base = api_base_url or base_url_for_environment(env)
 	return EsalinkClient(
 		username=client_id,
 		password=client_secret,
@@ -173,16 +187,19 @@ def get_client(company: str, customer: str = None, transaction_type: str = "sale
 		)
 
 	platform_doc = frappe.get_cached_doc("eTransactions Accredited Platform", platform_name)
+	client_id, client_secret = _platform_credentials(platform_doc)
 	try:
 		return _build_client(
 			platform_doc.platform_type,
-			platform_doc.get_password("client_id"),
-			platform_doc.get_password("client_secret", raise_exception=False),
+			client_id,
+			client_secret,
 			api_base_url=platform_doc.api_base_url,
 			platform_code=platform_doc.platform_code,
 			sandbox=bool(platform_doc.is_sandbox),
 			auth_method=platform_doc.get("auth_method") or "client_credentials",
 			platform_name=platform_name,
+			company=platform_doc.company,
+			esalink_environment=platform_doc.get("esalink_environment"),
 		)
 	except Exception as e:
 		frappe.throw(
@@ -218,6 +235,8 @@ def test_platform_credentials(
 	platform_code=None,
 	auth_method=None,
 	platform_name=None,
+	company=None,
+	esalink_environment=None,
 ):
 	"""Probe credentials without persisting anything (used before saving a platform).
 
@@ -246,6 +265,8 @@ def test_platform_credentials(
 			platform_code,
 			auth_method=auth_method,
 			platform_name=platform_name,
+			company=company,
+			esalink_environment=esalink_environment,
 		)
 		client.healthcheck()
 		return {"status": "ok", "message": _("Connection successful.")}
@@ -256,15 +277,18 @@ def test_platform_credentials(
 def check_platform_health(platform_name: str, store: bool = True) -> dict:
 	"""Probe a saved platform's connection and (by default) persist the outcome."""
 	doc = frappe.get_cached_doc("eTransactions Accredited Platform", platform_name)
+	client_id, client_secret = _platform_credentials(doc)
 	try:
 		client = _build_client(
 			doc.platform_type,
-			doc.get_password("client_id"),
-			doc.get_password("client_secret", raise_exception=False),
+			client_id,
+			client_secret,
 			api_base_url=doc.api_base_url,
 			platform_code=doc.platform_code,
 			auth_method=doc.get("auth_method") or "client_credentials",
 			platform_name=platform_name,
+			company=doc.company,
+			esalink_environment=doc.get("esalink_environment"),
 		)
 		client.healthcheck()
 		status, message = "ok", _("Connection successful.")
@@ -384,7 +408,7 @@ def start_oauth_onboarding(platform_name: str) -> dict:
 
 	siren = frappe.db.get_value("Company", doc.company, "siren_number") if doc.company else None
 	url = SuperPDPClient.build_authorize_url(
-		client_id=doc.get_password("client_id"),
+		client_id=_platform_credentials(doc)[0],
 		redirect_uri=_oauth_redirect_uri(),
 		state=state,
 		code_challenge=code_challenge,
@@ -417,7 +441,7 @@ def oauth_callback(**kwargs):
 	from etransactions.components.superpdp import SuperPDPClient
 
 	token = SuperPDPClient.exchange_authorization_code(
-		client_id=doc.get_password("client_id"),
+		client_id=_platform_credentials(doc)[0],
 		code=code,
 		code_verifier=cached["code_verifier"],
 		redirect_uri=_oauth_redirect_uri(),

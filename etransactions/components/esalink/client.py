@@ -275,6 +275,37 @@ class EsalinkPartnerClient(_HubtimizeTransport, AFNORClient):
         resp = self._request("GET", f"{self._CUSTOMER_PATH}/{customer_id}")
         return resp.json()
 
+    def search_customers(self, limit: int = 100, offset: int = 0) -> dict:
+        """``POST /v1/customerPA/search`` → one page ``{limit, offset, total, customers[]}``."""
+        resp = self._request(
+            "POST",
+            f"{self._CUSTOMER_PATH}/search",
+            params={"offset": offset, "limit": limit},
+            json={},
+        )
+        return resp.json() or {}
+
+    def find_customer_by_legal_id(self, legal_id: str) -> int | None:
+        """Return the customer id whose ``customerLegalId`` matches ``legal_id``, else ``None``.
+
+        The Customer API exposes no server-side filter, so page through the customer list
+        and match locally (SIREN is unique, so the first match wins).
+        """
+        target = str(legal_id).strip()
+        if not target:
+            return None
+        limit, offset = 100, 0
+        while True:
+            page = self.search_customers(limit=limit, offset=offset)
+            customers = page.get("customers") or []
+            for cust in customers:
+                if str(cust.get("customerLegalId") or "").strip() == target:
+                    cid = cust.get("customerId") or cust.get("id")
+                    return int(cid) if cid is not None else None
+            offset += len(customers)
+            if not customers or offset >= (page.get("total") or 0):
+                return None
+
     def resend_kyc_email(self, customer_id: int) -> None:
         """``POST /v1/customerPA/{id}/resend-kyc-onboarding-email`` — re-send onboarding."""
         self._request(

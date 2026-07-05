@@ -17,6 +17,7 @@ class _FakePlatformDoc:
 		self.api_base_url = None
 		self.platform_code = "superpdp"
 		self.is_sandbox = 1
+		self.company = "Test Company"
 		self._auth_method = auth_method
 		self._client_secret = client_secret
 
@@ -63,6 +64,7 @@ class TestOwnDirectoryClientBuild(UnitTestCase):
 			sandbox=True,
 			auth_method="authorization_code",
 			platform_name="SuperPDP - Test",
+			company="Test Company",
 		)
 
 	def test_missing_client_secret_does_not_raise(self):

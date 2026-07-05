@@ -34,12 +34,6 @@
   "accredited_platform_tab",
   "platform_management_section",
   "platform_html",
-  "esalink_partner_section",
-  "esalink_environment",
-  "esalink_api_key",
-  "esalink_partner_column",
-  "esalink_partner_username",
-  "esalink_partner_password",
   "lifecycle_status_section",
   "auto_send_in_hand",
   "auto_send_approved",
@@ -219,40 +213,6 @@
    "fieldname": "platform_html",
    "fieldtype": "HTML",
    "label": "Manage Accredited Platforms"
-  },
-  {
-   "fieldname": "esalink_partner_section",
-   "fieldtype": "Section Break",
-   "label": "Esalink Partner Connection (HUBTIMIZE)",
-   "description": "Integrator credentials used to create an Esalink account per company via HUBTIMIZE's Customer-management API. The hubtimize-api-key and base URL are environment-level (shared by every company)."
-  },
-  {
-   "default": "test",
-   "fieldname": "esalink_environment",
-   "fieldtype": "Select",
-   "label": "Esalink Environment",
-   "options": "test\nprod",
-   "description": "test = https://ppd.hubtimize.fr, prod = https://hubtimize.fr"
-  },
-  {
-   "fieldname": "esalink_api_key",
-   "fieldtype": "Password",
-   "label": "HUBTIMIZE API Key",
-   "description": "Sent as the hubtimize-api-key header on every Esalink call."
-  },
-  {
-   "fieldname": "esalink_partner_column",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "esalink_partner_username",
-   "fieldtype": "Data",
-   "label": "Partner Username"
-  },
-  {
-   "fieldname": "esalink_partner_password",
-   "fieldtype": "Password",
-   "label": "Partner Password"
   },
   {
    "fieldname": "lifecycle_status_section",

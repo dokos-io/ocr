@@ -286,6 +286,19 @@ CUSTOM_FIELDS_TO_DELETE = [
 		"fieldname": "pa_establishments_section",
 		"fieldtype": "Section Break",
 	},
+	# Removed: Esalink partner credentials now live in site_config.json only (no
+	# per-company override); the Esalink account is created per company at platform setup.
+	*[
+		{"dt": "Company", "fieldname": fieldname}
+		for fieldname in (
+			"etransactions_esalink_section",
+			"etransactions_esalink_environment",
+			"etransactions_esalink_api_key",
+			"etransactions_esalink_partner_column",
+			"etransactions_esalink_partner_username",
+			"etransactions_esalink_partner_password",
+		)
+	],
 ]
 
 
