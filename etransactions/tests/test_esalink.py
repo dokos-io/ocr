@@ -387,6 +387,79 @@ class TestEsalinkProvisioningHelpers(UnitTestCase):
 		self.assertEqual(out["routing_address"], "0225:315143296")
 
 
+class TestEsalinkPartnerGate(UnitTestCase):
+	"""Cloud-aware hard block when the Esalink partner credentials are missing."""
+
+	def test_is_dokos_cloud_flag_and_hostname_fallback(self):
+		import frappe
+
+		had = "dokos_cloud" in frappe.conf
+		prev = frappe.conf.get("dokos_cloud")
+		try:
+			# Explicit flag wins even when no host looks like a cloud host.
+			frappe.conf["dokos_cloud"] = 1
+			with patch.object(prov, "_dokos_cloud_candidate_hosts", return_value=[]):
+				self.assertTrue(prov.is_dokos_cloud())
+			# No flag → the .dokos.cloud host suffix decides.
+			frappe.conf["dokos_cloud"] = 0
+			with patch.object(prov, "_dokos_cloud_candidate_hosts", return_value=["acme.dokos.cloud"]):
+				self.assertTrue(prov.is_dokos_cloud())
+			with patch.object(prov, "_dokos_cloud_candidate_hosts", return_value=["acme.example.com"]):
+				self.assertFalse(prov.is_dokos_cloud())
+		finally:
+			if had:
+				frappe.conf["dokos_cloud"] = prev
+			else:
+				frappe.conf.pop("dokos_cloud", None)
+
+	def test_host_is_dokos_cloud_strips_scheme_and_port(self):
+		self.assertTrue(prov._host_is_dokos_cloud("https://acme.dokos.cloud:443/app"))
+		self.assertFalse(prov._host_is_dokos_cloud("acme.dokos.io"))
+
+	def test_message_points_to_dokos_support_on_cloud(self):
+		with patch.object(prov, "is_dokos_cloud", return_value=True):
+			self.assertIn("help@dokos.cloud", prov._partner_credentials_message())
+
+	def test_message_points_to_account_manager_when_self_hosted(self):
+		with patch.object(prov, "is_dokos_cloud", return_value=False):
+			msg = prov._partner_credentials_message()
+		self.assertIn("account manager at Esalink", msg)
+		self.assertNotIn("help@dokos.cloud", msg)
+
+	def test_partner_status_blocks_when_unconfigured(self):
+		with (
+			patch.object(prov, "partner_credentials_configured", return_value=False),
+			patch.object(prov, "is_dokos_cloud", return_value=False),
+		):
+			out = prov.esalink_partner_status()
+		self.assertFalse(out["configured"])
+		self.assertFalse(out["is_cloud"])
+		self.assertIn("account manager at Esalink", out["message"])
+
+	def test_partner_status_ok_when_configured(self):
+		with patch.object(prov, "partner_credentials_configured", return_value=True):
+			out = prov.esalink_partner_status()
+		self.assertTrue(out["configured"])
+		self.assertIsNone(out["message"])
+
+	def test_new_esalink_platform_validate_blocks_without_partner_config(self):
+		import frappe
+
+		doc = frappe.new_doc("eTransactions Accredited Platform")
+		doc.platform_type = "Esalink"
+		with patch.object(prov, "partner_credentials_configured", return_value=False):
+			with self.assertRaises(frappe.ValidationError):
+				doc.validate()
+
+	def test_new_esalink_platform_validate_passes_when_configured(self):
+		import frappe
+
+		doc = frappe.new_doc("eTransactions Accredited Platform")
+		doc.platform_type = "Esalink"
+		with patch.object(prov, "partner_credentials_configured", return_value=True):
+			doc.validate()  # Esalink is exempt from record-level client credentials
+
+
 class TestEsalinkIdentifierManagement(UnitTestCase):
 	"""Partner-API identifier CRUD used for the company's own directory entries."""
 

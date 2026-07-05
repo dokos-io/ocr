@@ -67,16 +67,61 @@ def partner_credentials_configured() -> bool:
 	return bool(cfg["username"] and cfg["password"] and cfg["api_key"])
 
 
+def _host_is_dokos_cloud(host: str) -> bool:
+	"""True when ``host`` (site name or configured hostname) sits under ``.dokos.cloud``."""
+	host = host.split("://", 1)[-1].split("/", 1)[0].split(":", 1)[0].lower()
+	return host.endswith(".dokos.cloud")
+
+
+def _dokos_cloud_candidate_hosts() -> list:
+	"""Hosts that identify a Dokos Cloud site — the configured hostname and the site name."""
+	return [h for h in (frappe.conf.get("hostname"), getattr(frappe.local, "site", None)) if h]
+
+
+def is_dokos_cloud() -> bool:
+	"""True on Dokos Cloud.
+
+	Prefers the explicit ``dokos_cloud`` site_config flag set by cloud provisioning;
+	falls back to a ``.dokos.cloud`` host match (configured hostname / site name) so
+	cloud sites still resolve when the flag is absent.
+	"""
+	if frappe.conf.get("dokos_cloud"):
+		return True
+	return any(_host_is_dokos_cloud(h) for h in _dokos_cloud_candidate_hosts())
+
+
+def _partner_credentials_message() -> str:
+	"""Audience-aware guidance shown when the Esalink partner credentials are missing."""
+	base = _("The Esalink partner credentials are not configured on this site.")
+	if is_dokos_cloud():
+		return base + " " + _("Send a message to help@dokos.cloud to enable Esalink.")
+	return base + " " + _(
+		"Contact your account manager at Esalink to obtain your partner credentials,"
+		" then set esalink_partner_username, esalink_partner_password and"
+		" esalink_api_key in site_config.json."
+	)
+
+
+@frappe.whitelist()
+def esalink_partner_status() -> dict:
+	"""Whether the Esalink partner credentials are configured, for the Add/Edit dialog.
+
+	Callable without an existing platform record so the Add dialog can gate the
+	Esalink selection before any row is created.
+	"""
+	frappe.only_for(PROVISION_ROLES)
+	configured = partner_credentials_configured()
+	return {
+		"configured": configured,
+		"is_cloud": is_dokos_cloud(),
+		"message": None if configured else _partner_credentials_message(),
+	}
+
+
 def _partner_client() -> EsalinkPartnerClient:
 	cfg = esalink_partner_config()
 	if not (cfg["username"] and cfg["password"] and cfg["api_key"]):
-		frappe.throw(
-			_(
-				"Configure the Esalink partner username, password and API key in"
-				" site_config.json (esalink_partner_username, esalink_partner_password,"
-				" esalink_api_key) first."
-			)
-		)
+		frappe.throw(_partner_credentials_message())
 	return EsalinkPartnerClient(
 		username=cfg["username"],
 		password=cfg["password"],

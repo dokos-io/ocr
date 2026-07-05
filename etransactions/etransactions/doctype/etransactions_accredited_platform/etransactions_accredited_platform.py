@@ -42,7 +42,24 @@ class eTransactionsAccreditedPlatform(Document):
 			self.platform_code = "superpdp"
 		elif self.platform_type == "Esalink":
 			self.platform_code = "esalink"
+			self._require_esalink_partner_config()
 		self._require_credentials()
+
+	def _require_esalink_partner_config(self):
+		"""Block creating a new Esalink platform when the site has no partner credentials.
+
+		Existing rows stay editable (keys may be set later); only new selections are
+		hard-blocked, mirroring the Add-dialog guard.
+		"""
+		if not self.is_new():
+			return
+		from etransactions.plateforme_agreee.esalink_provisioning import (
+			_partner_credentials_message,
+			partner_credentials_configured,
+		)
+
+		if not partner_credentials_configured():
+			frappe.throw(_partner_credentials_message())
 
 	def _require_credentials(self):
 		"""Require Client ID/Secret on the record.

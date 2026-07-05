@@ -389,6 +389,35 @@ function _open_platform_dialog(frm, existing_name = null, preset_type = null) {
 			</div>`);
 	}
 
+	// Hard-block the dialog when Esalink is selected but the site has no partner
+	// credentials in site_config. Renders a blocking banner and disables the primary
+	// action until the credentials are configured; other platform types stay enabled.
+	function _apply_esalink_partner_gate() {
+		// Only new Esalink rows are hard-blocked; existing rows stay editable even if the
+		// keys are later removed (mirrors the server-side is_new() guard).
+		if (is_edit || dialog.get_value("platform_type") !== "Esalink") {
+			dialog.enable_primary_action();
+			_render_esalink_status();
+			return;
+		}
+		frappe
+			.xcall("etransactions.plateforme_agreee.esalink_provisioning.esalink_partner_status")
+			.then((s) => {
+				if (dialog.get_value("platform_type") !== "Esalink") return;
+				if (s.configured) {
+					dialog.enable_primary_action();
+					_render_esalink_status();
+					return;
+				}
+				dialog.disable_primary_action();
+				dialog.fields_dict.esalink_status_html.$wrapper.html(`
+					<div class="et-esalink-status">
+						<div><span class="indicator-pill red">${__("Esalink not available")}</span></div>
+						<div class="text-muted small" style="margin-top:6px">${frappe.utils.escape_html(s.message || "")}</div>
+					</div>`);
+			});
+	}
+
 	// Render the Esalink registration state into the status banner. In add mode there is no
 	// record yet, so it explains registration is a separate later step; in edit mode it
 	// fetches the account status and offers the register / manage actions.
@@ -496,12 +525,12 @@ function _open_platform_dialog(frm, existing_name = null, preset_type = null) {
 			dialog.enable_primary_action();
 		}
 		_toggle_redirect_url(type);
-		_render_esalink_status();
+		_apply_esalink_partner_gate();
 	};
 
 	// Reload the Esalink prefill when the company changes.
 	dialog.fields_dict.company.df.onchange = function () {
-		_render_esalink_status();
+		_apply_esalink_partner_gate();
 	};
 
 	// Inline connection test — probe the entered credentials before saving (not Esalink).
@@ -558,7 +587,7 @@ function _open_platform_dialog(frm, existing_name = null, preset_type = null) {
 		if (preset_type === "SuperPDP") dialog.set_value("platform_code", "superpdp");
 		else if (preset_type === "Esalink") dialog.set_value("platform_code", "esalink");
 		_toggle_redirect_url(preset_type);
-		_render_esalink_status();
+		_apply_esalink_partner_gate();
 	}
 
 	dialog.show();
