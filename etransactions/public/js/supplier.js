@@ -17,7 +17,9 @@ frappe.ui.form.on("Supplier", {
 			query: "etransactions.overrides.master_data.eas_scheme_query",
 		}));
 
-		if (etransactions.sirene) {
+		// Pappers (ERPNext France) does the same French company lookup; only offer SIRENE
+		// when Pappers is not enabled, to avoid two redundant autofill entry points.
+		if (etransactions.sirene && !frappe.boot.pappers_enabled) {
 			frm.add_custom_button(__("Fill from SIRENE"), () => etransactions.sirene.open(frm), __("eInvoicing"));
 		}
 	},
