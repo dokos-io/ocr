@@ -3146,7 +3146,7 @@ msgid ""
 "eTransaction Profile first."
 msgstr ""
 "Aucune facture électronique trouvée pour la facture client {0}. Enregistrez "
-"la facture client avec un profil de transaction électronique d'abord."
+"d'abord la facture client avec un profil eTransaction."
 
 #: etransactions/plateforme_agreee/sandbox.py:218
 msgid ""
@@ -6790,7 +6790,7 @@ msgstr "Sous-total d'entrée e-reporting"
 #. Name of a DocType
 #: etransactions/etransactions/doctype/etransaction_profile/etransaction_profile.json
 msgid "eTransaction Profile"
-msgstr "Profil de transaction électronique"
+msgstr "Profil eTransaction"
 
 #. Label of a Desktop Icon
 #. Title of a Workspace Sidebar
@@ -6801,7 +6801,7 @@ msgstr "Profil de transaction électronique"
 #: etransactions/overrides/custom_fields/master_data.py:309
 #: etransactions/workspace_sidebar/etransactions.json
 msgid "eTransactions"
-msgstr "Transactions électroniques"
+msgstr "eTransactions"
 
 #. Name of a DocType
 #. Label of the accredited_platform_tab (Tab Break) field in DocType
@@ -6836,7 +6836,7 @@ msgstr "Erreur de suppression du fichier eTransactions"
 #: etransactions/public/js/accounting_request_dialog.js:109
 #: frontend/src/components/EhubTopBar.vue:13
 msgid "eTransactions Hub"
-msgstr "Hub de transactions électroniques"
+msgstr "Hub eTransactions"
 
 #. Name of a DocType
 #: etransactions/etransactions/doctype/etransactions_platform_token/etransactions_platform_token.json
