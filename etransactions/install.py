@@ -306,11 +306,27 @@ def add_custom_fields():
 	click.secho("* Updating eTransactions Custom Fields")
 	_delete_obsolete_custom_fields()
 
-	custom_fields = get_custom_fields()
+	custom_fields = _with_explicit_hidden(get_custom_fields())
 	create_custom_fields(custom_fields, ignore_validate=frappe.flags.in_patch, update=True)
 
 	for dt in custom_fields:
 		frappe.clear_cache(doctype=dt)
+
+
+def _with_explicit_hidden(custom_fields):
+	"""Force an explicit ``hidden`` on every managed field.
+
+	create_custom_fields(update=True) only overrides keys present in the definition,
+	so a field whose definition omits ``hidden`` can keep a legacy stored hidden=1
+	forever — that is why the eTransactions tabs stayed hidden on installed sites even
+	when e-invoicing was enabled. Defaulting hidden to 0 here makes every install/migrate
+	reconcile it; the two intentionally hidden fields keep their explicit hidden=1
+	because ``df`` is spread last.
+	"""
+	return {
+		dt: [{"hidden": 0, **df} for df in fields]
+		for dt, fields in custom_fields.items()
+	}
 
 
 def _delete_obsolete_custom_fields():
