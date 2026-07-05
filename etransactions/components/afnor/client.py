@@ -20,6 +20,7 @@ from datetime import datetime, timedelta, timezone
 import frappe
 from frappe import _
 
+from etransactions.components.common import is_auth_error, throw_credentials_rejected
 from etransactions.components.common import to_db_datetime as _to_db_datetime
 from etransactions.components.common import to_utc_iso
 from etransactions.components.superpdp.models import (
@@ -170,6 +171,8 @@ class AFNORClient:
             )
         except Exception:
             msg = resp.text[:300]
+        if is_auth_error(resp.status_code, msg):
+            throw_credentials_rejected(msg)
         frappe.throw(
             _("AFNOR PA API error {0}: {1}").format(resp.status_code, msg),
             frappe.ValidationError,

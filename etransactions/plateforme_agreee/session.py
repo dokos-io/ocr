@@ -55,7 +55,8 @@ def _platform_credentials(doc):
 	"""(client_id, client_secret) from the platform doc.
 
 	Custom/SuperPDP credentials are entered on the record; Esalink credentials are minted
-	during registration and stored on the record too.
+	during registration and stored on the record too. Credentials are read *only* from the
+	record — there is no site_config fallback (see the doctype tests locking this in).
 	"""
 	cid = doc.get_password("client_id", raise_exception=False)
 	secret = doc.get_password("client_secret", raise_exception=False)
@@ -186,27 +187,95 @@ def get_client(company: str, customer: str = None, transaction_type: str = "sale
 			_("No eTransactions Accredited Platform configured for company {0}. Configure it in eTransactions Settings.").format(company)
 		)
 
-	platform_doc = frappe.get_cached_doc("eTransactions Accredited Platform", platform_name)
-	client_id, client_secret = _platform_credentials(platform_doc)
 	try:
-		return _build_client(
-			platform_doc.platform_type,
-			client_id,
-			client_secret,
-			api_base_url=platform_doc.api_base_url,
-			platform_code=platform_doc.platform_code,
-			sandbox=bool(platform_doc.is_sandbox),
-			auth_method=platform_doc.get("auth_method") or "client_credentials",
-			platform_name=platform_name,
-			company=platform_doc.company,
-			esalink_environment=platform_doc.get("esalink_environment"),
-		)
+		return build_client_for_platform(platform_name)
 	except Exception as e:
 		frappe.throw(
 			_("Failed to connect to eTransactions Accredited Platform for company {0}: {1}").format(
 				company, str(e)
 			)
 		)
+
+
+def build_client_for_platform(platform_name: str):
+	"""Instantiate an authenticated PA client for a specific platform record.
+
+	Deciding *which* platform to use lives in ``get_client`` /
+	``get_platform_for_context``; this helper only turns a resolved platform name
+	into a client. Credentials come solely from the record (no site_config fallback).
+	"""
+	platform_doc = frappe.get_cached_doc("eTransactions Accredited Platform", platform_name)
+	client_id, client_secret = _platform_credentials(platform_doc)
+	return _build_client(
+		platform_doc.platform_type,
+		client_id,
+		client_secret,
+		api_base_url=platform_doc.api_base_url,
+		platform_code=platform_doc.platform_code,
+		sandbox=bool(platform_doc.is_sandbox),
+		auth_method=platform_doc.get("auth_method") or "client_credentials",
+		platform_name=platform_name,
+		company=platform_doc.company,
+		esalink_environment=platform_doc.get("esalink_environment"),
+	)
+
+
+def get_directory_client(company: str, customer: str = None, transaction_type: str = "sales"):
+	"""Return an authenticated PA client for read-only directory lookups.
+
+	Directory queries (PPF/Peppol) read the national directory and submit no
+	document under any company's identity, so — unlike :func:`get_client` (used
+	for sends/e-reporting, which must stay on the company's own PA) — this
+	tolerates the company's own platform being unavailable: if it has no active
+	platform, or its platform fails to authenticate/connect (e.g. stale
+	credentials → 401 ``invalid_client``), the first other active platform is
+	used instead.
+
+	Resolution order: the context platform (honouring Customer / Customer Group
+	overrides), then every other ``is_active`` platform ordered by creation. Each
+	candidate is probed with ``healthcheck()`` (forces the token fetch) and the
+	first that authenticates is returned.
+
+	Returns ``(client, platform_name)`` so callers can log when a fallback was
+	used. Raises ``frappe.ValidationError`` if no active platform can authenticate.
+	"""
+	candidates = []
+	primary = get_platform_for_context(company, customer=customer, transaction_type=transaction_type)
+	if primary:
+		candidates.append(primary)
+	for name in frappe.get_all(
+		"eTransactions Accredited Platform",
+		filters={"is_active": 1},
+		pluck="name",
+		order_by="creation asc",
+	):
+		if name not in candidates:
+			candidates.append(name)
+
+	if not candidates:
+		frappe.throw(
+			_(
+				"No active eTransactions Accredited Platform is available for directory lookups. "
+				"Configure one in eTransactions Settings."
+			)
+		)
+
+	last_error = None
+	for platform_name in candidates:
+		try:
+			client = build_client_for_platform(platform_name)
+			client.healthcheck()
+			return client, platform_name
+		except Exception as e:
+			last_error = e
+			continue
+
+	frappe.throw(
+		_(
+			"No active eTransactions Accredited Platform could authenticate for directory lookups. "
+			"Last error: {0}"
+		).format(str(last_error))
+	)
 
 
 def get_session(company: str, customer: str = None, transaction_type: str = "sales"):

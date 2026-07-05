@@ -14,6 +14,7 @@ from datetime import datetime
 import frappe
 from frappe import _
 
+from etransactions.components.common import is_auth_error, throw_credentials_rejected
 from etransactions.components.common import to_db_datetime as _to_db_datetime
 from etransactions.components.superpdp.models import (
     B2CPayment,
@@ -310,6 +311,9 @@ class SuperPDPClient:
             )
 
         low = msg.lower()
+        if is_auth_error(resp.status_code, msg):
+            throw_credentials_rejected(msg)
+
         if "receiver address does not exist" in low or "peppol directory" in low:
             frappe.throw(
                 _(

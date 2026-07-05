@@ -1,9 +1,27 @@
 import frappe
 from frappe import _
 
-from etransactions.plateforme_agreee.session import get_client
+from etransactions.plateforme_agreee.session import get_directory_client
 from etransactions.plateforme_agreee.routing import address_for_siret, parse_directory_identifier
 from etransactions.etransactions.doctype.einvoicing_log.einvoicing_log import eInvoicingLog
+
+
+def _note_fallback_platform(result: dict, company: str, used_platform: str, customer: str = None):
+	"""Append an info log when a directory read used a fallback platform.
+
+	``get_directory_client`` falls back to another company's active PA when the
+	company's own platform is missing or fails to authenticate. Record which
+	platform actually served the lookup so the fallback is auditable.
+	"""
+	from etransactions.plateforme_agreee.session import get_platform_for_context
+
+	primary = get_platform_for_context(company, customer=customer)
+	if used_platform and used_platform != primary:
+		result["logs"].append((
+			"info",
+			f"Company {company}'s own platform was unavailable — directory read served by "
+			f"fallback platform {used_platform}.",
+		))
 
 
 @frappe.whitelist()
@@ -20,7 +38,7 @@ def sync_customer_directory(customer: str, company: str = None):
 		frappe.throw(_("This customer has no SIREN number. Add one before syncing directory lines."))
 	if not company:
 		company = frappe.defaults.get_global_default("company")
-	client = get_client(company, customer=customer)
+	client, used_platform = get_directory_client(company, customer=customer)
 
 	result = {
 		"operation_type": "directory_single",
@@ -30,6 +48,7 @@ def sync_customer_directory(customer: str, company: str = None):
 		"updated_count": 0,
 		"logs": [],
 	}
+	_note_fallback_platform(result, company, used_platform, customer=customer)
 
 	if frappe.db.get_value("Customer", customer, "directory_type") == "peppol" and not getattr(
 		client, "supports_peppol_directory", False
@@ -123,7 +142,8 @@ def maybe_sync_on_confirm(company: str, customer: str, origin: str = "Confirmati
 		"logs": [],
 	}
 	try:
-		client = get_client(company, customer=customer)
+		client, used_platform = get_directory_client(company, customer=customer)
+		_note_fallback_platform(result, company, used_platform, customer=customer)
 		_sync_customer_directory(customer, client, result)
 		eInvoicingLog.create_log(result)
 	except Exception as e:
@@ -218,7 +238,8 @@ def sync_all_customers():
 		}
 
 		try:
-			client = get_client(company)
+			client, used_platform = get_directory_client(company)
+			_note_fallback_platform(result, company, used_platform)
 		except Exception as e:
 			result["logs"].append(("error", str(e)))
 			eInvoicingLog.create_log(result)

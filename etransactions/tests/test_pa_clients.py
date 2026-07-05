@@ -149,6 +149,22 @@ class TestSuperPDPRaiseForStatus(UnitTestCase):
 			SuperPDPClient._raise_for_status(resp)
 		self.assertIn("SuperPDP API error 500", str(cm.exception))
 
+	def test_invalid_client_maps_to_credentials_message(self):
+		resp = _error_response({"error": "invalid_client"}, status_code=401)
+		with self.assertRaises(frappe.ValidationError) as cm:
+			SuperPDPClient._raise_for_status(resp)
+		message = str(cm.exception)
+		# The credentials-rejected branch fired, not the raw "SuperPDP API error" fallback.
+		self.assertIn("rejected the stored credentials", message)
+		self.assertNotIn("SuperPDP API error", message)
+
+	def test_plain_401_maps_to_credentials_message(self):
+		# Even without an "invalid_client" body, a 401 signals rejected credentials.
+		resp = _error_response({"message": "Unauthorized"}, status_code=401)
+		with self.assertRaises(frappe.ValidationError) as cm:
+			SuperPDPClient._raise_for_status(resp)
+		self.assertIn("rejected the stored credentials", str(cm.exception))
+
 
 class TestSuperPDPOwnDirectory(UnitTestCase):
 	"""Own-company directory entry methods route to the right endpoints."""

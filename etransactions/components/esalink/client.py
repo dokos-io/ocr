@@ -26,6 +26,7 @@ import frappe
 from frappe import _
 
 from etransactions.components.afnor.client import AFNORClient
+from etransactions.components.common import is_auth_error, throw_credentials_rejected
 
 try:
     import requests
@@ -118,6 +119,8 @@ class _HubtimizeTransport:
             )
         except Exception:
             msg = resp.text[:300]
+        if is_auth_error(resp.status_code, msg):
+            throw_credentials_rejected(msg)
         frappe.throw(
             _("Esalink API error {0}: {1}").format(resp.status_code, msg),
             frappe.ValidationError,

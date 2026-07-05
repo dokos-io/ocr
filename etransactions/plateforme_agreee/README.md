@@ -48,9 +48,19 @@ PA configuration lives in two DocTypes:
   optional `api_base_url`, the `transaction_type` it covers (`Sales` / `Purchases` /
   `Both`), `is_active`, `auto_send_on_submit`, and `directory_refresh_days` (default 15).
   `platform_code` is auto-set to `superpdp` / `esalink` in `validate()`.
-- **eTransactions Settings** (singleton) — global fallbacks `default_sales_platform` /
-  `default_purchases_platform`, plus the auto-status flags `auto_send_in_hand`,
+  Credentials live **only on the record** — `client_id` / `client_secret` are never read
+  from `site_config.json` (the doctype tests lock this in). Esalink's *environment*
+  settings (`esalink_environment`, `esalink_api_key`, partner credentials) do come from
+  `site_config`, but the minted `client_id` / `client_secret` are still stored on the record.
+- **eTransactions Settings** (singleton) — the auto-status flags `auto_send_in_hand`,
   `auto_send_approved`, `auto_send_payment`.
+
+**Read-only directory fallback.** Sends and e-reporting always use the company's *own*
+active PA (`get_client`). Read-only directory lookups (`get_directory_client`) are more
+lenient: if the company has no active PA, or its PA fails to authenticate/connect (e.g.
+stale credentials → `401 invalid_client`), they fall back to the first other `is_active`
+platform (ordered by creation) — safe because a directory query submits no document under
+any company's identity.
 
 CRUD on platforms is exposed through whitelisted helpers in
 [`../etransactions/doctype/etransactions_accredited_platform/etransactions_accredited_platform.py`](../etransactions/doctype/etransactions_accredited_platform/etransactions_accredited_platform.py):

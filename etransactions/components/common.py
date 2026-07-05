@@ -2,6 +2,41 @@
 
 from datetime import datetime
 
+import frappe
+from frappe import _
+
+
+def is_auth_error(status_code: int, message: str) -> bool:
+    """True when a platform response signals rejected client credentials.
+
+    Covers HTTP 401 and the OAuth2 ``invalid_client`` / ``invalid_grant`` error
+    codes returned by the token endpoint.
+    """
+    low = (message or "").lower()
+    return status_code == 401 or "invalid_client" in low or "invalid_grant" in low
+
+
+def throw_credentials_rejected(message: str) -> None:
+    """Raise a shared, actionable error when a platform rejects its credentials.
+
+    Used by every PA client so the cryptic ``invalid_client`` / HTTP 401 surfaces
+    the same operator-facing guidance regardless of platform type.
+    """
+    frappe.throw(
+        _(
+            "The e-invoicing platform rejected the stored credentials "
+            "(authentication failed: {0}). To fix this: <br>"
+            "1. Check the platform's <b>Client ID</b> and <b>Client Secret</b> in "
+            "<a href='/desk/etransactions-accredited-platform'>eTransactions Accredited Platform</a>.<br>"
+            "2. Make sure they match the platform environment — sandbox credentials must use the "
+            "sandbox <b>API Base URL</b>, production credentials the production one.<br>"
+            "3. For interactive platforms (authorization code), the onboarding may have expired — "
+            "re-run the onboarding to obtain a fresh refresh token."
+        ).format(message),
+        frappe.ValidationError,
+        title=_("Platform credentials rejected"),
+    )
+
 
 def to_db_datetime(value: str | None) -> str | None:
     """Normalize a platform ISO-8601 timestamp into a DB-safe datetime string.
