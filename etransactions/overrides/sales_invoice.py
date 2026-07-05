@@ -365,9 +365,11 @@ def _propagate_routing_from_order(doc):
 
 
 def _apply_address_buyer_reference(doc):
-	"""Let the establishment (customer address) override the customer-level BT-10
-	service code. The customer-level value (fetched client-side) remains the
-	default when the address carries none."""
+	"""Set the BT-10 service code from the billing establishment (customer address).
+
+	The service code is establishment-specific, so the Address is its source of
+	truth; a value typed directly on the invoice is preserved when the address
+	carries none."""
 	if not doc.customer_address:
 		return
 	addr_ref = frappe.db.get_value("Address", doc.customer_address, "etransactions_buyer_reference")

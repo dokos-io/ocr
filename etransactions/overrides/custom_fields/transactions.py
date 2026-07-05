@@ -52,7 +52,9 @@ buyer_reference_field = {
 	"fieldname": "etransactions_buyer_reference",
 	"label": _("Buyer Reference"),
 	"fieldtype": "Data",
-	"fetch_from": "customer.etransactions_buyer_reference",
+	# BT-10 service code is establishment-specific, so it is defaulted from the
+	# billing Address; overrides/sales_invoice.py re-applies this server-side.
+	"fetch_from": "customer_address.etransactions_buyer_reference",
 	"fetch_if_empty": 1,
 }
 
@@ -61,8 +63,11 @@ contract_reference_field = {
 	"label": _("Contract Reference"),
 	"description": _("Public-procurement contract number (numéro de marché, BT-12). Used for B2G / Chorus Pro."),
 	"fieldtype": "Data",
-	"fetch_from": "customer.etransactions_contract_reference",
-	"fetch_if_empty": 1,
+	# Explicitly cleared: create_custom_fields(update=True) only overrides keys
+	# present in the definition, so an empty string is needed to reset the stale
+	# fetch_from that pointed at the removed Customer default on existing sites.
+	"fetch_from": "",
+	"fetch_if_empty": 0,
 }
 
 # The accredited-platform routing line (establishment) the e-invoice is sent to.

@@ -25,6 +25,8 @@ customer_fields = [
 		"insert_after": "etransactions_tab",
 	},
 	# --- Identity: the few fields a user actually sets ---
+	# The E-invoicing Network switch drives the whole tab: the French routing
+	# section shows for "ppf", the Peppol Endpoint section for "peppol".
 	{
 		"fieldname": "pa_identity_section",
 		"label": _("Identity"),
@@ -32,32 +34,31 @@ customer_fields = [
 		"insert_after": "etransactions_wizard_html",
 	},
 	{
+		"fieldname": "directory_type",
+		"label": _("E-invoicing Network"),
+		"fieldtype": "Select",
+		# Stored values match the SuperPDP API contract ("peppol" | "ppf");
+		# "ppf" is the French national directory (Portail Public de Facturation).
+		"options": "\npeppol\nppf",
+		"default": "ppf",
+		"insert_after": "pa_identity_section",
+		"description": _("The network this customer is reached on: the Peppol network, or the French national directory (PPF)."),
+	},
+	{
 		"fieldname": "etransaction_profile",
 		"label": "eTransaction Profile",
 		"fieldtype": "Link",
 		"options": "eTransaction Profile",
-		"insert_after": "pa_identity_section",
+		"insert_after": "directory_type",
 	},
-	{
-		"fieldname": "etransactions_buyer_reference",
-		"label": _("Buyer Reference"),
-		"insert_after": "etransaction_profile",
-		"fieldtype": "Data",
-	},
-	{
-		"fieldname": "etransactions_contract_reference",
-		"label": _("Contract Reference"),
-		"description": _("Default public-procurement contract number (numéro de marché) for B2G invoices."),
-		"insert_after": "etransactions_buyer_reference",
-		"fieldtype": "Data",
-	},
-	# --- Routing: discovered and maintained automatically by directory sync ---
+	# --- French routing: discovered and maintained automatically by directory sync ---
 	{
 		"fieldname": "pa_directory_section",
 		"label": _("Routing — managed automatically"),
 		"fieldtype": "Section Break",
-		"insert_after": "etransactions_contract_reference",
+		"insert_after": "etransaction_profile",
 		"collapsible": 1,
+		"depends_on": 'eval:doc.directory_type!="peppol"',
 	},
 	# Read-only establishments + routing-line table (customer.js via
 	# get_party_establishments) — the visual status, shown first in the section.
@@ -125,30 +126,51 @@ customer_fields = [
 		"no_copy": 1,
 		"hidden": 1,
 	},
+	# --- Peppol: the endpoint a Peppol participant is reached at ---
+	# For Peppol, the ISO 6523 scheme + participant id ARE the routing address
+	# (there is no French directory to sync), so they are the primary input here.
+	{
+		"fieldname": "pa_peppol_section",
+		"label": _("Peppol Endpoint"),
+		"fieldtype": "Section Break",
+		"insert_after": "directory_query_siret",
+		"depends_on": 'eval:doc.directory_type=="peppol"',
+	},
+	{
+		"fieldname": "etransactions_electronic_address_scheme",
+		"label": _("Peppol Endpoint Scheme"),
+		"insert_after": "pa_peppol_section",
+		"fieldtype": "Link",
+		"options": "Common Code",
+	},
+	{
+		"fieldname": "etransactions_electronic_address",
+		"label": _("Peppol Endpoint ID"),
+		"insert_after": "etransactions_electronic_address_scheme",
+		"fieldtype": "Data",
+		"depends_on": "etransactions_electronic_address_scheme",
+	},
+	# --- Advanced: network-neutral routing overrides, rarely touched ---
+	{
+		"fieldname": "pa_advanced_section",
+		"label": _("Advanced"),
+		"fieldtype": "Section Break",
+		"insert_after": "etransactions_electronic_address",
+		"collapsible": 1,
+	},
 	{
 		"fieldname": "default_directory_line",
 		"label": _("Default Directory Line"),
 		"fieldtype": "Link",
 		"options": "eInvoicing Directory Line",
-		"insert_after": "directory_update_date",
+		"insert_after": "pa_advanced_section",
 		"description": _("Default routing line used when no establishment-specific line matches the invoice address."),
-	},
-	{
-		"fieldname": "directory_type",
-		"label": _("Directory"),
-		"fieldtype": "Select",
-		# Stored values match the SuperPDP API contract ("peppol" | "ppf");
-		# "ppf" is the French national directory (Portail Public de Facturation).
-		"options": "\npeppol\nppf",
-		"default": "ppf",
-		"insert_after": "default_directory_line",
-		"description": _("Which directory to look in when syncing routing lines: Peppol or the French national directory (PPF)."),
 	},
 	{
 		"fieldname": "directory_pinned",
 		"label": _("Directory Pinned"),
 		"fieldtype": "Check",
-		"insert_after": "directory_type",
+		"insert_after": "default_directory_line",
 		"description": _(
 			"Skip automatic directory sync; routing is maintained manually "
 			"(e.g. the SuperPDP sandbox recipient). Unpin to let sync update the lines."
@@ -161,22 +183,6 @@ customer_fields = [
 		"options": "eTransactions Accredited Platform",
 		"insert_after": "directory_pinned",
 		"description": _("Override the default eTransactions Accredited Platform for this customer"),
-	},
-	# Manual electronic address (BT-49) — fallback only, when the party is not in
-	# the directory. Normally the synced routing line is authoritative.
-	{
-		"fieldname": "etransactions_electronic_address_scheme",
-		"label": _("Electronic Address Scheme"),
-		"insert_after": "accredited_platform_override",
-		"fieldtype": "Link",
-		"options": "Common Code",
-	},
-	{
-		"fieldname": "etransactions_electronic_address",
-		"label": _("Electronic Address"),
-		"insert_after": "etransactions_electronic_address_scheme",
-		"fieldtype": "Data",
-		"depends_on": "etransactions_electronic_address_scheme",
 	},
 ]
 
@@ -260,9 +266,12 @@ customer_group_fields = [
 	},
 ]
 
-# Suppliers need identification for incoming-invoice matching; routing is the
-# buyer's (company's) concern, so no directory fields here. The eTransactions tab
-# hosts the lighter readiness indicator above the natively-edited fields.
+# Suppliers need identification for incoming-invoice matching; routing and the
+# electronic address (BT-34/BT-49) are the buyer's/seller's concern — a supplier is
+# the seller on invoices we *receive*, so its endpoint is never emitted by anything
+# we generate. The eTransactions tab therefore carries no endpoint/routing fields:
+# just the lighter readiness indicator above the natively-edited identification
+# fields (SIREN next to Tax ID, Tax ID, and SIRET on the Address).
 supplier_fields = [
 	{
 		"fieldname": "siren_number",
@@ -282,20 +291,6 @@ supplier_fields = [
 		"fieldname": "etransactions_wizard_html",
 		"fieldtype": "HTML",
 		"insert_after": "etransactions_tab",
-	},
-	{
-		"fieldname": "etransactions_electronic_address_scheme",
-		"label": _("Electronic Address Scheme"),
-		"insert_after": "etransactions_wizard_html",
-		"fieldtype": "Link",
-		"options": "Common Code",
-	},
-	{
-		"fieldname": "etransactions_electronic_address",
-		"label": _("Electronic Address"),
-		"insert_after": "etransactions_electronic_address_scheme",
-		"fieldtype": "Data",
-		"depends_on": "etransactions_electronic_address_scheme",
 	},
 ]
 

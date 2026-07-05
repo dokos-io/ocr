@@ -709,7 +709,7 @@ def _routing_findings(doc) -> list[Finding]:
 				_("B2G service code (BT-10) is usually required"),
 				detail=_(
 					"This is a B2G invoice (public entity). The <b>service code</b> (code service exécutant, "
-					"BT-10 Buyer Reference) is usually required by Chorus Pro. Set it on the invoice or on the customer."
+					"BT-10 Buyer Reference) is usually required by Chorus Pro. Set it on the invoice or on the customer's billing address."
 				),
 				fix_field="etransactions_buyer_reference",
 			)

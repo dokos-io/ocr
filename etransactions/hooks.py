@@ -235,9 +235,8 @@ doc_events = {
 			"etransactions.overrides.master_data.apply_default_etransaction_profile",
 		],
 	},
-	"Supplier": {
-		"validate": "etransactions.overrides.master_data.validate_electronic_address",
-	},
+	# Supplier carries no electronic-address field (its endpoint is never emitted),
+	# so it needs no validate_electronic_address guard.
 }
 
 # Scheduled Tasks

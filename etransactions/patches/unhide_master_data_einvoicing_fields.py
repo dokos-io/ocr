@@ -12,8 +12,6 @@ def execute():
 	fields = {
 		"Customer": (
 			"etransaction_profile",
-			"etransactions_buyer_reference",
-			"etransactions_contract_reference",
 			"etransactions_electronic_address_scheme",
 			"etransactions_electronic_address",
 			"pa_directory_section",

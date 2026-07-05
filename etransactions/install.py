@@ -286,6 +286,19 @@ CUSTOM_FIELDS_TO_DELETE = [
 		"fieldname": "pa_establishments_section",
 		"fieldtype": "Section Break",
 	},
+	# Removed: the B2G references are establishment-/document-specific, not a
+	# per-customer default. The service code (BT-10) now lives on the Address and
+	# the contract number (BT-12) is entered per invoice/order.
+	{
+		"dt": "Customer",
+		"fieldname": "etransactions_buyer_reference",
+		"fieldtype": "Data",
+	},
+	{
+		"dt": "Customer",
+		"fieldname": "etransactions_contract_reference",
+		"fieldtype": "Data",
+	},
 	# Removed: Esalink partner credentials now live in site_config.json only (no
 	# per-company override); the Esalink account is created per company at platform setup.
 	*[
@@ -299,6 +312,12 @@ CUSTOM_FIELDS_TO_DELETE = [
 			"etransactions_esalink_partner_password",
 		)
 	],
+	# Removed: a supplier is the seller on incoming invoices — its electronic
+	# address (BT-34/BT-49) is never emitted by anything we generate. Only the
+	# Company and Customer endpoints are used (see einvoice/generator.py), so the
+	# supplier picker + save-time EAS guard were dead weight.
+	{"dt": "Supplier", "fieldname": "etransactions_electronic_address_scheme", "fieldtype": "Link"},
+	{"dt": "Supplier", "fieldname": "etransactions_electronic_address", "fieldtype": "Data"},
 ]
 
 

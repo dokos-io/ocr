@@ -12,11 +12,6 @@ frappe.ui.form.on("Supplier", {
 			frm._et_readiness.refresh();
 		}
 
-		// Offer only CEF EAS schemes — anything else fails EN16931 (BR-CL-25).
-		frm.set_query("etransactions_electronic_address_scheme", () => ({
-			query: "etransactions.overrides.master_data.eas_scheme_query",
-		}));
-
 		// Pappers (ERPNext France) does the same French company lookup; only offer SIRENE
 		// when Pappers is not enabled, to avoid two redundant autofill entry points.
 		if (etransactions.sirene && !frappe.boot.pappers_enabled) {

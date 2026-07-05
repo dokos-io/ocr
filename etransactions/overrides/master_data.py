@@ -1,9 +1,11 @@
 """Validation guards for the e-invoicing fields on master data.
 
-Customer / Supplier / Company all carry an ``etransactions_electronic_address_scheme``
-(a Common Code) and an ``etransactions_electronic_address``. The scheme is emitted
-verbatim as the EndpointID/@schemeID (BT-34 / BT-49) of every generated eInvoice,
-where EN16931 rule BR-CL-25 requires it to belong to the CEF EAS code list.
+Customer and Company carry an ``etransactions_electronic_address_scheme`` (a Common
+Code) and an ``etransactions_electronic_address`` — the buyer (BT-49) and seller
+(BT-34) endpoints. Supplier does not: it is the seller on invoices we *receive*, so
+its endpoint is never emitted by anything we generate. The scheme is emitted verbatim
+as the EndpointID/@schemeID of every generated eInvoice, where EN16931 rule BR-CL-25
+requires it to belong to the CEF EAS code list.
 
 The scheme field is an unfiltered Link to Common Code, whose options span the whole
 Peppol participant-identifier-scheme list — a superset of EAS that also includes
@@ -45,8 +47,8 @@ def validate_electronic_address(doc, method=None):
 def eas_scheme_query(doctype, txt, searchfield, start, page_len, filters):
 	"""Link-field query that offers only CEF EAS Common Codes (BR-CL-25).
 
-	Bound to ``etransactions_electronic_address_scheme`` on Customer / Supplier /
-	Company so the picker can't surface a non-EAS scheme. Shares the EAS allowlist
+	Bound to ``etransactions_electronic_address_scheme`` on Customer and Company
+	so the picker can't surface a non-EAS scheme. Shares the EAS allowlist
 	with the save-time guard, so the dropdown and the validation never disagree.
 	"""
 	like = f"%{txt}%"
