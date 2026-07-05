@@ -33,7 +33,7 @@ The `platform_type` field on **eTransactions Accredited Platform** selects the b
 |-----------------|--------------|-----------|--------------------|
 | `SuperPDP` | `SuperPDPClient` | SuperPDP REST API (`/v1.beta/…`) | events **inline** on the invoice |
 | `Custom` | `AFNORClient` | AFNOR XP Z12-013 standard REST | separate **CDAR** flows |
-| `Esalink` | `ESALINKClient` | `pyfrctc` library | separate **CDAR** flows |
+| `Esalink` | `EsalinkClient` | HUBTIMIZE REST — AFNOR-shaped, `POST /v1/token` JSON auth + `hubtimize-api-key` header | separate **CDAR** flows |
 
 The key behavioural split is the last column: **SuperPDP exposes lifecycle events inline
 on each invoice**, whereas **AFNOR/Esalink deliver them as separate incoming CDAR flows**.
@@ -98,7 +98,7 @@ INCOMING (purchases)
 | [`routing.py`](routing.py) | Identifier parsing + routing resolution (`parse_directory_identifier`, `resolve_routing`, `address_for_siret`) |
 | [`lifecycle_status.py`](lifecycle_status.py) | Canonical status registry + per-platform code mapping |
 | [`cdar.py`](cdar.py) | CDAR XML data builder (`build_cdar_data`, `generate_cdar_flow`) over `pyfrctc.generate_cdar` |
-| [`esalink.py`](esalink.py) | `ESALINKClient` — `pyfrctc` adapter implementing the unified interface |
+| [`esalink_provisioning.py`](esalink_provisioning.py) | Esalink account registration via HUBTIMIZE's partner Customer API (`/v1/customerPA`): create a customer per company, mint its `clientId`/`clientSecret`, register the directory line |
 
 ### Platform clients — `etransactions/components/`
 
@@ -107,11 +107,12 @@ INCOMING (purchases)
 | [`../components/superpdp/client.py`](../components/superpdp/client.py) | `SuperPDPClient` — OAuth2 client-credentials, token caching, raw + unified API methods |
 | [`../components/superpdp/models.py`](../components/superpdp/models.py) | Platform-agnostic dataclasses (the shared vocabulary, see below) |
 | [`../components/afnor/client.py`](../components/afnor/client.py) | `AFNORClient` — XP Z12-013 REST, lifecycle via CDAR flows |
-| `../components/ext/superpdp.json` | SuperPDP OpenAPI spec (reference) |
+| [`../components/esalink/client.py`](../components/esalink/client.py) | `EsalinkClient` (per-company operations) + `EsalinkPartnerClient` (integrator `/v1/customerPA` provisioning). Both subclass `AFNORClient` and swap in HUBTIMIZE's token auth + `hubtimize-api-key` header |
+| `../components/ext/superpdp.json`, `../components/ext/ESALINK_API_*.yml` | SuperPDP / HUBTIMIZE OpenAPI specs (reference) |
 
 ## The unified client interface
 
-`get_client()` returns one of `SuperPDPClient`, `AFNORClient`, or `ESALINKClient`. All
+`get_client()` returns one of `SuperPDPClient`, `AFNORClient`, or `EsalinkClient`. All
 three implement the same method set; callers in `flow.py`, `directory.py`, `auto_status.py`
 and `eInvoice` never import a concrete client.
 
@@ -151,11 +152,13 @@ by this precedence:
 
 - `SuperPDP` → `SuperPDPClient(client_id, client_secret, base_url)`
 - `Custom` → `AFNORClient(client_id, client_secret, base_url)` (base URL **required**)
-- otherwise (Esalink) → `pyfrctc.get_session(client_id, client_secret, platform=platform_code)`
-  wrapped in `ESALINKClient`
+- otherwise (Esalink) → `EsalinkClient(username=client_id, password=client_secret,
+  api_key, base_url)` — the company's minted `clientId`/`clientSecret`, with the
+  `hubtimize-api-key` and base URL resolved per-environment (`esalink_runtime_config()`,
+  Company field → `site_config` fallback)
 
-`get_session()` is a legacy raw-`pyfrctc` accessor kept for backward compatibility; it
-raises for SuperPDP. Prefer `get_client()` for all new code.
+`get_session()` is retired — Esalink no longer exposes a raw `pyfrctc` session — and now
+throws; use `get_client()` for all platforms.
 
 ## Per-platform notes
 
@@ -185,9 +188,19 @@ raises for SuperPDP. Prefer `get_client()` for all new code.
   `cdar.generate_cdar_flow()`; incoming lifecycle arrives as `CustomerInvoiceLC` /
   `SupplierInvoiceLC` flows.
 
-### Esalink — `esalink.py`
-- Thin adapter over the `pyfrctc` session returned by `pyfrctc.get_session(...)`. Same
-  CDAR-based lifecycle model as AFNOR.
+### Esalink (HUBTIMIZE) — `components/esalink/client.py` + `esalink_provisioning.py`
+- **Not** `pyfrctc` — a native HTTP client. `EsalinkClient` subclasses `AFNORClient` (so it
+  reuses the entire Flows/Directory/lifecycle interface and the CDAR-based lifecycle model)
+  and only swaps the transport: auth via `POST /v1/token` with a JSON `{username, password}`
+  body, plus a mandatory `hubtimize-api-key` header on every call. Base URL is per-environment
+  (`ppd.hubtimize.fr` for `test`, `hubtimize.fr` for `prod`).
+- **Account provisioning** (`esalink_provisioning.py`) is Esalink-specific: `EsalinkPartnerClient`
+  (the integrator's `/v1/customerPA` API, authenticated with partner credentials from
+  `site_config`) creates a customer per company — which triggers HUBTIMIZE's KYC/KYB onboarding
+  email and registers the French directory line — then mints the company's `clientId`/`clientSecret`
+  via `POST /v1/customerPA/{id}/user`. The credentials are stored on the platform record and a
+  scheduled poll flips it active once Esalink validates. This is the platform's
+  `directory_registration_via_partner` capability (see `session.PLATFORM_CAPABILITIES`).
 
 ## Document data model
 
@@ -304,7 +317,11 @@ an `operation_type` (`flow_send`, `flow_status`, `flow_receive`, `lifecycle_send
   tests of the registry: SuperPDP and CDAR round-trips, reason codes, warnings.
 - [`../tests/test_cdar.py`](../tests/test_cdar.py) — CDAR generation validated against XSD +
   Schematron for the supported statuses (outgoing/incoming, reason-code variants).
+- [`../tests/test_esalink.py`](../tests/test_esalink.py) — HUBTIMIZE transport (token auth +
+  `hubtimize-api-key`), the `EsalinkPartnerClient` Customer API, and the account-provisioning /
+  payload-builder logic.
 
 **`pyfrctc`** (`git+https://github.com/akretion/pyfrctc.git`, declared in `pyproject.toml`)
-is required for the Esalink/AFNOR backends and for CDAR generation/parsing
-(`generate_cdar`, `parse_cdar`). SuperPDP needs only `requests`.
+is required only for **CDAR generation/parsing** (`generate_cdar`, `parse_cdar`) — the lifecycle
+wire format shared by the AFNOR and Esalink backends. All three platform clients (SuperPDP,
+AFNOR, Esalink) are native HTTP clients that need only `requests` for transport.
