@@ -16,7 +16,7 @@ class PendingPurchaseInvoiceCreditNoteAllocation(Document):
 
 		allocated_amount: DF.Currency
 		bill_no: DF.Data | None
-		outstanding_amount: DF.Currency
+		invoice_amount: DF.Currency
 		parent: DF.Data
 		parentfield: DF.Data
 		parenttype: DF.Data

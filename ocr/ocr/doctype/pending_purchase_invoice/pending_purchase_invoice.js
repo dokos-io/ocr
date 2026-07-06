@@ -91,6 +91,7 @@ frappe.ui.form.on("Pending Purchase Invoice", {
 		frm.trigger("check_supplier_id");
 		frm.trigger("check_po_exists");
 		frm.trigger("add_credit_note_allocation_button");
+		frm.trigger("add_create_debit_note_button");
 		frm.trigger("render_credit_note_allocation_recap");
 	},
 
@@ -101,6 +102,22 @@ frappe.ui.form.on("Pending Purchase Invoice", {
 		frm.add_custom_button(__("Credit note allocation"), function() {
 			open_credit_note_allocation_dialog(frm);
 		}, __("Actions"));
+	},
+
+	add_create_debit_note_button(frm) {
+		if (frm.is_new() || !frm.doc.is_return) return;
+		if (["Completed", "Closed"].includes(frm.doc.status)) return;
+		if (!(frm.doc.credit_note_allocations || []).length) return;
+
+		frm.add_custom_button(__("Create debit note"), function() {
+			// Persist the allocations + freshly built items before the server creates
+			// and submits the debit note (which then auto-reconciles the allocations).
+			if (frm.is_dirty()) {
+				frm.save().then(() => create_purchase_invoice(frm, true));
+			} else {
+				create_purchase_invoice(frm, true);
+			}
+		}, __("Actions")).addClass("btn-primary");
 	},
 
 	is_return(frm) {
@@ -436,7 +453,7 @@ const confirm = (message, fields, confirm_action, reject_action, confirm_title, 
 };
 
 
-const credit_note_amount = (frm) => Math.abs(flt(frm.doc.net_total));
+const credit_note_amount = (frm) => Math.abs(flt(frm.doc.supplier_net_amount));
 
 const open_credit_note_allocation_dialog = async (frm) => {
 	const currency = frm.doc.currency;
@@ -448,7 +465,7 @@ const open_credit_note_allocation_dialog = async (frm) => {
 			purchase_invoice: r.purchase_invoice,
 			bill_no: r.bill_no,
 			posting_date: r.posting_date,
-			outstanding_amount: r.outstanding_amount,
+			invoice_amount: r.invoice_amount,
 			allocated_amount: r.allocated_amount,
 		}));
 	} else {
@@ -478,12 +495,13 @@ const open_credit_note_allocation_dialog = async (frm) => {
 						reqd: 1,
 						columns: 3,
 						get_query: () => ({
+							// A debit note may be raised against an already-paid invoice,
+							// so paid invoices (outstanding 0) stay selectable here.
 							filters: {
 								docstatus: 1,
 								is_return: 0,
 								company: frm.doc.company,
 								supplier: frm.doc.supplier,
-								outstanding_amount: [">", 0],
 							},
 						}),
 						onchange: function() {
@@ -491,18 +509,18 @@ const open_credit_note_allocation_dialog = async (frm) => {
 							if (!invoice) return;
 							const grid_row = this.grid_row;
 							frappe.db.get_value("Purchase Invoice", invoice,
-								["bill_no", "posting_date", "outstanding_amount"]).then(res => {
+								["bill_no", "posting_date", "grand_total"]).then(res => {
 								const v = res.message || {};
 								grid_row.on_grid_fields_dict.bill_no?.set_value(v.bill_no || "");
 								grid_row.on_grid_fields_dict.posting_date?.set_value(v.posting_date || "");
-								grid_row.on_grid_fields_dict.outstanding_amount?.set_value(v.outstanding_amount || 0);
+								grid_row.on_grid_fields_dict.invoice_amount?.set_value(v.grand_total || 0);
 								update_comparator();
 							});
 						},
 					},
 					{ fieldtype: "Data", fieldname: "bill_no", label: __("Supplier Invoice No"), in_list_view: 1, read_only: 1, columns: 2 },
 					{ fieldtype: "Date", fieldname: "posting_date", label: __("Posting Date"), read_only: 1 },
-					{ fieldtype: "Currency", fieldname: "outstanding_amount", label: __("Outstanding"), options: currency, in_list_view: 1, read_only: 1, columns: 2 },
+					{ fieldtype: "Currency", fieldname: "invoice_amount", label: __("Invoice Amount"), options: currency, in_list_view: 1, read_only: 1, columns: 2 },
 					{
 						fieldtype: "Currency",
 						fieldname: "allocated_amount",
@@ -525,12 +543,24 @@ const open_credit_note_allocation_dialog = async (frm) => {
 				purchase_invoice: r.purchase_invoice,
 				bill_no: r.bill_no,
 				posting_date: r.posting_date,
-				outstanding_amount: r.outstanding_amount,
+				invoice_amount: r.invoice_amount,
 				allocated_amount: r.allocated_amount,
 			}));
 			frm.refresh_field("credit_note_allocations");
-			render_credit_note_allocation_recap(frm);
 			dialog.hide();
+
+			// Fill the debit-note item lines from the allocated invoices (scaled), like
+			// the previous single-invoice flow, then surface the "Create debit note" action.
+			frm.call("build_credit_note_items_from_allocations").then(r => {
+				const res = r.message || {};
+				frm.set_value("items", []);
+				(res.items || []).forEach(it => frm.add_child("items", it));
+				frm.refresh_field("items");
+				if (res.currency) frm.set_value("currency", res.currency);
+				frm.trigger("calculate_totals");
+				render_credit_note_allocation_recap(frm);
+				frm.trigger("add_create_debit_note_button");
+			});
 		},
 	});
 
@@ -538,36 +568,22 @@ const open_credit_note_allocation_dialog = async (frm) => {
 		const rows = dialog.fields_dict.allocations.df.data || [];
 		let total = 0;
 		rows.forEach(r => total += flt(r.allocated_amount));
-		const diff = flt(credit_amount) - total;
+		// Consistent with the form recap: show how much of the supplier net total has
+		// been allocated, and only flag when the allocation goes above it.
+		const over_allocated = total - credit_amount > 0.01;
 		const pct = credit_amount ? Math.min(100, (total / credit_amount) * 100) : 0;
-
-		let bar_color, pill;
-		if (Math.abs(diff) < 0.01) {
-			bar_color = "var(--green-500, #28a745)";
-			pill = `<span class="indicator-pill green">${__("Fully allocated")}</span>`;
-		} else if (diff > 0) {
-			bar_color = "var(--orange-500, #ff9800)";
-			pill = `<span class="indicator-pill orange">${__("{0} remaining", [format_currency(diff, currency)])}</span>`;
-		} else {
-			bar_color = "var(--red-500, #dc3545)";
-			pill = `<span class="indicator-pill red">${__("{0} over-allocated", [format_currency(-diff, currency)])}</span>`;
-		}
+		const bar_color = over_allocated ? "var(--red-500, #dc3545)" : "var(--green-500, #28a745)";
+		const pill = over_allocated
+			? `<span class="indicator-pill red">${__("{0} over-allocated", [format_currency(total - credit_amount, currency)])}</span>`
+			: "";
 
 		dialog.fields_dict.comparator.$wrapper.html(`
 			<div style="margin-top: 14px; padding: 14px 16px; background: var(--subtle-fg, #f4f5f6); border-radius: var(--border-radius-md, 8px);">
 				<div style="height: 8px; border-radius: 6px; background: var(--gray-200, #e2e6e9); margin-bottom: 12px; overflow: hidden;">
 					<div style="height: 100%; width:${pct}%; background-color:${bar_color}; border-radius: 6px; transition: width 0.2s ease;"></div>
 				</div>
-				<div class="d-flex justify-content-between" style="margin-bottom: 4px;">
-					<span class="text-muted">${__("Credit note amount")}</span>
-					<span style="font-weight: 600;">${format_currency(credit_amount, currency)}</span>
-				</div>
-				<div class="d-flex justify-content-between" style="margin-bottom: 10px;">
-					<span class="text-muted">${__("Total allocated")}</span>
-					<span style="font-weight: 600;">${format_currency(total, currency)}</span>
-				</div>
 				<div class="d-flex justify-content-between align-items-center">
-					<span class="text-muted">${__("Status")}</span>
+					<span class="text-muted">${__("Allocated")}: <b style="color: var(--text-color); font-variant-numeric: tabular-nums;">${format_currency(total, currency)}</b> ${__("of")} <b>${format_currency(credit_amount, currency)}</b></span>
 					${pill}
 				</div>
 			</div>
@@ -589,7 +605,7 @@ const render_credit_note_allocation_recap = (frm) => {
 
 	const rows = frm.doc.credit_note_allocations || [];
 	const currency = frm.doc.currency;
-	const credit_amount = credit_note_amount(frm);
+	const supplier_net_total = Math.abs(flt(frm.doc.supplier_net_amount));
 	const editable = !frm.is_new() && !["Completed", "Closed"].includes(frm.doc.status);
 
 	const edit_button = editable
@@ -625,15 +641,12 @@ const render_credit_note_allocation_recap = (frm) => {
 		</tr>`;
 	}).join("");
 
-	const diff = credit_amount - total;
-	let badge;
-	if (Math.abs(diff) < 0.01) {
-		badge = `<span class="indicator-pill green">${__("Fully allocated")}</span>`;
-	} else if (diff > 0) {
-		badge = `<span class="indicator-pill orange">${__("{0} remaining", [format_currency(diff, currency)])}</span>`;
-	} else {
-		badge = `<span class="indicator-pill red">${__("{0} over-allocated", [format_currency(-diff, currency)])}</span>`;
-	}
+	// Only flag when the allocation goes above the supplier net total; otherwise the
+	// recap simply states how much of that total has been allocated.
+	const over_allocated = total - supplier_net_total > 0.01;
+	const badge = over_allocated
+		? `<span class="indicator-pill red">${__("{0} over-allocated", [format_currency(total - supplier_net_total, currency)])}</span>`
+		: "";
 
 	const head = "padding: 8px 12px; font-weight: 500; color: var(--text-muted); border: none;";
 	field.$wrapper.html(`
@@ -651,8 +664,8 @@ const render_credit_note_allocation_recap = (frm) => {
 				<tbody>${body}</tbody>
 			</table>
 			<div class="d-flex justify-content-between align-items-center" style="padding: 10px 12px; border-top: 1px solid var(--border-color, #ebeef0); background: var(--subtle-fg, #f4f5f6);">
-				<span class="text-muted">${__("Credit note amount")}: <b style="color: var(--text-color);">${format_currency(credit_amount, currency)}</b></span>
-				<span>${__("Allocated")}: <b style="font-variant-numeric: tabular-nums;">${format_currency(total, currency)}</b> &nbsp; ${badge}</span>
+				<span class="text-muted">${__("Allocated")}: <b style="color: var(--text-color); font-variant-numeric: tabular-nums;">${format_currency(total, currency)}</b> ${__("of")} <b>${format_currency(supplier_net_total, currency)}</b></span>
+				${badge}
 			</div>
 		</div>
 	`);

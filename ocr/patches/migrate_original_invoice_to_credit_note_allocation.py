@@ -30,8 +30,8 @@ def execute():
 		):
 			continue
 
-		outstanding = frappe.db.get_value(
-			"Purchase Invoice", row.original_invoice, "outstanding_amount"
+		invoice_amount = frappe.db.get_value(
+			"Purchase Invoice", row.original_invoice, "grand_total"
 		)
 
 		frappe.get_doc(
@@ -44,6 +44,6 @@ def execute():
 				"idx": 1,
 				"purchase_invoice": row.original_invoice,
 				"allocated_amount": abs(flt(row.net_total)),
-				"outstanding_amount": flt(outstanding),
+				"invoice_amount": flt(invoice_amount),
 			}
 		).db_insert()
