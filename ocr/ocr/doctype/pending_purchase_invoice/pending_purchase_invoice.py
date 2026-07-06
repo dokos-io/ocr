@@ -606,8 +606,10 @@ class PendingPurchaseInvoice(Document):
 	def validate_credit_note_allocations(self):
 		"""Validate the multi-invoice credit note allocation table.
 
-		Each allocated amount must not exceed the target invoice outstanding, and the
-		sum must not exceed the credit note amount.
+		The debit note is created independently of the invoices' outstanding, so any
+		submitted supplier invoice can be a target (including already-paid ones). A
+		single row may not be allocated more than that invoice's own amount, and the
+		sum may not exceed the credit note amount.
 		"""
 		if not self.credit_note_allocations:
 			return
@@ -624,17 +626,19 @@ class PendingPurchaseInvoice(Document):
 			total_allocated += flt(row.allocated_amount)
 
 			pi = frappe.db.get_value(
-				"Purchase Invoice", row.purchase_invoice, ["docstatus", "outstanding_amount"], as_dict=True
+				"Purchase Invoice", row.purchase_invoice, ["docstatus", "grand_total"], as_dict=True
 			)
 			# Drafts are allowed in the table but skipped at reconciliation time, so the
-			# outstanding check only applies to submitted invoices.
+			# amount check only applies to submitted invoices.
 			if not pi or pi.docstatus != 1:
 				continue
 
-			if flt(row.allocated_amount, precision) - flt(pi.outstanding_amount, precision) > 0.009:
+			# The debit note is created independently of the invoice's outstanding, but a
+			# single row may not be allocated more than the invoice's own amount.
+			if flt(row.allocated_amount, precision) - flt(pi.grand_total, precision) > 0.009:
 				frappe.throw(
-					_("Row {0}: allocated amount {1} exceeds the outstanding amount {2} of invoice {3}.").format(
-						row.idx, row.allocated_amount, pi.outstanding_amount, row.purchase_invoice
+					_("Row {0}: allocated amount {1} exceeds the invoice amount {2} of invoice {3}.").format(
+						row.idx, row.allocated_amount, pi.grand_total, row.purchase_invoice
 					)
 				)
 
@@ -647,8 +651,10 @@ class PendingPurchaseInvoice(Document):
 
 	@frappe.whitelist()
 	def fetch_open_invoices_for_credit_note(self):
-		"""Return submitted, unpaid supplier invoices eligible for credit note
-		allocation, oldest first (FIFO)."""
+		"""Return submitted supplier invoices eligible for credit note allocation,
+		oldest first (FIFO). Invoices are listed regardless of their outstanding — the
+		debit note is created independently of it — and the invoice amount is returned
+		for display in the dialog."""
 		if not self.supplier:
 			return []
 
@@ -659,9 +665,8 @@ class PendingPurchaseInvoice(Document):
 				"company": self.company,
 				"docstatus": 1,
 				"is_return": 0,
-				"outstanding_amount": (">", 0),
 			},
-			fields=["name", "bill_no", "posting_date", "outstanding_amount", "currency"],
+			fields=["name", "bill_no", "posting_date", "grand_total as invoice_amount", "currency"],
 			order_by="posting_date asc, name asc",
 		)
 
@@ -681,17 +686,64 @@ class PendingPurchaseInvoice(Document):
 		for inv in self.fetch_open_invoices_for_credit_note():
 			if remaining <= 0:
 				break
-			allocate = min(remaining, flt(inv.outstanding_amount))
+			allocate = min(remaining, flt(inv.invoice_amount))
 			rows.append({
 				"purchase_invoice": inv.name,
 				"bill_no": inv.bill_no,
 				"posting_date": inv.posting_date,
-				"outstanding_amount": inv.outstanding_amount,
+				"invoice_amount": inv.invoice_amount,
 				"allocated_amount": allocate,
 			})
 			remaining -= allocate
 
 		return rows
+
+	@frappe.whitelist()
+	def build_credit_note_items_from_allocations(self):
+		"""Build the debit-note item lines from the allocated invoices.
+
+		For each allocation, the target invoice's return lines (via ``make_return_doc``,
+		as the previous single-invoice flow did) are scaled by
+		``allocated_amount / invoice grand_total`` so the resulting item totals match
+		what is being allocated. Returns the proposed rows without mutating the document;
+		the front-end fills the items grid.
+		"""
+		from erpnext.controllers.sales_and_purchase_return import make_return_doc
+
+		items = []
+		currency = None
+		for row in self.credit_note_allocations:
+			allocated = flt(row.allocated_amount)
+			if allocated <= 0:
+				continue
+
+			return_doc = make_return_doc("Purchase Invoice", row.purchase_invoice)
+			currency = currency or return_doc.currency
+
+			# Distribute the allocated amount across the invoice's return lines in
+			# proportion to their value, so the built lines sum to exactly the allocated
+			# amount (allocating 329 yields a 329 line, not a tax-adjusted figure).
+			line_total = sum(abs(flt(item.amount)) for item in return_doc.items)
+			if line_total <= 0:
+				continue
+			ratio = allocated / line_total
+
+			for item in return_doc.items:
+				items.append({
+					"item_code": item.item_code,
+					"description": item.description,
+					# make_return_doc already carries negative quantities; scale the value
+					# through the rate so the sign and per-item detail are preserved.
+					"qty": flt(item.qty),
+					"rate": flt(item.rate) * ratio,
+					"amount": flt(item.amount) * ratio,
+					"expense_account": item.expense_account,
+					"cost_center": item.cost_center,
+					"project": item.project,
+					"item_tax_template": item.item_tax_template,
+				})
+
+		return {"items": items, "currency": currency}
 
 	def reconcile_credit_note_allocations(self, purchase_invoice):
 		"""Allocate the submitted credit note ``purchase_invoice`` across the target
@@ -742,14 +794,21 @@ class PendingPurchaseInvoice(Document):
 
 		allocations = []
 		for row in targets:
+			if remaining <= 0:
+				break
+
 			inv = invoices_by_name.get(row.purchase_invoice)
 			if not inv:
+				# Fully paid (or otherwise settled) invoice: nothing left to reconcile
+				# against, so the debit note keeps this portion as an open credit.
 				self.add_comment(text=_("Invoice {0} has no outstanding amount and was skipped.").format(row.purchase_invoice))
 				continue
 
-			allocate = min(flt(row.allocated_amount), remaining)
+			# Never reconcile more than the invoice's own outstanding, even when the
+			# requested allocation (based on the invoice amount) is larger.
+			allocate = min(flt(row.allocated_amount), remaining, flt(inv.get("amount")))
 			if allocate <= 0:
-				break
+				continue
 
 			pay["amount"] = remaining
 			inv["exchange_rate"] = invoice_exchange_map.get(inv.get("invoice_number"))

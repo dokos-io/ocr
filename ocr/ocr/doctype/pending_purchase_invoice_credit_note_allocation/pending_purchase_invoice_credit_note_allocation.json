@@ -10,7 +10,7 @@
   "bill_no",
   "column_break_amts",
   "posting_date",
-  "outstanding_amount",
+  "invoice_amount",
   "allocated_amount"
  ],
  "fields": [
@@ -44,11 +44,11 @@
   },
   {
    "columns": 2,
-   "fetch_from": "purchase_invoice.outstanding_amount",
-   "fieldname": "outstanding_amount",
+   "fetch_from": "purchase_invoice.grand_total",
+   "fieldname": "invoice_amount",
    "fieldtype": "Currency",
    "in_list_view": 1,
-   "label": "Outstanding Amount",
+   "label": "Invoice Amount",
    "options": "currency",
    "read_only": 1
   },
