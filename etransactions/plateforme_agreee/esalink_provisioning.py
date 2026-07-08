@@ -154,6 +154,32 @@ def _resolve_routing_address(routing_address: str | None, siren: str) -> tuple[s
 	return scheme, addressing_value
 
 
+# Legal identifier the company is registered under on Esalink → its CEF EAS scheme.
+_LEGAL_ID_SCHEMES = {"siren": "0225", "siret": "0009"}
+
+
+def _normalize_legal_id_type(legal_id_type: str | None) -> str:
+	"""Coerce a legal-id-type input to a supported value (defaults to ``siren``)."""
+	value = (legal_id_type or "").strip().lower()
+	return value if value in _LEGAL_ID_SCHEMES else "siren"
+
+
+def _legal_identifier(company: str, legal_id_type: str) -> tuple[str, str]:
+	"""Return the ``(value, scheme)`` for the company's chosen legal identifier.
+
+	``siren`` → (``Company.siren_number``, ``0225``); ``siret`` → (default
+	``Address.siret_number``, ``0009``). The value may be blank when the source field is unset.
+	"""
+	legal_id_type = _normalize_legal_id_type(legal_id_type)
+	scheme = _LEGAL_ID_SCHEMES[legal_id_type]
+	if legal_id_type == "siret":
+		address = _company_address(company)
+		value = (address.get("siret_number") if address else "") or ""
+	else:
+		value = frappe.db.get_value("Company", company, "siren_number") or ""
+	return value.strip(), scheme
+
+
 def _country_iso(country_name: str | None) -> str:
 	"""Map a Frappe Country name to its 2-letter ISO code (default ``FR``)."""
 	if not country_name:
@@ -191,10 +217,12 @@ def check_company_provisioning_readiness(company: str) -> list[str]:
 	"""
 	issues: list[str] = []
 	co = frappe.get_doc("Company", company)
-	if not (co.get("siren_number") or "").strip():
-		issues.append(_("No SIREN number"))
-
 	address = _company_address(company)
+	has_siren = bool((co.get("siren_number") or "").strip())
+	has_siret = bool((address.get("siret_number") if address else "") or "")
+	if not (has_siren or has_siret):
+		issues.append(_("No legal identifier (SIREN or SIRET)"))
+
 	if not address:
 		issues.append(_("No default address"))
 	else:
@@ -224,7 +252,7 @@ _CUSTOMER_DATA_KEYS = (
 # Fields required by Esalink's CreateCustomerDTO (label used in the "missing data" error).
 _REQUIRED_PAYLOAD_FIELDS = {
 	"customerName": _("Company name"),
-	"customerLegalId": _("SIREN"),
+	"customerLegalId": _("Legal identifier"),
 	"customerEmail": _("Contact email"),
 	"addressLine1": _("Address line 1"),
 	"postalCode": _("Postal code"),
@@ -237,9 +265,12 @@ def _company_base_customer_data(company: str) -> dict:
 	"""Best-effort customer data derived from the Company (may contain blanks)."""
 	co = frappe.get_doc("Company", company)
 	address = _company_address(company)
+	siren = (co.get("siren_number") or "").strip()
 	return {
 		"customerName": co.get("company_name") or company,
-		"customerLegalId": (co.get("siren_number") or "").strip(),
+		"customerLegalId": siren,
+		"siren": siren,
+		"siret": ((address.get("siret_number") if address else "") or "").strip(),
 		"customerVat": (co.get("tax_id") or "").strip(),
 		"customerEmail": _company_email(company, address) or "",
 		"addressLine1": (address.address_line1 if address else "") or "",
@@ -251,14 +282,18 @@ def _company_base_customer_data(company: str) -> dict:
 
 
 def _build_customer_payload(
-	company: str, customer_data: dict | None = None, routing_address: str | None = None
+	company: str,
+	customer_data: dict | None = None,
+	routing_address: str | None = None,
+	legal_id_type: str = "siren",
 ) -> dict:
 	"""Build (and validate) the ``CreateCustomerDTO``, merging the dialog's enhancements.
 
 	Passing ``electronicAddresses`` makes Esalink register the directory line, so no separate
 	identifier call is needed. The routing address (the directory line invoices are addressed
-	to) defaults to the SIREN under the French SIRENE scheme (0225); ``routing_address`` may
-	override it with a ``scheme:value`` identifier (e.g. a SIRET or a Peppol address).
+	to) defaults to the chosen legal identifier under its scheme (SIREN → 0225, SIRET → 0009);
+	``routing_address`` may override it with an explicit ``scheme:value`` identifier (e.g. a
+	Peppol address).
 
 	API-user creation is deferred to the explicit :meth:`create_user` call in the registration
 	flow (``apiUser="N"``): the inline user Esalink would create with ``apiUser="Y"`` is keyed
@@ -280,11 +315,15 @@ def _build_customer_payload(
 			)
 		)
 
-	siren = str(data["customerLegalId"]).strip()
-	qualifier, addressing_value = _resolve_routing_address(routing_address, siren)
+	legal_id = str(data["customerLegalId"]).strip()
+	# Default the routing address to the chosen legal identifier under its scheme
+	# (SIREN → 0225, SIRET → 0009); an explicit routing_address still wins.
+	_, scheme = _legal_identifier(company, legal_id_type)
+	default_routing = f"{scheme}:{legal_id}" if (scheme and legal_id) else legal_id
+	qualifier, addressing_value = _resolve_routing_address(routing_address, default_routing)
 	payload = {
 		"customerName": data["customerName"],
-		"customerLegalId": siren,
+		"customerLegalId": legal_id,
 		"customerEmail": data["customerEmail"],
 		"addressLine1": data["addressLine1"],
 		"postalCode": data["postalCode"],
@@ -305,15 +344,25 @@ def _build_customer_payload(
 	return payload
 
 
-def _enhance_company(company: str, customer_data: dict | None) -> None:
-	"""Persist newly-supplied SIREN / VAT back onto the Company when it lacked them."""
+def _enhance_company(
+	company: str, customer_data: dict | None, legal_id_type: str = "siren"
+) -> None:
+	"""Persist newly-supplied SIREN / VAT back onto the Company when it lacked them.
+
+	Only write ``customerLegalId`` back to ``siren_number`` when the identifier is a SIREN — a
+	SIRET (or any other scheme) must not be misfiled into the Company's SIREN field.
+	"""
 	if not customer_data:
 		return
 	co = frappe.get_doc("Company", company)
 	updates = {}
-	siren = (customer_data.get("customerLegalId") or "").strip()
-	if siren and not (co.get("siren_number") or "").strip():
-		updates["siren_number"] = siren
+	legal_id = (customer_data.get("customerLegalId") or "").strip()
+	if (
+		_normalize_legal_id_type(legal_id_type) == "siren"
+		and legal_id
+		and not (co.get("siren_number") or "").strip()
+	):
+		updates["siren_number"] = legal_id
 	vat = (customer_data.get("customerVat") or "").strip()
 	if vat and not (co.get("tax_id") or "").strip():
 		updates["tax_id"] = vat
@@ -348,13 +397,24 @@ def _target_esalink_platform(company: str, platform_name: str | None) -> dict | 
 
 
 @frappe.whitelist()
-def esalink_registration_prefill(company: str) -> dict:
-	"""Prefill for the Esalink registration dialog: company data + readiness + gate flag."""
+def esalink_registration_prefill(company: str, platform_name: str | None = None) -> dict:
+	"""Prefill for the Esalink registration dialog: company data + readiness + gate flag.
+
+	Returns both the ``siren`` and ``siret`` so the dialog can switch ``customerLegalId`` when
+	the legal-identifier type changes. When ``platform_name`` is given, the persisted
+	``legal_id_type`` is returned so an edit restores the previous choice (default ``siren``).
+	"""
 	frappe.only_for(PROVISION_ROLES)
 	data = _company_base_customer_data(company)
 	data["esalink_environment"] = esalink_runtime_config()["environment"]
 	data["issues"] = check_company_provisioning_readiness(company)
 	data["partner_ready"] = partner_credentials_configured()
+	data["legal_id_type"] = "siren"
+	if platform_name:
+		stored = frappe.db.get_value(
+			"eTransactions Accredited Platform", platform_name, "esalink_legal_id_type"
+		)
+		data["legal_id_type"] = _normalize_legal_id_type(stored)
 	return data
 
 
@@ -363,19 +423,28 @@ def esalink_registration_status(platform_name: str) -> dict:
 	"""Registration state of one Esalink platform, for the edit dialog's status banner.
 
 	``registered`` is driven by the presence of an Esalink customer id. ``routing_address``
-	is derived from the row's Company SIREN (``0225:<siren>``) — the same address registration
-	uses by default — without an Esalink API call.
+	is derived from the row's persisted legal identifier (``0225:<siren>`` or ``0009:<siret>``)
+	— the same address registration uses by default — without an Esalink API call.
 	"""
 	frappe.only_for(PROVISION_ROLES)
 	row = frappe.db.get_value(
 		"eTransactions Accredited Platform",
 		platform_name,
-		["company", "esalink_customer_id", "esalink_customer_status", "is_active", "esalink_environment"],
+		[
+			"company",
+			"esalink_customer_id",
+			"esalink_customer_status",
+			"is_active",
+			"esalink_environment",
+			"esalink_legal_id_type",
+		],
 		as_dict=True,
 	)
 	if not row:
 		frappe.throw(_("Platform {0} not found.").format(platform_name))
 
+	legal_id_type = _normalize_legal_id_type(row.esalink_legal_id_type)
+	legal_id, scheme = _legal_identifier(row.company, legal_id_type)
 	siren = (frappe.db.get_value("Company", row.company, "siren_number") or "").strip()
 	return {
 		"registered": bool(row.esalink_customer_id),
@@ -383,8 +452,9 @@ def esalink_registration_status(platform_name: str) -> dict:
 		"customer_status": row.esalink_customer_status,
 		"is_active": bool(row.is_active),
 		"environment": row.esalink_environment,
+		"legal_id_type": legal_id_type,
 		"siren": siren,
-		"routing_address": f"0225:{siren}" if siren else "",
+		"routing_address": f"{scheme}:{legal_id}" if legal_id else "",
 	}
 
 
@@ -395,14 +465,16 @@ def register_esalink_company(
 	customer_data=None,
 	routing_address: str | None = None,
 	platform_name: str | None = None,
+	legal_id_type: str = "siren",
 ) -> dict:
 	"""Register one company on Esalink and persist its platform record.
 
 	Idempotent: a platform that already has a customer id is returned untouched. Otherwise
-	the company is looked up on Esalink by SIREN — an existing customer is reused, else one
-	is created (KYC email + directory line addressed to ``routing_address``, default SIREN).
-	Its API credentials are minted and written to an eTransactions Accredited Platform record
-	(inactive until Esalink validates), then the integration is tested.
+	the company is looked up on Esalink by its legal identifier — an existing customer is
+	reused, else one is created (KYC email + directory line addressed to ``routing_address``,
+	which defaults to the chosen ``legal_id_type`` under its scheme: SIREN → 0225, SIRET →
+	0009). Its API credentials are minted and written to an eTransactions Accredited Platform
+	record (inactive until Esalink validates), then the integration is tested.
 
 	When ``platform_name`` is given the registration updates *that* exact platform row (a
 	company may hold both a Sales and a Purchases Esalink row); otherwise the company's single
@@ -411,6 +483,7 @@ def register_esalink_company(
 	frappe.only_for(PROVISION_ROLES)
 	if isinstance(customer_data, str):
 		customer_data = json.loads(customer_data) if customer_data.strip() else None
+	legal_id_type = _normalize_legal_id_type(legal_id_type)
 
 	existing = _target_esalink_platform(company, platform_name)
 	if existing and existing.get("esalink_customer_id"):
@@ -422,15 +495,15 @@ def register_esalink_company(
 			"status": existing.get("esalink_customer_status"),
 		}
 
-	_enhance_company(company, customer_data)
-	payload = _build_customer_payload(company, customer_data, routing_address)
-	siren = payload["customerLegalId"]
+	_enhance_company(company, customer_data, legal_id_type)
+	payload = _build_customer_payload(company, customer_data, routing_address, legal_id_type)
+	legal_id = payload["customerLegalId"]
 
 	partner = _partner_client()
 
-	# Reuse the company's Esalink customer if it already exists (matched by SIREN),
+	# Reuse the company's Esalink customer if it already exists (matched by its legal id),
 	# otherwise create it (triggers the KYC email + directory line).
-	customer_id = partner.find_customer_by_legal_id(siren)
+	customer_id = partner.find_customer_by_legal_id(legal_id)
 	reused = customer_id is not None
 	if not reused:
 		customer_id = partner.create_customer(payload)
@@ -455,6 +528,7 @@ def register_esalink_company(
 			"company": company,
 			"transaction_type": transaction_type,
 			"esalink_environment": esalink_runtime_config()["environment"],
+			"esalink_legal_id_type": legal_id_type,
 			"is_active": 0,  # activated by the status poll once Esalink validates
 			"client_id": client_id,
 			"client_secret": client_secret,

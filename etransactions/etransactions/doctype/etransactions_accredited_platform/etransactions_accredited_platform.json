@@ -32,6 +32,7 @@
   "last_incoming_poll",
   "esalink_account_section",
   "esalink_environment",
+  "esalink_legal_id_type",
   "esalink_customer_id",
   "esalink_user_id",
   "esalink_customer_status"
@@ -214,6 +215,16 @@
    "label": "Esalink Environment",
    "options": "test\nprod",
    "description": "test = https://ppd.hubtimize.fr, prod = https://hubtimize.fr"
+  },
+  {
+   "default": "siren",
+   "depends_on": "eval:doc.platform_type === 'Esalink'",
+   "fieldname": "esalink_legal_id_type",
+   "fieldtype": "Select",
+   "label": "Legal identifier type",
+   "options": "siren\nsiret",
+   "read_only": 1,
+   "description": "Legal identifier the company is registered under on Esalink (siren = SIRENE scheme 0225, siret = scheme 0009)."
   },
   {
    "fieldname": "esalink_customer_id",

@@ -301,6 +301,78 @@ class TestEsalinkProvisioningHelpers(UnitTestCase):
 		)
 		self.assertEqual(payload["customerLegalId"], "315143296")
 
+	def test_normalize_legal_id_type_defaults_to_siren(self):
+		self.assertEqual(prov._normalize_legal_id_type("SIRET"), "siret")
+		self.assertEqual(prov._normalize_legal_id_type("siren"), "siren")
+		self.assertEqual(prov._normalize_legal_id_type(None), "siren")
+		self.assertEqual(prov._normalize_legal_id_type("vat"), "siren")  # unsupported → siren
+
+	def test_payload_siret_routes_under_scheme_0009(self):
+		"""SIRET legal id → customerLegalId is the SIRET and routing uses scheme 0009."""
+		base = dict(self._BASE_CUSTOMER)
+		base["customerLegalId"] = "31514329600011"
+		with (
+			patch.object(prov, "_company_base_customer_data", return_value=base),
+			patch.object(prov, "_legal_identifier", return_value=("31514329600011", "0009")),
+		):
+			payload = prov._build_customer_payload("ACME", legal_id_type="siret")
+		self.assertEqual(payload["customerLegalId"], "31514329600011")
+		self.assertEqual(
+			payload["electronicAddresses"],
+			[{"electronicAddress": "31514329600011", "qualifier": "0009"}],
+		)
+
+	def test_enhance_company_skips_siren_writeback_for_siret(self):
+		"""A SIRET must never be misfiled into Company.siren_number."""
+		co = MagicMock()
+		co.get.return_value = ""  # company lacks both SIREN and VAT
+		with (
+			patch("frappe.get_doc", return_value=co),
+			patch("frappe.db.set_value") as set_value,
+		):
+			prov._enhance_company(
+				"ACME", {"customerLegalId": "31514329600011", "customerVat": ""}, "siret"
+			)
+		set_value.assert_not_called()
+
+	def test_enhance_company_writes_siren_for_siren_type(self):
+		co = MagicMock()
+		co.get.return_value = ""
+		with (
+			patch("frappe.get_doc", return_value=co),
+			patch("frappe.db.set_value") as set_value,
+		):
+			prov._enhance_company("ACME", {"customerLegalId": "315143296"}, "siren")
+		set_value.assert_called_once()
+		self.assertEqual(set_value.call_args[0][2], {"siren_number": "315143296"})
+
+	def test_register_persists_legal_id_type(self):
+		"""The chosen legal-id type is written onto the platform row."""
+		import etransactions.plateforme_agreee.session as session
+
+		partner = MagicMock()
+		partner.find_customer_by_legal_id.return_value = None
+		partner.create_customer.return_value = 88
+		partner.create_user.return_value = {"clientId": "c-8", "clientSecret": "s-8"}
+		fake_doc = MagicMock()
+		fake_doc.name = "Esalink — ACME"
+		fake_doc.get.return_value = None
+		with (
+			patch.object(prov, "_existing_esalink_platform", return_value=None),
+			patch.object(prov, "_enhance_company"),
+			patch.object(
+				prov, "_build_customer_payload", return_value={"customerLegalId": "31514329600011"}
+			),
+			patch.object(prov, "_partner_client", return_value=partner),
+			patch("frappe.new_doc", return_value=fake_doc),
+			patch.object(
+				session, "check_platform_health", return_value={"status": "ok", "message": "ok"}
+			),
+		):
+			prov.register_esalink_company("ACME", legal_id_type="siret")
+		saved = fake_doc.update.call_args[0][0]
+		self.assertEqual(saved["esalink_legal_id_type"], "siret")
+
 	def test_register_updates_named_platform_row(self):
 		"""platform_name targets that exact (pre-created) row instead of creating a new one."""
 		import etransactions.plateforme_agreee.session as session
@@ -384,7 +456,33 @@ class TestEsalinkProvisioningHelpers(UnitTestCase):
 		self.assertTrue(out["registered"])
 		self.assertEqual(out["customer_id"], "42")
 		self.assertEqual(out["customer_status"], "ACTIVE")
+		self.assertEqual(out["legal_id_type"], "siren")
 		self.assertEqual(out["routing_address"], "0225:315143296")
+
+	def test_registration_status_uses_persisted_siret(self):
+		import frappe
+
+		row = frappe._dict(
+			{
+				"company": "ACME",
+				"esalink_customer_id": "42",
+				"esalink_customer_status": "ACTIVE",
+				"is_active": 1,
+				"esalink_environment": "test",
+				"esalink_legal_id_type": "siret",
+			}
+		)
+
+		def gv(doctype, *args, **kwargs):
+			return "315143296" if doctype == "Company" else row
+
+		with (
+			patch("frappe.db.get_value", side_effect=gv),
+			patch.object(prov, "_legal_identifier", return_value=("31514329600011", "0009")),
+		):
+			out = prov.esalink_registration_status("P1")
+		self.assertEqual(out["legal_id_type"], "siret")
+		self.assertEqual(out["routing_address"], "0009:31514329600011")
 
 
 class TestEsalinkPartnerGate(UnitTestCase):
