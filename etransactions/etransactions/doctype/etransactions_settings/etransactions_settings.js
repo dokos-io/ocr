@@ -598,8 +598,15 @@ function _open_platform_dialog(frm, existing_name = null, preset_type = null) {
 // mint its credentials and persist them on the given platform row.
 function _open_esalink_registration_dialog(frm, { platform_name, company, transaction_type, on_done }) {
 	let partner_ready = true;
-	// Keep the routing address mirroring the SIREN until the user edits it directly.
+	// Keep the routing address mirroring the legal identifier until the user edits it directly.
 	let routing_touched = false;
+	// Company identifiers loaded from the prefill, keyed by legal-id type.
+	const prefill = { siren: "", siret: "" };
+
+	// CEF EAS scheme per legal-identifier type (SIREN = SIRENE, SIRET = establishment).
+	const SCHEMES = { SIREN: "0225", SIRET: "0009" };
+	const legal_id_for = (type) => (type === "SIRET" ? prefill.siret : prefill.siren) || "";
+	const scheme_for = (type) => SCHEMES[type] || "0225";
 
 	const d = new frappe.ui.Dialog({
 		title: __("Register on Esalink"),
@@ -609,14 +616,23 @@ function _open_esalink_registration_dialog(frm, { platform_name, company, transa
 			{
 				fieldtype: "Data",
 				fieldname: "routing_address",
-				label: __("Routing address (SIREN)"),
+				label: __("Routing address"),
 				reqd: 1,
 				description: __(
-					"Where invoices are routed to. Defaults to the company SIREN (French SIRENE scheme 0225); edit only to route to a different identifier, e.g. a Peppol address like 0088:123456789."
+					"Where invoices are routed to. Defaults to the chosen legal identifier under its scheme (SIREN → 0225, SIRET → 0009); edit only to route to a different identifier, e.g. a Peppol address like 0088:123456789."
 				),
 			},
 			{ fieldtype: "Column Break" },
-			{ fieldtype: "Data", fieldname: "customerLegalId", label: __("SIREN"), reqd: 1 },
+			{
+				fieldtype: "Select",
+				fieldname: "legal_id_type",
+				label: __("Legal identifier type"),
+				options: "SIREN\nSIRET",
+				default: "SIREN",
+				reqd: 1,
+				description: __("The identifier the company is registered under on Esalink."),
+			},
+			{ fieldtype: "Data", fieldname: "customerLegalId", label: __("Legal identifier"), reqd: 1 },
 			{ fieldtype: "Section Break", label: __("Company") },
 			{ fieldtype: "Data", fieldname: "customerName", label: __("Company Name"), reqd: 1 },
 			{ fieldtype: "Data", fieldname: "customerVat", label: __("VAT Number") },
@@ -664,6 +680,7 @@ function _open_esalink_registration_dialog(frm, { platform_name, company, transa
 					customer_data: JSON.stringify(customer_data),
 					routing_address: values.routing_address || null,
 					platform_name: platform_name || null,
+					legal_id_type: (values.legal_id_type || "SIREN").toLowerCase(),
 				},
 				freeze: true,
 				freeze_message: __("Registering on Esalink…"),
@@ -677,26 +694,45 @@ function _open_esalink_registration_dialog(frm, { platform_name, company, transa
 		},
 	});
 
+	// Mirror the routing address from the chosen legal identifier under its scheme,
+	// until the user edits the routing field directly.
+	function sync_routing_from_legal_id() {
+		if (routing_touched) return;
+		const legal_id = d.get_value("customerLegalId") || "";
+		const scheme = scheme_for(d.get_value("legal_id_type") || "SIREN");
+		d.set_value("routing_address", legal_id ? `${scheme}:${legal_id}` : "");
+	}
 	d.fields_dict.routing_address.df.onchange = function () {
 		routing_touched = true;
 	};
-	d.fields_dict.customerLegalId.df.onchange = function () {
-		if (!routing_touched) d.set_value("routing_address", d.get_value("customerLegalId") || "");
+	d.fields_dict.legal_id_type.df.onchange = function () {
+		d.set_value("customerLegalId", legal_id_for(d.get_value("legal_id_type") || "SIREN"));
+		sync_routing_from_legal_id();
 	};
+	d.fields_dict.customerLegalId.df.onchange = sync_routing_from_legal_id;
 
 	// Prefill from the company + surface the partner-credentials gate and missing-data hints.
 	const $notice = d.fields_dict.notice.$wrapper;
 	$notice.html(`<div class="text-muted small">${frappe.utils.icon("loading-indicator")} ${__("Loading company data…")}</div>`);
 	frappe
-		.xcall("etransactions.plateforme_agreee.esalink_provisioning.esalink_registration_prefill", { company })
+		.xcall("etransactions.plateforme_agreee.esalink_provisioning.esalink_registration_prefill", {
+			company,
+			platform_name: platform_name || null,
+		})
 		.then((cfg) => {
-			["customerName", "customerLegalId", "customerVat", "customerEmail", "addressLine1", "addressLine2", "postalCode", "city"].forEach((f) => {
+			prefill.siren = cfg.siren || "";
+			prefill.siret = cfg.siret || "";
+			["customerName", "customerVat", "customerEmail", "addressLine1", "addressLine2", "postalCode", "city"].forEach((f) => {
 				d.set_value(f, cfg[f] || "");
 			});
 			d.set_value("country", cfg.country || "FR");
-			d.set_value("routing_address", cfg.customerLegalId || "");
-			// The programmatic set_value above may have flagged the field as touched; reset so
-			// the SIREN → routing-address mirror keeps working for the user's own edits.
+			const type = (cfg.legal_id_type || "siren").toUpperCase();
+			d.set_value("legal_id_type", type);
+			const legal_id = legal_id_for(type) || cfg.customerLegalId || "";
+			d.set_value("customerLegalId", legal_id);
+			d.set_value("routing_address", legal_id ? `${scheme_for(type)}:${legal_id}` : "");
+			// The programmatic set_value calls above may have flagged the routing field as touched;
+			// reset so the legal-id → routing-address mirror keeps working for the user's own edits.
 			routing_touched = false;
 
 			partner_ready = !!cfg.partner_ready;
