@@ -14,3 +14,4 @@ etransactions.patches.import_peppol_code_lists
 etransactions.patches.unhide_master_data_etransactions_tab # 20260622
 etransactions.patches.unhide_master_data_einvoicing_fields # 20260623
 etransactions.patches.set_default_enable_einvoicing # 20260705
+etransactions.patches.backfill_einvoice_supplier_invoice_file # 20260709

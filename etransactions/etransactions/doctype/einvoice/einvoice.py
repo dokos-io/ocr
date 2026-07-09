@@ -19,6 +19,7 @@ from etransactions.etransactions.doctype.einvoice.generator import (
 )
 from etransactions.schematron import get_validation_errors
 from etransactions.utils import EInvoiceProfile, get_drafthorse_schema
+from etransactions.utils.files import copy_file_to_document
 
 
 if TYPE_CHECKING:
@@ -402,6 +403,20 @@ class eInvoice(Document):
 		``flow`` is an IncomingFlow dataclass (etransactions.components.superpdp.models).
 		The on_update() hook automatically creates the Supplier Invoice.
 		"""
+		# The file has to exist before the insert: validate() parses it to populate the
+		# invoice, and on_update() then generates the Supplier Invoice from that data.
+		file_doc = None
+		if file_content:
+			ext = "pdf" if (flow.syntax or "") == "Factur-X" else "xml"
+			file_doc = frappe.get_doc({
+				"doctype": "File",
+				"file_name": f"{flow.flow_id}.{ext}",
+				"content": file_content,
+				"is_private": 1,
+			})
+			file_doc.flags.ignore_permissions = True
+			file_doc.insert()
+
 		doc = frappe.new_doc("eInvoice")
 		doc.einvoice_type = "Incoming"
 		doc.company = company
@@ -411,25 +426,18 @@ class eInvoice(Document):
 		doc.pa_updated_at = flow.updated_at or flow.submitted_at
 		doc.pa_flow_type = flow.flow_type
 		doc.pa_syntax = flow.syntax
+		if file_doc:
+			doc.einvoice = file_doc.name
+			doc.einvoice_embedded_document = file_doc.file_url
 		doc.flags.ignore_permissions = True
 		doc.insert()
 
-		if file_content:
-			ext = "pdf" if (flow.syntax or "") == "Factur-X" else "xml"
-			filename = f"{doc.pa_flow_id}.{ext}"
-			file_doc = frappe.get_doc({
-				"doctype": "File",
-				"file_name": filename,
+		if file_doc:
+			file_doc.db_set({
 				"attached_to_doctype": "eInvoice",
 				"attached_to_name": doc.name,
 				"attached_to_field": "einvoice_embedded_document",
-				"content": file_content,
-				"is_private": 1,
 			})
-			file_doc.flags.ignore_permissions = True
-			file_doc.insert()
-			doc.db_set("einvoice_embedded_document", file_doc.file_url)
-			doc.db_set("einvoice", file_doc.name)
 
 		_notify_incoming_einvoice(doc)
 
@@ -566,8 +574,28 @@ class eInvoice(Document):
 		doc = frappe.new_doc("Supplier Invoice")
 		doc.update(data)
 		doc.einvoice = self.name
+		doc.insert(ignore_mandatory=True, ignore_links=True)
 
-		return doc.insert(ignore_mandatory=True, ignore_links=True)
+		self.attach_source_file_to(doc)
+
+		return doc
+
+	def attach_source_file_to(self, supplier_invoice) -> None:
+		"""Give the Supplier Invoice its own copy of the received e-invoice file.
+
+		The Supplier Invoice preview reads ``file``, and a copy attached to the Supplier
+		Invoice itself is what lets an Accounts User read the private file: File permissions
+		are derived from the document the file hangs off, and eInvoice is not readable by
+		that role.
+		"""
+		if not self.einvoice or not frappe.db.exists("File", self.einvoice):
+			return
+
+		file_name = copy_file_to_document(self.einvoice, "Supplier Invoice", supplier_invoice.name)
+		file_url = frappe.db.get_value("File", file_name, "file_url")
+
+		# db_set because file_url only fetches from file on save, and the document was just inserted
+		supplier_invoice.db_set({"file": file_name, "file_url": file_url}, update_modified=False)
 
 
 
