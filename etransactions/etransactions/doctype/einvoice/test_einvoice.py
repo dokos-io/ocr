@@ -243,6 +243,149 @@ class TesteInvoice(eTransactionsTestSuite):
 		self.assertEqual(supplier_invoice.items[0].supplier_description, "Test Product")
 		self.assertEqual(supplier_invoice.einvoice, einvoice.name)
 
+	# ------------------------------------------------------------------
+	# Source file carried onto the Supplier Invoice (drives the preview pane)
+	# ------------------------------------------------------------------
+
+	def _read_fixture(self, folder, file_name):
+		# get_app_path scrubs its arguments, so the file name is joined separately
+		folder_path = frappe.get_app_path("etransactions", "tests", "invoices", folder)
+		with open(os.path.join(folder_path, file_name), "rb") as f:
+			return f.read()
+
+	def _facturx_pdf(self):
+		return self._read_fixture(
+			"1.basic_wl", "Facture_F20220023-LE_FOURNISSEUR-POUR-LE_CLIENT_BASIC_WL.pdf"
+		)
+
+	def _ubl_xml(self):
+		return self._read_fixture("5.ubl", "UBL-Invoice-2.1-Example.xml")
+
+	def _supplier_invoice_of(self, einvoice):
+		name = frappe.db.get_value("Supplier Invoice", {"einvoice": einvoice.name})
+		self.assertTrue(name, "eInvoice should have generated a Supplier Invoice")
+		return frappe.get_doc("Supplier Invoice", name)
+
+	def test_supplier_invoice_carries_the_facturx_pdf(self):
+		"""A Supplier Invoice generated from a Factur-X eInvoice gets its own copy of the
+		PDF, so show_preview() has a file to render and an Accounts User can read it."""
+		file_doc = frappe.get_doc({
+			"doctype": "File",
+			"file_name": "facturx-preview.pdf",
+			"content": self._facturx_pdf(),
+			"is_private": 1,
+		}).insert()
+
+		einvoice = frappe.get_doc({
+			"doctype": "eInvoice",
+			"einvoice_type": "Incoming",
+			"einvoice": file_doc.name,
+		}).insert()
+
+		supplier_invoice = self._supplier_invoice_of(einvoice)
+		self.assertTrue(supplier_invoice.file)
+		self.assertNotEqual(supplier_invoice.file, file_doc.name, "the copy must be a distinct File")
+
+		copied = frappe.get_doc("File", supplier_invoice.file)
+		self.assertEqual(copied.attached_to_doctype, "Supplier Invoice")
+		# Supplier Invoice is autoincrement-named, so attached_to_name holds it as text
+		self.assertEqual(copied.attached_to_name, str(supplier_invoice.name))
+		self.assertEqual(copied.file_url, file_doc.file_url)
+		self.assertEqual(supplier_invoice.file_url, copied.file_url)
+
+	def test_plateforme_flow_parses_before_generating_the_supplier_invoice(self):
+		"""The file exists before the eInvoice insert, so validate() parses it and the
+		generated Supplier Invoice carries both the parsed data and the PDF."""
+		from etransactions.etransactions.doctype.einvoice.einvoice import eInvoice
+		from etransactions.components.superpdp.models import IncomingFlow
+
+		flow = IncomingFlow(
+			flow_id="FLOW-FACTURX-001",
+			submitted_at="2024-01-01 00:00:00",
+			updated_at=None,
+			flow_type="SupplierInvoice",
+			syntax="Factur-X",
+		)
+		einvoice = eInvoice.create_from_plateforme_flow(flow, self._facturx_pdf(), "_Test Company")
+
+		# Parsed at validate time — this is only possible if the file predates the insert.
+		self.assertEqual(einvoice.seller_name, "LE FOURNISSEUR")
+		self.assertEqual(einvoice.id, "F20220023")
+		self.assertTrue(einvoice.einvoice)
+
+		source_file = frappe.get_doc("File", einvoice.einvoice)
+		self.assertEqual(source_file.attached_to_doctype, "eInvoice")
+		self.assertEqual(source_file.attached_to_name, einvoice.name)
+		self.assertTrue(source_file.file_name.endswith(".pdf"))
+
+		supplier_invoice = self._supplier_invoice_of(einvoice)
+		self.assertTrue(supplier_invoice.file)
+		self.assertEqual(supplier_invoice.supplier_name, "LE FOURNISSEUR")
+
+	def test_plateforme_flow_with_ubl_xml(self):
+		"""A UBL flow has no PDF; the Supplier Invoice still points at the XML file."""
+		from etransactions.etransactions.doctype.einvoice.einvoice import eInvoice
+		from etransactions.components.superpdp.models import IncomingFlow
+
+		flow = IncomingFlow(
+			flow_id="FLOW-UBL-001",
+			submitted_at="2024-01-01 00:00:00",
+			updated_at=None,
+			flow_type="SupplierInvoice",
+			syntax="UBL",
+		)
+		einvoice = eInvoice.create_from_plateforme_flow(flow, self._ubl_xml(), "_Test Company")
+
+		self.assertTrue(einvoice.einvoice)
+		self.assertTrue(frappe.db.get_value("File", einvoice.einvoice, "file_name").endswith(".xml"))
+
+		supplier_invoice = self._supplier_invoice_of(einvoice)
+		self.assertTrue(supplier_invoice.file)
+		self.assertTrue(frappe.db.get_value("File", supplier_invoice.file, "file_name").endswith(".xml"))
+
+	def test_backfill_patch_is_idempotent(self):
+		"""The patch fills `file` on legacy rows once, and leaves already-filled rows alone."""
+		from etransactions.patches.backfill_einvoice_supplier_invoice_file import execute
+
+		file_doc = frappe.get_doc({
+			"doctype": "File",
+			"file_name": "facturx-backfill.pdf",
+			"content": self._facturx_pdf(),
+			"is_private": 1,
+		}).insert()
+
+		einvoice = frappe.get_doc({
+			"doctype": "eInvoice",
+			"einvoice_type": "Incoming",
+			"einvoice": file_doc.name,
+		}).insert()
+
+		supplier_invoice = self._supplier_invoice_of(einvoice)
+		# Simulate a row created before attach_source_file_to() existed.
+		frappe.db.set_value(
+			"Supplier Invoice", supplier_invoice.name, {"file": None, "file_url": None}
+		)
+		frappe.delete_doc("File", supplier_invoice.file, ignore_permissions=True)
+
+		def copies():
+			return frappe.get_all(
+				"File",
+				filters={
+					"attached_to_doctype": "Supplier Invoice",
+					"attached_to_name": str(supplier_invoice.name),
+				},
+				pluck="name",
+			)
+
+		execute()
+		self.assertEqual(len(copies()), 1)
+		filled = frappe.db.get_value("Supplier Invoice", supplier_invoice.name, "file")
+		self.assertTrue(filled)
+
+		execute()
+		self.assertEqual(len(copies()), 1, "a second run must not create another copy")
+		self.assertEqual(frappe.db.get_value("Supplier Invoice", supplier_invoice.name, "file"), filled)
+
 	def test_sales_invoice_to_einvoice(self):
 		company = "_Test Company"
 

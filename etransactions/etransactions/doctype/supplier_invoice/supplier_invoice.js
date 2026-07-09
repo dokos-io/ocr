@@ -176,8 +176,12 @@ frappe.ui.form.on("Supplier Invoice", {
 
 	async show_preview(frm) {
 		let $preview = "";
-		await frappe.model.with_doc("File", frm.doc.file);
 		const file_preview_field = frm.get_field("invoice_preview");
+		if (!frm.doc.file) {
+			file_preview_field.$wrapper.empty();
+			return;
+		}
+		await frappe.model.with_doc("File", frm.doc.file);
 		try {
 			const file_doc = frappe.model.get_doc("File", frm.doc.file);
 			const file_url = file_doc.file_url.replace(/#/g, "%23")
@@ -214,6 +218,19 @@ frappe.ui.form.on("Supplier Invoice", {
 						<source src="${frappe.utils.escape_html(file_url)}" type="audio/mpeg">
 						${__("Your browser does not support the audio element.")}
 					</audio >
+				</div>`);
+			} else if (file_extension === "xml") {
+				const einvoice_link = frm.doc.einvoice
+					? `<a href="${frappe.utils.get_form_link("eInvoice", frm.doc.einvoice)}">${__("Open the eInvoice")}</a>`
+					: "";
+				$preview = $(`<div class="img_preview">
+					<div class="text-muted" style="padding:var(--padding-lg); border:1px dashed var(--border-color); border-radius:var(--border-radius-md);">
+						<p>${__("This e-invoice carries no embedded PDF, only structured data.")}</p>
+						<p>
+							<a href="${frappe.utils.escape_html(file_url)}" target="_blank">${__("Download the XML")}</a>
+							${einvoice_link ? " · " + einvoice_link : ""}
+						</p>
+					</div>
 				</div>`);
 			}
 
