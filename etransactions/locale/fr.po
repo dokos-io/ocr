@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: eTransactions VERSION\n"
 "Report-Msgid-Bugs-To: hello@dokos.io\n"
-"POT-Creation-Date: 2026-07-09 01:45+0000\n"
+"POT-Creation-Date: 2026-07-10 01:46+0000\n"
 "PO-Revision-Date: 2025-04-02 14:52+0200\n"
 "Last-Translator: hello@dokos.io\n"
 "Language-Team: hello@dokos.io\n"
@@ -18,7 +18,7 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 "Generated-By: Babel 2.18.0\n"
 
-#: etransactions/etransactions/doctype/einvoice/einvoice.py:305
+#: etransactions/etransactions/doctype/einvoice/einvoice.py:306
 #, python-brace-format
 msgid "'{0}' is not a valid reason code for the status '{1}'."
 msgstr "'{0}' n'est pas un code motif valide pour le statut '{1}'."
@@ -53,11 +53,11 @@ msgstr "Un identifiant Peppol doit inclure son schéma, ex. 0088:1234567890123."
 msgid "A document level discount is currently not supported in the e-invoice."
 msgstr "Une remise au niveau du document n'est actuellement pas prise en charge dans la facture électronique."
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:245
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:262
 msgid "A draft purchase invoice exists already for this supplier invoice."
 msgstr "Une facture d'achat en brouillon existe déjà pour cette facture fournisseur."
 
-#: etransactions/etransactions/doctype/einvoice/einvoice.py:303
+#: etransactions/etransactions/doctype/einvoice/einvoice.py:304
 #, python-brace-format
 msgid "A reason code is required to report the status '{0}'."
 msgstr "Un code motif est requis pour signaler le statut '{0}'."
@@ -356,11 +356,11 @@ msgstr "Toutes les lignes de facture d'achat doivent être liées à une récept
 msgid "All sources"
 msgstr "Toutes les sources"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:683
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:700
 msgid "Allocate"
 msgstr "Allouer"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:546
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:563
 msgid "Allocate credit note across invoices"
 msgstr "Allouer la note de crédit aux factures"
 
@@ -370,10 +370,10 @@ msgstr "Allouer la note de crédit aux factures"
 msgid "Allocate this credit note across several submitted supplier invoices. Edited through the allocation dialog opened when 'Is Debit Note' is checked."
 msgstr "Allouer cette note de crédit à plusieurs factures fournisseurs soumises. Modifiable via la fenêtre d'allocation ouverte lorsque 'Est une note de débit' est coché."
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:596
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:655
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:731
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:736
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:613
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:672
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:748
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:753
 msgid "Allocated"
 msgstr "Alloué"
 
@@ -610,7 +610,7 @@ msgstr "B2C = e-reporting B2C agrégé (10.3/10.4) ; B2Bi = e-reporting B2B inte
 msgid "B2C e-reporting is not supported on this platform."
 msgstr "L'e-reporting B2C n'est pas pris en charge sur cette plateforme."
 
-#: etransactions/etransactions/doctype/einvoice/einvoice.py:202
+#: etransactions/etransactions/doctype/einvoice/einvoice.py:203
 msgid "B2C invoice — cannot be submitted to the platform"
 msgstr "Facture B2C — ne peut pas être soumise à la plateforme"
 
@@ -636,7 +636,7 @@ msgstr "BIC"
 msgid "BY"
 msgstr "BY"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:983
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:1000
 msgid "Back to list"
 msgstr "Retour à la liste"
 
@@ -850,11 +850,11 @@ msgstr "Annulé"
 msgid "Cancelled automatically: the customer refused the e-invoice on the accredited platform."
 msgstr "Annulée automatiquement : le client a refusé la facture électronique sur la plateforme agréée."
 
-#: etransactions/etransactions/doctype/einvoice/einvoice.py:530
+#: etransactions/etransactions/doctype/einvoice/einvoice.py:538
 msgid "Cannot create E Invoice."
 msgstr "Impossible de créer la facture électronique."
 
-#: etransactions/etransactions/doctype/einvoice/einvoice.py:166
+#: etransactions/etransactions/doctype/einvoice/einvoice.py:167
 #, python-brace-format
 msgid "Cannot delete an eInvoice that has been submitted to the accredited platform (Flow ID: {0})."
 msgstr "Impossible de supprimer une eInvoice qui a été soumise à la plateforme agréée (ID de flux : {0})."
@@ -869,7 +869,7 @@ msgstr "Impossible de supprimer la plateforme '{0}' car elle est utilisée dans 
 msgid "Cannot register {0} on Esalink — missing data: {1}"
 msgstr "Impossible d'inscrire {0} sur Esalink — données manquantes : {1}"
 
-#: etransactions/etransactions/doctype/einvoice/einvoice.py:547
+#: etransactions/etransactions/doctype/einvoice/einvoice.py:555
 #, python-brace-format
 msgid "Cannot validate E Invoice schematron: {0}"
 msgstr "Impossible de valider le Schematron de la facture électronique : {0}"
@@ -1114,12 +1114,12 @@ msgstr "Complétez les champs ci-dessous (manquants sur la société) :"
 msgid "Completed"
 msgstr "Complétée"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:500
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:517
 msgctxt "Title of confirmation dialog"
 msgid "Confirm"
 msgstr "Confirmer"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:606
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:623
 msgid "Confirm allocation"
 msgstr "Confirmer l'allocation"
 
@@ -1247,7 +1247,7 @@ msgstr "Créer un article"
 #. Label of the create_purchase_invoice (Button) field in DocType 'Supplier
 #. Invoice'
 #: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:55
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:241
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:258
 #: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json
 msgid "Create Purchase Invoice"
 msgstr "Créer une facture d'achats"
@@ -1269,25 +1269,25 @@ msgstr "Créer un fournisseur"
 msgid "Create Supplier Invoice"
 msgstr "Créer une facture fournisseur"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:250
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:267
 msgid "Create a new invoice"
 msgstr "Créer une nouvelle facture"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:427
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:444
 msgid "Create a new purchase order with all item lines without purchase order ?"
 msgstr "Créer une nouvelle commande fournisseur avec toutes les lignes qui ne sont pas déjà liées à une commande existante ?"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:439
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:447
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:456
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:464
 msgid "Create and keep in draft"
 msgstr "Créer et garder en brouillon"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:438
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:446
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:455
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:463
 msgid "Create and submit"
 msgstr "Créer et valider"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:442
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:459
 msgid "Create and submit a new purchase invoice ?"
 msgstr "Créer et valider une nouvelle facture d'achat ?"
 
@@ -1346,7 +1346,7 @@ msgstr "Identifiants"
 
 #. Label of the credit_note_allocation_summary (HTML) field in DocType
 #. 'Supplier Invoice'
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:724
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:741
 #: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json
 msgid "Credit Note Allocation"
 msgstr "Allocation de note de crédit"
@@ -1621,7 +1621,7 @@ msgstr "Détermination par catégorie"
 msgid "Development is underway for Factur-X/UBL e-invoicing and connectivity to approved PA (Plateforme de Dématérialisation Partenaire) platforms."
 msgstr "Le développement de la facturation électronique Factur-X/UBL et de la connectivité aux plateformes de dématérialisation partenaires (PDP) agréées est en cours."
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:283
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:300
 msgid "Difference:"
 msgstr "Différence:"
 
@@ -1764,6 +1764,10 @@ msgstr "Terminé."
 msgid "Download FacturX Invoice"
 msgstr "Télécharger la facture FacturX"
 
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:230
+msgid "Download the XML"
+msgstr "Télécharger le XML"
+
 #: etransactions/overrides/custom_fields/transactions.py:16
 msgid "Drop a file"
 msgstr "Déposer un fichier"
@@ -1826,7 +1830,7 @@ msgid "Early-Payment Discount (AAB)"
 msgstr "Escompte pour paiement anticipé (AAB)"
 
 #: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:184
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:683
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:700
 msgid "Edit"
 msgstr "Modifier"
 
@@ -1864,7 +1868,7 @@ msgid "Electronic address (BT-34)"
 msgstr "Adresse électronique (BT-34)"
 
 #. Option for the 'Source' (Select) field in DocType 'Accounting Inbox Item'
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:979
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:996
 #: etransactions/etransactions/report/customer_einvoice_readiness/customer_einvoice_readiness.py:63
 #: etransactions/etransactions_hub/doctype/accounting_inbox_item/accounting_inbox_item.json
 msgid "Email"
@@ -2390,15 +2394,15 @@ msgid "Invalid party type {0}."
 msgstr "Type de tiers {0} invalide."
 
 #. Label of the invoice_tab (Tab Break) field in DocType 'Supplier Invoice'
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:562
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:729
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:579
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:746
 #: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json
 msgid "Invoice"
 msgstr "Facture"
 
 #. Label of the invoice_amount (Currency) field in DocType 'Supplier Invoice
 #. Credit Note Allocation'
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:592
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:609
 #: etransactions/etransactions/doctype/supplier_invoice_credit_note_allocation/supplier_invoice_credit_note_allocation.json
 msgid "Invoice Amount"
 msgstr "Montant de la facture"
@@ -2428,7 +2432,7 @@ msgstr "La facture {0} n'est pas soumise et a été ignorée lors du rapprocheme
 msgid "Invoice {0} received status '{1}' from the accredited platform."
 msgstr "La facture {0} a reçu le statut '{1}' de la plateforme agréée."
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:552
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:569
 msgid "Invoices to allocate"
 msgstr "Factures à allouer"
 
@@ -2837,16 +2841,16 @@ msgstr "Nouvelle demande"
 msgid "New Template"
 msgstr "Nouveau modèle"
 
-#: etransactions/etransactions/doctype/einvoice/einvoice.py:606
+#: etransactions/etransactions/doctype/einvoice/einvoice.py:634
 #, python-brace-format
 msgid "New e-invoice received from the accredited platform: {0}"
 msgstr "Nouvelle facture électronique reçue de la plateforme agréée : {0}"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:975
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:992
 msgid "Next"
 msgstr "Suivant"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:508
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:525
 msgctxt "Dismiss confirmation dialog"
 msgid "No"
 msgstr "Non"
@@ -2907,7 +2911,7 @@ msgstr "Aucune société trouvée."
 msgid "No contact email (needed for the KYC onboarding email)"
 msgstr "Aucun e-mail de contact (nécessaire pour l'e-mail d'enrôlement KYC)"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:694
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:711
 msgid "No credit note allocation yet."
 msgstr "Aucune allocation de note de crédit pour l'instant."
 
@@ -3127,7 +3131,7 @@ msgstr "Service OCR"
 msgid "Onboarding email resent."
 msgstr "E-mail d'enrôlement renvoyé."
 
-#: etransactions/etransactions/doctype/einvoice/einvoice.py:174
+#: etransactions/etransactions/doctype/einvoice/einvoice.py:175
 msgid "Only Outgoing eInvoices can be submitted to the accredited platform."
 msgstr "Seules les eInvoices sortantes peuvent être soumises à la plateforme agréée."
 
@@ -3171,9 +3175,13 @@ msgstr "Ouvrir l'outil de configuration"
 msgid "Open eInvoice"
 msgstr "Ouvrir l'eInvoice"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:249
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:266
 msgid "Open the draft invoice"
 msgstr "Ouvrir la facture brouillon"
+
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:224
+msgid "Open the eInvoice"
+msgstr "Ouvrir la eFacture"
 
 #: frontend/src/pages/Overview.vue:32
 msgid "Open the reconciliation tool"
@@ -3514,11 +3522,11 @@ msgstr "Veuillez recharger la page ou vous reconnecter."
 msgid "Please select a checklist template"
 msgstr "Veuillez sélectionner un modèle de liste de contrôle"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:828
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:845
 msgid "Please select at least one purchase order"
 msgstr "Veuillez sélectionner au moins une commande fournisseur"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:828
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:845
 msgid "Please select at least one purchase receipt"
 msgstr "Veuillez sélectionner au moins une réception"
 
@@ -3530,11 +3538,11 @@ msgstr "Veuillez sélectionner des documents associés à la même société"
 msgid "Please select documents linked to the same supplier"
 msgstr "Veuillez sélectionner des documents associés au même fournisseur"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:834
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:851
 msgid "Please select orders linked to the same supplier"
 msgstr "Veuillez sélectionner des commandes liées au même fournisseur"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:834
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:851
 msgid "Please select receipts linked to the same supplier"
 msgstr "Veuillez sélectionner des reçus liés au même fournisseur"
 
@@ -3558,7 +3566,7 @@ msgstr "Code postal"
 #. Label of the posting_date (Date) field in DocType 'Supplier Invoice'
 #. Label of the posting_date (Date) field in DocType 'Supplier Invoice Credit
 #. Note Allocation'
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:591
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:608
 #: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json
 #: etransactions/etransactions/doctype/supplier_invoice_credit_note_allocation/supplier_invoice_credit_note_allocation.json
 msgid "Posting Date"
@@ -3707,7 +3715,7 @@ msgstr "Gestionnaire principal des achats"
 msgid "Purchase Order"
 msgstr "Commande fournisseur"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:432
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:449
 msgid "Purchase Order Date"
 msgstr "Date de la commande fournisseur"
 
@@ -3734,7 +3742,7 @@ msgstr "Commandes fournisseur"
 msgid "Purchase Taxes Template"
 msgstr "Modèle de taxes à l'achat"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:475
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:492
 msgid "Purchase invoice created"
 msgstr "Facture d'achat créée"
 
@@ -3743,7 +3751,7 @@ msgstr "Facture d'achat créée"
 msgid "Purchase invoice {0} has been automatically created for this invoice."
 msgstr "La facture d'achat {0} a été automatiquement créée pour cette facture."
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:493
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:510
 msgid "Purchase order created"
 msgstr "Commande fournisseur créée"
 
@@ -4238,7 +4246,7 @@ msgstr "Routage — géré automatiquement"
 msgid "Row"
 msgstr "Ligne"
 
-#: etransactions/etransactions/doctype/einvoice/einvoice.py:698
+#: etransactions/etransactions/doctype/einvoice/einvoice.py:726
 #, python-brace-format
 msgid "Row {0}"
 msgstr "Ligne {0}"
@@ -4420,7 +4428,7 @@ msgstr "Sélectionner un modèle"
 msgid "Select date"
 msgstr "Sélectionner une date"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:813
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:830
 msgid "Select one or more purchase orders"
 msgstr "Sélectionner une ou plusieurs commandes fournisseur"
 
@@ -4774,7 +4782,7 @@ msgstr "SuperPDP et Esalink disposent de parcours de configuration préconfigur�
 #. Label of the supplier (Link) field in DocType 'Supplier Invoice'
 #: etransactions/etransactions/doctype/einvoicing_directory_line/einvoicing_directory_line.json
 #: etransactions/etransactions/doctype/etransactions_supplier_name_alias/etransactions_supplier_name_alias.json
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:802
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:819
 #: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json
 msgid "Supplier"
 msgstr "Fournisseur"
@@ -4817,14 +4825,14 @@ msgstr "Article de facture fournisseur"
 #. Label of the bill_no (Data) field in DocType 'Supplier Invoice'
 #. Label of the bill_no (Data) field in DocType 'Supplier Invoice Credit Note
 #. Allocation'
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:590
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:730
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:607
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:747
 #: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json
 #: etransactions/etransactions/doctype/supplier_invoice_credit_note_allocation/supplier_invoice_credit_note_allocation.json
 msgid "Supplier Invoice No"
 msgstr "N° de la facture fournisseur"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:392
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:409
 #, python-brace-format
 msgid "Supplier Invoice No {0} already exists in submitted Purchase Invoice {1}"
 msgstr "La facture fournisseur n° {0} existe déjà dans la facture d'achat validée {1}"
@@ -5173,7 +5181,7 @@ msgstr "Le numéro SIREN de {0} ({1}) est requis pour signaler un statut de cycl
 msgid "The SIRENE registry could not be reached. Try again later or fill the fields manually."
 msgstr "Le registre SIRENE est injoignable. Réessayez plus tard ou remplissez les champs manuellement."
 
-#: etransactions/etransactions/doctype/einvoice/einvoice.py:377
+#: etransactions/etransactions/doctype/einvoice/einvoice.py:378
 msgid "The UBL XML has not been generated for this eInvoice."
 msgstr "Le XML UBL n'a pas été généré pour cette eInvoice."
 
@@ -5257,7 +5265,7 @@ msgstr "Le numéro de facture est absent de cette eInvoice ; impossible de signa
 msgid "The lifecycle status '{0}' is not yet supported by SuperPDP."
 msgstr "Le statut de cycle de vie '{0}' n'est pas encore pris en charge par SuperPDP."
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:287
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:304
 msgid "The net amount of the invoice and the selected purchase receipts don't match.<br>Please select another purchase receipt or adjust the unit rate to match the amount of this invoice."
 msgstr "Le montant HT de la facture et des reçus d'achat sélectionnés ne correspondent pas.<br>Veuillez sélectionner un autre réception ou ajuster le prix unitaire pour correspondre au montant de cette facture."
 
@@ -5293,7 +5301,7 @@ msgstr "La ligne de routage de plateforme agréée sélectionnée nécessite une
 msgid "The selected directory line requires a commitment reference (Customer's Purchase Order No)."
 msgstr "La ligne d'annuaire sélectionnée nécessite une référence d'engagement (numéro de commande du client)."
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:361
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:378
 #, python-brace-format
 msgid "The selected supplier ({0}) is different from the purchase order supplier ({1})"
 msgstr "Le fournisseur sélectionné ({0}) est différent du fournisseur de la commande d'achat ({1})"
@@ -5313,7 +5321,7 @@ msgstr "L'adresse postale du vendeur est manquante dans la facture électronique
 msgid "The seller tax identification number is missing from the e-invoice (rules BR-S-02, BR-CO-26). Add a <b>Tax ID</b> (VAT/TVA intracommunautaire) in <a href='/app/company/{0}'>Company settings</a>, or a <b>SIREN number</b> (numéro SIREN) in the same page."
 msgstr "Le numéro d'identification fiscale du vendeur est manquant dans la facture électronique (règles BR-S-02, BR-CO-26). Ajoutez un <b>N° fiscal</b> (TVA intracommunautaire) dans les <a href='/app/company/{0}'>Paramètres de la société</a>, ou un <b>numéro SIREN</b> dans la même page."
 
-#: etransactions/etransactions/doctype/einvoice/einvoice.py:208
+#: etransactions/etransactions/doctype/einvoice/einvoice.py:209
 msgid "The seller's electronic address (BT-34) is missing from this eInvoice. Set an email on the Company record, or configure the Electronic Address fields (etransactions_electronic_address_scheme / etransactions_electronic_address) on the Company, then re-save the Sales Invoice to regenerate the eInvoice."
 msgstr "L'adresse électronique du vendeur (BT-34) est absente de cette eInvoice. Définissez un e-mail sur la fiche Société, ou configurez les champs d'adresse électronique (etransactions_electronic_address_scheme / etransactions_electronic_address) sur la Société, puis réenregistrez la facture de vente pour régénérer l'eInvoice."
 
@@ -5375,17 +5383,21 @@ msgstr "Ce client n'a pas été trouvé dans l'annuaire (ou est fermé). Aucune 
 msgid "This document must be linked to sales invoice in order to generate an eInvoice"
 msgstr "Ce document doit être lié à une facture de vente pour pouvoir générer une facture électronique"
 
-#: etransactions/etransactions/doctype/einvoice/einvoice.py:178
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:228
+msgid "This e-invoice carries no embedded PDF, only structured data."
+msgstr "Cette eFacture ne contient pas de PDF intégré, uniquement des données structurées."
+
+#: etransactions/etransactions/doctype/einvoice/einvoice.py:179
 #, python-brace-format
 msgid "This eInvoice has already been submitted to the accredited platform (Flow ID: {0})."
 msgstr "Cette eInvoice a déjà été soumise à la plateforme agréée (ID de flux : {0})."
 
-#: etransactions/etransactions/doctype/einvoice/einvoice.py:184
+#: etransactions/etransactions/doctype/einvoice/einvoice.py:185
 msgid "This eInvoice has already been submitted to the accredited platform."
 msgstr "Cette eInvoice a déjà été soumise à la plateforme agréée."
 
-#: etransactions/etransactions/doctype/einvoice/einvoice.py:250
-#: etransactions/etransactions/doctype/einvoice/einvoice.py:297
+#: etransactions/etransactions/doctype/einvoice/einvoice.py:251
+#: etransactions/etransactions/doctype/einvoice/einvoice.py:298
 msgid "This eInvoice has not been submitted to the accredited platform yet."
 msgstr "Cette eInvoice n'a pas encore été soumise à la plateforme agréée."
 
@@ -5403,7 +5415,7 @@ msgstr "Cette facture présente des problèmes de facturation électronique qui 
 msgid "This invoice is classified <b>{0}</b> and falls under the French e-invoicing mandate, but no <b>eTransaction Profile</b> is set — so no electronic invoice will be generated or transmitted. Set a profile (e.g. EN16931) on the <a href='/app/customer/{1}'>customer</a> or on this invoice."
 msgstr "Cette facture est classée <b>{0}</b> et relève de l'obligation française de facturation électronique, mais aucun <b>profil eTransaction</b> n'est défini — aucune facture électronique ne sera donc générée ni transmise. Définissez un profil (ex. EN16931) sur le <a href='/app/customer/{1}'>client</a> ou sur cette facture."
 
-#: etransactions/etransactions/doctype/einvoice/einvoice.py:194
+#: etransactions/etransactions/doctype/einvoice/einvoice.py:195
 msgid "This invoice is classified B2C: the customer is not reachable through the e-invoicing directory, so the sale is declared to the tax authority via e-reporting, not submitted as a structured e-invoice.<br><br>To send a structured invoice instead, register the customer in the directory (set a valid SIREN and re-sync the directory) so an active routing line is resolved — the invoice will then be classified B2B."
 msgstr "Cette facture est classée B2C : le client n'est pas joignable via l'annuaire de facturation électronique, la vente est donc déclarée à l'administration fiscale via l'e-reporting et non soumise comme facture électronique structurée.<br><br>Pour envoyer une facture structurée à la place, inscrivez le client dans l'annuaire (renseignez un SIREN valide et resynchronisez l'annuaire) afin qu'une ligne de routage active soit résolue — la facture sera alors classée B2B."
 
@@ -5597,7 +5609,7 @@ msgstr "Prix unitaire"
 msgid "Unit Rate"
 msgstr "Prix unitaire"
 
-#: etransactions/etransactions/doctype/einvoice/einvoice.py:299
+#: etransactions/etransactions/doctype/einvoice/einvoice.py:300
 #: etransactions/plateforme_agreee/lifecycle_status.py:175
 #, python-brace-format
 msgid "Unknown lifecycle status '{0}'."
@@ -5735,7 +5747,7 @@ msgstr "Voir le rapport complet"
 msgid "View {0}"
 msgstr "Vue {0}"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:969
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:986
 #, python-brace-format
 msgid "View {}"
 msgstr "Voir {}"
@@ -5759,7 +5771,7 @@ msgstr "En attente de moi"
 msgid "Watermark of the last successful incoming-invoice poll; the hourly cron only asks the platform for flows updated after this (minus a 1h margin)."
 msgstr "Repère de la dernière interrogation réussie des factures entrantes ; le cron horaire ne demande à la plateforme que les flux mis à jour après cette date (moins une marge d'1 h)."
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:372
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:389
 #, python-brace-format
 msgid "We are not able to find any purchase order with number {0}."
 msgstr "Nous ne parvenons pas à trouver de commande fournisseur avec le numéro {0}."
@@ -5794,28 +5806,28 @@ msgstr "XML"
 msgid "Yearly"
 msgstr "Annuel"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:502
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:519
 msgctxt "Approve confirmation dialog"
 msgid "Yes"
 msgstr "Oui"
 
 #: etransactions/etransactions/doctype/ocr_request/ocr_request.js:69
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:215
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:219
 #: etransactions/public/js/file_preview.js:66
 msgid "Your browser does not support the audio element."
 msgstr "Votre navigateur ne supporte pas cet élément audio."
 
 #: etransactions/etransactions/doctype/ocr_request/ocr_request.js:51
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:197
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:201
 #: etransactions/public/js/file_preview.js:48
 msgid "Your browser does not support the video element."
 msgstr "Votre navigateur ne supporte pas cet élément vidéo."
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:318
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:335
 msgid "Your supplier Tax ID is currently empty"
 msgstr "Le n° de TVA de votre fournisseur est actuellement vide"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:321
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:338
 #, python-brace-format
 msgid "Your supplier's current Tax ID is {0}"
 msgstr "Le n° de TVA de votre fournisseur est {0}"
@@ -6215,8 +6227,8 @@ msgstr "introuvable"
 msgid "not_blocking"
 msgstr "non bloquant"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:655
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:736
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:672
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:753
 msgid "of"
 msgstr "de"
 
@@ -6399,8 +6411,8 @@ msgstr "il y a {0} min"
 msgid "{0} of {1} invoice(s) matched"
 msgstr "{0} facture(s) sur {1} rapprochée(s)"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:646
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:717
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:663
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:734
 #, python-brace-format
 msgid "{0} over-allocated"
 msgstr "{0} sur-alloué"
