@@ -208,7 +208,7 @@
    "label": "Esalink Account"
   },
   {
-   "default": "test",
+   "default": "prod",
    "depends_on": "eval:doc.platform_type === 'Esalink'",
    "fieldname": "esalink_environment",
    "fieldtype": "Select",

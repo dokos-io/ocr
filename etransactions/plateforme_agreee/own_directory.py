@@ -27,10 +27,10 @@ from etransactions.plateforme_agreee.session import (
 class EsalinkDirectoryAdapter:
 	"""Adapts HUBTIMIZE's partner identifier API to the directory-dialog trio."""
 
-	def __init__(self, customer_id: int):
+	def __init__(self, customer_id: int, environment: str | None = None):
 		from etransactions.plateforme_agreee.esalink_provisioning import _partner_client
 
-		self.client = _partner_client()
+		self.client = _partner_client(environment)
 		self.customer_id = int(customer_id)
 
 	def list_directory_entries(self) -> list[dict]:
@@ -105,7 +105,7 @@ def _get_directory_client(platform_name: str):
 					" company on Esalink first (eTransactions Settings)."
 				)
 			)
-		return EsalinkDirectoryAdapter(doc.esalink_customer_id)
+		return EsalinkDirectoryAdapter(doc.esalink_customer_id, doc.esalink_environment)
 
 	if not platform_supports(doc.platform_type, "directory_registration"):
 		frappe.throw(

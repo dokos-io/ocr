@@ -42,9 +42,9 @@ ESALINK_BASE_URLS = {
 
 
 def base_url_for_environment(environment: str) -> str:
-    """Resolve the HUBTIMIZE base URL for ``test``/``prod`` (defaults to test)."""
+    """Resolve the HUBTIMIZE base URL for ``test``/``prod`` (defaults to prod)."""
     return ESALINK_BASE_URLS.get(
-        (environment or "test").lower(), ESALINK_BASE_URLS["test"]
+        (environment or "prod").lower(), ESALINK_BASE_URLS["prod"]
     )
 
 

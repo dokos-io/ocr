@@ -49,9 +49,9 @@ PA configuration lives in two DocTypes:
   `Both`), `is_active`, `auto_send_on_submit`, and `directory_refresh_days` (default 15).
   `platform_code` is auto-set to `superpdp` / `esalink` in `validate()`.
   Credentials live **only on the record** — `client_id` / `client_secret` are never read
-  from `site_config.json` (the doctype tests lock this in). Esalink's *environment*
-  settings (`esalink_environment`, `esalink_api_key`, partner credentials) do come from
-  `site_config`, but the minted `client_id` / `client_secret` are still stored on the record.
+  from `site_config.json` (the doctype tests lock this in). Esalink's *environment* is picked
+  per record on `esalink_environment` (`test` / `prod`, default `prod`); only the
+  `esalink_api_key` and the partner credentials come from `site_config`.
 - **eTransactions Settings** (singleton) — the auto-status flags `auto_send_in_hand`,
   `auto_send_approved`, `auto_send_payment`.
 
@@ -164,8 +164,8 @@ by this precedence:
 - `Custom` → `AFNORClient(client_id, client_secret, base_url)` (base URL **required**)
 - otherwise (Esalink) → `EsalinkClient(username=client_id, password=client_secret,
   api_key, base_url)` — the company's minted `clientId`/`clientSecret`, with the
-  `hubtimize-api-key` and base URL resolved per-environment (`esalink_runtime_config()`,
-  Company field → `site_config` fallback)
+  `hubtimize-api-key` from `site_config` (`esalink_api_key()`) and the base URL derived from
+  the record's `esalink_environment` (`base_url_for_environment()`, defaulting to `prod`)
 
 `get_session()` is retired — Esalink no longer exposes a raw `pyfrctc` session — and now
 throws; use `get_client()` for all platforms.
