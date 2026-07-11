@@ -1,0 +1,174 @@
+openapi: 3.0.3
+info:
+  title: Esalink PA API
+  version: 1.0.0
+  description: >-
+    Microcks mock of the Esalink (HUBTIMIZE) Plateforme Agréée, used by the
+    etransactions integration tests to drive the `Esalink` connection mode over
+    real HTTP. Esalink shares AFNOR's Flows/Directory surface but authenticates
+    with POST /v1/token (JSON username/password + hubtimize-api-key header) and
+    exposes GET /v1/healthcheck. Per-scenario examples on GET /v1/flows/{flowId}
+    are selected by flow id. Keep info.title/version in lockstep with
+    plateforme_agreee/_microcks.py.
+paths:
+  /v1/token:
+    post:
+      operationId: token
+      summary: HUBTIMIZE JSON token
+      responses:
+        "200":
+          description: token
+          content:
+            application/json:
+              examples:
+                ok:
+                  value:
+                    access_token: mock-esalink-token
+                    expires_in: 3600
+  /v1/healthcheck:
+    get:
+      operationId: healthcheck
+      summary: Connectivity probe
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              examples:
+                ok:
+                  value:
+                    status: UP
+  /v1/flows:
+    post:
+      operationId: submitFlow
+      summary: Submit an invoice (or CDAR lifecycle) flow
+      responses:
+        "200":
+          description: FullFlowInfo
+          content:
+            application/json:
+              examples:
+                accepted:
+                  value:
+                    flowId: ESA-FLOW-OK
+                    submittedAt: "2026-07-01T09:00:00Z"
+                    flowSyntax: CII
+  /v1/flows/{flowId}:
+    get:
+      operationId: getFlow
+      summary: Flow metadata or original file, by docType
+      parameters:
+        - name: flowId
+          in: path
+          required: true
+          schema: { type: string }
+          examples:
+            ok: { value: ESA-FLOW-OK }
+            rejected: { value: ESA-FLOW-REJECTED }
+            pending: { value: ESA-FLOW-PENDING }
+            incoming: { value: ESA-INCOMING-1 }
+        - name: docType
+          in: query
+          schema: { type: string }
+          examples:
+            ok: { value: Metadata }
+            rejected: { value: Metadata }
+            pending: { value: Metadata }
+            incoming: { value: Original }
+      responses:
+        "200":
+          description: metadata or file
+          content:
+            application/json:
+              examples:
+                ok:
+                  value:
+                    flowId: ESA-FLOW-OK
+                    updatedAt: "2026-07-01T10:00:00Z"
+                    acknowledgement:
+                      status: Ok
+                rejected:
+                  value:
+                    flowId: ESA-FLOW-REJECTED
+                    updatedAt: "2026-07-01T10:00:00Z"
+                    acknowledgement:
+                      status: Error
+                      details:
+                        - reasonMessage: "BR-FR-01 seller SIRET missing"
+                pending:
+                  value:
+                    flowId: ESA-FLOW-PENDING
+                    updatedAt: "2026-07-01T10:00:00Z"
+                    acknowledgement:
+                      status: Pending
+            application/octet-stream:
+              examples:
+                incoming:
+                  value: "<Invoice>MOCK-ESALINK-INCOMING</Invoice>"
+  /v1/flows/search:
+    post:
+      operationId: searchFlows
+      summary: Search flows (one incoming SupplierInvoice, any query body)
+      responses:
+        "200":
+          description: search results
+          content:
+            application/json:
+              examples:
+                incomingInvoices:
+                  value:
+                    results:
+                      - flowId: ESA-INCOMING-1
+                        submittedAt: "2026-06-15T08:00:00Z"
+                        updatedAt: "2026-06-15T08:00:00Z"
+                        flowType: SupplierInvoice
+                        flowSyntax: CII
+  /v1/siren/code-insee:{siren}:
+    get:
+      operationId: getSiren
+      summary: Directory SIREN lookup (active private business, any SIREN)
+      parameters:
+        - name: siren
+          in: path
+          required: true
+          schema: { type: string }
+          examples:
+            active: { value: "853322915" }
+      responses:
+        "200":
+          description: SIREN data
+          content:
+            application/json:
+              examples:
+                active:
+                  value:
+                    businessName: "Mock Buyer SAS"
+                    entityType: PrivateVatRegistered
+                    administrativeStatus: A
+  /v1/directory-line/search:
+    post:
+      operationId: searchDirectoryLines
+      summary: Directory routing lines by SIREN
+      requestBody:
+        content:
+          application/json:
+            examples:
+              active:
+                value:
+                  filters: { siren: { op: strict, value: "853322915" } }
+                  include: ["routingCode"]
+                  limit: 100
+      responses:
+        "200":
+          description: directory lines
+          content:
+            application/json:
+              examples:
+                active:
+                  value:
+                    results:
+                      - addressingIdentifier: "853322915"
+                        directoryLineStatus: Enabled
+                        routingCode:
+                          routingCodeName: "Main establishment"
+                          managesLegalCommitment: false

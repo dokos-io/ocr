@@ -30,6 +30,9 @@ tests:
       alias: redis_cache
     - name: redis
       alias: redis_socketio
+    # Mock PA server for the Microcks-backed integration tests (tests/integration).
+    - name: quay.io/microcks/microcks-uber:latest
+      alias: microcks
 
   variables:
     MYSQL_DATABASE: "test_dodock"
@@ -54,6 +57,11 @@ tests:
     - bench --site test_site install-app erpnext
     - bench --site test_site install-app etransactions
     - wait $build_pid
+    # Wait for Microcks, seed the PA API mocks, and point the site at it so the
+    # tests/integration suite runs (it skips cleanly when microcks_url is unset).
+    - until curl -sf http://microcks:8080/api/keycloak/config >/dev/null 2>&1; do sleep 2; done
+    - for spec in apps/etransactions/etransactions/components/mocks/*.yaml; do curl -s -X POST http://microcks:8080/api/artifact/upload -F "file=@$spec" -F "mainArtifact=true"; echo; done
+    - bench --site test_site set-config microcks_url http://microcks:8080
 
   script:
     - bench --site test_site run-parallel-tests --app etransactions

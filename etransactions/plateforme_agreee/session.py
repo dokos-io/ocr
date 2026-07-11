@@ -82,15 +82,22 @@ def _build_client(
 	``sandbox`` flags a pré-production platform; only SuperPDP acts on it (skips
 	pre-validation on invoice sends). ``auth_method`` selects SuperPDP's OAuth
 	grant; ``authorization_code`` loads the stored refresh token. Raises on failure.
+
+	When ``microcks_url`` is set in ``site_config`` (integration tests / CI) the base
+	URL is redirected to the matching Microcks mock; it wins over ``api_base_url`` and
+	the environment default. Inert otherwise (see :mod:`._microcks`).
 	"""
+	from etransactions.plateforme_agreee._microcks import microcks_base_url
+
 	if platform_type == "SuperPDP":
 		from etransactions.components.superpdp import SuperPDPClient
+		base_url = microcks_base_url("SuperPDP") or api_base_url or None
 		if auth_method == "authorization_code":
 			tok = _get_platform_token(platform_name) if platform_name else {}
 			return SuperPDPClient(
 				client_id,
 				client_secret,
-				base_url=api_base_url or None,
+				base_url=base_url,
 				disable_pre_check=sandbox,
 				auth_method="authorization_code",
 				refresh_token=tok.get("refresh_token"),
@@ -98,11 +105,11 @@ def _build_client(
 					(lambda data: _store_platform_token(platform_name, data)) if platform_name else None
 				),
 			)
-		return SuperPDPClient(client_id, client_secret, base_url=api_base_url or None, disable_pre_check=sandbox)
+		return SuperPDPClient(client_id, client_secret, base_url=base_url, disable_pre_check=sandbox)
 
 	if platform_type == "Custom":
 		from etransactions.components.afnor import AFNORClient
-		return AFNORClient(client_id, client_secret, base_url=api_base_url or "")
+		return AFNORClient(client_id, client_secret, base_url=microcks_base_url("Custom") or api_base_url or "")
 
 	# Esalink (HUBTIMIZE) — native AFNOR-style client with the hubtimize-api-key header.
 	# Credentials are the company's minted clientId/clientSecret; the api-key is site-level
@@ -110,7 +117,7 @@ def _build_client(
 	from etransactions.components.esalink import EsalinkClient, base_url_for_environment
 	from etransactions.plateforme_agreee.esalink_provisioning import esalink_api_key
 
-	base = api_base_url or base_url_for_environment(esalink_environment)
+	base = microcks_base_url("Esalink") or api_base_url or base_url_for_environment(esalink_environment)
 	return EsalinkClient(
 		username=client_id,
 		password=client_secret,
