@@ -49,11 +49,11 @@ def _partner() -> EsalinkPartnerClient:
 
 class TestEsalinkTransport(UnitTestCase):
 	def test_base_url_per_environment(self):
-		self.assertEqual(
-			base_url_for_environment("prod"), "https://hubtimize.fr/api/orchestrator"
-		)
+		PROD = "https://hubtimize.fr/api/orchestrator"
+		self.assertEqual(base_url_for_environment("prod"), PROD)
 		self.assertEqual(base_url_for_environment("test"), BASE)
-		self.assertEqual(base_url_for_environment(None), BASE)  # defaults to test
+		self.assertEqual(base_url_for_environment(None), PROD)  # defaults to prod
+		self.assertEqual(base_url_for_environment("nonsense"), PROD)
 
 	def test_token_call_posts_json_with_api_key(self):
 		client = EsalinkClient(
@@ -414,6 +414,126 @@ class TestEsalinkProvisioningHelpers(UnitTestCase):
 		self.assertEqual(out["platform_name"], "Esalink — ACME (Sales)")
 		self.assertEqual(out["customer_id"], "99")
 
+	def _register_with_env(self, existing):
+		"""Run a registration against ``existing`` and return (partner_client_mock, saved_dict)."""
+		import etransactions.plateforme_agreee.session as session
+
+		partner = MagicMock()
+		partner.find_customer_by_legal_id.return_value = None
+		partner.create_customer.return_value = 21
+		partner.create_user.return_value = {"clientId": "c", "clientSecret": "s"}
+		fake_doc = MagicMock()
+		fake_doc.name = "Esalink — ACME"
+		fake_doc.get.return_value = None
+		with (
+			patch.object(prov, "_existing_esalink_platform", return_value=existing),
+			patch.object(prov, "_enhance_company"),
+			patch.object(
+				prov, "_build_customer_payload", return_value={"customerLegalId": "315143296"}
+			),
+			patch.object(prov, "_partner_client", return_value=partner) as pc,
+			patch("frappe.get_doc", return_value=fake_doc),
+			patch("frappe.new_doc", return_value=fake_doc),
+			patch.object(
+				session, "check_platform_health", return_value={"status": "ok", "message": "ok"}
+			),
+		):
+			prov.register_esalink_company("ACME")
+		return pc, fake_doc.update.call_args[0][0]
+
+	def test_register_mints_on_the_row_environment(self):
+		"""The row's environment picks the partner host and survives the save (no clobber)."""
+		existing = {
+			"name": "Esalink — ACME",
+			"esalink_customer_id": None,
+			"esalink_customer_status": None,
+			"is_active": 0,
+			"esalink_environment": "test",
+		}
+		pc, saved = self._register_with_env(existing)
+		pc.assert_called_once_with("test")
+		self.assertEqual(saved["esalink_environment"], "test")
+
+	def test_register_defaults_new_row_to_prod(self):
+		"""No pre-existing row → the account is minted on prod and the row records prod."""
+		pc, saved = self._register_with_env(None)
+		pc.assert_called_once_with("prod")
+		self.assertEqual(saved["esalink_environment"], "prod")
+
+	def test_refresh_customer_status_uses_row_environment(self):
+		partner = MagicMock()
+		partner.get_customer.return_value = {"activationStatus": "ACTIVE"}
+		row = {"esalink_customer_id": "42", "esalink_environment": "test"}
+		with (
+			patch("frappe.db.get_value", side_effect=lambda dt, n, f, **k: row[f]),
+			patch.object(prov, "_partner_client", return_value=partner) as pc,
+			patch.object(prov, "_apply_customer_status"),
+			patch("frappe.db.commit"),
+		):
+			out = prov.refresh_customer_status("P1")
+		pc.assert_called_once_with("test")
+		partner.get_customer.assert_called_once_with(42)
+		self.assertEqual(out["status"], "ACTIVE")
+
+	def test_resend_kyc_email_uses_row_environment(self):
+		partner = MagicMock()
+		row = {"esalink_customer_id": "42", "esalink_environment": "test"}
+		with (
+			patch("frappe.db.get_value", side_effect=lambda dt, n, f, **k: row[f]),
+			patch.object(prov, "_partner_client", return_value=partner) as pc,
+		):
+			prov.resend_kyc_email("P1")
+		pc.assert_called_once_with("test")
+		partner.resend_kyc_email.assert_called_once_with(42)
+
+	def test_platform_environment_defaults_to_prod(self):
+		with patch("frappe.db.get_value", return_value=None):
+			self.assertEqual(prov._platform_environment("P1"), "prod")
+
+	def test_poll_builds_one_client_per_environment(self):
+		"""Pending rows span both hosts, so the poll must not reuse a single partner client."""
+		import frappe
+
+		pending = [
+			frappe._dict({"name": "P1", "esalink_customer_id": "1", "esalink_environment": "test"}),
+			frappe._dict({"name": "P2", "esalink_customer_id": "2", "esalink_environment": "prod"}),
+			frappe._dict({"name": "P3", "esalink_customer_id": "3", "esalink_environment": "test"}),
+		]
+		clients = {env: MagicMock(name=env) for env in ("test", "prod")}
+		for c in clients.values():
+			c.get_customer.return_value = {"activationStatus": "ACTIVE"}
+
+		with (
+			patch("frappe.get_all", return_value=pending),
+			patch.object(prov, "_partner_client", side_effect=lambda env: clients[env]) as pc,
+			patch.object(prov, "_apply_customer_status"),
+			patch("frappe.db.commit"),
+		):
+			prov.poll_esalink_customer_statuses()
+
+		# Two distinct environments across three rows → two clients, each cached and reused.
+		self.assertEqual([c.args[0] for c in pc.call_args_list], ["test", "prod"])
+		self.assertEqual(
+			[c.args[0] for c in clients["test"].get_customer.call_args_list], [1, 3]
+		)
+		clients["prod"].get_customer.assert_called_once_with(2)
+
+	def test_poll_fails_loudly_when_partner_credentials_missing(self):
+		"""Clients are built before the per-row guard, so a config error is not swallowed."""
+		import frappe
+
+		pending = [
+			frappe._dict({"name": "P1", "esalink_customer_id": "1", "esalink_environment": "prod"})
+		]
+		with (
+			patch("frappe.get_all", return_value=pending),
+			patch.object(prov, "_partner_client", side_effect=frappe.ValidationError("no creds")),
+			patch.object(prov, "_apply_customer_status") as apply_status,
+		):
+			with self.assertRaises(frappe.ValidationError):
+				prov.poll_esalink_customer_statuses()
+		apply_status.assert_not_called()
+
 	def test_registration_status_not_registered(self):
 		import frappe
 
@@ -608,6 +728,16 @@ class TestEsalinkDirectoryAdapter(UnitTestCase):
 			return_value=MagicMock(),
 		):
 			return EsalinkDirectoryAdapter(42)
+
+	def test_adapter_builds_partner_client_for_the_row_environment(self):
+		from etransactions.plateforme_agreee.own_directory import EsalinkDirectoryAdapter
+
+		with patch(
+			"etransactions.plateforme_agreee.esalink_provisioning._partner_client",
+			return_value=MagicMock(),
+		) as pc:
+			EsalinkDirectoryAdapter(42, "test")
+		pc.assert_called_once_with("test")
 
 	def test_list_maps_to_dialog_shape(self):
 		adapter = self._adapter()

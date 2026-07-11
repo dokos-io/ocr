@@ -158,14 +158,16 @@ class UnitTestBuildClient(UnitTestCase):
 
 		# EsalinkClient authenticates lazily, so construction hits no network.
 		with patch(
-			"etransactions.plateforme_agreee.esalink_provisioning.esalink_runtime_config",
-			return_value={"environment": "test", "api_key": "k"},
+			"etransactions.plateforme_agreee.esalink_provisioning.esalink_api_key",
+			return_value="k",
 		):
-			prod = session._build_client(
-				"Esalink", "u", "p", company="X", esalink_environment="prod"
-			)
-			self.assertEqual(prod._base_url, ESALINK_BASE_URLS["prod"].rstrip("/"))
+			for env in ("prod", "test"):
+				client = session._build_client(
+					"Esalink", "u", "p", company="X", esalink_environment=env
+				)
+				self.assertEqual(client._base_url, ESALINK_BASE_URLS[env].rstrip("/"))
 
-			# No per-platform env → falls back to the runtime config environment.
+			# No per-platform env → prod. The environment is no longer a site-level setting,
+			# so there is nothing else left to fall back to.
 			default = session._build_client("Esalink", "u", "p", company="X")
-			self.assertEqual(default._base_url, ESALINK_BASE_URLS["test"].rstrip("/"))
+			self.assertEqual(default._base_url, ESALINK_BASE_URLS["prod"].rstrip("/"))

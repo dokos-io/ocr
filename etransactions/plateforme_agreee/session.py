@@ -105,18 +105,16 @@ def _build_client(
 		return AFNORClient(client_id, client_secret, base_url=api_base_url or "")
 
 	# Esalink (HUBTIMIZE) — native AFNOR-style client with the hubtimize-api-key header.
-	# Credentials are the company's minted clientId/clientSecret; the api-key and base
-	# URL are resolved per-company (Company field → site_config fallback).
+	# Credentials are the company's minted clientId/clientSecret; the api-key is site-level
+	# and the base URL follows the platform record's environment (defaults to prod).
 	from etransactions.components.esalink import EsalinkClient, base_url_for_environment
-	from etransactions.plateforme_agreee.esalink_provisioning import esalink_runtime_config
+	from etransactions.plateforme_agreee.esalink_provisioning import esalink_api_key
 
-	cfg = esalink_runtime_config()
-	env = esalink_environment or cfg["environment"]
-	base = api_base_url or base_url_for_environment(env)
+	base = api_base_url or base_url_for_environment(esalink_environment)
 	return EsalinkClient(
 		username=client_id,
 		password=client_secret,
-		api_key=cfg["api_key"],
+		api_key=esalink_api_key(),
 		base_url=base,
 	)
 

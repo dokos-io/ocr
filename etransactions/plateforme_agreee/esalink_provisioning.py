@@ -7,11 +7,15 @@ registers the French directory line), mint the company's API credentials, and pe
 on an **eTransactions Accredited Platform** record. A scheduled poll then flips the platform
 active once Esalink validates the account.
 
-The integrator (partner) credentials and the environment-level ``hubtimize-api-key`` are
-read from ``site_config`` (``esalink_environment``, ``esalink_api_key``,
-``esalink_partner_username``, ``esalink_partner_password``); the minted per-company
-``clientId``/``clientSecret`` live on each platform record and are what
-:func:`session.get_client` uses for invoice operations.
+The integrator (partner) credentials and the ``hubtimize-api-key`` are read from
+``site_config`` (``esalink_api_key``, ``esalink_partner_username``,
+``esalink_partner_password``); the minted per-company ``clientId``/``clientSecret`` live on
+each platform record and are what :func:`session.get_client` uses for invoice operations.
+
+The *environment* (``test`` / ``prod``, defaulting to ``prod``) is chosen per platform record
+on its ``esalink_environment`` field — it is not a site-level setting. Both the partner client
+and the per-company operations client resolve their base URL from the environment of the row
+they act on, so an account is always minted on the host it will later be used against.
 """
 
 import json
@@ -32,30 +36,24 @@ _START_DATE_OFFSET_DAYS = 11
 
 
 # ---------------------------------------------------------------------------
-# Configuration (site_config only)
+# Configuration (credentials from site_config; environment from the platform record)
 # ---------------------------------------------------------------------------
 
 
-def esalink_runtime_config() -> dict:
-	"""Environment-level config used by the per-company operations client.
+def esalink_api_key() -> str:
+	"""The environment-agnostic ``hubtimize-api-key`` shared by both Esalink clients."""
+	return frappe.conf.get("esalink_api_key") or ""
 
-	Returns ``{"environment", "api_key"}`` from ``site_config`` — the base URL is derived
-	from the environment by :func:`session._build_client` (or overridden by the platform
-	record's ``esalink_environment`` / ``api_base_url``).
+
+def esalink_partner_config(environment: str | None = None) -> dict:
+	"""Partner credentials from ``site_config`` + the base URL for ``environment``.
+
+	``environment`` comes from the platform record being acted on; omit it only when the
+	caller inspects the credentials alone (see :func:`partner_credentials_configured`).
 	"""
 	return {
-		"environment": frappe.conf.get("esalink_environment") or "test",
-		"api_key": frappe.conf.get("esalink_api_key") or "",
-	}
-
-
-def esalink_partner_config() -> dict:
-	"""Partner credentials + resolved base URL for the Customer-management API (site_config)."""
-	env = frappe.conf.get("esalink_environment") or "test"
-	return {
-		"environment": env,
-		"base_url": base_url_for_environment(env),
-		"api_key": frappe.conf.get("esalink_api_key") or "",
+		"base_url": base_url_for_environment(environment),
+		"api_key": esalink_api_key(),
 		"username": frappe.conf.get("esalink_partner_username") or "",
 		"password": frappe.conf.get("esalink_partner_password") or "",
 	}
@@ -118,8 +116,13 @@ def esalink_partner_status() -> dict:
 	}
 
 
-def _partner_client() -> EsalinkPartnerClient:
-	cfg = esalink_partner_config()
+def _partner_client(environment: str | None) -> EsalinkPartnerClient:
+	"""Partner Customer-API client for ``environment`` — the one on the row being acted on.
+
+	The credentials are site-level but the host is not, so the environment must come from the
+	platform record; passing the wrong one mints or reads an account on the wrong Esalink.
+	"""
+	cfg = esalink_partner_config(environment)
 	if not (cfg["username"] and cfg["password"] and cfg["api_key"]):
 		frappe.throw(_partner_credentials_message())
 	return EsalinkPartnerClient(
@@ -375,11 +378,20 @@ def _enhance_company(
 # ---------------------------------------------------------------------------
 
 
+_PLATFORM_FIELDS = [
+	"name",
+	"esalink_customer_id",
+	"esalink_customer_status",
+	"is_active",
+	"esalink_environment",
+]
+
+
 def _existing_esalink_platform(company: str) -> dict | None:
 	return frappe.db.get_value(
 		"eTransactions Accredited Platform",
 		{"company": company, "platform_type": "Esalink"},
-		["name", "esalink_customer_id", "esalink_customer_status", "is_active"],
+		_PLATFORM_FIELDS,
 		as_dict=True,
 	)
 
@@ -390,10 +402,20 @@ def _target_esalink_platform(company: str, platform_name: str | None) -> dict | 
 		return frappe.db.get_value(
 			"eTransactions Accredited Platform",
 			platform_name,
-			["name", "esalink_customer_id", "esalink_customer_status", "is_active"],
+			_PLATFORM_FIELDS,
 			as_dict=True,
 		)
 	return _existing_esalink_platform(company)
+
+
+def _platform_environment(platform_name: str) -> str:
+	"""The environment one platform row operates against (``prod`` when unset)."""
+	return (
+		frappe.db.get_value(
+			"eTransactions Accredited Platform", platform_name, "esalink_environment"
+		)
+		or "prod"
+	)
 
 
 @frappe.whitelist()
@@ -406,7 +428,6 @@ def esalink_registration_prefill(company: str, platform_name: str | None = None)
 	"""
 	frappe.only_for(PROVISION_ROLES)
 	data = _company_base_customer_data(company)
-	data["esalink_environment"] = esalink_runtime_config()["environment"]
 	data["issues"] = check_company_provisioning_readiness(company)
 	data["partner_ready"] = partner_credentials_configured()
 	data["legal_id_type"] = "siren"
@@ -479,6 +500,9 @@ def register_esalink_company(
 	When ``platform_name`` is given the registration updates *that* exact platform row (a
 	company may hold both a Sales and a Purchases Esalink row); otherwise the company's single
 	Esalink platform is looked up / created.
+
+	The account is minted on the environment already selected on the target row (``prod`` for a
+	row that does not exist yet), so it lands on the host the row will later operate against.
 	"""
 	frappe.only_for(PROVISION_ROLES)
 	if isinstance(customer_data, str):
@@ -499,7 +523,8 @@ def register_esalink_company(
 	payload = _build_customer_payload(company, customer_data, routing_address, legal_id_type)
 	legal_id = payload["customerLegalId"]
 
-	partner = _partner_client()
+	environment = (existing or {}).get("esalink_environment") or "prod"
+	partner = _partner_client(environment)
 
 	# Reuse the company's Esalink customer if it already exists (matched by its legal id),
 	# otherwise create it (triggers the KYC email + directory line).
@@ -527,7 +552,8 @@ def register_esalink_company(
 			"platform_type": "Esalink",
 			"company": company,
 			"transaction_type": transaction_type,
-			"esalink_environment": esalink_runtime_config()["environment"],
+			# Written back unchanged — pins the row to the host the account was minted on.
+			"esalink_environment": environment,
 			"esalink_legal_id_type": legal_id_type,
 			"is_active": 0,  # activated by the status poll once Esalink validates
 			"client_id": client_id,
@@ -591,7 +617,8 @@ def refresh_customer_status(platform_name: str) -> dict:
 	if not customer_id:
 		frappe.throw(_("This platform has no Esalink customer id to refresh."))
 
-	data = _partner_client().get_customer(int(customer_id)) or {}
+	partner = _partner_client(_platform_environment(platform_name))
+	data = partner.get_customer(int(customer_id)) or {}
 	status = data.get("activationStatus")
 	_apply_customer_status(platform_name, status, data.get("stateReason"))
 	frappe.db.commit()
@@ -607,7 +634,7 @@ def resend_kyc_email(platform_name: str) -> dict:
 	)
 	if not customer_id:
 		frappe.throw(_("This platform has no Esalink customer id."))
-	_partner_client().resend_kyc_email(int(customer_id))
+	_partner_client(_platform_environment(platform_name)).resend_kyc_email(int(customer_id))
 	return {"status": "ok"}
 
 
@@ -620,15 +647,18 @@ def poll_esalink_customer_statuses():
 			"esalink_customer_status": ["in", ["WAITING_VALIDATION", ""]],
 			"esalink_customer_id": ["is", "set"],
 		},
-		fields=["name", "esalink_customer_id"],
+		fields=["name", "esalink_customer_id", "esalink_environment"],
 	)
 	if not pending:
 		return
-	# Partner credentials are site-level, so one client serves every pending platform.
-	partner = _partner_client()
+	# Partner credentials are site-level but the host is not, so one client per environment.
+	# Built up front (outside the per-row guard) so missing credentials still fail loudly once.
+	environments = dict.fromkeys(row.esalink_environment or "prod" for row in pending)
+	clients = {env: _partner_client(env) for env in environments}
 	for row in pending:
 		try:
-			data = partner.get_customer(int(row.esalink_customer_id)) or {}
+			client = clients[row.esalink_environment or "prod"]
+			data = client.get_customer(int(row.esalink_customer_id)) or {}
 			_apply_customer_status(
 				row.name, data.get("activationStatus"), data.get("stateReason")
 			)
