@@ -157,7 +157,11 @@ class UnitTestBuildClient(UnitTestCase):
 		from etransactions.plateforme_agreee import session
 
 		# EsalinkClient authenticates lazily, so construction hits no network.
+		# Neutralise the Microcks test seam (active when microcks_url is set in CI)
+		# so this asserts the real environment→URL fallback.
 		with patch(
+			"etransactions.plateforme_agreee._microcks.microcks_base_url", return_value=None
+		), patch(
 			"etransactions.plateforme_agreee.esalink_provisioning.esalink_api_key",
 			return_value="k",
 		):

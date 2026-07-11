@@ -50,9 +50,14 @@ def esalink_partner_config(environment: str | None = None) -> dict:
 
 	``environment`` comes from the platform record being acted on; omit it only when the
 	caller inspects the credentials alone (see :func:`partner_credentials_configured`).
+
+	When ``microcks_url`` is set in ``site_config`` (integration tests / CI) the base URL
+	is redirected to the Esalink Customer API mock; inert otherwise.
 	"""
+	from etransactions.plateforme_agreee._microcks import microcks_base_url
+
 	return {
-		"base_url": base_url_for_environment(environment),
+		"base_url": microcks_base_url("EsalinkPartner") or base_url_for_environment(environment),
 		"api_key": esalink_api_key(),
 		"username": frappe.conf.get("esalink_partner_username") or "",
 		"password": frappe.conf.get("esalink_partner_password") or "",

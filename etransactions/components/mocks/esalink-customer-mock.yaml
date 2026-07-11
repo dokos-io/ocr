@@ -1,0 +1,259 @@
+openapi: 3.0.3
+info:
+  title: Esalink Customer API
+  version: 1.0.0
+  description: >-
+    Microcks mock of the Esalink (HUBTIMIZE) partner Customer-management API,
+    used by the etransactions integration tests to drive French annuaire
+    registration and account provisioning (EsalinkPartnerClient) over real HTTP.
+    Authenticates like the PA API (POST /v1/token + hubtimize-api-key header).
+    The customer created by POST /v1/customerPA has id 777; GET /v1/customerPA/777
+    reports activationStatus ACTIVE so the status poll flips the platform active.
+    Keep info.title/version in lockstep with plateforme_agreee/_microcks.py.
+paths:
+  /v1/token:
+    post:
+      operationId: token
+      summary: HUBTIMIZE JSON token (partner credentials)
+      responses:
+        "200":
+          description: token
+          content:
+            application/json:
+              examples:
+                ok:
+                  value:
+                    access_token: mock-esalink-partner-token
+                    expires_in: 3600
+  /v1/customerPA:
+    post:
+      operationId: createCustomer
+      summary: Create a customer account (triggers KYC + directory line)
+      responses:
+        "200":
+          description: created customer id
+          content:
+            application/json:
+              examples:
+                created:
+                  value:
+                    customerId: 777
+  /v1/customerPA/search:
+    post:
+      operationId: searchCustomers
+      summary: Page through customers (no server-side legal-id filter)
+      responses:
+        "200":
+          description: empty page (forces the create path in registration)
+          content:
+            application/json:
+              examples:
+                empty:
+                  value:
+                    limit: 100
+                    offset: 0
+                    total: 0
+                    customers: []
+  /v1/customerPA/{customerId}:
+    get:
+      operationId: getCustomer
+      summary: Customer detail incl. activationStatus
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema: { type: string }
+          examples:
+            active: { value: "777" }
+      responses:
+        "200":
+          description: customer
+          content:
+            application/json:
+              examples:
+                active:
+                  value:
+                    customerId: 777
+                    customerLegalId: "824710776"
+                    activationStatus: ACTIVE
+                    stateReason: "KYB validated"
+  /v1/customerPA/{customerId}/user:
+    post:
+      operationId: createUser
+      summary: Mint API credentials for a customer
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema: { type: string }
+          examples:
+            ok: { value: "777" }
+      responses:
+        "200":
+          description: minted credentials
+          content:
+            application/json:
+              examples:
+                ok:
+                  value:
+                    clientId: mock-esalink-client-id
+                    clientSecret: mock-esalink-client-secret
+    get:
+      operationId: listUsers
+      summary: List a customer's API users
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema: { type: string }
+          examples:
+            ok: { value: "777" }
+      responses:
+        "200":
+          description: users
+          content:
+            application/json:
+              examples:
+                ok:
+                  value:
+                    - clientId: mock-esalink-client-id
+                      enabled: true
+  /v1/customerPA/{customerId}/identifier:
+    post:
+      operationId: createIdentifier
+      summary: Request a directory identifier (annuaire line)
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema: { type: string }
+          examples:
+            ok: { value: "777" }
+      responses:
+        "200":
+          description: created
+          content:
+            application/json:
+              examples:
+                ok:
+                  value:
+                    identifier: "824710776"
+                    qualifier: "0225"
+                    identifierType: RECEIVE
+                    identifierStatus: NEW
+    get:
+      operationId: getIdentifier
+      summary: One identifier by value + qualifier
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema: { type: string }
+          examples:
+            ok: { value: "777" }
+        - name: identifier
+          in: query
+          schema: { type: string }
+          examples:
+            ok: { value: "824710776" }
+        - name: qualifier
+          in: query
+          schema: { type: string }
+          examples:
+            ok: { value: "0225" }
+      responses:
+        "200":
+          description: identifier
+          content:
+            application/json:
+              examples:
+                ok:
+                  value:
+                    addressingIdentifier: "824710776"
+                    addressingQualifier: "0225"
+                    identifierType: RECEIVE
+                    status: DONE
+    put:
+      operationId: updateIdentifier
+      summary: Reschedule an identifier
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema: { type: string }
+          examples:
+            ok: { value: "777" }
+      responses:
+        "200":
+          description: updated
+          content:
+            application/json:
+              examples:
+                ok:
+                  value:
+                    addressingIdentifier: "824710776"
+                    status: NEW
+    delete:
+      operationId: deleteIdentifier
+      summary: Remove an identifier
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema: { type: string }
+          examples:
+            ok: { value: "777" }
+      responses:
+        "200":
+          description: removed
+          content:
+            application/json:
+              examples:
+                ok:
+                  value:
+                    deleted: true
+  /v1/customerPA/{customerId}/identifier/search:
+    post:
+      operationId: searchIdentifiers
+      summary: List a customer's directory identifiers
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema: { type: string }
+          examples:
+            ok: { value: "777" }
+      responses:
+        "200":
+          description: identifiers page
+          content:
+            application/json:
+              examples:
+                ok:
+                  value:
+                    total: 1
+                    identifiers:
+                      - identifier: "824710776"
+                        qualifier: "0225"
+                        identifierType: RECEIVE
+                        identifierStatus: DONE
+  /v1/customerPA/{customerId}/resend-kyc-onboarding-email:
+    post:
+      operationId: resendKyc
+      summary: Re-send the KYC onboarding email
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema: { type: string }
+          examples:
+            ok: { value: "777" }
+      responses:
+        "200":
+          description: sent
+          content:
+            application/json:
+              examples:
+                ok:
+                  value:
+                    sent: true

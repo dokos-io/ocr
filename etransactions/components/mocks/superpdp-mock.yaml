@@ -1,0 +1,264 @@
+openapi: 3.0.3
+info:
+  title: SuperPDP PA API
+  version: 1.0.0
+  description: >-
+    Microcks mock of the SuperPDP certified platform, used by the etransactions
+    integration tests to drive the `SuperPDP` connection mode (OAuth2 + native
+    invoice/e-reporting endpoints) over real HTTP. Operation paths mirror what
+    SuperPDPClient appends to its base URL. Per-scenario examples on
+    GET /v1.beta/invoices/{id} are selected by invoice id (accepted / rejected /
+    pending). Keep info.title/version in lockstep with plateforme_agreee/_microcks.py.
+paths:
+  /oauth2/token:
+    post:
+      operationId: token
+      summary: OAuth2 token (client_credentials / refresh_token)
+      responses:
+        "200":
+          description: token
+          content:
+            application/json:
+              examples:
+                ok:
+                  value:
+                    access_token: mock-superpdp-token
+                    expires_in: 3600
+                    refresh_token: mock-superpdp-refresh
+  /v1.beta/companies/me:
+    get:
+      operationId: getCompany
+      summary: Company bound to the credentials (healthcheck)
+      responses:
+        "200":
+          description: company
+          content:
+            application/json:
+              examples:
+                ok:
+                  value:
+                    id: 1
+                    formal_name: "Mock Seller SAS"
+                    siren: "824710776"
+                    vat_regime: monthly
+  /v1.beta/companies:
+    patch:
+      operationId: updateCompany
+      summary: Update company (VAT regime)
+      responses:
+        "200":
+          description: updated
+          content:
+            application/json:
+              examples:
+                ok:
+                  value:
+                    id: 1
+                    vat_regime: monthly
+  /v1.beta/invoices:
+    post:
+      operationId: sendInvoice
+      summary: Submit an invoice
+      responses:
+        "200":
+          description: created invoice
+          content:
+            application/json:
+              examples:
+                created:
+                  value:
+                    id: 90001
+                    created_at: "2026-07-01T09:00:00Z"
+    get:
+      operationId: listInvoices
+      summary: List invoices (incoming when direction=in)
+      parameters:
+        - name: direction
+          in: query
+          schema: { type: string }
+          examples:
+            incoming: { value: "in" }
+      responses:
+        "200":
+          description: page of invoices
+          content:
+            application/json:
+              examples:
+                incoming:
+                  value:
+                    has_after: false
+                    data:
+                      - id: 70001
+                        created_at: "2026-06-15T08:00:00Z"
+  /v1.beta/invoices/{id}:
+    get:
+      operationId: getInvoice
+      summary: One invoice with its lifecycle events
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+          examples:
+            ok: { value: "90001" }
+            rejected: { value: "90002" }
+            pending: { value: "90003" }
+      responses:
+        "200":
+          description: invoice
+          content:
+            application/json:
+              examples:
+                ok:
+                  value:
+                    id: 90001
+                    events:
+                      - id: 1
+                        status_code: "api:submitted"
+                        created_at: "2026-07-01T09:00:00Z"
+                      - id: 2
+                        status_code: "fr:204"
+                        created_at: "2026-07-01T10:00:00Z"
+                rejected:
+                  value:
+                    id: 90002
+                    events:
+                      - id: 3
+                        status_code: "fr:210"
+                        created_at: "2026-07-01T10:00:00Z"
+                        details:
+                          - reason: "Refused by recipient"
+                pending:
+                  value:
+                    id: 90003
+                    events: []
+  /v1.beta/invoices/{id}/download:
+    get:
+      operationId: downloadInvoice
+      summary: Download the raw invoice file
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+          examples:
+            incoming: { value: "70001" }
+      responses:
+        "200":
+          description: file
+          content:
+            application/xml:
+              examples:
+                incoming:
+                  value: "<Invoice>MOCK-SUPERPDP-INCOMING</Invoice>"
+  /v1.beta/invoice_events:
+    get:
+      operationId: listInvoiceEvents
+      summary: Lifecycle events (optionally filtered by invoice)
+      parameters:
+        - name: invoice_id
+          in: query
+          schema: { type: string }
+          examples:
+            ok: { value: "90001" }
+      responses:
+        "200":
+          description: page of events
+          content:
+            application/json:
+              examples:
+                ok:
+                  value:
+                    has_after: false
+                    data:
+                      - id: 11
+                        status_code: "fr:204"
+                        created_at: "2026-07-02T09:00:00Z"
+    post:
+      operationId: createInvoiceEvent
+      summary: Create a buyer-side lifecycle event
+      responses:
+        "200":
+          description: created event
+          content:
+            application/json:
+              examples:
+                ok:
+                  value:
+                    id: 12
+                    created_at: "2026-07-02T09:05:00Z"
+  /v1.beta/french_directory/entries:
+    get:
+      operationId: listFrenchDirectoryEntries
+      summary: French directory entries for a SIREN
+      parameters:
+        - name: number
+          in: query
+          schema: { type: string }
+          examples:
+            active: { value: "853322915" }
+      responses:
+        "200":
+          description: entries
+          content:
+            application/json:
+              examples:
+                active:
+                  value:
+                    data:
+                      - identifier: "853322915"
+                        is_active: true
+                        directory: ppf
+                        company:
+                          formal_name: "Mock Buyer SAS"
+                          administrative_status: A
+  /v1.beta/b2c_transactions:
+    post:
+      operationId: createB2cTransactions
+      summary: Declare B2C transaction e-reporting data
+      responses:
+        "200":
+          description: created rows (one per submitted entry, matched by position)
+          content:
+            application/json:
+              examples:
+                ok:
+                  value:
+                    data:
+                      - id: 50001
+  /v1.beta/b2c_payments:
+    post:
+      operationId: createB2cPayments
+      summary: Declare B2C payment e-reporting data
+      responses:
+        "200":
+          description: created rows
+          content:
+            application/json:
+              examples:
+                ok:
+                  value:
+                    data:
+                      - id: 60001
+  /v1.beta/ereportings:
+    get:
+      operationId: listEreportings
+      summary: List e-reporting declarations sent to the PPF
+      responses:
+        "200":
+          description: declarations
+          content:
+            application/json:
+              examples:
+                ok:
+                  value:
+                    has_after: false
+                    data:
+                      - id: 40001
+                        kind: transaction
+                        role_code: SE
+                        start_period: "2026-07-01"
+                        end_period: "2026-07-31"
+                        events:
+                          - status_code: "fr:301"
+                            created_at: "2026-08-01T00:00:00Z"
