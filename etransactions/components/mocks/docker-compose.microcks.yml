@@ -1,0 +1,5 @@
+services:
+  microcks:
+    image: quay.io/microcks/microcks-uber:latest
+    ports:
+      - "8585:8080"

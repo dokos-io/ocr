@@ -28,7 +28,8 @@ and status-mapping regressions that mocks at the method boundary cannot.
 ### Run it locally
 
 ```bash
-./scripts/microcks-up.sh                                  # start + seed the 4 mocks
+# start + seed the 4 mocks (paths resolve relative to the script)
+etransactions/components/mocks/microcks-up.sh
 bench --site <site> set-config microcks_url http://localhost:8585
 bench --site <site> run-tests --app etransactions \
     --module etransactions.tests.integration.test_einvoicing_e2e
@@ -36,8 +37,10 @@ bench --site <site> run-tests --app etransactions \
 bench --site <site> set-config microcks_url ""            # prove the skip contract
 ```
 
-CI brings Microcks up as a service and sets `microcks_url` automatically (see
-`.gitlab-ci.yml`).
+The compose file and up-script live in
+[`etransactions/components/mocks`](../../components/mocks) next to the specs. CI
+does not use them — it brings Microcks up as a service and seeds the same specs
+via `curl`, then sets `microcks_url` automatically (see `.gitlab-ci.yml`).
 
 ## Coverage matrix
 
