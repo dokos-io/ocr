@@ -5778,9 +5778,9 @@ msgstr "Nous ne parvenons pas à trouver de commande fournisseur avec le numéro
 msgid "When the customer refuses an e-invoice (incoming 'Refused' status), automatically cancel the linked Sales Invoice. Off by default — cancellation is irreversible."
 msgstr "Quand le client refuse une facture électronique (statut entrant 'Refusée'), annule automatiquement la facture de vente liée. Désactivé par défaut — l'annulation est irréversible."
 
-#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:620
-msgid "Where invoices are routed to. Defaults to the chosen legal identifier under its scheme (SIREN → 0225, SIRET → 0009); edit only to route to a different identifier, e.g. a Peppol address like 0088:123456789."
-msgstr "Où les factures sont acheminées. Par défaut, utilise l'identifiant légal choisi selon son schéma (SIREN → 0225, SIRET → 0009) ; modifiez uniquement pour acheminer vers un autre identifiant, par exemple une adresse Peppol comme 0088:123456789."
+#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:617
+msgid "Where invoices are routed to. Defaults to the chosen legal identifier; edit only to route to a different identifier."
+msgstr "Où les factures sont acheminées. Utilise par défaut l'identifiant légal choisi ; modifiez uniquement pour acheminer vers un autre identifiant."
 
 #: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:245
 msgid "Which transaction type this platform handles."

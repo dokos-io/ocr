@@ -301,6 +301,21 @@ class TestEsalinkProvisioningHelpers(UnitTestCase):
 		)
 		self.assertEqual(payload["customerLegalId"], "315143296")
 
+	def test_payload_bare_routing_address_takes_the_legal_id_type_scheme(self):
+		"""The dialog sends a bare identifier: a SIRET must be filed under 0009, not 0225."""
+		customer_data = dict(self._BASE_CUSTOMER, customerLegalId="31514329600011")
+		with (
+			patch.object(prov, "_company_base_customer_data", return_value=customer_data),
+			patch.object(prov, "_legal_identifier", return_value=("31514329600011", "0009")),
+		):
+			payload = prov._build_customer_payload(
+				"ACME", routing_address="31514329600011", legal_id_type="siret"
+			)
+		self.assertEqual(
+			payload["electronicAddresses"],
+			[{"electronicAddress": "31514329600011", "qualifier": "0009"}],
+		)
+
 	def test_normalize_legal_id_type_defaults_to_siren(self):
 		self.assertEqual(prov._normalize_legal_id_type("SIRET"), "siret")
 		self.assertEqual(prov._normalize_legal_id_type("siren"), "siren")
@@ -553,7 +568,7 @@ class TestEsalinkProvisioningHelpers(UnitTestCase):
 		with patch("frappe.db.get_value", side_effect=gv):
 			out = prov.esalink_registration_status("P1")
 		self.assertFalse(out["registered"])
-		self.assertEqual(out["routing_address"], "0225:315143296")
+		self.assertEqual(out["routing_address"], "315143296")
 
 	def test_registration_status_registered(self):
 		import frappe
@@ -577,7 +592,7 @@ class TestEsalinkProvisioningHelpers(UnitTestCase):
 		self.assertEqual(out["customer_id"], "42")
 		self.assertEqual(out["customer_status"], "ACTIVE")
 		self.assertEqual(out["legal_id_type"], "siren")
-		self.assertEqual(out["routing_address"], "0225:315143296")
+		self.assertEqual(out["routing_address"], "315143296")
 
 	def test_registration_status_uses_persisted_siret(self):
 		import frappe
@@ -602,7 +617,7 @@ class TestEsalinkProvisioningHelpers(UnitTestCase):
 		):
 			out = prov.esalink_registration_status("P1")
 		self.assertEqual(out["legal_id_type"], "siret")
-		self.assertEqual(out["routing_address"], "0009:31514329600011")
+		self.assertEqual(out["routing_address"], "31514329600011")
 
 
 class TestEsalinkPartnerGate(UnitTestCase):

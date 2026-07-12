@@ -148,18 +148,23 @@ def _start_date() -> str:
 	return getdate(add_days(None, _START_DATE_OFFSET_DAYS)).strftime("%d-%m-%Y")
 
 
-def _resolve_routing_address(routing_address: str | None, siren: str) -> tuple[str, str]:
+def _resolve_routing_address(
+	routing_address: str | None, default_value: str, default_scheme: str
+) -> tuple[str, str]:
 	"""Split the routing address into an Esalink ``(qualifier, value)`` electronic address.
 
-	Defaults to the SIREN under the French SIRENE scheme (``0225``). A supplied
-	``routing_address`` may be a bare identifier (kept under ``0225``) or a ``scheme:value``
-	identifier (e.g. ``0088:1234567890123`` for a Peppol address).
+	Falls back to ``default_value`` (the company's legal identifier) when no routing address is
+	supplied. A bare identifier is filed under ``default_scheme`` — the scheme of the chosen
+	legal-identifier type, so a SIRET lands under ``0009`` rather than the SIREN scheme. A
+	``scheme:value`` identifier (e.g. ``0088:1234567890123`` for a Peppol address) carries its
+	own scheme and is split as-is.
 	"""
 	from etransactions.plateforme_agreee.routing import identifier_to_electronic_address
 
-	value = (routing_address or "").strip() or siren
-	scheme, addressing_value = identifier_to_electronic_address(value)
-	return scheme, addressing_value
+	value = (routing_address or "").strip() or default_value
+	if ":" in value:
+		return identifier_to_electronic_address(value)
+	return default_scheme or _LEGAL_ID_SCHEMES["siren"], value.strip()
 
 
 # Legal identifier the company is registered under on Esalink → its CEF EAS scheme.
@@ -299,9 +304,9 @@ def _build_customer_payload(
 
 	Passing ``electronicAddresses`` makes Esalink register the directory line, so no separate
 	identifier call is needed. The routing address (the directory line invoices are addressed
-	to) defaults to the chosen legal identifier under its scheme (SIREN → 0225, SIRET → 0009);
-	``routing_address`` may override it with an explicit ``scheme:value`` identifier (e.g. a
-	Peppol address).
+	to) defaults to the chosen legal identifier, filed under that identifier type's scheme
+	(SIREN → 0225, SIRET → 0009); ``routing_address`` may override the identifier, and may carry
+	its own ``scheme:value`` when it addresses something else (e.g. a Peppol address).
 
 	API-user creation is deferred to the explicit :meth:`create_user` call in the registration
 	flow (``apiUser="N"``): the inline user Esalink would create with ``apiUser="Y"`` is keyed
@@ -324,11 +329,11 @@ def _build_customer_payload(
 		)
 
 	legal_id = str(data["customerLegalId"]).strip()
-	# Default the routing address to the chosen legal identifier under its scheme
-	# (SIREN → 0225, SIRET → 0009); an explicit routing_address still wins.
+	# The scheme is never part of the routing address the user sees: it follows from the chosen
+	# legal-identifier type (SIREN → 0225, SIRET → 0009). An explicit routing_address still wins,
+	# and may carry its own scheme when it addresses something else (e.g. a Peppol address).
 	_, scheme = _legal_identifier(company, legal_id_type)
-	default_routing = f"{scheme}:{legal_id}" if (scheme and legal_id) else legal_id
-	qualifier, addressing_value = _resolve_routing_address(routing_address, default_routing)
+	qualifier, addressing_value = _resolve_routing_address(routing_address, legal_id, scheme)
 	payload = {
 		"customerName": data["customerName"],
 		"customerLegalId": legal_id,
@@ -448,9 +453,10 @@ def esalink_registration_prefill(company: str, platform_name: str | None = None)
 def esalink_registration_status(platform_name: str) -> dict:
 	"""Registration state of one Esalink platform, for the edit dialog's status banner.
 
-	``registered`` is driven by the presence of an Esalink customer id. ``routing_address``
-	is derived from the row's persisted legal identifier (``0225:<siren>`` or ``0009:<siret>``)
-	— the same address registration uses by default — without an Esalink API call.
+	``registered`` is driven by the presence of an Esalink customer id. ``routing_address`` is
+	the row's persisted legal identifier (the SIREN or the SIRET) — the same address registration
+	uses by default — without an Esalink API call. Its scheme is not shown: it follows from
+	``legal_id_type``.
 	"""
 	frappe.only_for(PROVISION_ROLES)
 	row = frappe.db.get_value(
@@ -470,7 +476,7 @@ def esalink_registration_status(platform_name: str) -> dict:
 		frappe.throw(_("Platform {0} not found.").format(platform_name))
 
 	legal_id_type = _normalize_legal_id_type(row.esalink_legal_id_type)
-	legal_id, scheme = _legal_identifier(row.company, legal_id_type)
+	legal_id, _scheme = _legal_identifier(row.company, legal_id_type)
 	siren = (frappe.db.get_value("Company", row.company, "siren_number") or "").strip()
 	return {
 		"registered": bool(row.esalink_customer_id),
@@ -480,7 +486,7 @@ def esalink_registration_status(platform_name: str) -> dict:
 		"environment": row.esalink_environment,
 		"legal_id_type": legal_id_type,
 		"siren": siren,
-		"routing_address": f"{scheme}:{legal_id}" if legal_id else "",
+		"routing_address": legal_id,
 	}
 
 

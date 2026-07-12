@@ -602,10 +602,7 @@ function _open_esalink_registration_dialog(frm, { platform_name, company, transa
 	// Company identifiers loaded from the prefill, keyed by legal-id type.
 	const prefill = { siren: "", siret: "" };
 
-	// CEF EAS scheme per legal-identifier type (SIREN = SIRENE, SIRET = establishment).
-	const SCHEMES = { SIREN: "0225", SIRET: "0009" };
 	const legal_id_for = (type) => (type === "SIRET" ? prefill.siret : prefill.siren) || "";
-	const scheme_for = (type) => SCHEMES[type] || "0225";
 
 	const d = new frappe.ui.Dialog({
 		title: __("Register on Esalink"),
@@ -618,7 +615,7 @@ function _open_esalink_registration_dialog(frm, { platform_name, company, transa
 				label: __("Routing address"),
 				reqd: 1,
 				description: __(
-					"Where invoices are routed to. Defaults to the chosen legal identifier under its scheme (SIREN → 0225, SIRET → 0009); edit only to route to a different identifier, e.g. a Peppol address like 0088:123456789."
+					"Where invoices are routed to. Defaults to the chosen legal identifier; edit only to route to a different identifier."
 				),
 			},
 			{ fieldtype: "Column Break" },
@@ -693,13 +690,12 @@ function _open_esalink_registration_dialog(frm, { platform_name, company, transa
 		},
 	});
 
-	// Mirror the routing address from the chosen legal identifier under its scheme,
-	// until the user edits the routing field directly.
+	// Mirror the routing address from the chosen legal identifier, until the user edits the
+	// routing field directly. Only the identifier is shown: its scheme (SIREN → 0225,
+	// SIRET → 0009) is derived server-side from the legal-identifier type.
 	function sync_routing_from_legal_id() {
 		if (routing_touched) return;
-		const legal_id = d.get_value("customerLegalId") || "";
-		const scheme = scheme_for(d.get_value("legal_id_type") || "SIREN");
-		d.set_value("routing_address", legal_id ? `${scheme}:${legal_id}` : "");
+		d.set_value("routing_address", d.get_value("customerLegalId") || "");
 	}
 	d.fields_dict.routing_address.df.onchange = function () {
 		routing_touched = true;
@@ -729,7 +725,7 @@ function _open_esalink_registration_dialog(frm, { platform_name, company, transa
 			d.set_value("legal_id_type", type);
 			const legal_id = legal_id_for(type) || cfg.customerLegalId || "";
 			d.set_value("customerLegalId", legal_id);
-			d.set_value("routing_address", legal_id ? `${scheme_for(type)}:${legal_id}` : "");
+			d.set_value("routing_address", legal_id);
 			// The programmatic set_value calls above may have flagged the routing field as touched;
 			// reset so the legal-id → routing-address mirror keeps working for the user's own edits.
 			routing_touched = false;
