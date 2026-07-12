@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: eTransactions VERSION\n"
 "Report-Msgid-Bugs-To: hello@dokos.io\n"
-"POT-Creation-Date: 2026-07-10 01:46+0000\n"
+"POT-Creation-Date: 2026-07-12 01:46+0000\n"
 "PO-Revision-Date: 2025-04-02 14:52+0200\n"
 "Last-Translator: hello@dokos.io\n"
 "Language-Team: hello@dokos.io\n"
@@ -295,7 +295,7 @@ msgstr "Ajouter une entrée"
 msgid "Add task"
 msgstr "Ajouter une tâche"
 
-#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:647
+#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:646
 msgid "Address"
 msgstr "Adresse"
 
@@ -305,16 +305,16 @@ msgstr "Adresse"
 msgid "Address (establishment) this routing line is bound to, matched on SIRET during directory sync."
 msgstr "Adresse (établissement) à laquelle cette ligne de routage est rattachée, mise en correspondance par SIRET lors de la synchronisation de l'annuaire."
 
-#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:648
+#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:647
 #: etransactions/etransactions/report/customer_einvoice_readiness/customer_einvoice_readiness.py:82
 msgid "Address Line 1"
 msgstr "Adresse ligne 1"
 
-#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:649
+#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:648
 msgid "Address Line 2"
 msgstr "Ligne d'adresse 2"
 
-#: etransactions/plateforme_agreee/esalink_provisioning.py:257
+#: etransactions/plateforme_agreee/esalink_provisioning.py:265
 msgid "Address line 1"
 msgstr "Ligne d'adresse 1"
 
@@ -392,7 +392,7 @@ msgstr "Total des remises"
 msgid "Almost ready"
 msgstr "Presque prêt"
 
-#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:766
+#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:765
 msgid "Already linked to Esalink"
 msgstr "Déjà lié à Esalink"
 
@@ -864,7 +864,7 @@ msgstr "Impossible de supprimer une eInvoice qui a été soumise à la plateform
 msgid "Cannot delete platform '{0}' because it is used in Customer or Customer Group overrides."
 msgstr "Impossible de supprimer la plateforme '{0}' car elle est utilisée dans des surcharges Client ou Groupe de clients."
 
-#: etransactions/plateforme_agreee/esalink_provisioning.py:313
+#: etransactions/plateforme_agreee/esalink_provisioning.py:321
 #, python-brace-format
 msgid "Cannot register {0} on Esalink — missing data: {1}"
 msgstr "Impossible d'inscrire {0} sur Esalink — données manquantes : {1}"
@@ -888,11 +888,11 @@ msgid "Charge Total"
 msgstr "Total des frais"
 
 #: etransactions/etransactions/doctype/etransactions_accredited_platform/etransactions_accredited_platform.js:53
-#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:458
+#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:457
 msgid "Checking Esalink account status…"
 msgstr "Vérification du statut du compte Esalink…"
 
-#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:437
+#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:436
 msgid "Checking Esalink registration…"
 msgstr "Vérification de l'inscription Esalink…"
 
@@ -906,9 +906,9 @@ msgstr "Modèle de liste de contrôle"
 msgid "Checklist template saved."
 msgstr "Modèle de liste de contrôle sauvegardé."
 
-#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:652
+#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:651
 #: etransactions/etransactions/report/customer_einvoice_readiness/customer_einvoice_readiness.py:88
-#: etransactions/plateforme_agreee/esalink_provisioning.py:259
+#: etransactions/plateforme_agreee/esalink_provisioning.py:267
 msgid "City"
 msgstr "Ville"
 
@@ -1052,7 +1052,7 @@ msgstr "Engagement requis"
 #: etransactions/etransactions/doctype/etransactions_accredited_platform/etransactions_accredited_platform.json
 #: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:205
 #: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:266
-#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:636
+#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:635
 #: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json
 #: etransactions/etransactions_hub/doctype/accounting_inbox_item/accounting_inbox_item.json
 #: etransactions/etransactions_hub/doctype/accounting_request/accounting_request.json
@@ -1065,7 +1065,7 @@ msgstr "Engagement requis"
 msgid "Company"
 msgstr "Société"
 
-#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:637
+#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:636
 msgid "Company Name"
 msgstr "Nom de la société"
 
@@ -1078,7 +1078,7 @@ msgstr "Préparation de la société"
 msgid "Company VAT regime not set for e-reporting"
 msgstr "Régime de TVA de la société non défini pour l'e-reporting"
 
-#: etransactions/plateforme_agreee/esalink_provisioning.py:254
+#: etransactions/plateforme_agreee/esalink_provisioning.py:262
 msgid "Company name"
 msgstr "Nom de la société"
 
@@ -1094,7 +1094,7 @@ msgstr "Adresse de facturation complète"
 msgid "Complete company address"
 msgstr "Adresse de la société complète"
 
-#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:750
+#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:749
 msgid "Complete the fields below (missing on the company):"
 msgstr "Complétez les champs ci-dessous (manquants sur la société) :"
 
@@ -1155,8 +1155,8 @@ msgstr "Échec de la connexion pour {0} : {1}"
 msgid "Connection not tested yet"
 msgstr "Connexion pas encore testée"
 
-#: etransactions/plateforme_agreee/session.py:341
-#: etransactions/plateforme_agreee/session.py:363
+#: etransactions/plateforme_agreee/session.py:346
+#: etransactions/plateforme_agreee/session.py:368
 msgid "Connection successful."
 msgstr "Connexion réussie."
 
@@ -1165,16 +1165,16 @@ msgstr "Connexion réussie."
 msgid "Connection to eTransactions Accredited Platform successful for {0}"
 msgstr "Connexion à la plateforme agréée eTransactions réussie pour {0}"
 
-#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:643
+#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:642
 msgid "Contact Email"
 msgstr "E-mail de contact"
 
-#: etransactions/plateforme_agreee/esalink_provisioning.py:256
+#: etransactions/plateforme_agreee/esalink_provisioning.py:264
 #: etransactions/plateforme_agreee/readiness.py:116
 msgid "Contact email"
 msgstr "E-mail de contact"
 
-#: etransactions/plateforme_agreee/esalink_provisioning.py:99
+#: etransactions/plateforme_agreee/esalink_provisioning.py:102
 msgid "Contact your account manager at Esalink to obtain your partner credentials, then set esalink_partner_username, esalink_partner_password and esalink_api_key in site_config.json."
 msgstr "Contactez votre gestionnaire de compte chez Esalink pour obtenir vos identifiants partenaires, puis configurez esalink_partner_username, esalink_partner_password et esalink_api_key dans le fichier site_config.json."
 
@@ -1190,7 +1190,7 @@ msgid "Contract Reference"
 msgstr "Référence de contrat"
 
 #: etransactions/etransactions/doctype/etransactions_accredited_platform/etransactions_accredited_platform.js:138
-#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:386
+#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:385
 msgid "Copy"
 msgstr "Copier"
 
@@ -1224,15 +1224,15 @@ msgid "Could not validate E Invoice schematron: {0}. See Error Log for details."
 msgstr "Impossible de valider le Schematron de la facture électronique : {0}. Consultez le journal d'erreurs pour plus de détails."
 
 #: etransactions/etransactions/report/customer_einvoice_readiness/customer_einvoice_readiness.py:100
-#: etransactions/plateforme_agreee/esalink_provisioning.py:260
+#: etransactions/plateforme_agreee/esalink_provisioning.py:268
 msgid "Country"
 msgstr "Pays"
 
-#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:653
+#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:652
 msgid "Country (ISO 2-letter)"
 msgstr "Pays (ISO 2 lettres)"
 
-#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:345
+#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:344
 #: etransactions/public/js/accounting_request_dialog.js:43
 #: etransactions/public/js/communication.js:20
 #: frontend/src/components/RequestDialog.vue:34
@@ -1333,7 +1333,7 @@ msgstr "Panier de factures créées"
 msgid "Created Request"
 msgstr "Demande créée"
 
-#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:359
+#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:358
 msgid "Creating…"
 msgstr "Création…"
 
@@ -1409,8 +1409,8 @@ msgstr "Plateforme personnalisée"
 #. Label of the customer (Link) field in DocType 'eInvoicing Directory Line'
 #. Label of a Link in the FacturX Readiness Workspace
 #: etransactions/etransactions/doctype/einvoicing_directory_line/einvoicing_directory_line.json
-#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:450
-#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:776
+#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:449
+#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:775
 #: etransactions/etransactions/report/customer_einvoice_readiness/customer_einvoice_readiness.py:29
 #: etransactions/etransactions/workspace/facturx_readiness/facturx_readiness.json
 #: etransactions/overrides/sales_invoice.py:87
@@ -1756,7 +1756,7 @@ msgstr "HTML du Document"
 msgid "Done"
 msgstr "Terminé"
 
-#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:499
+#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:498
 msgid "Done."
 msgstr "Terminé."
 
@@ -1894,7 +1894,7 @@ msgstr "Activez 'Pré-production (Sandbox)' sur cette plateforme avant de lancer
 msgid "Enable E-Invoicing"
 msgstr "Activer la facturation électronique"
 
-#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:544
+#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:543
 msgid "Enter Client ID and Client Secret first."
 msgstr "Saisissez d'abord le Client ID et le Client Secret."
 
@@ -1978,15 +1978,15 @@ msgstr "ID client Esalink"
 msgid "Esalink Environment"
 msgstr "Environnement Esalink"
 
-#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:764
+#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:763
 msgid "Esalink account created"
 msgstr "Compte Esalink créé"
 
-#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:540
+#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:539
 msgid "Esalink connectivity is tested automatically when you register."
 msgstr "La connectivité Esalink est testée automatiquement lors de l'inscription."
 
-#: etransactions/plateforme_agreee/esalink_provisioning.py:516
+#: etransactions/plateforme_agreee/esalink_provisioning.py:546
 #, python-brace-format
 msgid "Esalink did not return API credentials for company {0}."
 msgstr "Esalink n'a pas renvoyé d'identifiants API pour la société {0}."
@@ -1996,24 +1996,24 @@ msgstr "Esalink n'a pas renvoyé d'identifiants API pour la société {0}."
 msgid "Esalink did not return a customer id: {0}"
 msgstr "Esalink n'a pas renvoyé d'identifiant client : {0}"
 
-#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:415
+#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:414
 msgid "Esalink not available"
 msgstr "Esalink non disponible"
 
-#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:741
+#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:740
 msgid "Esalink partner credentials missing — set esalink_partner_username, esalink_partner_password and esalink_api_key in site_config.json."
 msgstr "Identifiants du partenaire Esalink manquants — définissez esalink_partner_username, esalink_partner_password et esalink_api_key dans site_config.json."
 
-#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:773
+#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:772
 msgid "Esalink registration"
 msgstr "Inscription Esalink"
 
-#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:645
+#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:644
 msgid "Esalink sends the KYC onboarding email here."
 msgstr "Esalink envoie l'e-mail d'enrôlement KYC à cette adresse."
 
 #: etransactions/etransactions/doctype/etransactions_accredited_platform/etransactions_accredited_platform.js:57
-#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:499
+#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:498
 #, python-brace-format
 msgid "Esalink status: {0}"
 msgstr "Statut Esalink : {0}"
@@ -2097,7 +2097,7 @@ msgstr "Échec de la génération du PDF FacturX"
 msgid "FacturX Readiness"
 msgstr "Préparation FacturX"
 
-#: etransactions/plateforme_agreee/session.py:194
+#: etransactions/plateforme_agreee/session.py:199
 #, python-brace-format
 msgid "Failed to connect to eTransactions Accredited Platform for company {0}: {1}"
 msgstr "Échec de la connexion à la plateforme agréée eTransactions pour la société {0} : {1}"
@@ -2343,7 +2343,7 @@ msgstr "Boîte de réception à trier"
 msgid "Incoming"
 msgstr "Entrant"
 
-#: etransactions/plateforme_agreee/esalink_provisioning.py:231
+#: etransactions/plateforme_agreee/esalink_provisioning.py:239
 #, python-brace-format
 msgid "Incomplete address (missing: {0})"
 msgstr "Adresse incomplète (manquant : {0})"
@@ -2359,15 +2359,15 @@ msgstr "Incoterm"
 msgid "Information"
 msgstr "Information"
 
-#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:771
+#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:770
 msgid "Integration test"
 msgstr "Test d'intégration"
 
-#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:770
+#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:769
 msgid "Integration test passed."
 msgstr "Test d'intégration réussi."
 
-#: etransactions/plateforme_agreee/session.py:464
+#: etransactions/plateforme_agreee/session.py:469
 msgid "Interactive onboarding is only available for SuperPDP platforms."
 msgstr "L'enrôlement interactif n'est disponible que pour les plateformes SuperPDP."
 
@@ -2384,7 +2384,7 @@ msgstr "Identifiant d'entrée d'annuaire Esalink invalide : {0}"
 msgid "Invalid XML"
 msgstr "XML invalide"
 
-#: etransactions/plateforme_agreee/session.py:504
+#: etransactions/plateforme_agreee/session.py:509
 msgid "Invalid or expired onboarding session. Please restart the onboarding."
 msgstr "Session d'enrôlement invalide ou expirée. Veuillez relancer l'enrôlement."
 
@@ -2600,8 +2600,8 @@ msgstr "Laisser vide pour utiliser les clés site_config.json <platform_code>_cl
 msgid "Leave empty for tax determination by line items"
 msgstr "Laisser vide pour la détermination des taxes par lignes"
 
-#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:635
-#: etransactions/plateforme_agreee/esalink_provisioning.py:255
+#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:634
+#: etransactions/plateforme_agreee/esalink_provisioning.py:263
 msgid "Legal identifier"
 msgstr "Identifiant légal"
 
@@ -2614,7 +2614,7 @@ msgstr "Identifiant légal sous lequel l'entreprise est enregistrée sur Esalink
 #. Label of the esalink_legal_id_type (Select) field in DocType 'eTransactions
 #. Accredited Platform'
 #: etransactions/etransactions/doctype/etransactions_accredited_platform/etransactions_accredited_platform.json
-#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:629
+#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:628
 msgid "Legal identifier type"
 msgstr "Type d'identifiant légal"
 
@@ -2627,7 +2627,7 @@ msgstr "Mentions légales requises sur les factures françaises (BR-FR-05). Si v
 msgid "Line Total"
 msgstr "Total ligne"
 
-#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:765
+#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:764
 msgid "Linked to the existing Esalink account"
 msgstr "Lié au compte Esalink existant"
 
@@ -2648,7 +2648,7 @@ msgstr "Liens"
 msgid "Loading"
 msgstr "Chargement"
 
-#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:716
+#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:715
 msgid "Loading company data…"
 msgstr "Chargement des données de la société…"
 
@@ -2880,12 +2880,12 @@ msgstr "Aucune ligne de routage de plateforme agréée pour cet établissement"
 msgid "No active customers found."
 msgstr "Aucun client actif trouvé."
 
-#: etransactions/plateforme_agreee/session.py:275
+#: etransactions/plateforme_agreee/session.py:280
 #, python-brace-format
 msgid "No active eTransactions Accredited Platform could authenticate for directory lookups. Last error: {0}"
 msgstr "Aucune plateforme accréditée active pour les eTransactions n'a pu s'authentifier pour les recherches dans l'annuaire. Dernière erreur : {0}"
 
-#: etransactions/plateforme_agreee/session.py:258
+#: etransactions/plateforme_agreee/session.py:263
 msgid "No active eTransactions Accredited Platform is available for directory lookups. Configure one in eTransactions Settings."
 msgstr "Aucune plateforme accréditée active pour les eTransactions n'est disponible pour les recherches dans l'annuaire. Configurez-en une dans les Paramètres eTransactions."
 
@@ -2907,7 +2907,7 @@ msgstr "Aucune période de clôture en cours."
 msgid "No companies found."
 msgstr "Aucune société trouvée."
 
-#: etransactions/plateforme_agreee/esalink_provisioning.py:234
+#: etransactions/plateforme_agreee/esalink_provisioning.py:242
 msgid "No contact email (needed for the KYC onboarding email)"
 msgstr "Aucun e-mail de contact (nécessaire pour l'e-mail d'enrôlement KYC)"
 
@@ -2915,7 +2915,7 @@ msgstr "Aucun e-mail de contact (nécessaire pour l'e-mail d'enrôlement KYC)"
 msgid "No credit note allocation yet."
 msgstr "Aucune allocation de note de crédit pour l'instant."
 
-#: etransactions/plateforme_agreee/esalink_provisioning.py:227
+#: etransactions/plateforme_agreee/esalink_provisioning.py:235
 msgid "No default address"
 msgstr "Aucune adresse par défaut"
 
@@ -2951,7 +2951,7 @@ msgstr "Aucun profil eTransaction trouvé. Créez-en un (ex. EN16931) avant de l
 msgid "No eTransactions Accredited Platform configured for company {0}."
 msgstr "Aucune plateforme agréée eTransactions configurée pour la société {0}."
 
-#: etransactions/plateforme_agreee/session.py:187
+#: etransactions/plateforme_agreee/session.py:192
 #, python-brace-format
 msgid "No eTransactions Accredited Platform configured for company {0}. Configure it in eTransactions Settings."
 msgstr "Aucune plateforme agréée eTransactions configurée pour la société {0}. Configurez-la dans les paramètres eTransactions."
@@ -2980,7 +2980,7 @@ msgstr "Aucun fichier à traiter. Collectez d'abord un justificatif."
 msgid "No item tax template assigned"
 msgstr "Aucun modèle de taxe article assigné"
 
-#: etransactions/plateforme_agreee/esalink_provisioning.py:224
+#: etransactions/plateforme_agreee/esalink_provisioning.py:232
 msgid "No legal identifier (SIREN or SIRET)"
 msgstr "Aucun identifiant légal (SIREN ou SIRET)"
 
@@ -3071,7 +3071,7 @@ msgstr "Pas prêt pour la facturation"
 msgid "Not registered"
 msgstr "Non inscrit"
 
-#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:466
+#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:465
 msgid "Not registered on Esalink"
 msgstr "Non inscrit sur Esalink"
 
@@ -3478,7 +3478,7 @@ msgstr "Type de plateforme"
 msgid "Platform activated"
 msgstr "Plateforme activée"
 
-#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:363
+#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:362
 msgid "Platform created"
 msgstr "Plateforme créée"
 
@@ -3500,11 +3500,11 @@ msgstr "Plateforme supprimée"
 msgid "Platform e-reporting ID"
 msgstr "ID e-reporting de la plateforme"
 
-#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:363
+#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:362
 msgid "Platform updated"
 msgstr "Plateforme mise à jour"
 
-#: etransactions/plateforme_agreee/esalink_provisioning.py:444
+#: etransactions/plateforme_agreee/esalink_provisioning.py:470
 #, python-brace-format
 msgid "Platform {0} not found."
 msgstr "Plateforme {0} introuvable."
@@ -3555,11 +3555,11 @@ msgstr "Veuillez définir les dates de début et de fin de période"
 msgid "Please submit {0}: {1} before trying to create the corresponding invoice"
 msgstr "Veuillez valider {0}: {1} avant d'essayer de créer la facture correspondante"
 
-#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:651
+#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:650
 msgid "Postal Code"
 msgstr "Code postal"
 
-#: etransactions/plateforme_agreee/esalink_provisioning.py:258
+#: etransactions/plateforme_agreee/esalink_provisioning.py:266
 msgid "Postal code"
 msgstr "Code postal"
 
@@ -3901,7 +3901,7 @@ msgstr "Frais de recouvrement (PMT)"
 msgid "Redirect URL"
 msgstr "URL de redirection"
 
-#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:379
+#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:378
 msgid "Redirect URL — copy into the SuperPDP application registration form"
 msgstr "URL de redirection — à copier dans le formulaire d'enregistrement d'application SuperPDP"
 
@@ -3972,7 +3972,7 @@ msgstr "Actualiser le statut PA"
 msgid "Refresh Token"
 msgstr "Jeton de rafraîchissement"
 
-#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:453
+#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:452
 msgid "Refresh status"
 msgstr "Actualiser le statut"
 
@@ -3996,20 +3996,20 @@ msgstr "Refuse la validation d'une facture de vente tant que des anomalies bloqu
 msgid "Refused"
 msgstr "Refusée"
 
-#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:655
+#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:654
 msgid "Register"
 msgstr "Inscrire"
 
-#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:470
-#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:612
+#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:469
+#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:611
 msgid "Register on Esalink"
 msgstr "Inscrire sur Esalink"
 
-#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:447
+#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:446
 msgid "Registered on Esalink"
 msgstr "Inscrit sur Esalink"
 
-#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:686
+#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:685
 msgid "Registering on Esalink…"
 msgstr "Inscription sur Esalink…"
 
@@ -4129,12 +4129,12 @@ msgid "Requests you raise will appear here."
 msgstr "Les demandes que vous créez apparaîtront ici."
 
 #: etransactions/etransactions/doctype/etransactions_accredited_platform/etransactions_accredited_platform.js:64
-#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:454
+#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:453
 msgid "Resend KYC email"
 msgstr "Renvoyer l'e-mail KYC"
 
 #: etransactions/etransactions/doctype/etransactions_accredited_platform/etransactions_accredited_platform.js:69
-#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:461
+#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:460
 msgid "Resending onboarding email…"
 msgstr "Renvoi de l'e-mail d'enrôlement…"
 
@@ -4224,8 +4224,8 @@ msgstr "Code de routage"
 msgid "Routing Code Name"
 msgstr "Nom du code de routage"
 
-#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:451
-#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:619
+#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:450
+#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:618
 msgid "Routing address"
 msgstr "Adresse de routage"
 
@@ -4521,7 +4521,7 @@ msgstr "Envoie le statut 'Approuvée' quand une facture d'achat liée à une fac
 msgid "Send 'In Hand' (prise en charge) when a supplier invoice is created from an incoming e-invoice."
 msgstr "Envoie le statut 'Prise en charge' quand une facture fournisseur est créée depuis une facture électronique entrante."
 
-#: etransactions/plateforme_agreee/esalink_provisioning.py:97
+#: etransactions/plateforme_agreee/esalink_provisioning.py:100
 msgid "Send a message to help@dokos.cloud to enable Esalink."
 msgstr "Envoyez un message à help@dokos.cloud pour activer Esalink."
 
@@ -4569,10 +4569,6 @@ msgstr "Envoyée"
 msgid "Service code (code service exécutant, BT-10) for this establishment. Overrides the customer-level default."
 msgstr "Code service (code service exécutant, BT-10) pour cet établissement. Remplace la valeur par défaut définie au niveau du client."
 
-#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:342
-msgid "Set by the esalink_environment key in site_config.json."
-msgstr "Défini par la clé esalink_environment dans site_config.json."
-
 #: etransactions/etransactions/doctype/einvoicing_directory_line/einvoicing_directory_line.py:30
 msgid "Set exactly one of Customer or Supplier on a directory line."
 msgstr "Définissez exactement un Client ou un Fournisseur sur une ligne d'annuaire."
@@ -4582,7 +4578,7 @@ msgstr "Définissez exactement un Client ou un Fournisseur sur une ligne d'annua
 msgid "Set the <b>VAT Regime</b> in <a href='/app/company/{0}'>Company settings</a> so e-reporting is declared to the French tax administration (PPF) on the correct schedule."
 msgstr "Définissez le <b>régime de TVA</b> dans les <a href='/app/company/{0}'>paramètres de la société</a> afin que l'e-reporting soit déclaré à l'administration fiscale française (PPF) selon le bon calendrier."
 
-#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:659
+#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:658
 msgid "Set the Esalink partner credentials in site_config.json first."
 msgstr "Définissez d'abord les identifiants du partenaire Esalink dans site_config.json."
 
@@ -4669,7 +4665,7 @@ msgstr "État"
 #: etransactions/etransactions/doctype/ereporting_declaration/ereporting_declaration.json
 #: etransactions/etransactions/doctype/etransactions_accredited_platform/etransactions_accredited_platform.js:250
 #: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:208
-#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:777
+#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:776
 #: etransactions/etransactions/doctype/ocr_generic_text_transcription/ocr_generic_text_transcription.json
 #: etransactions/etransactions/doctype/ocr_request/ocr_request.json
 #: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json
@@ -5116,7 +5112,7 @@ msgid "Terms"
 msgstr "Conditions"
 
 #: etransactions/etransactions/doctype/etransactions_accredited_platform/etransactions_accredited_platform.js:13
-#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:537
+#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:536
 msgid "Test connection"
 msgstr "Tester la connexion"
 
@@ -5130,7 +5126,7 @@ msgstr "Facture de test {0} envoyée à SuperPDP (flux {1}, statut {2})."
 msgid "Testing connection…"
 msgstr "Test de la connexion…"
 
-#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:548
+#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:547
 msgid "Testing…"
 msgstr "Test…"
 
@@ -5160,7 +5156,7 @@ msgstr "Le schéma d'adresse électronique {0} ne fait pas partie de la liste de
 msgid "The Esalink API key (hubtimize-api-key) must be configured."
 msgstr "La clé API Esalink (hubtimize-api-key) doit être configurée."
 
-#: etransactions/plateforme_agreee/esalink_provisioning.py:95
+#: etransactions/plateforme_agreee/esalink_provisioning.py:98
 msgid "The Esalink partner credentials are not configured on this site."
 msgstr "Les identifiants partenaires Esalink ne sont pas configurés sur ce site."
 
@@ -5189,7 +5185,7 @@ msgstr "Le XML UBL n'a pas été généré pour cette eInvoice."
 msgid "The XML document format is not supported. Only FacturX/CII and UBL 2.x invoices are accepted."
 msgstr "Le format du document XML n'est pas pris en charge. Seules les factures FacturX/CII et UBL 2.x sont acceptées."
 
-#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:778
+#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:777
 msgid "The account activates automatically once Esalink validates the KYC onboarding."
 msgstr "Le compte s'active automatiquement une fois qu'Esalink valide l'enrôlement KYC."
 
@@ -5240,7 +5236,7 @@ msgstr ""
 msgid "The format of the uploaded file ({0}) is not supported for E-Invoices. Please upload a valid E-Invoice file or create a regular Purchase Invoice manually instead."
 msgstr "Le format du fichier téléversé ({0}) n'est pas pris en charge pour les factures électroniques. Veuillez téléverser un fichier de facture électronique valide ou créer manuellement une facture d'achat classique."
 
-#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:633
+#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:632
 msgid "The identifier the company is registered under on Esalink."
 msgstr "L'identifiant sous lequel l'entreprise est enregistrée sur Esalink."
 
@@ -5355,11 +5351,11 @@ msgstr "Il y a une différence entre le montant total des taxes basé sur l'extr
 msgid "This Esalink platform has no customer account id yet. Provision the company on Esalink first (eTransactions Settings)."
 msgstr "Cette plateforme Esalink n'a pas encore d'identifiant de compte client. Provisionnez d'abord la société sur Esalink (paramètres eTransactions)."
 
-#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:467
+#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:466
 msgid "This company has no Esalink account yet. Registering creates one, mints its API credentials and registers the routing address (SIREN)."
 msgstr "Cette société n'a pas encore de compte Esalink. L'inscription en crée un, génère ses identifiants API et enregistre l'adresse de routage (SIREN)."
 
-#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:430
+#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:429
 msgid "This company will be added unregistered. Once the row is created, open it from the Edit button to register it on Esalink."
 msgstr "Cette société sera ajoutée sans inscription. Une fois la ligne créée, ouvrez-la via le bouton Modifier pour l'inscrire sur Esalink."
 
@@ -5437,11 +5433,11 @@ msgstr "Il s'agit d'une facture B2G (entité publique). Le <b>code service</b> (
 msgid "This party is ready for electronic invoicing."
 msgstr "Ce tiers est prêt pour la facturation électronique."
 
-#: etransactions/plateforme_agreee/esalink_provisioning.py:592
+#: etransactions/plateforme_agreee/esalink_provisioning.py:623
 msgid "This platform has no Esalink customer id to refresh."
 msgstr "Cette plateforme n'a pas d'identifiant client Esalink à actualiser."
 
-#: etransactions/plateforme_agreee/esalink_provisioning.py:609
+#: etransactions/plateforme_agreee/esalink_provisioning.py:641
 msgid "This platform has no Esalink customer id."
 msgstr "Cette plateforme n'a pas d'identifiant client Esalink."
 
@@ -5449,7 +5445,7 @@ msgstr "Cette plateforme n'a pas d'identifiant client Esalink."
 msgid "This platform uses interactive authentication but has no refresh token. Run the onboarding."
 msgstr "Cette plateforme utilise l'authentification interactive mais n'a pas de jeton de rafraîchissement. Lancez l'enrôlement."
 
-#: etransactions/plateforme_agreee/session.py:324
+#: etransactions/plateforme_agreee/session.py:329
 msgid "This platform uses interactive onboarding: save it, then run \"Connect account (onboarding)\" to obtain tokens before testing."
 msgstr "Cette plateforme utilise l'enrôlement interactif : enregistrez-la, puis lancez \"Connecter le compte (enrôlement)\" pour obtenir des jetons avant de tester."
 
@@ -5628,7 +5624,7 @@ msgid "Unsupported file format"
 msgstr "Format de fichier non pris en charge"
 
 #. Label in OCR Generic Text Transcription's actions
-#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:345
+#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:344
 #: etransactions/etransactions/doctype/ocr_generic_text_transcription/ocr_generic_text_transcription.json
 msgid "Update"
 msgstr "Mettre à jour"
@@ -5644,7 +5640,7 @@ msgstr "Mettre à jour le n° de TVA"
 msgid "Updated Records"
 msgstr "Enregistrements mis à jour"
 
-#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:359
+#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:358
 msgid "Updating…"
 msgstr "Mise à jour…"
 
@@ -5686,7 +5682,7 @@ msgstr "Configuration TVA"
 msgid "VAT Configuration Tool"
 msgstr "Outil de configuration TVA"
 
-#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:638
+#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:637
 msgid "VAT Number"
 msgstr "Numéro de TVA"
 
@@ -5782,7 +5778,7 @@ msgstr "Nous ne parvenons pas à trouver de commande fournisseur avec le numéro
 msgid "When the customer refuses an e-invoice (incoming 'Refused' status), automatically cancel the linked Sales Invoice. Off by default — cancellation is irreversible."
 msgstr "Quand le client refuse une facture électronique (statut entrant 'Refusée'), annule automatiquement la facture de vente liée. Désactivé par défaut — l'annulation est irréversible."
 
-#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:621
+#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:620
 msgid "Where invoices are routed to. Defaults to the chosen legal identifier under its scheme (SIREN → 0225, SIRET → 0009); edit only to route to a different identifier, e.g. a Peppol address like 0088:123456789."
 msgstr "Où les factures sont acheminées. Par défaut, utilise l'identifiant légal choisi selon son schéma (SIREN → 0225, SIRET → 0009) ; modifiez uniquement pour acheminer vers un autre identifiant, par exemple une adresse Peppol comme 0088:123456789."
 
@@ -6123,6 +6119,16 @@ msgstr "Paramètres eTransactions"
 msgid "eTransactions Supplier Name Alias"
 msgstr "Alias du nom de fournisseur eTransactions"
 
+#. Option for the 'Operation' (Select) field in DocType 'eInvoicing Log'
+#: etransactions/etransactions/doctype/einvoicing_log/einvoicing_log.json
+msgid "ereporting_send"
+msgstr "ereporting_send"
+
+#. Option for the 'Operation' (Select) field in DocType 'eInvoicing Log'
+#: etransactions/etransactions/doctype/einvoicing_log/einvoicing_log.json
+msgid "ereporting_status"
+msgstr "ereporting_status"
+
 #. Option for the 'PA Status' (Select) field in DocType 'eInvoice'
 #. Option for the 'State' (Select) field in DocType 'eInvoice Event'
 #. Option for the 'Status' (Select) field in DocType 'eReporting Declaration'
@@ -6166,7 +6172,7 @@ msgstr "flow_status"
 msgid "fully ready"
 msgstr "entièrement prêt"
 
-#: etransactions/plateforme_agreee/session.py:289
+#: etransactions/plateforme_agreee/session.py:294
 msgid "get_session() is no longer supported. Use get_client() instead — it returns a unified client for all platforms."
 msgstr "get_session() n'est plus pris en charge. Utilisez get_client() à la place — il renvoie un client unifié pour toutes les plateformes."
 
@@ -6275,9 +6281,15 @@ msgstr "principale"
 
 #. Option for the 'Esalink Environment' (Select) field in DocType
 #. 'eTransactions Accredited Platform'
+#. Default value of the esalink_environment (Select) field in DocType
+#. 'eTransactions Accredited Platform'
 #: etransactions/etransactions/doctype/etransactions_accredited_platform/etransactions_accredited_platform.json
 msgid "prod"
 msgstr "prod"
+
+#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:341
+msgid "prod = https://hubtimize.fr, test = https://ppd.hubtimize.fr (pré-production)."
+msgstr "prod = https://hubtimize.fr, test = https://ppd.hubtimize.fr (pré-production)."
 
 #. Option for the 'PA Status' (Select) field in DocType 'eInvoice'
 #. Option for the 'Status' (Select) field in DocType 'eReporting Declaration'
@@ -6336,8 +6348,6 @@ msgid "suffix"
 msgstr "suffixe"
 
 #. Option for the 'Esalink Environment' (Select) field in DocType
-#. 'eTransactions Accredited Platform'
-#. Default value of the esalink_environment (Select) field in DocType
 #. 'eTransactions Accredited Platform'
 #: etransactions/etransactions/doctype/etransactions_accredited_platform/etransactions_accredited_platform.json
 msgid "test"
