@@ -24,10 +24,13 @@ def execute():
 		if not source_file or not frappe.db.exists("File", source_file):
 			continue
 
-		file_name = copy_file_to_document(source_file, "Supplier Invoice", invoice.name)
-		frappe.db.set_value(
-			"Supplier Invoice",
-			invoice.name,
-			{"file": file_name, "file_url": frappe.db.get_value("File", file_name, "file_url")},
-			update_modified=False,
-		)
+		try:
+			file_name = copy_file_to_document(source_file, "Supplier Invoice", invoice.name)
+			frappe.db.set_value(
+				"Supplier Invoice",
+				invoice.name,
+				{"file": file_name, "file_url": frappe.db.get_value("File", file_name, "file_url")},
+				update_modified=False,
+			)
+		except Exception:
+			continue
