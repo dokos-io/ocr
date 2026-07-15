@@ -824,6 +824,24 @@ class EInvoiceGenerator:
 			trade_tax.rate_applicable_percent = tax.rate_applicable_percent
 			trade_tax.basis_amount = tax.basis_amount
 
+			# For every VAT category other than S (standard) and Z (zero-rated), the
+			# document-level VAT breakdown must carry a VAT exemption reason — code
+			# (BT-121) and/or text (BT-120). Required by EN16931 (BR-E/AE/G/IC/O-10)
+			# and mandatory at document level from the FNFE v1.4.0 EXTENDED / CTC-FR
+			# profiles (XP Z12-012 V1.4.0, July 2026).
+			if trade_tax.category_code._text not in ("S", "Z"):
+				records = [
+					("Account", tax.tax_account),
+					("Tax Category", self.einvoice.get("tax_category")),
+					("Sales Taxes and Charges Template", self.einvoice.get("taxes_and_charges")),
+				]
+				exemption_code = vat_exemption_reason_codes.get(records)
+				if exemption_code:
+					trade_tax.exemption_reason_code = exemption_code.upper()
+				exemption_reason = vat_exemption_reason_codes.get_description(records)
+				if exemption_reason:
+					trade_tax.exemption_reason = exemption_reason
+
 			self.doc.trade.settlement.trade_tax.add(trade_tax)
 			tax_added = True
 
@@ -842,12 +860,14 @@ class EInvoiceGenerator:
 		trade_tax.basis_amount = self.einvoice.line_total
 		trade_tax.rate_applicable_percent = 0
 		trade_tax.calculated_amount = 0
-		trade_tax.exemption_reason_code = vat_exemption_reason_codes.get(
-			[
-				("Tax Category", self.einvoice.get("tax_category")),
-				("Sales Taxes and Charges Template", self.einvoice.get("taxes_and_charges")),
-			]
-		).upper()
+		reason_records = [
+			("Tax Category", self.einvoice.get("tax_category")),
+			("Sales Taxes and Charges Template", self.einvoice.get("taxes_and_charges")),
+		]
+		trade_tax.exemption_reason_code = vat_exemption_reason_codes.get(reason_records).upper()
+		exemption_reason = vat_exemption_reason_codes.get_description(reason_records)
+		if exemption_reason:
+			trade_tax.exemption_reason = exemption_reason
 		self.doc.trade.settlement.trade_tax.add(trade_tax)
 
 	def _add_delivery_date(self):
