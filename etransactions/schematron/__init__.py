@@ -12,30 +12,47 @@ PROFILE_TO_XSL = {
 	EInvoiceProfile.MINIMUM: None,
 	EInvoiceProfile.BASIC_WL: None,
 	EInvoiceProfile.BASIC: "Factur-X_1.07.2_BASIC.xsl",
-	EInvoiceProfile.EN16931: "EN16931-CII-validation-preprocessed.xsl",
-	EInvoiceProfile.EXTENDED: "Factur-X_1.07.2_EXTENDED.xsl",
+	# EN16931 and EXTENDED are the FNFE Schematron package v1.4.0 (XP Z12-012
+	# V1.4.0) builds; EXTENDED is Factur-X 1.09.2.
+	EInvoiceProfile.EN16931: "EN16931-CII-validation.xslt",
+	EInvoiceProfile.EXTENDED: "Factur-X_1.09.2_EXTENDED.xslt",
 	EInvoiceProfile.XRECHNUNG: "XRechnung-CII-validation.xsl",
-	# CTC-FR is Extended-based; validate with the Factur-X EXTENDED schematron.
-	# (the cpro.gouv.fr CTC-FR Schematron is not bundled; the PA validates on submit.)
-	EInvoiceProfile.CTC_FR: "Factur-X_1.07.2_EXTENDED.xsl",
+	# CTC-FR now has its own dedicated FNFE schematron (v1.4.0), which natively
+	# accepts the cpro.gouv.fr extended-ctc-fr guideline — no guideline swap needed.
+	EInvoiceProfile.CTC_FR: "EXTENDED-CTC-FR-CII.xslt",
 }
 
 
 # UBL 2.1 documents are validated against the EN16931 core rules plus the
 # Peppol BIS 3.0 CIUS (the builder always emits the BIS CustomizationID).
-# Compiled XSLTs from phax/phive-rules (openpeppol 2026.5 ruleset); sources:
-# CEN/TC434 schematron (EN16931) and OpenPeppol peppol-bis-invoice-3.
+# EN16931-UBL is the FNFE Schematron package v1.4.0 build; Peppol is the
+# compiled OpenPeppol peppol-bis-invoice-3 XSLT (phax/phive-rules).
 UBL_XSL = ["EN16931-UBL-validation.xslt", "PEPPOL-EN16931-UBL.xslt"]
+
+# French CTC business-rule pre-flight (FNFE BR-FR-Flux2, v1.4.0), run in the
+# non-blocking "WARNING" build: failed rules surface as successful-reports, which
+# extract_failed_asserts() routes to warnings (never validation_errors), so they
+# never block Factur-X PDF generation. Applied only to the French Extended /
+# CTC-FR CII profiles — never to international Peppol UBL, which does not carry
+# the French reform rules (and which the generator never emits for these profiles).
+FRENCH_CTC_CII_PROFILES = (EInvoiceProfile.EXTENDED, EInvoiceProfile.CTC_FR)
+FRENCH_CTC_CII_WARNING = "BR-FR-Flux2-Schematron-CII_WARNING.xslt"
 
 
 def get_stylesheets(profile: EInvoiceProfile, syntax: str = "CII") -> list[str] | None:
 	"""Stylesheets to run for a document, or None when no local schematron applies."""
 	if syntax == "UBL":
-		return UBL_XSL
+		return list(UBL_XSL)
 	if profile not in PROFILE_TO_XSL:
 		raise ValueError(f"No schematron mapping for e-invoice profile {profile!r}")
 	stylesheet = PROFILE_TO_XSL[profile]
-	return None if stylesheet is None else [stylesheet]
+	if stylesheet is None:
+		return None
+	stylesheets = [stylesheet]
+	# Append the non-blocking French CTC pre-flight for the French CII profiles.
+	if profile in FRENCH_CTC_CII_PROFILES:
+		stylesheets.append(FRENCH_CTC_CII_WARNING)
+	return stylesheets
 
 
 def get_validation_errors(xml_string: str, profile: EInvoiceProfile, syntax: str = "CII"):
@@ -46,19 +63,6 @@ def get_validation_errors(xml_string: str, profile: EInvoiceProfile, syntax: str
 				"The {0} profile has no local schematron; the accredited platform validates it on submit."
 			).format(profile.value)
 		]
-
-	if syntax != "UBL" and profile == EInvoiceProfile.CTC_FR:
-		# The bundled schematron is the generic Factur-X EXTENDED one (the
-		# cpro.gouv.fr CTC-FR schematron is not bundled). It rejects the French
-		# BT-24 guideline URN, so validate with the guideline swapped to the
-		# standard extended id: the structural EN16931/Extended rules still apply,
-		# while the French-specific rules are enforced by the PA on submit.
-		from etransactions.utils import get_guideline
-
-		xml_string = xml_string.replace(
-			get_guideline(EInvoiceProfile.CTC_FR),
-			get_guideline(EInvoiceProfile.EXTENDED),
-		)
 
 	errors: list[str] = []
 	warnings: list[str] = []

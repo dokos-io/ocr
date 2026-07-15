@@ -192,7 +192,9 @@ def as_base_64(content: str | bytes) -> str:
 @total_ordering
 class EInvoiceProfile(Enum):
 	"""
-	Profiles according to Factur-X Specification 1.07.2 page 18.
+	Factur-X profiles (guideline URNs are ``1p0``-stable across Factur-X versions).
+	The bundled EXTENDED / EN16931 / EXTENDED-CTC-FR schematrons are the FNFE-MPE
+	Schematrons FR CTC v1.4.0 build (XP Z12-012 V1.4.0); EXTENDED is Factur-X 1.09.2.
 	"""
 
 	MINIMUM = "MINIMUM"

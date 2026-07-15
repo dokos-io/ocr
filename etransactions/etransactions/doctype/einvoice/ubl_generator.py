@@ -384,12 +384,27 @@ class UBLGenerator:
 			)
 		).upper()
 
+	def _exemption_reason_text(self) -> str | None:
+		return vat_exemption_reason_codes.get_description(
+			[
+				("Tax Category", self.einvoice.get("tax_category")),
+				("Sales Taxes and Charges Template", self.einvoice.get("taxes_and_charges")),
+			]
+		)
+
 	def _add_tax_category(self, parent, category_code: str, percent):
 		category = _cac(parent, "TaxCategory")
 		_cbc(category, "ID", category_code)
 		_cbc(category, "Percent", f"{flt(percent, 2):g}")
-		if flt(percent) == 0:
+		# VAT exemption reason — code (BT-121) and/or text (BT-120) — is required for
+		# every category other than S (standard) and Z (zero-rated): EN16931
+		# BR-E/AE/G/IC/O-10, and mandatory at document level from the FNFE v1.4.0
+		# EXTENDED / CTC-FR profiles (XP Z12-012 V1.4.0). Z must carry no reason.
+		if str(category_code) not in ("S", "Z"):
 			_cbc(category, "TaxExemptionReasonCode", self._exemption_reason_code())
+			reason_text = self._exemption_reason_text()
+			if reason_text:
+				_cbc(category, "TaxExemptionReason", reason_text)
 		scheme = _cac(category, "TaxScheme")
 		_cbc(scheme, "ID", "VAT")
 
