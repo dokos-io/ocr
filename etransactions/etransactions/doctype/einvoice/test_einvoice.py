@@ -32,13 +32,13 @@ class TesteInvoice(eTransactionsTestSuite):
 		self.run_invoice_tests("1.basic_wl", BASIC_WL_INVOICES)
 
 	def test_parse_basic_invoices(self):
-		self.run_invoice_tests("2.BASIC", BASIC_INVOICES)
+		self.run_invoice_tests("2.basic", BASIC_INVOICES)
 
 	def test_parse_en16931_invoices(self):
-		self.run_invoice_tests("3.EN16931", EN16931_INVOICES)
+		self.run_invoice_tests("3.en16931", EN16931_INVOICES)
 
 	def test_parse_extended_invoices(self):
-		self.run_invoice_tests("4.EXTENDED", EXTENDED_INVOICES)
+		self.run_invoice_tests("4.extended", EXTENDED_INVOICES)
 
 	def test_parse_ubl_invoices(self):
 		self.run_invoice_tests("5.ubl", UBL_INVOICES)
@@ -166,12 +166,16 @@ class TesteInvoice(eTransactionsTestSuite):
 	def run_invoice_tests(self, folder, expected_data):
 		test_path = frappe.get_app_path("etransactions", "tests", "invoices", folder)
 
+		# A missing fixture must fail, not be silently skipped — otherwise a
+		# renamed or deleted sample turns a whole profile suite green while it
+		# asserts nothing at all.
+		self.assertTrue(os.path.isdir(test_path), f"missing fixture folder {folder}")
+
 		for file_name, expected in expected_data.items():
 			with self.subTest(file_name=file_name):
 				full_path = os.path.abspath(os.path.join(test_path, file_name))
 
-				if not os.path.exists(full_path):
-					continue
+				self.assertTrue(os.path.exists(full_path), f"missing fixture {folder}/{file_name}")
 
 				with open(full_path, "rb") as f:
 					file_content = f.read()
