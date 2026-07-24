@@ -44,18 +44,33 @@ def validate_electronic_address(doc, method=None):
 
 @frappe.whitelist()
 @frappe.validate_and_sanitize_search_inputs
-def eas_scheme_query(doctype, txt, searchfield, start, page_len, filters):
+def eas_scheme_query(
+	doctype: str, txt: str, searchfield: str, start: int, page_len: int, filters: dict | None = None
+) -> list[list]:
 	"""Link-field query that offers only CEF EAS Common Codes (BR-CL-25).
 
 	Bound to ``etransactions_electronic_address_scheme`` on Customer and Company
 	so the picker can't surface a non-EAS scheme. Shares the EAS allowlist
 	with the save-time guard, so the dropdown and the validation never disagree.
+
+	``name`` is matched alongside ``common_code``/``title`` because the framework
+	reuses this query to *validate* the picked value: it re-runs it with
+	``txt = <docname>`` (``frappe.client.validate_link_and_fetch`` →
+	``search_widget(for_link_validation=True)``). Common Code is hash-named, so a
+	query that only searched the code and the title returned nothing for its own
+	docname and the control silently cleared the field the user had just picked.
 	"""
 	like = f"%{txt}%"
 	return frappe.get_all(
 		"Common Code",
 		filters=[["common_code", "in", sorted(EAS_CODES)]],
-		or_filters=[["common_code", "like", like], ["title", "like", like]] if txt else None,
+		or_filters=[
+			["name", "like", like],
+			["common_code", "like", like],
+			["title", "like", like],
+		]
+		if txt
+		else None,
 		fields=["name", "title", "common_code"],
 		order_by="common_code asc",
 		start=start,
