@@ -37,6 +37,18 @@ except ImportError:
     requests = None
 
 
+# Related data inlined in the incoming-invoice listing. The platform omits
+# ``en_invoice`` by default for performance; asking for it (and for the lifecycle
+# events) turns "one listing plus one call per invoice" into a single listing.
+INCOMING_EXPAND = (
+    "en_invoice",
+    "en_invoice.invoice",
+    "en_invoice.seller",
+    "en_invoice.buyer",
+    "events",
+)
+
+
 def _months_between(start: datetime, end: datetime) -> list[str]:
     """Month strings (``YYYY-MM``) covering [start, end], oldest first."""
     months = []
@@ -385,8 +397,15 @@ class SuperPDPClient:
         date: str = None,
         limit: int = None,
         starting_after_id: int = None,
+        expand: list[str] = None,
     ) -> list[dict]:
-        """List invoices, auto-paginating until all results are returned."""
+        """List invoices, auto-paginating until all results are returned.
+
+        ``expand`` asks the platform to inline related data that is omitted by
+        default for performance (``en_invoice``, ``en_invoice.seller``,
+        ``events``, …), so the caller does not have to fetch each invoice
+        individually.
+        """
         params: dict = {}
         if direction:
             params["direction"] = direction
@@ -394,6 +413,8 @@ class SuperPDPClient:
             params["date"] = date
         if limit:
             params["limit"] = limit
+        if expand:
+            params["expand[]"] = list(expand)
 
         all_items: list[dict] = []
         after_id = starting_after_id
@@ -583,18 +604,24 @@ class SuperPDPClient:
         flow ids stays the correctness backstop.
         """
         if updated_after is None:
-            invoices = self.list_invoices(direction="in")
+            invoices = self.list_invoices(direction="in", expand=INCOMING_EXPAND)
         else:
             invoices = []
             for month in _months_between(updated_after, datetime.now()):
-                invoices.extend(self.list_invoices(direction="in", date=month))
+                invoices.extend(
+                    self.list_invoices(direction="in", date=month, expand=INCOMING_EXPAND)
+                )
         return [
             IncomingFlow(
                 flow_id=str(inv["id"]),
                 submitted_at=_to_db_datetime(inv.get("created_at")),
                 updated_at=_to_db_datetime(inv.get("created_at")),
                 flow_type="SupplierInvoice",
+                # The listing does not say whether the original file is CII, UBL or
+                # a Factur-X PDF; it is detected from the downloaded bytes.
                 syntax=None,
+                en_invoice=inv.get("en_invoice"),
+                events=inv.get("events"),
             )
             for inv in invoices
         ]

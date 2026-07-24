@@ -23,7 +23,7 @@ class eInvoiceEvent(Document):
 		comment: DF.SmallText | None
 		currency: DF.Link | None
 		direction: DF.Literal["out", "in"]
-		einvoice: DF.Link
+		einvoice: DF.Link | None
 		error_details: DF.SmallText | None
 		pa_event_id: DF.Data | None
 		pa_flow_id: DF.Data | None
@@ -41,6 +41,11 @@ class eInvoiceEvent(Document):
 			self.status_label = lifecycle_status.label(self.status)
 
 	def after_insert(self):
+		# An event can land before its invoice exists (a CDAR flow polled ahead of
+		# the invoice it refers to). It is linked by Flow ID later, by
+		# adopt_orphan_events; until then there is nothing to react to.
+		if not self.einvoice:
+			return
 		# Raise a ToDo when the counterparty sends a status that needs attention
 		# (dispute / refusal / suspension). Mirrors the Odoo mail-activity behaviour.
 		if self.direction == "in" and lifecycle_status.is_warning(self.status):
@@ -75,11 +80,15 @@ class eInvoiceEvent(Document):
 			frappe.log_error(frappe.get_traceback(), "Auto-cancel on refusal failed")
 
 	def _notify_warning(self):
-		einvoice = frappe.get_doc("eInvoice", self.einvoice)
+		# Two columns are all this needs: loading the whole eInvoice (and its item,
+		# tax and payment-term tables) once per event is pure overhead.
+		sales_invoice, einvoice_owner = frappe.db.get_value(
+			"eInvoice", self.einvoice, ["sales_invoice", "owner"]
+		)
 		owner = None
-		if einvoice.sales_invoice:
-			owner = frappe.db.get_value("Sales Invoice", einvoice.sales_invoice, "owner")
-		owner = owner or einvoice.owner
+		if sales_invoice:
+			owner = frappe.db.get_value("Sales Invoice", sales_invoice, "owner")
+		owner = owner or einvoice_owner
 		if not owner:
 			return
 
@@ -87,7 +96,7 @@ class eInvoiceEvent(Document):
 		# counterparty-supplied text from an incoming CDAR/event, so escape before
 		# building the HTML ToDo description to avoid stored XSS.
 		description = frappe._("Invoice {0} received status '{1}' from the accredited platform.").format(
-			escape_html(einvoice.sales_invoice or self.einvoice), escape_html(self.status_label or "")
+			escape_html(sales_invoice or self.einvoice), escape_html(self.status_label or "")
 		)
 		if self.comment:
 			description += f"<br>{escape_html(self.comment)}"
@@ -102,8 +111,32 @@ class eInvoiceEvent(Document):
 		}).insert(ignore_permissions=True)
 
 
+def adopt_orphan_events(einvoice: str, pa_flow_id: str) -> int:
+	"""Link the events already recorded for a flow to the eInvoice that now exists.
+
+	An event can be polled before the invoice it belongs to — a CDAR lifecycle flow
+	arriving ahead of the invoice, or an event recorded from a listing. Rather than
+	dropping it (and re-downloading it on every run), it is stored unlinked with its
+	``pa_flow_id``, and claimed here in a single UPDATE. Returns the number adopted.
+	"""
+	if not pa_flow_id:
+		return 0
+
+	orphans = frappe.get_all(
+		"eInvoice Event",
+		filters={"pa_flow_id": pa_flow_id, "einvoice": ["is", "not set"]},
+		pluck="name",
+	)
+	if not orphans:
+		return 0
+
+	event = frappe.qb.DocType("eInvoice Event")
+	frappe.qb.update(event).set(event.einvoice, einvoice).where(event.name.isin(orphans)).run()
+	return len(orphans)
+
+
 def record_event(
-	einvoice: str,
+	einvoice: str | None,
 	direction: str,
 	status: str,
 	*,
@@ -123,23 +156,21 @@ def record_event(
 ) -> "eInvoiceEvent | None":
 	"""Create an eInvoice Event, skipping duplicates.
 
+	``einvoice`` may be ``None`` for an event polled before its invoice exists; it
+	is then claimed by :func:`adopt_orphan_events` via ``pa_flow_id``.
+
 	Duplicates are detected by ``pa_event_id`` when available, otherwise by the
-	``(einvoice, direction, status, status_datetime)`` tuple. Returns the created
-	document, or ``None`` when a matching event already exists.
+	``(direction, status, status_datetime)`` tuple — scoped to the flow, so an event
+	that was recorded unlinked and has since been adopted is still recognised as
+	already known. Returns the created document, or ``None`` for a duplicate.
 	"""
-	if pa_event_id and frappe.db.exists(
-		"eInvoice Event", {"einvoice": einvoice, "pa_event_id": pa_event_id}
-	):
-		return None
-	if not pa_event_id and frappe.db.exists(
-		"eInvoice Event",
-		{
-			"einvoice": einvoice,
-			"direction": direction,
-			"status": status,
-			"status_datetime": status_datetime,
-		},
-	):
+	scope = {"pa_flow_id": pa_flow_id} if pa_flow_id else {"einvoice": einvoice}
+	known = (
+		{"pa_event_id": pa_event_id}
+		if pa_event_id
+		else {"direction": direction, "status": status, "status_datetime": status_datetime}
+	)
+	if frappe.db.exists("eInvoice Event", {**scope, **known}):
 		return None
 
 	doc = frappe.get_doc({

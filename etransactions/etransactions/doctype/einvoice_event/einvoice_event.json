@@ -36,8 +36,8 @@
    "in_standard_filter": 1,
    "label": "eInvoice",
    "options": "eInvoice",
-   "reqd": 1,
-   "search_index": 1
+   "search_index": 1,
+   "description": "Left empty when the event arrives before its invoice; it is linked by Flow ID as soon as the eInvoice is created."
   },
   {
    "fieldname": "direction",
