@@ -35,7 +35,9 @@ class IntegrationTesteTransactionsAccreditedPlatform(IntegrationTestCase):
 		self.assertEqual(first, second, "Re-running provisioning must reuse the same customer")
 
 		customer = frappe.get_doc("Customer", first)
-		self.assertEqual(customer.siren_number, sandbox.TEST_SIREN)
+		# The sandbox identifiers are not valid SIRENs (erpnext refuses them), so the
+		# customer carries none: addressing comes from the directory line below.
+		self.assertFalse(customer.siren_number)
 		self.assertEqual(customer.directory_type, sandbox.TEST_DIRECTORY_TYPE)
 		# Forced private so the invoice is classified B2B (sendable), not B2C.
 		self.assertEqual(customer.directory_entity_type, "private")

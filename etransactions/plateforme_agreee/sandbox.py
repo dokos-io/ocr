@@ -12,12 +12,12 @@ address and routing line and only creates a fresh Sales Invoice to send.
 import frappe
 from frappe import _
 
+from etransactions.utils.siren import is_valid_siren
+
 # Tricatel — the SuperPDP pré-production test recipient. In the sandbox the
-# routing SIREN (315143296) is shared and each participant gets a suffix; the
-# "numéro d'entreprise" (000000001) is the display company number stored on the
-# Customer's siren_number, exactly mirroring the seller (Dokompany, _36).
+# routing SIREN (315143296) is shared and each participant gets a suffix, exactly
+# mirroring the seller (Dokompany, _36).
 TEST_CUSTOMER_NAME = "Tricatel (SuperPDP Sandbox)"
-TEST_SIREN = "000000001"
 TEST_DIRECTORY_TYPE = "peppol"
 TEST_IDENTIFIER = "0225:315143296_35"
 TEST_ADDRESS = {
@@ -97,18 +97,29 @@ def send_superpdp_test_invoice(platform_name: str) -> dict:
 
 
 def _ensure_customer() -> str:
+	"""Create (or refresh) the Tricatel test customer.
+
+	``siren_number`` is deliberately left empty. The sandbox identifiers SuperPDP
+	publishes for Tricatel — the routing SIREN ``315143296`` and the "numéro
+	d'entreprise" ``000000001`` — are made-up numbers that fail the SIREN check
+	digit, and erpnext refuses to save a party carrying an invalid one. Storing it
+	would make the record unsaveable from the Desk, and routing does not need it:
+	the ``0225:315143296_35`` directory line drives the addressing.
+	"""
 	existing = frappe.db.get_value("Customer", {"customer_name": TEST_CUSTOMER_NAME}, "name")
 	if existing:
-		frappe.db.set_value(
-			"Customer", existing, {"siren_number": TEST_SIREN, "directory_type": TEST_DIRECTORY_TYPE}
-		)
+		values = {"directory_type": TEST_DIRECTORY_TYPE}
+		# A run predating this behaviour stored the display number; clear it so the
+		# record stays editable.
+		if not is_valid_siren(frappe.db.get_value("Customer", existing, "siren_number")):
+			values["siren_number"] = ""
+		frappe.db.set_value("Customer", existing, values)
 		return existing
 
 	customer = frappe.get_doc({
 		"doctype": "Customer",
 		"customer_name": TEST_CUSTOMER_NAME,
 		"customer_type": "Company",
-		"siren_number": TEST_SIREN,
 		"directory_type": TEST_DIRECTORY_TYPE,
 		"customer_group": frappe.db.get_value("Customer Group", {"is_group": 0}, "name"),
 		"territory": frappe.db.get_value("Territory", {"is_group": 0}, "name"),
