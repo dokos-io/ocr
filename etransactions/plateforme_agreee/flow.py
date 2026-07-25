@@ -1,6 +1,7 @@
 import frappe
 from frappe import _
 
+from etransactions.components.common import to_db_datetime
 from etransactions.plateforme_agreee.session import get_client, get_platform_for_context
 from etransactions.plateforme_agreee import lifecycle_status
 from etransactions.etransactions.doctype.einvoicing_log.einvoicing_log import eInvoicingLog
@@ -202,14 +203,17 @@ def poll_incoming_lifecycle_flows():
 			if not canonical:
 				continue
 
+			# The event may arrive before the invoice it refers to. Record it
+			# unlinked rather than dropping it: eInvoice.after_insert claims it by
+			# pa_flow_id, and the flow is not downloaded and parsed again on every
+			# run in the meantime.
 			einvoice = frappe.db.get_value(
 				"eInvoice", {"id": parsed.get("invoice_number"), "company": company}, "name"
 			)
 			if not einvoice:
 				result["logs"].append(
-					("warning", f"No matching eInvoice for CDAR flow {flow.flow_id} (invoice {parsed.get('invoice_number')})")
+					("info", f"CDAR flow {flow.flow_id} recorded ahead of invoice {parsed.get('invoice_number')}")
 				)
-				continue
 
 			detail = (parsed.get("doc_status") or [{}])[0]
 			created = record_event(
@@ -228,7 +232,9 @@ def poll_incoming_lifecycle_flows():
 			)
 			if created:
 				result["new_count"] += 1
-				result["logs"].append(("info", f"Recorded incoming status '{canonical}' for eInvoice {einvoice}"))
+				result["logs"].append(
+					("info", f"Recorded incoming status '{canonical}' for eInvoice {einvoice or '(pending)'}")
+				)
 
 		if result["new_count"] or result["logs"]:
 			eInvoicingLog.create_log(result)
@@ -442,18 +448,12 @@ def poll_incoming_flows():
 				continue
 
 			try:
-				file_content = client.download_flow(flow.flow_id)
-			except Exception as e:
-				result["logs"].append(("warning", f"Could not download flow {flow.flow_id}: {str(e)}"))
-				continue
-
-			try:
-				from etransactions.etransactions.doctype.einvoice.einvoice import eInvoice
-				eInvoice.create_from_plateforme_flow(flow, file_content, company)
+				einvoice = _ingest_incoming_flow(flow, company)
 				result["new_count"] += 1
 				known_flow_ids.add(flow.flow_id)
-				result["logs"].append(("info", f"Created eInvoice from incoming flow {flow.flow_id}"))
+				result["logs"].append(("info", f"Created eInvoice {einvoice} from incoming flow {flow.flow_id}"))
 			except Exception as e:
+				frappe.db.rollback()
 				result["logs"].append(("error", f"Failed to create eInvoice from flow {flow.flow_id}: {str(e)}"))
 
 		if platform_name:
@@ -466,3 +466,85 @@ def poll_incoming_flows():
 			)
 
 		eInvoicingLog.create_log(result)
+
+
+def _ingest_incoming_flow(flow, company: str) -> str:
+	"""Record one incoming flow, then fetch its content out of band.
+
+	Downloading and parsing the invoice used to happen inline, so a file the parser
+	choked on left no trace at all: the flow was simply re-listed and re-downloaded
+	on every hourly run. Persisting the flow first makes the inbox the durable
+	record — the download and the parse can then fail, be seen, and be retried.
+
+	Platforms that inline the invoice with the listing (SuperPDP, via ``expand[]``)
+	give the record its number, dates and counterparty right away; the others show
+	the flow metadata until the file arrives.
+	"""
+	from etransactions.etransactions.doctype.einvoice.einvoice import eInvoice
+
+	einvoice = eInvoice.create_from_plateforme_flow(flow, None, company)
+	_record_flow_events(einvoice, flow)
+	# The worker reads its own connection, so the record must be committed before
+	# the job can pick it up — except under test, where committing would break the
+	# rollback that isolates each case.
+	if not frappe.flags.in_test:
+		frappe.db.commit()
+
+	_enqueue_content_fetch(einvoice.name)
+	return einvoice.name
+
+
+def _record_flow_events(einvoice, flow) -> None:
+	"""Store the lifecycle events the platform returned with the flow, if any."""
+	for event in getattr(flow, "events", None) or []:
+		canonical = lifecycle_status.from_superpdp_code(event.get("status_code", ""))
+		if not canonical:
+			continue
+		details = event.get("details") or []
+		record_event(
+			einvoice.name,
+			direction="in",
+			status=canonical,
+			state="done",
+			status_datetime=to_db_datetime(event.get("created_at")),
+			pa_event_id=str(event["id"]) if event.get("id") is not None else None,
+			pa_flow_id=flow.flow_id,
+			comment=details[0].get("reason") if details else None,
+		)
+
+
+def _enqueue_content_fetch(einvoice: str) -> None:
+	frappe.enqueue(
+		"etransactions.plateforme_agreee.flow.fetch_einvoice_content",
+		queue="long",
+		job_id=f"einvoice-content::{einvoice}",
+		deduplicate=True,
+		einvoice=einvoice,
+	)
+
+
+def fetch_einvoice_content(einvoice: str) -> None:
+	"""Background job: download and parse the original file of an incoming flow."""
+	doc = frappe.get_doc("eInvoice", einvoice)
+	doc.flags.ignore_permissions = True
+	doc.fetch_content_from_platform()
+
+
+def retry_pending_einvoice_content():
+	"""Cron: re-attempt the flows whose content could not be fetched or parsed.
+
+	Without this, a platform outage during ``poll_incoming_flows`` would leave the
+	invoice stuck as metadata for good: its flow id is already known, so the poller
+	skips it on every later run.
+	"""
+	stuck = frappe.get_all(
+		"eInvoice",
+		filters={
+			"einvoice_type": "Incoming",
+			"pa_content_state": ["in", ["pending", "error"]],
+			"pa_flow_id": ["is", "set"],
+		},
+		pluck="name",
+	)
+	for name in stuck:
+		_enqueue_content_fetch(name)

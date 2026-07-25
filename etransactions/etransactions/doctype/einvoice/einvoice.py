@@ -9,6 +9,7 @@ from erpnext.edi.doctype.code_list.code_list import get_docnames_for
 
 from frappe import _
 from frappe.model.document import Document
+from frappe.utils import flt
 
 from etransactions.controllers.entity_resolver import InvoiceEntityResolverMixin
 from etransactions.etransactions.doctype.einvoice.parser import eInvoiceParser
@@ -25,6 +26,7 @@ from etransactions.utils.files import copy_file_to_document
 if TYPE_CHECKING:
 	from erpnext.stock.doctype.item.item import Item
 	from erpnext.accounts.doctype.sales_invoice.sales_invoice import SalesInvoice
+	from frappe.core.doctype.file.file import File
 
 
 class eInvoice(Document):
@@ -100,7 +102,21 @@ class eInvoice(Document):
 			self.create_outgoing_einvoice()
 			self.validate_einvoice()
 
+	def after_insert(self):
+		# Claim the lifecycle events that were polled before this invoice existed.
+		if self.einvoice_type == "Incoming" and self.pa_flow_id:
+			from etransactions.etransactions.doctype.einvoice_event.einvoice_event import (
+				adopt_orphan_events,
+			)
+
+			adopt_orphan_events(self.name, self.pa_flow_id)
+
 	def on_update(self):
+		# A flow whose original file has not been downloaded yet carries only the
+		# platform's metadata; building a Supplier Invoice from it would produce an
+		# empty draft. Wait until fetch_content_from_platform() has parsed the file.
+		if self.pa_content_state == "pending":
+			return
 		if not frappe.db.get_value("Supplier Invoice", dict(einvoice=self.name)):
 			self.generate_supplier_invoice()
 
@@ -397,25 +413,21 @@ class eInvoice(Document):
 		return file_content, file_doc.file_name or f"{self.sales_invoice}.pdf", "Factur-X"
 
 	@classmethod
-	def create_from_plateforme_flow(cls, flow, file_content: bytes, company: str) -> "eInvoice":
+	def create_from_plateforme_flow(cls, flow, file_content: bytes | None, company: str) -> "eInvoice":
 		"""Create an Incoming eInvoice from a flow received from the accredited platform.
 
 		``flow`` is an IncomingFlow dataclass (etransactions.components.superpdp.models).
-		The on_update() hook automatically creates the Supplier Invoice.
+
+		``file_content`` may be ``None``: the record is then created from the flow
+		metadata alone, in state ``pending``, and :meth:`fetch_content_from_platform`
+		downloads and parses the original file afterwards. That way a flow is never
+		lost because its content could not be read — it lands in the inbox either
+		way, and the poller has one durable record to retry against.
+
+		With the file present, validate() parses it and on_update() generates the
+		Supplier Invoice, as before.
 		"""
-		# The file has to exist before the insert: validate() parses it to populate the
-		# invoice, and on_update() then generates the Supplier Invoice from that data.
-		file_doc = None
-		if file_content:
-			ext = "pdf" if (flow.syntax or "") == "Factur-X" else "xml"
-			file_doc = frappe.get_doc({
-				"doctype": "File",
-				"file_name": f"{flow.flow_id}.{ext}",
-				"content": file_content,
-				"is_private": 1,
-			})
-			file_doc.flags.ignore_permissions = True
-			file_doc.insert()
+		file_doc = cls._store_flow_file(flow.flow_id, file_content) if file_content else None
 
 		doc = frappe.new_doc("eInvoice")
 		doc.einvoice_type = "Incoming"
@@ -426,22 +438,123 @@ class eInvoice(Document):
 		doc.pa_updated_at = flow.updated_at or flow.submitted_at
 		doc.pa_flow_type = flow.flow_type
 		doc.pa_syntax = flow.syntax
+		doc.pa_content_state = "fetched" if file_doc else "pending"
 		if file_doc:
 			doc.einvoice = file_doc.name
 			doc.einvoice_embedded_document = file_doc.file_url
+		else:
+			doc.apply_flow_metadata(flow)
 		doc.flags.ignore_permissions = True
 		doc.insert()
 
 		if file_doc:
-			file_doc.db_set({
-				"attached_to_doctype": "eInvoice",
-				"attached_to_name": doc.name,
-				"attached_to_field": "einvoice_embedded_document",
-			})
+			cls._attach_flow_file(file_doc, doc.name)
 
 		_notify_incoming_einvoice(doc)
 
 		return doc
+
+	@staticmethod
+	def _store_flow_file(flow_id: str, file_content: bytes) -> "File":
+		"""Save a downloaded flow, naming it after what the bytes actually are."""
+		from etransactions.utils.files import detect_flow_extension
+
+		file_doc = frappe.get_doc({
+			"doctype": "File",
+			"file_name": f"{flow_id}.{detect_flow_extension(file_content)}",
+			"content": file_content,
+			"is_private": 1,
+		})
+		file_doc.flags.ignore_permissions = True
+		file_doc.insert()
+		return file_doc
+
+	@staticmethod
+	def _attach_flow_file(file_doc, einvoice: str) -> None:
+		file_doc.db_set({
+			"attached_to_doctype": "eInvoice",
+			"attached_to_name": einvoice,
+			"attached_to_field": "einvoice_embedded_document",
+		})
+
+	def apply_flow_metadata(self, flow) -> None:
+		"""Fill the identifying fields from the platform's own view of the invoice.
+
+		Only what the inbox needs to be readable before the original file arrives:
+		number, dates, currency, totals and the counterparty. Everything else — and
+		the authoritative version of these very fields — comes from parsing the file
+		in :meth:`fetch_content_from_platform`.
+		"""
+		en_invoice = getattr(flow, "en_invoice", None) or {}
+		invoice = en_invoice.get("invoice") or {}
+		seller = en_invoice.get("seller") or {}
+		buyer = en_invoice.get("buyer") or {}
+
+		self.id = invoice.get("invoice_number") or invoice.get("number")
+		self.issue_date = invoice.get("issue_date")
+		self.due_date = invoice.get("due_date")
+		self.currency = invoice.get("invoice_currency_code") or invoice.get("currency")
+		self.seller_name = seller.get("name") or seller.get("trading_name")
+		self.seller_tax_id = seller.get("vat_identifier") or seller.get("tax_identifier")
+		self.buyer_name = buyer.get("name") or buyer.get("trading_name")
+
+		for field, key in (
+			("line_total", "sum_of_invoice_line_net_amount"),
+			("tax_basis_total", "invoice_total_amount_without_vat"),
+			("tax_total", "invoice_total_vat_amount"),
+			("grand_total", "invoice_total_amount_with_vat"),
+			("due_payable", "amount_due_for_payment"),
+		):
+			value = invoice.get(key)
+			if value is not None:
+				self.set(field, flt(value))
+
+	def fetch_content_from_platform(self) -> None:
+		"""Download the original file of an incoming flow, attach it and parse it.
+
+		Runs out of band from the poller (see
+		``etransactions.plateforme_agreee.flow.poll_incoming_flows``) so a file that
+		cannot be downloaded or parsed leaves a record behind to retry, instead of
+		making the whole flow disappear until the next hourly run.
+		"""
+		from etransactions.plateforme_agreee.session import get_client
+
+		if self.einvoice_type != "Incoming" or not self.pa_flow_id:
+			return
+
+		# A savepoint, not a full rollback: a half-written attempt is undone without
+		# touching whatever the caller (the poller, or the retry job) already did.
+		save_point = "einvoice_content"
+		frappe.db.savepoint(save_point)
+		try:
+			client = get_client(self.company, transaction_type="purchases")
+			file_content = client.download_flow(self.pa_flow_id)
+			if not file_content:
+				raise ValueError(_("The platform returned an empty file."))
+
+			file_doc = self._store_flow_file(self.pa_flow_id, file_content)
+			self.einvoice = file_doc.name
+			self.einvoice_embedded_document = file_doc.file_url
+			self.pa_content_state = "fetched"
+			self.pa_content_error = None
+			self.flags.ignore_permissions = True
+			self.save()
+			self._attach_flow_file(file_doc, self.name)
+		except Exception as e:
+			frappe.db.rollback(save_point=save_point)
+			self.reload()
+			self.db_set(
+				{"pa_content_state": "error", "pa_content_error": str(e)[:500]},
+				update_modified=False,
+			)
+			frappe.log_error(
+				title=f"eInvoice content fetch failed ({self.pa_flow_id})",
+				message=frappe.get_traceback(),
+				reference_doctype="eInvoice",
+				reference_name=self.name,
+			)
+		else:
+			frappe.db.release_savepoint(save_point)
 
 	def onload(self):
 		if self.docstatus == 0:

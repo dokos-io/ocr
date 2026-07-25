@@ -344,10 +344,42 @@ class TestIncomingPollWindow(UnitTestCase):
 		self.assertRegex(list_invoices.call_args.kwargs.get("date", ""), r"^\d{4}-\d{2}$")
 
 	def test_superpdp_without_window_lists_everything(self):
+		from etransactions.components.superpdp.client import INCOMING_EXPAND
+
 		client = _client()
 		with patch.object(client, "list_invoices", return_value=[]) as list_invoices:
 			client.list_incoming_invoices()
-		list_invoices.assert_called_once_with(direction="in")
+		list_invoices.assert_called_once_with(direction="in", expand=INCOMING_EXPAND)
+
+	def test_superpdp_expands_invoice_and_events_in_one_call(self):
+		"""expand[] carries the invoice and its events with the listing."""
+		client = _client()
+		payload = {
+			"data": [
+				{
+					"id": 77,
+					"created_at": "2026-06-01T10:00:00Z",
+					"en_invoice": {
+						"invoice": {"invoice_number": "F-77", "issue_date": "2026-06-01"},
+						"seller": {"name": "LE FOURNISSEUR"},
+					},
+					"events": [{"id": 9, "status_code": "fr:204", "created_at": "2026-06-01T11:00:00Z"}],
+				}
+			],
+			"has_after": False,
+		}
+		with patch.object(client, "_request", return_value=_FakeResponse(payload)) as req:
+			flows = client.list_incoming_invoices()
+
+		params = req.call_args.kwargs["params"]
+		self.assertEqual(params["direction"], "in")
+		self.assertIn("en_invoice", params["expand[]"])
+		self.assertIn("events", params["expand[]"])
+
+		self.assertEqual(len(flows), 1)
+		self.assertEqual(flows[0].flow_id, "77")
+		self.assertEqual(flows[0].en_invoice["invoice"]["invoice_number"], "F-77")
+		self.assertEqual(flows[0].events[0]["status_code"], "fr:204")
 
 	def test_afnor_forwards_updated_after_as_utc(self):
 		from datetime import datetime

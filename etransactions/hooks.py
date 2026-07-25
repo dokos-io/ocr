@@ -250,6 +250,7 @@ scheduler_events = {
 		"etransactions.etransactions.doctype.ocr_request.ocr_request.check_pending_analysis",
 		"etransactions.plateforme_agreee.flow.poll_pending_outgoing_flows",
 		"etransactions.plateforme_agreee.flow.poll_incoming_flows",
+		"etransactions.plateforme_agreee.flow.retry_pending_einvoice_content",
 		"etransactions.plateforme_agreee.flow.poll_outgoing_lifecycle_events",
 		"etransactions.plateforme_agreee.flow.poll_incoming_lifecycle_flows",
 		"etransactions.plateforme_agreee.flow.submit_pending_ereporting_entries",

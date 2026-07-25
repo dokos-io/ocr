@@ -20,12 +20,21 @@ class StatusResult:
 
 @dataclass
 class IncomingFlow:
-    """Normalized description of an incoming invoice flow from any platform."""
+    """Normalized description of an incoming invoice flow from any platform.
+
+    ``en_invoice`` and ``events`` are filled only by platforms that return the
+    invoice content and its lifecycle events inline with the listing (SuperPDP,
+    via ``expand[]``). They let the inbox show a usable eInvoice before its
+    original file has been downloaded; they never replace that file, which stays
+    the authoritative source for parsing and archiving.
+    """
     flow_id: str
     submitted_at: str | None
     updated_at: str | None
     flow_type: str
     syntax: str | None
+    en_invoice: dict | None = None
+    events: list | None = None
 
 
 @dataclass

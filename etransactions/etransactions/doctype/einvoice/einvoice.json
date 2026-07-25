@@ -110,6 +110,8 @@
   "column_break_pa_2",
   "pa_flow_type",
   "pa_syntax",
+  "pa_content_state",
+  "pa_content_error",
   "pa_error_section",
   "pa_error_details"
  ],
@@ -753,6 +755,25 @@
    "options": "\nFactur-X\nUBL\nCII",
    "read_only": 1,
    "no_copy": 1
+  },
+  {
+   "default": "fetched",
+   "depends_on": "eval:doc.einvoice_type==\"Incoming\"",
+   "description": "Whether the original file received from the platform has been downloaded and parsed.",
+   "fieldname": "pa_content_state",
+   "fieldtype": "Select",
+   "label": "Content State",
+   "no_copy": 1,
+   "options": "\npending\nfetched\nerror",
+   "read_only": 1
+  },
+  {
+   "depends_on": "pa_content_error",
+   "fieldname": "pa_content_error",
+   "fieldtype": "Small Text",
+   "label": "Content Error",
+   "no_copy": 1,
+   "read_only": 1
   },
   {
    "depends_on": "pa_error_details",
