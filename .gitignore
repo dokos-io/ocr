@@ -18,3 +18,9 @@ etransactions/www/ehub.html
 # Translations
 *.mo
 *.pot
+
+# Coverage output
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/

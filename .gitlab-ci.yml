@@ -49,6 +49,7 @@ tests:
     - /ci-utils/patch-procfile.sh v1
     - cp -r apps/frappe/test_sites/test_site sites/
     - bench setup requirements --dev
+    - env/bin/python -m pip install --quiet coverage
     - bench start &> bench_start.log &
     - bench build --app erpnext &
     - build_pid=$!
@@ -64,7 +65,36 @@ tests:
     - bench --site test_site set-config microcks_url http://microcks:8080
 
   script:
-    - bench --site test_site run-parallel-tests --app etransactions
+    - bench --site test_site run-parallel-tests --app etransactions --with-coverage
+
+  after_script:
+    # Frappe writes one `.coverage.<host>.<pid>` data file per parallel worker into
+    # sites/. Recombine them from the app root so the omit list in pyproject.toml
+    # applies and test files stop counting as covered source. `--keep` preserves the
+    # raw data so frappe's own report stays available for the fallback below.
+    - cd $CI_PROJECT_DIR/apps/etransactions
+    - $CI_PROJECT_DIR/env/bin/python -m coverage combine --keep $CI_PROJECT_DIR/sites || true
+    - $CI_PROJECT_DIR/env/bin/python -m coverage xml -o $CI_PROJECT_DIR/coverage.xml || true
+    - cd $CI_PROJECT_DIR
+    - test -s coverage.xml || mv sites/coverage.xml coverage.xml || true
+    # Cobertura paths are relative to <source>; point it at the repo root so GitLab
+    # can map them onto the files in the merge request diff.
+    - sed -i "s#<source>[^<]*</source>#<source>${COBERTURA_SOURCE_PATH:-$CI_PROJECT_DIR}</source>#g" coverage.xml || true
+    # Always two decimals: a round rate would print as "50% coverage" and slip
+    # past the regex below, silently dropping the figure from the job.
+    - (cat coverage.xml | awk 'NR==2' | sed 's/.*line-rate="\([^"]*\)".*/\1/' | awk '{ printf "%.2f%% coverage\n", $1 * 100 }') || true
+
+  coverage: '/^\d+\.\d+% coverage/'
+
+  artifacts:
+    when: always
+    expire_in: 1 week
+    paths:
+      - coverage.xml
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage.xml
 
 
 semgrep:

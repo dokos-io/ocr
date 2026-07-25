@@ -27,3 +27,23 @@ build-backend = "flit_core.buildapi"
 # These dependencies are only installed when developer mode is enabled
 [tool.bench.dev-dependencies]
 Faker = "~=26.0.0"
+
+# Only read when coverage runs from this directory (the CI report regeneration
+# step and local use). The in-process run driven by `run-parallel-tests
+# --with-coverage` executes from sites/ and passes source/omit/include
+# explicitly, so it is unaffected by this section.
+[tool.coverage.run]
+source = ["."]
+parallel = true
+
+[tool.coverage.report]
+# Frappe's built-in list only omits `test_*/` directories, which misses our
+# `etransactions/tests/` package and the per-doctype `test_*.py` files.
+omit = [
+    "*/tests/*",
+    "*/test_*.py",
+    "*/patches/*",
+    "*/frontend/*",
+    "*/node_modules/*",
+    "*/doctype/*/*_dashboard.py",
+]
