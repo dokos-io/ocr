@@ -27,6 +27,7 @@ from frappe import _
 #   side              : "purchase" (buyer emits), "sale" (seller emits) or None (both/auto)
 #   detail_required   : a reason/detail must accompany the status
 #   confirm_required  : the UI should confirm before sending (irreversible)
+#   repeatable        : the same status may legitimately be reported more than once
 #   warning           : an incoming event with this status should raise a ToDo
 STATUSES: dict[str, dict] = {
     "in_hand": {
@@ -39,17 +40,18 @@ STATUSES: dict[str, dict] = {
     },
     "partially_approved": {
         "mdt105": "206", "mdt88": "49", "superpdp": "fr:206",
-        "side": "purchase", "detail_required": True, "decoration": "warning",
+        "side": "purchase", "detail_required": True, "repeatable": True,
+        "decoration": "warning",
     },
     "dispute": {
         "mdt105": "207", "mdt88": "46", "superpdp": "fr:207",
-        "side": "purchase", "detail_required": True, "warning": True,
-        "decoration": "warning",
+        "side": "purchase", "detail_required": True, "repeatable": True,
+        "warning": True, "decoration": "warning",
     },
     "suspended": {
         "mdt105": "208", "mdt88": "39", "superpdp": None,
-        "side": "purchase", "detail_required": True, "warning": True,
-        "decoration": "warning",
+        "side": "purchase", "detail_required": True, "repeatable": True,
+        "warning": True, "decoration": "warning",
     },
     "completed": {
         "mdt105": "209", "mdt88": "37", "superpdp": None,
@@ -62,11 +64,11 @@ STATUSES: dict[str, dict] = {
     },
     "payment_sent": {
         "mdt105": "211", "mdt88": "47", "superpdp": None,
-        "side": "purchase", "decoration": "success",
+        "side": "purchase", "repeatable": True, "decoration": "success",
     },
     "payment_received": {
         "mdt105": "212", "mdt88": "47", "superpdp": None,
-        "side": "sale", "decoration": "success",
+        "side": "sale", "repeatable": True, "decoration": "success",
     },
     "cancelled": {
         "mdt105": "220", "mdt88": None, "superpdp": None,
@@ -87,6 +89,16 @@ LABELS: dict[str, str] = {
     "payment_sent": _("Payment Sent"),
     "payment_received": _("Payment Received"),
     "cancelled": _("Cancelled"),
+}
+
+# Extra confirmation prompt for the irreversible statuses (``confirm_required``).
+# Kept next to LABELS so the translation tooling picks it up, and served to the
+# client so the wording lives in one place instead of being duplicated in JS.
+CONFIRM_MESSAGES: dict[str, str] = {
+    "refused": _(
+        "Refusal is definitive and cannot be undone. To block the invoice temporarily"
+        " instead (e.g. pending a correction), report 'Disputed'. Continue with the refusal?"
+    ),
 }
 
 # Official CTC reason codes (MDT-113) allowed per status, extracted from the
@@ -179,3 +191,154 @@ def to_cdar_codes(status: str) -> tuple[str, str | None]:
 def from_cdar_code(mdt105: str) -> str | None:
     """Translate a CDAR MDT-105 status code back to a canonical status."""
     return _BY_MDT105.get(str(mdt105))
+
+
+def side_of(status: str) -> str | None:
+	"""The axis a status belongs to: "purchase", "sale", or ``None`` for ``cancelled``.
+
+	The axis is a property of the *status*, never of the invoice direction or of who
+	sent the event: on an outgoing invoice the buyer's ``refused`` is still a
+	purchase-axis status, and our own ``payment_received`` a sale-axis one. That is
+	what lets the two axes advance independently on a single eInvoice.
+	"""
+	return STATUSES.get(status, {}).get("side")
+
+
+def is_repeatable(status: str) -> bool:
+	"""True if reporting the same status twice in a row is legitimate.
+
+	Partial payments and successive disputes/suspensions each carry new data (an
+	amount, a fresh reason code), so they may repeat. ``in_hand``, ``approved``,
+	``completed``, ``refused`` and ``cancelled`` are one-shot facts.
+	"""
+	return bool(STATUSES.get(status, {}).get("repeatable"))
+
+
+def confirm_required(status: str) -> bool:
+	"""True if the UI must ask for confirmation before reporting this status."""
+	return bool(STATUSES.get(status, {}).get("confirm_required"))
+
+
+def confirm_message(status: str) -> str | None:
+	"""The confirmation prompt for an irreversible status, if it has a specific one."""
+	return CONFIRM_MESSAGES.get(status)
+
+
+# -----------------------------------------------------------------------------
+# Allowed transitions
+# -----------------------------------------------------------------------------
+# Regulatory end states. A refusal (MDT-105 210) is definitive and a cancellation
+# (220) retires the invoice, so neither can be followed by another status.
+TERMINAL: frozenset[str] = frozenset({"refused", "cancelled"})
+
+# Allowed successors of a status, within its own axis. Self-edges are implied by
+# ``repeatable`` rather than listed here (see :func:`allowed_next`).
+#
+# The graph is deliberately permissive: on the purchase axis every "decision"
+# status can be revisited, because those are real business paths — the auto-send
+# reports ``approved`` when the Purchase Invoice is submitted, i.e. often before a
+# human has actually checked the invoice, so ``approved -> refused`` and
+# ``approved -> dispute`` must stay open. Only four edges are missing, on purpose:
+#
+#   refused -> *          a refusal is final (only ``cancelled`` may follow, and it
+#                         is exempted globally in :func:`transition_error`)
+#   cancelled -> *        the invoice no longer exists
+#   * -> in_hand          "received" cannot happen a second time
+#   payment_sent -> refused   you cannot refuse an invoice you have paid; ``dispute``
+#                             remains available as the real remedy
+TRANSITIONS: dict[str, frozenset[str]] = {
+	# purchase axis: the buyer's handling of an invoice it received
+	"in_hand": frozenset(
+		{"approved", "partially_approved", "dispute", "suspended", "refused", "payment_sent"}
+	),
+	"approved": frozenset(
+		{"partially_approved", "dispute", "suspended", "refused", "payment_sent"}
+	),
+	"partially_approved": frozenset(
+		{"approved", "dispute", "suspended", "refused", "payment_sent"}
+	),
+	"dispute": frozenset(
+		{"approved", "partially_approved", "suspended", "refused", "payment_sent"}
+	),
+	"suspended": frozenset(
+		{"approved", "partially_approved", "dispute", "refused", "payment_sent"}
+	),
+	"payment_sent": frozenset({"approved", "partially_approved", "dispute", "suspended"}),
+	"refused": frozenset(),
+	# sale axis: the seller's own reporting on an invoice it issued
+	"completed": frozenset({"payment_received"}),
+	"payment_received": frozenset({"completed"}),
+	# global
+	"cancelled": frozenset(),
+}
+
+# What may be reported on an axis that carries no event yet. Derived from ``side``
+# so it cannot drift from STATUSES: nothing forces ``in_hand`` to come first, since
+# an invoice can perfectly well be approved without its receipt ever being reported.
+INITIAL: dict[str, frozenset[str]] = {
+	"purchase": frozenset(manual_statuses("purchase")),
+	"sale": frozenset(manual_statuses("sale")),
+}
+
+
+def allowed_next(current: str | None, side: str) -> set[str]:
+	"""Statuses reportable on ``side`` given its current status.
+
+	``current`` is ``None`` when no event has been recorded on that axis yet.
+	"""
+	if current is None:
+		return set(INITIAL.get(side, ()))
+	nxt = set(TRANSITIONS.get(current, ()))
+	if is_repeatable(current):
+		nxt.add(current)
+	return nxt
+
+
+def transition_error(state: dict, status: str) -> str | None:
+	"""Why ``status`` cannot be reported for an invoice in ``state``, or ``None``.
+
+	``state`` is the plain dict returned by
+	``etransactions.etransactions.doctype.einvoice_event.einvoice_event.current_lifecycle_state``:
+	the current status of each axis plus the ``cancelled`` / ``refused`` flags. Taking
+	it as an argument keeps this module free of any database access while still owning
+	the whole policy — there is exactly one place to change a rule.
+	"""
+	if status not in STATUSES:
+		return _("Unknown lifecycle status '{0}'.").format(status)
+
+	if state.get("cancelled"):
+		return _(
+			"This invoice was cancelled on the accredited platform:"
+			" no further lifecycle status can be reported."
+		)
+
+	if state.get("refused") and status != "cancelled":
+		return _(
+			"This invoice was refused on the accredited platform and the refusal is"
+			" definitive: only '{0}' can still be reported."
+		).format(label("cancelled"))
+
+	# 'Cancelled' belongs to no axis and stays reachable from any state (a refused
+	# invoice must remain cancellable, otherwise the guided cancellation flow would
+	# leave the document stuck).
+	if status == "cancelled":
+		return None
+
+	side = side_of(status)
+	current = state.get(side)
+
+	if current == status:
+		if is_repeatable(status):
+			return None
+		return _("The status '{0}' has already been reported for this invoice.").format(
+			label(status)
+		)
+
+	if status not in allowed_next(current, side):
+		if current:
+			return _("The status '{0}' cannot be reported after '{1}'.").format(
+				label(status), label(current)
+			)
+		return _("The status '{0}' cannot be reported at this stage.").format(label(status))
+
+	return None

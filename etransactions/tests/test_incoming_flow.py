@@ -245,6 +245,26 @@ class TestIncomingFlowIngestion(eTransactionsTestSuite):
 		self.assertIsNone(again, "dedup must recognise the event it already adopted")
 		self.assertEqual(frappe.db.count("eInvoice Event", {"pa_event_id": "EV-ORPHAN-2"}), 1)
 
+	def test_contradictory_incoming_events_are_still_recorded(self):
+		# The transition guard applies to what *we* report, never to what the platform
+		# tells us: the history has to stay a faithful log, contradictions included.
+		einvoice = eInvoice.create_from_plateforme_flow(
+			self._flow("FLOW-EVENT-CONTRADICT"), None, "_Test Company"
+		)
+		record_event(
+			einvoice.name, direction="in", status="refused", status_datetime="2026-06-02 10:00:00"
+		)
+
+		later = record_event(
+			einvoice.name, direction="in", status="approved", status_datetime="2026-06-03 10:00:00"
+		)
+
+		self.assertIsNotNone(later, "an inbound event must never be rejected")
+		self.assertEqual(
+			frappe.db.count("eInvoice Event", {"einvoice": einvoice.name}),
+			2,
+		)
+
 	def test_adoption_leaves_events_of_other_flows_alone(self):
 		mine = record_event(
 			None, direction="in", status="received", pa_event_id="EV-A", pa_flow_id="FLOW-A"

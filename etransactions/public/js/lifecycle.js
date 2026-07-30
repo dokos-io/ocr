@@ -9,30 +9,10 @@
 frappe.provide("etransactions");
 
 etransactions.lifecycle = {
-	// Manual statuses a user can report, grouped by side.
-	STATUSES: {
-		purchase: [
-			{ status: "in_hand", label: __("In Hand") },
-			{ status: "approved", label: __("Approved") },
-			{ status: "partially_approved", label: __("Partially Approved"), reason: true },
-			{ status: "dispute", label: __("Disputed"), reason: true },
-			{ status: "suspended", label: __("Suspended"), reason: true },
-			{
-				status: "refused",
-				label: __("Refused"),
-				reason: true,
-				confirm: true,
-				confirm_message: __(
-					"Refusal is definitive and cannot be undone. To block the invoice temporarily instead (e.g. pending a correction), report 'Disputed'. Continue with the refusal?"
-				),
-			},
-			{ status: "payment_sent", label: __("Payment Sent") },
-		],
-		sale: [
-			{ status: "completed", label: __("Completed") },
-			{ status: "payment_received", label: __("Payment Received") },
-		],
-	},
+	// The reportable statuses and their metadata (label, reason code, confirmation)
+	// come from the server: it owns the status registry and is the only side that can
+	// tell which statuses the platform carries and which the invoice's current state
+	// still allows. Keeping a copy here would drift from the rules actually enforced.
 
 	// Linear PA transmission ribbon.
 	PA_RIBBON: [
@@ -43,22 +23,26 @@ etransactions.lifecycle = {
 	],
 
 	attach(frm, { einvoice, side, pa_status, group }) {
-		frm._et_lc = { einvoice, side, pa_status };
-		// Only offer statuses the linked platform can actually carry (SuperPDP
-		// lacks fr: codes for some) — avoids a send-time failure.
+		frm._et_lc = { einvoice, side, pa_status, lc: null };
 		frappe
 			.xcall(
 				"etransactions.etransactions.doctype.einvoice.einvoice.get_supported_lifecycle_statuses",
 				{ einvoice }
 			)
-			.then((supported) => this.add_buttons(frm, side, supported || null, group))
-			.catch(() => this.add_buttons(frm, side, null, group));
-		this.render_timeline(frm);
+			.then((lc) => {
+				frm._et_lc.lc = lc;
+				this.add_buttons(frm, (lc || {}).statuses, group);
+				this.render_timeline(frm);
+			})
+			.catch(() => {
+				// No fallback list on purpose: guessing would offer statuses the server
+				// is going to reject. The timeline still renders.
+				this.render_timeline(frm);
+			});
 	},
 
-	add_buttons(frm, side, supported, group) {
-		(this.STATUSES[side] || []).forEach((def) => {
-			if (supported && !supported.includes(def.status)) return;
+	add_buttons(frm, statuses, group) {
+		(statuses || []).forEach((def) => {
 			frm.add_custom_button(def.label, () => this.send_status(frm, def), group || __("Report Status"));
 		});
 	},
@@ -81,8 +65,20 @@ etransactions.lifecycle = {
 				});
 		};
 
+		// The confirmation is about the status being irreversible, so it gates the send
+		// whether or not a reason code is collected along the way.
+		const confirm_then = (proceed) => {
+			if (!def.confirm) {
+				proceed();
+				return;
+			}
+			const msg =
+				def.confirm_message || __("Reporting '{0}' cannot be undone. Continue?", [def.label]);
+			frappe.confirm(msg, proceed);
+		};
+
 		if (!def.reason) {
-			run({});
+			confirm_then(() => run({}));
 			return;
 		}
 
@@ -103,15 +99,9 @@ etransactions.lifecycle = {
 						{ fieldname: "comment", fieldtype: "Small Text", label: __("Comment (optional)") },
 					],
 					(values) => {
-						const submit = () => run({ reason_code: values.reason_code, comment: values.comment });
-						if (def.confirm) {
-							const msg =
-								def.confirm_message ||
-								__("Reporting '{0}' cannot be undone. Continue?", [def.label]);
-							frappe.confirm(msg, submit);
-						} else {
-							submit();
-						}
+						confirm_then(() =>
+							run({ reason_code: values.reason_code, comment: values.comment })
+						);
 					},
 					__("Report '{0}'", [def.label]),
 					__("Send")
@@ -120,13 +110,15 @@ etransactions.lifecycle = {
 	},
 
 	after_send(frm) {
+		// A send changes which statuses are reportable next, so the buttons have to be
+		// rebuilt, not just the timeline. Both paths clear the custom buttons and re-run
+		// the form's refresh, which calls attach() again with fresh server data.
 		if (frm.doctype === "eInvoice") {
 			frm.reload_doc();
 		} else {
-			// refresh pa_status + events without leaving the transaction
 			frappe.db.get_value("eInvoice", frm._et_lc.einvoice, "pa_status").then((r) => {
 				frm._et_lc.pa_status = (r.message || {}).pa_status;
-				this.render_timeline(frm);
+				frm.refresh();
 			});
 		}
 	},
@@ -142,7 +134,10 @@ etransactions.lifecycle = {
 				limit: 20,
 			})
 			.then((events) => {
-				const html = this.ribbon_html(pa_status) + this.events_html(events || []);
+				const html =
+					this.ribbon_html(pa_status) +
+					this.state_html(frm._et_lc.lc) +
+					this.events_html(events || []);
 				if (frm._et_lc_section) {
 					frm._et_lc_section.remove();
 				}
@@ -180,6 +175,32 @@ etransactions.lifecycle = {
 				${err}
 				<div class="et-lc-link"><a class="et-lc-open">${__("Open eInvoice")} →</a></div>
 			</div>`;
+	},
+
+	// Where each side of the lifecycle currently stands, plus — when no status can be
+	// reported any more — why. Without it, a refused invoice just shows an empty action
+	// group and the user cannot tell whether that is a bug or a rule.
+	state_html(lc) {
+		if (!lc || !lc.state) return "";
+
+		const colors = { success: "green", danger: "red", warning: "orange", info: "blue" };
+		const chip = (title, axis) => {
+			if (!axis || !axis.status) return "";
+			const when = axis.reported_at ? ` · ${frappe.datetime.str_to_user(axis.reported_at)}` : "";
+			return `<span class="indicator-pill ${colors[axis.decoration] || "gray"}" style="margin-right:8px">
+					${frappe.utils.escape_html(title)}: ${frappe.utils.escape_html(axis.label)}${when}
+				</span>`;
+		};
+
+		const chips = chip(__("Buyer"), lc.state.purchase) + chip(__("Seller"), lc.state.sale);
+		const blocked = lc.blocked_reason
+			? `<div class="text-muted" style="margin-top:6px">${frappe.utils.escape_html(
+					lc.blocked_reason
+			  )}</div>`
+			: "";
+
+		if (!chips && !blocked) return "";
+		return `<div style="margin-top:10px">${chips}${blocked}</div>`;
 	},
 
 	events_html(events) {

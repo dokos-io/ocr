@@ -104,6 +104,8 @@
   "column_break_pa_1",
   "pa_flow_id",
   "pa_status",
+  "lifecycle_status",
+  "lifecycle_status_datetime",
   "pa_section_2",
   "pa_submitted_at",
   "pa_updated_at",
@@ -717,6 +719,23 @@
    "read_only": 1,
    "no_copy": 1,
    "in_list_view": 0
+  },
+  {
+   "fieldname": "lifecycle_status",
+   "fieldtype": "Select",
+   "label": "Lifecycle Status",
+   "description": "Last lifecycle status reported for this invoice, in either direction. Maintained automatically from the eInvoice Event history.",
+   "options": "\nin_hand\napproved\npartially_approved\ndispute\nsuspended\ncompleted\nrefused\npayment_sent\npayment_received\ncancelled",
+   "read_only": 1,
+   "no_copy": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "lifecycle_status_datetime",
+   "fieldtype": "Datetime",
+   "label": "Lifecycle Status Reported At",
+   "read_only": 1,
+   "no_copy": 1
   },
   {
    "fieldname": "pa_section_2",

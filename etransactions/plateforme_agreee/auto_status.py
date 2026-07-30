@@ -18,7 +18,7 @@ def _settings():
 	return frappe.get_cached_doc("eTransactions Settings")
 
 
-def _einvoice_for_purchase_invoice(purchase_invoice: str) -> str | None:
+def einvoice_for_purchase_invoice(purchase_invoice: str) -> str | None:
 	"""Resolve the incoming eInvoice behind a Purchase Invoice (via Supplier Invoice)."""
 	supplier_invoice = frappe.db.get_value("Purchase Invoice", purchase_invoice, "supplier_invoice")
 	if not supplier_invoice:
@@ -70,9 +70,25 @@ def run_auto_lifecycle_status(einvoice_name: str, status: str, transaction_type:
 	einvoice = frappe.get_doc("eInvoice", einvoice_name)
 	if not _platform_supports(einvoice.company, transaction_type, status):
 		return
+
+	# An ordinary accounting action must never push a status that contradicts what has
+	# already been reported — submitting a Purchase Invoice for an invoice the user
+	# refused must not report 'Approved'. Skipping is the correct outcome, not an
+	# error, so it is recorded as a comment on the eInvoice rather than logged as a
+	# failure. Checked after the platform capability so an unsupported status keeps
+	# short-circuiting first.
+	if error := einvoice.lifecycle_transition_error(status):
+		einvoice.add_comment(
+			"Comment",
+			text=frappe._("Lifecycle status '{0}' was not reported to the accredited platform: {1}").format(
+				lifecycle_status.label(status), error
+			),
+		)
+		return
+
 	einvoice.flags.ignore_permissions = True
 	try:
-		einvoice.submit_lifecycle_status(status, **kwargs)
+		einvoice.submit_lifecycle_status(status, origin="Automatic", **kwargs)
 	except Exception:
 		frappe.log_error(
 			title=f"Auto lifecycle status '{status}' failed",
@@ -96,12 +112,53 @@ def on_supplier_invoice_after_insert(doc, method=None):
 		_send(ei.name, "in_hand", "purchases")
 
 
+def _warn_if_lifecycle_closed(einvoice_name: str) -> bool:
+	"""Tell the user the invoice's lifecycle is already closed. True when it is.
+
+	Reporting a lifecycle status has no accounting effect, so nothing stops a Purchase
+	Invoice from being submitted for an e-invoice that was refused or cancelled on the
+	platform. The submission is not blocked — it can be a deliberate correction — but
+	the contradiction is made visible instead of silently doing nothing.
+	"""
+	from etransactions.etransactions.doctype.einvoice_event.einvoice_event import (
+		current_lifecycle_state,
+	)
+
+	state = current_lifecycle_state(einvoice_name)
+	closing = "cancelled" if state["cancelled"] else "refused" if state["refused"] else None
+	if not closing:
+		return False
+
+	when = frappe.db.get_value(
+		"eInvoice Event",
+		{"einvoice": einvoice_name, "status": closing},
+		"status_datetime",
+		order_by="status_datetime desc",
+	)
+	message = frappe._("The linked e-invoice was reported as '{0}' on the accredited platform").format(
+		lifecycle_status.label(closing)
+	)
+	if when:
+		message += f" ({frappe.utils.format_datetime(when)})"
+	message += ". " + frappe._("The '{0}' lifecycle status will not be reported.").format(
+		lifecycle_status.label("approved")
+	)
+	frappe.msgprint(message, title=frappe._("Lifecycle already closed"), indicator="orange")
+	return True
+
+
 def on_purchase_invoice_submit(doc, method=None):
 	"""Purchase Invoice submitted -> 'Approved'."""
-	if not _settings().get("auto_send_approved"):
+	einvoice = einvoice_for_purchase_invoice(doc.name)
+	if not einvoice:
 		return
-	einvoice = _einvoice_for_purchase_invoice(doc.name)
-	if einvoice:
+
+	# Warn whichever way the setting is configured: it is the accounting/platform
+	# contradiction that deserves the user's attention, not the skipped send.
+	if _warn_if_lifecycle_closed(einvoice):
+		return
+
+	if _settings().get("auto_send_approved"):
 		_send(einvoice, "approved", "purchases")
 
 
@@ -128,7 +185,7 @@ def on_payment_entry_submit(doc, method=None):
 
 	for ref in doc.get("references", []):
 		if ref.reference_doctype == "Purchase Invoice":
-			einvoice = _einvoice_for_purchase_invoice(ref.reference_name)
+			einvoice = einvoice_for_purchase_invoice(ref.reference_name)
 			if einvoice:
 				_send(
 					einvoice, "payment_sent", "purchases",
