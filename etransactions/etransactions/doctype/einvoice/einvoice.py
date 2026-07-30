@@ -289,6 +289,19 @@ class eInvoice(Document):
 		if update:
 			self.db_set(update)
 
+	def lifecycle_transition_error(self, status: str) -> str | None:
+		"""Why ``status`` cannot be reported for this invoice right now, or ``None``.
+
+		Non-throwing, so the automatic senders can consult the same rules the manual
+		path enforces and skip quietly instead of failing.
+		"""
+		from etransactions.plateforme_agreee import lifecycle_status
+		from etransactions.etransactions.doctype.einvoice_event.einvoice_event import (
+			current_lifecycle_state,
+		)
+
+		return lifecycle_status.transition_error(current_lifecycle_state(self.name), status)
+
 	@frappe.whitelist()
 	def submit_lifecycle_status(
 		self,
@@ -299,6 +312,7 @@ class eInvoice(Document):
 		amount: float | None = None,
 		currency: str | None = None,
 		payment_date: str | None = None,
+		origin: str = "Manual",
 	):
 		"""Report an invoice lifecycle status to the accredited platform.
 
@@ -322,6 +336,16 @@ class eInvoice(Document):
 				frappe.throw(_("'{0}' is not a valid reason code for the status '{1}'.").format(reason_code, lifecycle_status.label(status)))
 			reason_text = reason_text or reason_code
 
+		# The lifecycle is a state machine: a status that contradicts or merely repeats
+		# what has already been reported must not reach the platform. Checked here
+		# rather than at the call sites because this method is the single choke point
+		# for every outbound send (manual UI, automatic hooks, guided cancellation).
+		# Inbound polled events go straight to record_event and are never gated: the
+		# history must stay a faithful log of what the platform said, contradictions
+		# included.
+		if error := self.lifecycle_transition_error(status):
+			frappe.throw(error, title=_("Lifecycle status not allowed"))
+
 		details = None
 		if reason_code or reason_text or comment or amount is not None:
 			details = [{
@@ -341,7 +365,7 @@ class eInvoice(Document):
 
 		result = {
 			"operation_type": "lifecycle_send",
-			"origin": "Manual",
+			"origin": origin,
 			"company": self.company,
 			"new_count": 0,
 			"updated_count": 0,
@@ -764,24 +788,81 @@ def get_lifecycle_reason_codes(status: str) -> list[str]:
 
 
 @frappe.whitelist()
-def get_supported_lifecycle_statuses(einvoice: str) -> list[str]:
-	"""Canonical lifecycle statuses the eInvoice's platform can actually carry.
+def get_supported_lifecycle_statuses(einvoice: str) -> dict:
+	"""The lifecycle statuses that can actually be reported on this eInvoice right now.
 
-	SuperPDP only accepts statuses with a native ``fr:`` code; CDAR platforms
-	(Esalink/AFNOR) carry every status with an MDT-105 code. The Report Status
-	dialog uses this to avoid offering statuses that would fail at send time.
+	Two filters are applied. What the platform can carry: SuperPDP only accepts statuses
+	with a native ``fr:`` code, CDAR platforms (Esalink/AFNOR) carry every status with an
+	MDT-105 code. And what the invoice's current state allows, through the very
+	predicate the server enforces at send time — so the UI can never offer a button that
+	would be rejected, and an already-reported or contradictory status simply disappears.
+
+	The button metadata (label, reason code required, confirmation) is served from here
+	too, so the client does not keep a second copy of the status registry.
 	"""
 	doc = frappe.get_doc("eInvoice", einvoice)
 	doc.check_permission("read")
 
 	from etransactions.plateforme_agreee import lifecycle_status
 	from etransactions.plateforme_agreee.session import get_platform_for_company
+	from etransactions.etransactions.doctype.einvoice_event.einvoice_event import (
+		current_lifecycle_state,
+	)
 
 	transaction_type = "sales" if doc.einvoice_type == "Outgoing" else "purchases"
 	platform = get_platform_for_company(doc.company, transaction_type=transaction_type)
 	if platform and platform.platform_type == "SuperPDP":
-		return [k for k, v in lifecycle_status.STATUSES.items() if v.get("superpdp")]
-	return [k for k, v in lifecycle_status.STATUSES.items() if v.get("mdt105")]
+		carried = {k for k, v in lifecycle_status.STATUSES.items() if v.get("superpdp")}
+	else:
+		carried = {k for k, v in lifecycle_status.STATUSES.items() if v.get("mdt105")}
+
+	# We only ever report our own side: the buyer's statuses on an invoice we received,
+	# the seller's on one we issued.
+	side = "sale" if doc.einvoice_type == "Outgoing" else "purchase"
+	state = current_lifecycle_state(einvoice)
+	offered = [k for k in lifecycle_status.manual_statuses(side) if k in carried]
+
+	statuses = [
+		{
+			"status": key,
+			"label": lifecycle_status.label(key),
+			"reason": lifecycle_status.reason_required(key),
+			"confirm": lifecycle_status.confirm_required(key),
+			"confirm_message": lifecycle_status.confirm_message(key),
+			"decoration": lifecycle_status.STATUSES[key].get("decoration"),
+		}
+		for key in offered
+		if not lifecycle_status.transition_error(state, key)
+	]
+
+	# Nothing left to report: surface the reason, so the user sees an explanation
+	# instead of an empty action menu.
+	blocked_reason = None
+	if not statuses:
+		blocked_reason = next(
+			(err for k in offered if (err := lifecycle_status.transition_error(state, k))), None
+		)
+
+	def _axis(axis: str) -> dict:
+		current = state[axis]
+		return {
+			"status": current,
+			"label": lifecycle_status.label(current) if current else None,
+			"decoration": (lifecycle_status.STATUSES.get(current) or {}).get("decoration"),
+			"reported_at": state[f"{axis}_at"],
+		}
+
+	return {
+		"side": side,
+		"statuses": statuses,
+		"state": {
+			"purchase": _axis("purchase"),
+			"sale": _axis("sale"),
+			"refused": state["refused"],
+			"cancelled": state["cancelled"],
+		},
+		"blocked_reason": blocked_reason,
+	}
 
 
 @frappe.whitelist()
@@ -799,7 +880,9 @@ def get_transaction_einvoice(doctype: str, name: str) -> dict | None:
 			"eInvoice", {"sales_invoice": name, "einvoice_type": "Outgoing"}, "name"
 		)
 	elif doctype == "Purchase Invoice":
-		einvoice = frappe.db.get_value("Supplier Invoice", {"original_invoice": name}, "einvoice")
+		from etransactions.plateforme_agreee.auto_status import einvoice_for_purchase_invoice
+
+		einvoice = einvoice_for_purchase_invoice(name)
 
 	if not einvoice:
 		return None

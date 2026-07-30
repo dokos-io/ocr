@@ -25,6 +25,9 @@ frappe.ui.form.on('Purchase Invoice', {
 						});
 					}
 				},
+				// The lifecycle panel is an add-on: a lookup failure must never
+				// throw a traceback dialog over the invoice the user is working on.
+				error: () => {},
 			});
 		}
 	},

@@ -137,6 +137,9 @@ function _attach_lifecycle(frm) {
 				});
 			}
 		},
+		// The lifecycle panel is an add-on: a lookup failure must never throw a
+		// traceback dialog over the invoice the user is working on.
+		error: () => {},
 	});
 }
 

@@ -104,3 +104,57 @@ class TestCancelWithLifecycle(UnitTestCase):
 		self.assertEqual(einvoice.statuses, [])
 		self.assertTrue(invoice.cancelled)
 		msgprint.assert_called_once()
+
+
+class TestAutoCancelOnRefusal(UnitTestCase):
+	"""Cancelling a Sales Invoice the customer refused on the platform.
+
+	Regression guard: this path used to call ``cancel()`` without clearing the cancel
+	guard above, so ``before_cancel`` threw every time and the exception was swallowed —
+	``auto_cancel_on_refusal`` was silently inoperative.
+	"""
+
+	def tearDown(self):
+		frappe.flags.etransactions_cancel_confirmed = False
+
+	def _run(self, docstatus=1, enabled=True):
+		event = frappe.new_doc("eInvoice Event")
+		event.einvoice = "EINV-1"
+		event.direction = "in"
+		event.status = "refused"
+
+		seen = {}
+		invoice = SimpleNamespace(docstatus=docstatus, flags=frappe._dict())
+		invoice.cancel = lambda: seen.update(
+			guard_cleared=frappe.flags.etransactions_cancel_confirmed, cancelled=True
+		)
+		invoice.add_comment = lambda *args, **kwargs: None
+
+		with (
+			patch("frappe.db.get_single_value", return_value=enabled),
+			patch("frappe.db.get_value", return_value="SINV-1"),
+			patch("frappe.get_doc", return_value=invoice),
+			patch("frappe.log_error") as log_error,
+		):
+			event._maybe_auto_cancel()
+		return seen, log_error
+
+	def test_the_cancel_guard_is_cleared_for_the_platform_driven_cancel(self):
+		seen, log_error = self._run()
+
+		self.assertTrue(seen.get("cancelled"), "the invoice should have been cancelled")
+		self.assertTrue(seen.get("guard_cleared"), "before_cancel would have thrown")
+		log_error.assert_not_called()
+
+	def test_the_guard_is_restored_afterwards(self):
+		self._run()
+		self.assertFalse(frappe.flags.etransactions_cancel_confirmed)
+
+	def test_nothing_happens_when_the_setting_is_off(self):
+		seen, _ = self._run(enabled=False)
+		self.assertFalse(seen.get("cancelled"))
+
+	def test_a_draft_or_cancelled_invoice_is_left_alone(self):
+		for docstatus in (0, 2):
+			seen, _ = self._run(docstatus=docstatus)
+			self.assertFalse(seen.get("cancelled"))

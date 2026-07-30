@@ -71,7 +71,17 @@ class eInvoiceEvent(Document):
 			return
 		try:
 			inv.flags.ignore_permissions = True
-			inv.cancel()
+			# The e-invoicing cancel guard (overrides.sales_invoice.before_cancel)
+			# refuses any direct cancellation of a transmitted invoice and points at
+			# the guided flow. This *is* the platform-driven flow — the refusal has
+			# already been reported by the counterparty — so clear the guard, exactly
+			# as cancel_with_lifecycle does. Without this the cancel always throws and
+			# the setting is silently inoperative.
+			frappe.flags.etransactions_cancel_confirmed = True
+			try:
+				inv.cancel()
+			finally:
+				frappe.flags.etransactions_cancel_confirmed = False
 			inv.add_comment(
 				"Comment",
 				text=frappe._("Cancelled automatically: the customer refused the e-invoice on the accredited platform."),
@@ -111,6 +121,93 @@ class eInvoiceEvent(Document):
 		}).insert(ignore_permissions=True)
 
 
+def current_lifecycle_state(einvoice: str) -> dict:
+	"""The lifecycle state of an eInvoice, derived from the events recorded for it.
+
+	Returns the current status of each axis, the ``refused`` / ``cancelled`` flags and
+	the latest status overall::
+
+		{"purchase": "approved", "sale": None, "purchase_at": ..., "sale_at": None,
+		 "refused": False, "cancelled": False, "latest": "approved", "latest_at": ...}
+
+	This is the single source of truth for
+	:func:`~etransactions.plateforme_agreee.lifecycle_status.transition_error`. It is
+	derived on every read rather than denormalised, because polled events carry a
+	*platform-supplied* ``status_datetime`` and can be stored out of chronological
+	order — only a max-by-datetime read gives the right answer, where an incrementally
+	maintained field would be last-write-wins.
+
+	The axis of an event comes from the status, never from ``direction``: the buyer's
+	inbound ``refused`` on an invoice we issued is still a purchase-axis status.
+	"""
+	events = frappe.get_all(
+		"eInvoice Event",
+		filters={"einvoice": einvoice},
+		fields=["status", "status_datetime", "state"],
+		# A single poll records a whole batch, so identical status_datetime values are
+		# common; creation breaks the tie in insertion order.
+		order_by="status_datetime desc, creation desc",
+	)
+
+	state = {
+		"purchase": None,
+		"sale": None,
+		"purchase_at": None,
+		"sale_at": None,
+		"refused": False,
+		"cancelled": False,
+		"latest": None,
+		"latest_at": None,
+	}
+
+	for event in events:
+		# ``status`` is a free Data field and an errored event never reached the
+		# platform, so neither may move the state.
+		if event.state == "error" or event.status not in lifecycle_status.STATUSES:
+			continue
+
+		if state["latest"] is None:
+			state["latest"] = event.status
+			state["latest_at"] = event.status_datetime
+
+		# Membership, not recency: a later sale-axis event must not un-refuse an invoice.
+		if event.status == "refused":
+			state["refused"] = True
+		elif event.status == "cancelled":
+			state["cancelled"] = True
+
+		side = lifecycle_status.side_of(event.status)
+		if side and state[side] is None:
+			state[side] = event.status
+			state[f"{side}_at"] = event.status_datetime
+
+	return state
+
+
+def refresh_einvoice_lifecycle_status(einvoice: str | None) -> None:
+	"""Refresh the denormalised last-reported-status fields on the eInvoice.
+
+	A projection for the list view and the form, never for validation: the guard
+	always reads :func:`current_lifecycle_state` directly. Recomputed from scratch
+	instead of being incremented, so an event arriving out of order cannot leave a
+	stale value behind. ``update_modified=False`` keeps this bookkeeping from
+	provoking "document has been modified" conflicts on the eInvoice.
+	"""
+	if not einvoice:
+		return
+
+	state = current_lifecycle_state(einvoice)
+	frappe.db.set_value(
+		"eInvoice",
+		einvoice,
+		{
+			"lifecycle_status": state["latest"] or "",
+			"lifecycle_status_datetime": state["latest_at"],
+		},
+		update_modified=False,
+	)
+
+
 def adopt_orphan_events(einvoice: str, pa_flow_id: str) -> int:
 	"""Link the events already recorded for a flow to the eInvoice that now exists.
 
@@ -132,6 +229,9 @@ def adopt_orphan_events(einvoice: str, pa_flow_id: str) -> int:
 
 	event = frappe.qb.DocType("eInvoice Event")
 	frappe.qb.update(event).set(event.einvoice, einvoice).where(event.name.isin(orphans)).run()
+	# This UPDATE bypasses the document layer, so the projection has to be refreshed
+	# here too — the adopted events would otherwise never reach the eInvoice.
+	refresh_einvoice_lifecycle_status(einvoice)
 	return len(orphans)
 
 
@@ -195,4 +295,7 @@ def record_event(
 	})
 	doc.flags.ignore_permissions = True
 	doc.insert()
+	# Covers both directions: an outbound send and a polled inbound event both move
+	# the invoice's lifecycle state.
+	refresh_einvoice_lifecycle_status(einvoice)
 	return doc
