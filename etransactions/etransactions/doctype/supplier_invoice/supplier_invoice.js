@@ -175,7 +175,6 @@ frappe.ui.form.on("Supplier Invoice", {
 	},
 
 	async show_preview(frm) {
-		let $preview = "";
 		const file_preview_field = frm.get_field("invoice_preview");
 		if (!frm.doc.file) {
 			file_preview_field.$wrapper.empty();
@@ -184,62 +183,15 @@ frappe.ui.form.on("Supplier Invoice", {
 		await frappe.model.with_doc("File", frm.doc.file);
 		try {
 			const file_doc = frappe.model.get_doc("File", frm.doc.file);
-			const file_url = file_doc.file_url.replace(/#/g, "%23")
-			let file_extension = file_doc.file_type.toLowerCase();
+			const html = etransactions.file_preview_html(file_doc, { einvoice: frm.doc.einvoice });
 
-			if (frappe.utils.is_image_file(file_doc.file_url)) {
-				$preview = $(`<div class="img_preview">
-					<img
-						class="img-responsive"
-						src="${frappe.utils.escape_html(file_url)}"
-					/>
-				</div>`);
-			} else if (frappe.utils.is_video_file(file_doc.file_url)) {
-				$preview = $(`<div class="img_preview">
-					<video width="480" height="320" controls>
-						<source src="${frappe.utils.escape_html(file_url)}">
-						${__("Your browser does not support the video element.")}
-					</video>
-				</div>`);
-			} else if (file_extension === "pdf") {
-				$preview = $(`<div class="img_preview">
-					<object style="background:#323639;" width="100%">
-						<embed
-							style="background:#323639;"
-							width="100%"
-							height="1190"
-							src="${frappe.utils.escape_html(file_url)}" type="application/pdf"
-						>
-					</object>
-				</div>`);
-			} else if (file_extension === "mp3") {
-				$preview = $(`<div class="img_preview">
-					<audio width="480" height="60" controls>
-						<source src="${frappe.utils.escape_html(file_url)}" type="audio/mpeg">
-						${__("Your browser does not support the audio element.")}
-					</audio >
-				</div>`);
-			} else if (file_extension === "xml") {
-				const einvoice_link = frm.doc.einvoice
-					? `<a href="${frappe.utils.get_form_link("eInvoice", frm.doc.einvoice)}">${__("Open the eInvoice")}</a>`
-					: "";
-				$preview = $(`<div class="img_preview">
-					<div class="text-muted" style="padding:var(--padding-lg); border:1px dashed var(--border-color); border-radius:var(--border-radius-md);">
-						<p>${__("This e-invoice carries no embedded PDF, only structured data.")}</p>
-						<p>
-							<a href="${frappe.utils.escape_html(file_url)}" target="_blank">${__("Download the XML")}</a>
-							${einvoice_link ? " · " + einvoice_link : ""}
-						</p>
-					</div>
-				</div>`);
+			// Rewriting an identical preview would restart a PDF/video render on
+			// every refresh, so only replace it when it actually changed.
+			if (html && file_preview_field.$wrapper.html() !== html) {
+				file_preview_field.$wrapper.html(html);
 			}
-
-			if ($preview && file_preview_field.$wrapper.html() != $preview[0].outerHTML) {
-				file_preview_field.$wrapper.html($preview);
-			}
-		} catch(e) {
-			file_preview_field.$wrapper.html($preview);
-			return;
+		} catch (e) {
+			file_preview_field.$wrapper.empty();
 		}
 	},
 

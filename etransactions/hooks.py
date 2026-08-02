@@ -289,9 +289,15 @@ override_whitelisted_methods = {
 override_doctype_dashboards = {
 	"Bank Transaction": "etransactions.etransactions_hub.dashboards.get_dashboard_data",
 	"Journal Entry": "etransactions.etransactions_hub.dashboards.get_dashboard_data",
-	"Purchase Invoice": "etransactions.etransactions_hub.dashboards.get_dashboard_data",
+	"Purchase Invoice": [
+		"etransactions.etransactions_hub.dashboards.get_dashboard_data",
+		"etransactions.etransactions_hub.dashboards.add_einvoice_connection",
+	],
 	"Payment Entry": "etransactions.etransactions_hub.dashboards.get_dashboard_data",
-	"Supplier Invoice": "etransactions.etransactions_hub.dashboards.get_dashboard_data",
+	"Supplier Invoice": [
+		"etransactions.etransactions_hub.dashboards.get_dashboard_data",
+		"etransactions.etransactions_hub.dashboards.add_einvoice_connection",
+	],
 	"Expense Claim": "etransactions.etransactions_hub.dashboards.get_dashboard_data",
 }
 

@@ -810,8 +810,24 @@
  ],
  "in_create": 1,
  "index_web_pages_for_search": 1,
- "links": [],
- "modified": "2026-02-12 09:56:14.163134",
+ "links": [
+  {
+   "group": "Purchases",
+   "link_doctype": "Supplier Invoice",
+   "link_fieldname": "einvoice"
+  },
+  {
+   "group": "Purchases",
+   "link_doctype": "Purchase Invoice",
+   "link_fieldname": "einvoice"
+  },
+  {
+   "group": "Lifecycle",
+   "link_doctype": "eInvoice Event",
+   "link_fieldname": "einvoice"
+  }
+ ],
+ "modified": "2026-08-01 09:00:00.000000",
  "modified_by": "Administrator",
  "module": "eTransactions",
  "name": "eInvoice",

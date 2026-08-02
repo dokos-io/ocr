@@ -29,8 +29,8 @@ etransactions.invoiceReadiness = {
 		const panel =
 			frm.doc.docstatus === 1 && !frm.is_new()
 				? frappe.call({
-						method: "etransactions.overrides.sales_invoice.get_einvoice_panel",
-						args: { sales_invoice: frm.doc.name },
+						method: "etransactions.plateforme_agreee.readiness.get_einvoice_panel",
+						args: { doctype: frm.doctype, name: frm.doc.name },
 				  })
 				: Promise.resolve({ message: {} });
 
@@ -56,7 +56,12 @@ etransactions.invoiceReadiness = {
 		const field = frm.fields_dict.etransactions_status_html;
 		if (!field) return;
 
-		const $wrap = $('<div class="et-inv-readiness"></div>');
+		// data-et-* are stable hooks for the Cypress suite: the visible labels are
+		// translated, so specs must not select on them.
+		const $wrap = $('<div class="et-inv-readiness" data-et-readiness="1"></div>').attr(
+			"data-et-pa-status",
+			(panel && panel.pa_status) || ""
+		);
 
 		// --- Post-send: platform status badge + rejection/validation reasons ---
 		if (panel && panel.pa_status) {

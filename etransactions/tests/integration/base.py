@@ -22,6 +22,7 @@ contract conectt uses via ``skip_api_test_cases``). To run it locally:
 import frappe
 from frappe.tests import IntegrationTestCase
 
+from etransactions.tests.fixtures import clear_platforms, seed_company, seed_item
 from etransactions.tests.utils import minimal_pdf_content
 
 try:
@@ -84,76 +85,15 @@ class MicrocksTestCase(IntegrationTestCase):
 		self._seed_item()
 
 	def _clear_platforms(self):
-		"""Remove any leftover test platforms for the company.
-
-		Some provisioning paths (e.g. refresh_customer_status) call frappe.db.commit(),
-		which escapes the per-test rollback, so a prior run can leave committed rows that
-		would make a fresh registration look 'existing'. Clearing here keeps tests
-		order-independent and re-runnable.
-		"""
-		for name in frappe.get_all(
-			"eTransactions Accredited Platform", filters={"company": COMPANY}, pluck="name"
-		):
-			frappe.delete_doc(
-				"eTransactions Accredited Platform", name, force=True, ignore_permissions=True
-			)
+		clear_platforms(COMPANY)
 
 	# ------------------------------------------------------------------ masters
 
 	def _seed_company(self):
-		"""Give the shared test company a SIREN, a seller electronic address and an
-		address/email so it is in-scope and registrable on Esalink."""
-		frappe.db.set_value(
-			"Company",
-			COMPANY,
-			{
-				"siren_number": SELLER_SIREN,
-				"tax_id": "FR40824710776",
-				# Guarantees a BT-34 seller electronic address on the generated eInvoice.
-				"etransactions_electronic_address_scheme": "0225",
-				"etransactions_electronic_address": SELLER_SIREN,
-			},
-			update_modified=False,
-		)
-		self._seed_company_address()
-
-	def _seed_company_address(self):
-		"""Ensure the company has a default address + email (needed for Esalink KYC)."""
-		frappe.db.set_value("Company", COMPANY, "email", "seller@example.test", update_modified=False)
-		existing = frappe.db.get_value(
-			"Address", {"address_title": "_Test Seller Address", "is_your_company_address": 1}
-		)
-		if existing:
-			self.company_address = existing
-			return
-		addr = frappe.get_doc(
-			{
-				"doctype": "Address",
-				"address_title": "_Test Seller Address",
-				"address_type": "Billing",
-				"address_line1": "1 Rue de Rivoli",
-				"city": "Paris",
-				"pincode": "75001",
-				"country": "France",
-				"email_id": "seller@example.test",
-				"is_your_company_address": 1,
-				"links": [{"link_doctype": "Company", "link_name": COMPANY}],
-			}
-		)
-		addr.flags.ignore_permissions = True
-		addr.insert(ignore_if_duplicate=True)
-		self.company_address = addr.name
+		self.company_address = seed_company(COMPANY, siren=SELLER_SIREN)
 
 	def _seed_item(self):
-		if not frappe.db.exists("Item", "_Test Item 1"):
-			frappe.get_doc(
-				{
-					"doctype": "Item",
-					"item_code": "_Test Item 1",
-					"item_group": "All Item Groups",
-					"is_stock_item": 0,
-				}
-			).insert(ignore_if_duplicate=True)
+		seed_item()
 
 	# ---------------------------------------------------------------- customers
 

@@ -137,11 +137,44 @@ purchase_invoicing_fields = [
 		"insert_after": "terms",
 		"depends_on": "eval:frappe.boot.einvoicing_enabled",
 	},
+	# The received e-invoice this purchase came from. Fetched through the Supplier
+	# Invoice so the link survives without a second lookup, and so the eInvoice can
+	# list its Purchase Invoices as a standard connection.
+	{
+		"fieldname": "einvoice",
+		"fieldtype": "Link",
+		"options": "eInvoice",
+		"label": _("eInvoice"),
+		"insert_after": "etransactions_tab",
+		"read_only": 1,
+		"no_copy": 1,
+		"fetch_from": "supplier_invoice.einvoice",
+	},
+	{
+		"fieldname": "etransactions_pa_flow_id",
+		"fieldtype": "Data",
+		"label": _("Platform Flow ID"),
+		"insert_after": "einvoice",
+		"read_only": 1,
+		"no_copy": 1,
+		"fetch_from": "einvoice.pa_flow_id",
+		"depends_on": "eval:doc.einvoice",
+	},
+	{
+		"fieldname": "etransactions_pa_status",
+		"fieldtype": "Data",
+		"label": _("Platform Status"),
+		"insert_after": "etransactions_pa_flow_id",
+		"read_only": 1,
+		"no_copy": 1,
+		"fetch_from": "einvoice.pa_status",
+		"depends_on": "eval:doc.einvoice",
+	},
 	{
 		"fieldname": "etransactions_status_html",
 		"fieldtype": "HTML",
 		"label": "",
-		"insert_after": "etransactions_tab",
+		"insert_after": "etransactions_pa_status",
 	},
 ]
 

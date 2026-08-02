@@ -31,7 +31,7 @@ frappe.ui.form.on("Sales Invoice", {
 			}, __("eInvoicing"));
 
 			_add_pa_buttons(frm);
-			_attach_lifecycle(frm);
+			etransactions.lifecycle.attach_for_transaction(frm);
 		}
 	},
 
@@ -123,26 +123,6 @@ function _show_ereporting(frm) {
 	});
 }
 
-function _attach_lifecycle(frm) {
-	frappe.call({
-		method: "etransactions.etransactions.doctype.einvoice.einvoice.get_transaction_einvoice",
-		args: { doctype: frm.doctype, name: frm.doc.name },
-		callback(r) {
-			if (r.message) {
-				etransactions.lifecycle.attach(frm, {
-					einvoice: r.message.name,
-					side: r.message.side,
-					pa_status: r.message.pa_status,
-					group: __("eInvoicing"),
-				});
-			}
-		},
-		// The lifecycle panel is an add-on: a lookup failure must never throw a
-		// traceback dialog over the invoice the user is working on.
-		error: () => {},
-	});
-}
-
 function _add_pa_buttons(frm) {
 	frappe.call({
 		method: "etransactions.overrides.sales_invoice.get_einvoice_status",
@@ -187,8 +167,8 @@ function _add_pa_buttons(frm) {
 						// Show the previous rejection reasons so the user can confirm
 						// they've been addressed before resending.
 						frappe.call({
-							method: "etransactions.overrides.sales_invoice.get_einvoice_panel",
-							args: { sales_invoice: frm.doc.name },
+							method: "etransactions.plateforme_agreee.readiness.get_einvoice_panel",
+							args: { doctype: frm.doctype, name: frm.doc.name },
 							callback(p) {
 								const reasons = ((p.message || {}).problems || []).map(
 									(f) => `<li>${frappe.utils.escape_html(f.label)}</li>`
