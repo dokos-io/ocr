@@ -101,7 +101,14 @@ context("Inbound e-invoice flow", () => {
 		cy.await_form_idle();
 
 		// The form's own affordance: a Button field that asks whether to submit.
-		cy.get('[data-fieldname="create_purchase_invoice"] button').should("be.visible").click();
+		//
+		// Clicked through the field rather than a selector: the desk re-renders this
+		// control and leaves the previous button behind, so the selector matches two
+		// elements — one of them clipped by an overflow:hidden parent — and Cypress can
+		// resolve neither. The field's own button is the node its handler is bound to.
+		cy.window().then((win) => {
+			win.cur_frm.get_field("create_purchase_invoice").$input.trigger("click");
+		});
 		cy.get(".modal-dialog:visible").should("exist");
 		// On a retry the draft the previous attempt created still exists, and the form
 		// asks which of the two to use before it offers to create anything.
