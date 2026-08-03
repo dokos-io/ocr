@@ -10,10 +10,18 @@ def is_auth_error(status_code: int, message: str) -> bool:
     """True when a platform response signals rejected client credentials.
 
     Covers HTTP 401 and the OAuth2 ``invalid_client`` / ``invalid_grant`` error
-    codes returned by the token endpoint.
+    codes returned by the token endpoint. HUBTIMIZE answers its ``/v1/token`` with
+    **400** and ``"Invalid credentials: …"`` rather than a 401, so that wording is
+    matched on its own — without it a wrong-environment credential surfaces as a raw
+    "Esalink API error 400" instead of the actionable guidance below.
     """
     low = (message or "").lower()
-    return status_code == 401 or "invalid_client" in low or "invalid_grant" in low
+    return (
+        status_code == 401
+        or "invalid_client" in low
+        or "invalid_grant" in low
+        or "invalid credentials" in low
+    )
 
 
 def throw_credentials_rejected(message: str) -> None:
