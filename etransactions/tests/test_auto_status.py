@@ -191,22 +191,57 @@ class TestPurchaseInvoiceResolution(eTransactionsTestSuite):
 	removed from the doctype, so the lookup raised on every Purchase Invoice refresh.
 	"""
 
-	def test_the_chain_goes_through_supplier_invoice(self):
+	def _router(self, values):
 		looked_up = []
 
 		def router(doctype, name, fieldname=None, *args, **kwargs):
 			looked_up.append((doctype, fieldname))
-			return {
-				"Purchase Invoice": "SINV-1",
-				"Supplier Invoice": "EINV-1",
-				"eInvoice": "FLOW-1",
-			}.get(doctype)
+			return values.get((doctype, fieldname))
+
+		return router, looked_up
+
+	def test_the_purchase_invoice_link_is_used_directly(self):
+		router, looked_up = self._router(
+			{
+				("Purchase Invoice", "einvoice"): "EINV-1",
+				("eInvoice", "pa_flow_id"): "FLOW-1",
+			}
+		)
+
+		with patch("frappe.db.get_value", side_effect=router):
+			self.assertEqual(einvoice_for_purchase_invoice("PINV-1"), "EINV-1")
+
+		# The direct link makes the Supplier Invoice hop unnecessary.
+		self.assertNotIn(("Supplier Invoice", "einvoice"), looked_up)
+
+	def test_the_chain_falls_back_through_supplier_invoice(self):
+		router, looked_up = self._router(
+			{
+				("Purchase Invoice", "einvoice"): None,
+				("Purchase Invoice", "supplier_invoice"): "SINV-1",
+				("Supplier Invoice", "einvoice"): "EINV-1",
+				("eInvoice", "pa_flow_id"): "FLOW-1",
+			}
+		)
 
 		with patch("frappe.db.get_value", side_effect=router):
 			self.assertEqual(einvoice_for_purchase_invoice("PINV-1"), "EINV-1")
 
 		self.assertIn(("Purchase Invoice", "supplier_invoice"), looked_up)
 		self.assertIn(("Supplier Invoice", "einvoice"), looked_up)
+
+	def test_an_einvoice_without_a_flow_id_is_shown_but_not_reported(self):
+		"""An e-invoice received by email has no flow id: display yes, lifecycle send no."""
+		router, _ = self._router(
+			{
+				("Purchase Invoice", "einvoice"): "EINV-1",
+				("eInvoice", "pa_flow_id"): None,
+			}
+		)
+
+		with patch("frappe.db.get_value", side_effect=router):
+			self.assertEqual(einvoice_for_purchase_invoice("PINV-1"), "EINV-1")
+			self.assertIsNone(einvoice_for_purchase_invoice("PINV-1", require_flow_id=True))
 
 	def test_an_invoice_without_an_einvoice_resolves_to_nothing(self):
 		# Runs the real SQL: a query against a column that no longer exists would raise
@@ -217,3 +252,57 @@ class TestPurchaseInvoiceResolution(eTransactionsTestSuite):
 		doc = SimpleNamespace(check_permission=lambda perm: None)
 		with patch("frappe.get_doc", return_value=doc):
 			self.assertIsNone(get_transaction_einvoice("Purchase Invoice", "PINV-DOES-NOT-EXIST"))
+
+
+class TestEInvoicePanel(eTransactionsTestSuite):
+	"""The post-send panel shared by Sales and Purchase Invoice.
+
+	Regression guard: the panel used to be a Sales-Invoice-only endpoint, so the purchase
+	form called it with a Purchase Invoice name and the server raised DoesNotExistError on
+	``frappe.get_doc("Sales Invoice", "ACC-PINV-…")`` — a traceback dialog over every
+	submitted purchase invoice, and no platform status shown for purchases at all.
+	"""
+
+	def test_a_purchase_invoice_does_not_hit_the_sales_invoice_table(self):
+		from etransactions.plateforme_agreee.readiness import get_einvoice_panel
+
+		read = []
+
+		def get_doc(doctype, name, *args, **kwargs):
+			read.append(doctype)
+			return SimpleNamespace(check_permission=lambda perm: None)
+
+		with patch("frappe.get_doc", side_effect=get_doc):
+			panel = get_einvoice_panel("Purchase Invoice", "PINV-DOES-NOT-EXIST")
+
+		self.assertEqual(read, ["Purchase Invoice"])
+		self.assertIsNone(panel["einvoice"])
+		self.assertEqual(panel["problems"], [])
+
+	def test_a_purchase_invoice_reports_the_platform_status_of_its_einvoice(self):
+		einvoice = frappe.get_doc(
+			{
+				"doctype": "eInvoice",
+				"einvoice_type": "Incoming",
+				"company": "_Test Company",
+				"pa_flow_id": "FLOW-PANEL-1",
+				"pa_status": "rejected",
+				"pa_content_state": "fetched",
+			}
+		).insert(ignore_permissions=True)
+
+		doc = SimpleNamespace(check_permission=lambda perm: None)
+		with (
+			patch("frappe.get_doc", return_value=doc),
+			patch(
+				"etransactions.etransactions.doctype.einvoice.einvoice.einvoice_for_transaction",
+				return_value=einvoice.name,
+			),
+		):
+			from etransactions.plateforme_agreee.readiness import get_einvoice_panel
+
+			panel = get_einvoice_panel("Purchase Invoice", "PINV-1")
+
+		self.assertEqual(panel["einvoice"], einvoice.name)
+		self.assertEqual(panel["pa_status"], "rejected")
+		self.assertEqual(panel["pa_flow_id"], "FLOW-PANEL-1")

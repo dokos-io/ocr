@@ -257,31 +257,14 @@ def get_einvoice_status(sales_invoice: str) -> dict:
 
 @frappe.whitelist()
 def get_einvoice_panel(sales_invoice: str) -> dict:
-	"""Unified post-send e-invoicing state for the Sales Invoice panel.
+	"""Deprecated: use ``plateforme_agreee.readiness.get_einvoice_panel(doctype, name)``.
 
-	Returns the platform status/flow plus the rejection reasons and schematron
-	validation issues as fixable findings, so the user can see *why* a send failed
-	and *where to fix it* without opening the eInvoice.
+	Kept as a whitelisted delegate because it is a public endpoint that older clients
+	(and any cached desk bundle) still call.
 	"""
-	frappe.get_doc("Sales Invoice", sales_invoice).check_permission("read")
+	from etransactions.plateforme_agreee.readiness import get_einvoice_panel as panel
 
-	row = frappe.db.get_value(
-		"eInvoice",
-		{"sales_invoice": sales_invoice},
-		["name", "pa_status", "pa_flow_id"],
-		as_dict=True,
-	)
-	if not row:
-		return {"einvoice": None, "pa_status": "", "pa_flow_id": "", "problems": []}
-
-	from etransactions.plateforme_agreee.readiness import findings_from_platform_errors
-
-	return {
-		"einvoice": row.name,
-		"pa_status": row.pa_status or "",
-		"pa_flow_id": row.pa_flow_id or "",
-		"problems": findings_from_platform_errors(row.name),
-	}
+	return panel("Sales Invoice", sales_invoice)
 
 
 @frappe.whitelist()

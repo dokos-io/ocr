@@ -11,3 +11,14 @@ def get_dashboard_data(data: dict) -> dict:
 		{"label": _("Collaboration"), "items": ["Accounting Request"]}
 	)
 	return data
+
+
+def add_einvoice_connection(data: dict) -> dict:
+	"""Link a purchase document back to the e-invoice it was created from.
+
+	Registered per doctype in hooks.py rather than folded into ``get_dashboard_data``:
+	the dashboard payload does not say which doctype it belongs to, so the hook
+	registration is the only place that knows.
+	"""
+	data.setdefault("transactions", []).append({"label": _("e-Invoicing"), "items": ["eInvoice"]})
+	return data

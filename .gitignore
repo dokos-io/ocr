@@ -24,3 +24,10 @@ etransactions/www/ehub.html
 .coverage.*
 coverage.xml
 htmlcov/
+
+# Cypress artefacts (`bench run-ui-tests etransactions`)
+cypressVideos/
+.cypress-cache/
+cypress/videos/
+cypress/screenshots/
+cypress/downloads/

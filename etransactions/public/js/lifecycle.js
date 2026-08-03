@@ -22,8 +22,34 @@ etransactions.lifecycle = {
 		{ key: "done", label: __("Done") },
 	],
 
-	attach(frm, { einvoice, side, pa_status, group }) {
-		frm._et_lc = { einvoice, side, pa_status, lc: null };
+	// Sales and Purchase Invoice attach the lifecycle the same way: ask the server which
+	// eInvoice the transaction belongs to, then render. Kept here so the two sides cannot
+	// drift apart over which fields they forward.
+	attach_for_transaction(frm) {
+		if (frm.is_new()) return;
+
+		frappe.call({
+			method: "etransactions.etransactions.doctype.einvoice.einvoice.get_transaction_einvoice",
+			args: { doctype: frm.doctype, name: frm.doc.name },
+			callback: (r) => {
+				if (!r.message) return;
+				this.attach(frm, {
+					einvoice: r.message.name,
+					side: r.message.side,
+					pa_status: r.message.pa_status,
+					pa_flow_id: r.message.pa_flow_id,
+					pa_content_state: r.message.pa_content_state,
+					group: __("eInvoicing"),
+				});
+			},
+			// The lifecycle panel is an add-on: a lookup failure must never throw a
+			// traceback dialog over the invoice the user is working on.
+			error: () => {},
+		});
+	},
+
+	attach(frm, { einvoice, side, pa_status, pa_flow_id, pa_content_state, group }) {
+		frm._et_lc = { einvoice, side, pa_status, pa_flow_id, pa_content_state, lc: null };
 		frappe
 			.xcall(
 				"etransactions.etransactions.doctype.einvoice.einvoice.get_supported_lifecycle_statuses",
@@ -112,19 +138,18 @@ etransactions.lifecycle = {
 	after_send(frm) {
 		// A send changes which statuses are reportable next, so the buttons have to be
 		// rebuilt, not just the timeline. Both paths clear the custom buttons and re-run
-		// the form's refresh, which calls attach() again with fresh server data.
+		// the form's refresh, which calls attach() again with fresh server data — on a
+		// transaction that goes through attach_for_transaction(), which re-reads the
+		// eInvoice, so nothing has to be refetched here.
 		if (frm.doctype === "eInvoice") {
 			frm.reload_doc();
 		} else {
-			frappe.db.get_value("eInvoice", frm._et_lc.einvoice, "pa_status").then((r) => {
-				frm._et_lc.pa_status = (r.message || {}).pa_status;
-				frm.refresh();
-			});
+			frm.refresh();
 		}
 	},
 
 	render_timeline(frm) {
-		const { einvoice, pa_status } = frm._et_lc;
+		const { einvoice, pa_status, pa_flow_id } = frm._et_lc;
 
 		frappe.db
 			.get_list("eInvoice Event", {
@@ -135,9 +160,15 @@ etransactions.lifecycle = {
 			})
 			.then((events) => {
 				const html =
-					this.ribbon_html(pa_status) +
-					this.state_html(frm._et_lc.lc) +
-					this.events_html(events || []);
+					`<div class="et-lc" data-et-lifecycle="1" data-et-einvoice="${frappe.utils.escape_html(
+						einvoice
+					)}" data-et-pa-status="${frappe.utils.escape_html(pa_status || "")}">
+						${this.ribbon_html(pa_status, pa_flow_id)}
+						${this.content_state_html(frm._et_lc.pa_content_state)}
+						${this.state_html(frm._et_lc.lc)}
+						${this.events_html(events || [])}
+						<div class="et-lc-link"><a class="et-lc-open">${__("Open eInvoice")} →</a></div>
+					</div>`;
 				if (frm._et_lc_section) {
 					frm._et_lc_section.remove();
 				}
@@ -148,7 +179,12 @@ etransactions.lifecycle = {
 			});
 	},
 
-	ribbon_html(pa_status) {
+	// An e-invoice that never went through an accredited platform (received by email or
+	// uploaded as a file) has no transmission to show. Its events and party states still
+	// matter, so only the ribbon is suppressed.
+	ribbon_html(pa_status, pa_flow_id) {
+		if (!pa_flow_id) return "";
+
 		const error = pa_status === "error" || pa_status === "rejected";
 		const reached = this.PA_RIBBON.findIndex((s) => s.key === pa_status);
 		const steps = this.PA_RIBBON.map((s, i) => {
@@ -170,11 +206,23 @@ etransactions.lifecycle = {
 			  }</div>`
 			: "";
 
-		return `<div class="et-lc">
-				<div class="et-lc-ribbon">${steps}</div>
-				${err}
-				<div class="et-lc-link"><a class="et-lc-open">${__("Open eInvoice")} →</a></div>
-			</div>`;
+		return `<div class="et-lc-ribbon">${steps}</div>${err}`;
+	},
+
+	// The original file is downloaded after the flow is recorded, so an invoice can be
+	// known but not yet readable. Saying so beats showing an empty lifecycle.
+	content_state_html(pa_content_state) {
+		if (pa_content_state === "pending") {
+			return `<div class="et-lc-content-state text-muted" data-et-content-state="pending">${__(
+				"The original file has not been downloaded from the platform yet."
+			)}</div>`;
+		}
+		if (pa_content_state === "error") {
+			return `<div class="et-lc-content-state" style="color:var(--red-500)" data-et-content-state="error">${__(
+				"The original file could not be downloaded or parsed — see the eInvoice for details."
+			)}</div>`;
+		}
+		return "";
 	},
 
 	// Where each side of the lifecycle currently stands, plus — when no status can be
@@ -226,7 +274,7 @@ etransactions.lifecycle = {
 			})
 			.join("");
 
-		return `<table class="table table-bordered" style="margin-top:12px">
+		return `<table class="table table-bordered et-lc-events" style="margin-top:12px">
 				<thead><tr>
 					<th>${__("Direction")}</th>
 					<th>${__("Status")}</th>

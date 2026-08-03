@@ -10,26 +10,7 @@ frappe.ui.form.on('Purchase Invoice', {
 		if (!frappe.boot.einvoicing_enabled) return;
 
 		etransactions.invoiceReadiness.refresh(frm);
-
-		if (!frm.is_new()) {
-			frappe.call({
-				method: "etransactions.etransactions.doctype.einvoice.einvoice.get_transaction_einvoice",
-				args: { doctype: frm.doctype, name: frm.doc.name },
-				callback(r) {
-					if (r.message) {
-						etransactions.lifecycle.attach(frm, {
-							einvoice: r.message.name,
-							side: r.message.side,
-							pa_status: r.message.pa_status,
-							group: __("eInvoicing"),
-						});
-					}
-				},
-				// The lifecycle panel is an add-on: a lookup failure must never
-				// throw a traceback dialog over the invoice the user is working on.
-				error: () => {},
-			});
-		}
+		etransactions.lifecycle.attach_for_transaction(frm);
 	},
 
 	supplier: (frm) => frappe.boot.einvoicing_enabled && etransactions.invoiceReadiness.refresh(frm),

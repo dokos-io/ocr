@@ -865,32 +865,45 @@ def get_supported_lifecycle_statuses(einvoice: str) -> dict:
 	}
 
 
+def einvoice_for_transaction(doctype: str, name: str) -> str | None:
+	"""Name of the eInvoice behind a Sales / Purchase Invoice, whatever its origin.
+
+	The single resolver both the lifecycle panel and the readiness panel go through, so
+	the two cannot disagree about which e-invoice a transaction belongs to.
+	"""
+	if doctype == "Sales Invoice":
+		return frappe.db.get_value(
+			"eInvoice", {"sales_invoice": name, "einvoice_type": "Outgoing"}, "name"
+		)
+	if doctype == "Purchase Invoice":
+		from etransactions.plateforme_agreee.auto_status import einvoice_for_purchase_invoice
+
+		return einvoice_for_purchase_invoice(name)
+	return None
+
+
 @frappe.whitelist()
 def get_transaction_einvoice(doctype: str, name: str) -> dict | None:
 	"""Resolve the eInvoice (and its PA status) behind a Sales / Purchase Invoice.
 
 	Lets the transaction forms surface the lifecycle without leaving the document.
-	Returns ``None`` when no eInvoice has reached the platform yet.
+	Returns ``None`` when the transaction has no e-invoice at all — an e-invoice that
+	never reached a platform still has a lifecycle worth showing, so ``pa_flow_id`` is
+	reported rather than required (the client hides the PA ribbon without one).
 	"""
 	frappe.get_doc(doctype, name).check_permission("read")
 
-	einvoice = None
-	if doctype == "Sales Invoice":
-		einvoice = frappe.db.get_value(
-			"eInvoice", {"sales_invoice": name, "einvoice_type": "Outgoing"}, "name"
-		)
-	elif doctype == "Purchase Invoice":
-		from etransactions.plateforme_agreee.auto_status import einvoice_for_purchase_invoice
-
-		einvoice = einvoice_for_purchase_invoice(name)
-
+	einvoice = einvoice_for_transaction(doctype, name)
 	if not einvoice:
 		return None
 
 	data = frappe.db.get_value(
-		"eInvoice", einvoice, ["name", "pa_status", "pa_flow_id", "einvoice_type"], as_dict=True
+		"eInvoice",
+		einvoice,
+		["name", "pa_status", "pa_flow_id", "pa_content_state", "einvoice_type"],
+		as_dict=True,
 	)
-	if not data or not data.pa_flow_id:
+	if not data:
 		return None
 	data["side"] = "sale" if data.einvoice_type == "Outgoing" else "purchase"
 	return data

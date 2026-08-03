@@ -859,3 +859,35 @@ def findings_from_platform_errors(einvoice: str) -> list[dict]:
 	for i, msg in enumerate(_split_reasons(row.validation_warnings)):
 		out.append(_platform_finding(f"valw_{i}", msg, "warning", row.company, customer))
 	return as_dicts(out)
+
+
+@frappe.whitelist()
+def get_einvoice_panel(doctype: str, name: str) -> dict:
+	"""Post-send e-invoicing state for the Sales / Purchase Invoice panel.
+
+	Returns the platform status/flow plus the rejection reasons and schematron
+	validation issues as fixable findings, so the user can see *why* a send failed
+	and *where to fix it* without opening the eInvoice.
+
+	Doctype-agnostic on purpose: the panel is rendered on both sides of the ledger, and
+	the earlier Sales-Invoice-only endpoint raised DoesNotExistError when the purchase
+	form called it with a Purchase Invoice name.
+	"""
+	from etransactions.etransactions.doctype.einvoice.einvoice import einvoice_for_transaction
+
+	frappe.get_doc(doctype, name).check_permission("read")
+
+	einvoice = einvoice_for_transaction(doctype, name)
+	if not einvoice:
+		return {"einvoice": None, "pa_status": "", "pa_flow_id": "", "problems": []}
+
+	row = frappe.db.get_value(
+		"eInvoice", einvoice, ["name", "pa_status", "pa_flow_id", "pa_content_state"], as_dict=True
+	)
+	return {
+		"einvoice": row.name,
+		"pa_status": row.pa_status or "",
+		"pa_flow_id": row.pa_flow_id or "",
+		"pa_content_state": row.pa_content_state or "",
+		"problems": findings_from_platform_errors(row.name),
+	}

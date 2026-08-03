@@ -18,15 +18,33 @@ def _settings():
 	return frappe.get_cached_doc("eTransactions Settings")
 
 
-def einvoice_for_purchase_invoice(purchase_invoice: str) -> str | None:
-	"""Resolve the incoming eInvoice behind a Purchase Invoice (via Supplier Invoice)."""
-	supplier_invoice = frappe.db.get_value("Purchase Invoice", purchase_invoice, "supplier_invoice")
-	if not supplier_invoice:
+def einvoice_for_purchase_invoice(purchase_invoice: str, *, require_flow_id: bool = False) -> str | None:
+	"""Resolve the incoming eInvoice behind a Purchase Invoice.
+
+	The Purchase Invoice carries its own ``einvoice`` link (fetched from the Supplier
+	Invoice); the two-hop lookup is the fallback for invoices created before that field
+	existed.
+
+	``require_flow_id`` is for the *sending* side only: a lifecycle status cannot be
+	reported for a flow the platform does not know about. The display side must not use
+	it — an e-invoice received by email or file upload has no flow id and still has a
+	lifecycle worth showing on the invoice.
+	"""
+	einvoice = frappe.db.get_value("Purchase Invoice", purchase_invoice, "einvoice")
+
+	if not einvoice:
+		supplier_invoice = frappe.db.get_value(
+			"Purchase Invoice", purchase_invoice, "supplier_invoice"
+		)
+		if not supplier_invoice:
+			return None
+		einvoice = frappe.db.get_value("Supplier Invoice", supplier_invoice, "einvoice")
+
+	if not einvoice:
 		return None
-	einvoice = frappe.db.get_value("Supplier Invoice", supplier_invoice, "einvoice")
-	if einvoice and frappe.db.get_value("eInvoice", einvoice, "pa_flow_id"):
-		return einvoice
-	return None
+	if require_flow_id and not frappe.db.get_value("eInvoice", einvoice, "pa_flow_id"):
+		return None
+	return einvoice
 
 
 def _platform_supports(company: str, transaction_type: str, status: str) -> bool:
@@ -149,7 +167,7 @@ def _warn_if_lifecycle_closed(einvoice_name: str) -> bool:
 
 def on_purchase_invoice_submit(doc, method=None):
 	"""Purchase Invoice submitted -> 'Approved'."""
-	einvoice = einvoice_for_purchase_invoice(doc.name)
+	einvoice = einvoice_for_purchase_invoice(doc.name, require_flow_id=True)
 	if not einvoice:
 		return
 
@@ -185,7 +203,7 @@ def on_payment_entry_submit(doc, method=None):
 
 	for ref in doc.get("references", []):
 		if ref.reference_doctype == "Purchase Invoice":
-			einvoice = einvoice_for_purchase_invoice(ref.reference_name)
+			einvoice = einvoice_for_purchase_invoice(ref.reference_name, require_flow_id=True)
 			if einvoice:
 				_send(
 					einvoice, "payment_sent", "purchases",

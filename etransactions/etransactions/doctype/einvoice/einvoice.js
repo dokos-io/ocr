@@ -14,6 +14,8 @@ frappe.ui.form.on("eInvoice", {
 				einvoice: frm.doc.name,
 				side: frm.doc.einvoice_type === "Outgoing" ? "sale" : "purchase",
 				pa_status: frm.doc.pa_status,
+				pa_flow_id: frm.doc.pa_flow_id,
+				pa_content_state: frm.doc.pa_content_state,
 			});
 		}
 	},

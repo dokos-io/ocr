@@ -16,3 +16,4 @@ etransactions.patches.unhide_master_data_einvoicing_fields # 20260623
 etransactions.patches.set_default_enable_einvoicing # 20260705
 etransactions.patches.backfill_einvoice_supplier_invoice_file # 20260709
 etransactions.patches.backfill_einvoice_lifecycle_status # 20260730
+etransactions.patches.add_purchase_invoice_einvoice_fields # 20260801
