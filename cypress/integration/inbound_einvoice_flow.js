@@ -45,9 +45,10 @@ context("Inbound e-invoice flow", () => {
 	});
 
 	it("creates a Supplier Invoice prefilled from the e-invoice", () => {
-		expect(received.supplier_invoice, "a Supplier Invoice must have been generated").to.be.a(
-			"string"
-		);
+		// Not a string: Supplier Invoice is autoincrement-named, so the fixture returns a
+		// number.
+		expect(received.supplier_invoice, "a Supplier Invoice must have been generated").to.not.be
+			.undefined;
 
 		cy.visit(`/desk/supplier-invoice/${received.supplier_invoice}`);
 		cy.await_form_idle();
@@ -82,11 +83,34 @@ context("Inbound e-invoice flow", () => {
 					cy.set_child_value("items", idx, "item_code", "ui_test_item");
 				}
 			});
-		cy.save();
+		// Only when the picks changed something: Cypress retries the test, and on the
+		// second run the rows already carry the item, so the desk answers "No changes in
+		// document" and never sends the request cy.save() waits for.
+		cy.window().then((win) => {
+			if (win.cur_frm.is_dirty()) {
+				cy.save();
+			}
+		});
+
+		// The save re-renders the form — the button field relabels itself on refresh — so
+		// a click issued straight after it lands on an element Cypress sees detached.
+		cy.window().should((win) => {
+			expect(win.cur_frm.doc.__unsaved, "the form must be saved before creating the invoice").to
+				.not.be.ok;
+		});
+		cy.await_form_idle();
 
 		// The form's own affordance: a Button field that asks whether to submit.
-		cy.get('[data-fieldname="create_purchase_invoice"] button').click();
+		cy.get('[data-fieldname="create_purchase_invoice"] button').should("be.visible").click();
 		cy.get(".modal-dialog:visible").should("exist");
+		// On a retry the draft the previous attempt created still exists, and the form
+		// asks which of the two to use before it offers to create anything.
+		cy.get(".modal-dialog:visible").then(($modal) => {
+			if ($modal.find("button:contains('Create a new invoice')").length) {
+				cy.findByRole("button", { name: "Create a new invoice" }).click();
+				cy.get(".modal-dialog:visible").should("exist");
+			}
+		});
 		cy.findByRole("button", { name: "Create and keep in draft" }).click();
 
 		// The creation is a server round-trip announced only by a toast, whose text is
@@ -98,6 +122,12 @@ context("Inbound e-invoice flow", () => {
 	});
 
 	it("shows the e-invoice status and lifecycle on the Purchase Invoice", () => {
+		// Without this the visit below lands on a blank new-invoice form and every
+		// assertion fails on "undefined", hiding which test actually broke.
+		expect(purchase_invoice, "the previous test must have created a Purchase Invoice").to.be.a(
+			"string"
+		);
+
 		// Give the timeline something to render, the way the platform would.
 		cy.record_einvoice_event(received.einvoice, "in_hand");
 
