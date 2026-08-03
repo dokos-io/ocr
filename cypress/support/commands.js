@@ -7,6 +7,24 @@
 // helpers here that are about e-invoicing.
 
 /**
+ * Make sure a desk page is loaded before a fixture call.
+ *
+ * The fixture endpoints go through cy.call(), which reads `frappe.csrf_token` off the
+ * application window — and that only exists once the desk has booted. A `before()` hook
+ * that has just run cy.login() is still on Cypress's blank page, so the call would fail
+ * on a missing property rather than on anything real.
+ */
+Cypress.Commands.add("desk_ready", () => {
+	return cy.window({ log: false }).then((win) => {
+		if (win.frappe && win.frappe.csrf_token) {
+			return;
+		}
+		cy.visit("/desk/home");
+		cy.window({ log: false }).its("frappe.csrf_token").should("be.a", "string");
+	});
+});
+
+/**
  * Receive one incoming e-invoice exactly as the hourly cron would.
  *
  * Drives the real `poll_incoming_flows()` against a stub platform client, then fetches
@@ -15,7 +33,8 @@
  */
 Cypress.Commands.add("receive_einvoice", (args = {}) => {
 	return cy
-		.call("etransactions.tests.ui_test_fixtures.receive_incoming_flow", args)
+		.desk_ready()
+		.then(() => cy.call("etransactions.tests.ui_test_fixtures.receive_incoming_flow", args))
 		.then((r) => r.message);
 });
 
@@ -25,7 +44,10 @@ Cypress.Commands.add("receive_einvoice", (args = {}) => {
  */
 Cypress.Commands.add("record_einvoice_event", (einvoice, status = "in_hand") => {
 	return cy
-		.call("etransactions.tests.ui_test_fixtures.record_lifecycle_event", { einvoice, status })
+		.desk_ready()
+		.then(() =>
+			cy.call("etransactions.tests.ui_test_fixtures.record_lifecycle_event", { einvoice, status })
+		)
 		.then((r) => r.message);
 });
 
@@ -36,7 +58,9 @@ Cypress.Commands.add("record_einvoice_event", (einvoice, status = "in_hand") => 
  * has to be safe to run twice against the same site.
  */
 Cypress.Commands.add("reset_einvoicing", () => {
-	return cy.call("etransactions.tests.ui_test_fixtures.reset_einvoicing", {});
+	return cy
+		.desk_ready()
+		.then(() => cy.call("etransactions.tests.ui_test_fixtures.reset_einvoicing", {}));
 });
 
 /**

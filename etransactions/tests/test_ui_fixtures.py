@@ -130,6 +130,11 @@ class TestUIFixtureEndpoints(eTransactionsTestSuite):
 		# grid; here it is set directly.
 		for item in supplier_invoice.items:
 			item.item_code = "_Test Item 1"
+		# The fixture invoice is denominated in EUR, while the shared test company keeps
+		# whatever currency erpnext's fixtures gave it. A Purchase Invoice in a foreign
+		# currency needs a payable account and an exchange rate in that currency, neither
+		# of which this asserts — and the UI company, being French, never hits the case.
+		supplier_invoice.currency = frappe.get_cached_value("Company", COMPANY, "default_currency")
 		supplier_invoice.save()
 
 		purchase_invoice = supplier_invoice.create_purchase_invoice()
