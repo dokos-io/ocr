@@ -3,6 +3,7 @@
 
 from unittest.mock import MagicMock, patch
 
+import frappe
 from frappe.tests import UnitTestCase
 
 from etransactions.components.esalink import (
@@ -85,6 +86,32 @@ class TestEsalinkTransport(UnitTestCase):
 	def test_token_path_overrides_afnor(self):
 		# Operations client must use /v1/token, not AFNOR's /v1/oauth2/token.
 		self.assertEqual(EsalinkClient._TOKEN_PATH, "/v1/token")
+
+	def test_400_invalid_credentials_is_treated_as_an_auth_error(self):
+		# HUBTIMIZE rejects a wrong-environment credential on /v1/token with a 400, not a
+		# 401 — the operator must still get the "check the environment" guidance rather
+		# than a raw "Esalink API error 400".
+		resp = _FakeResponse(
+			{
+				"error": "Bad Request",
+				"message": "Invalid credentials: Please check your username and password.",
+			},
+			status_code=400,
+		)
+		with self.assertRaises(frappe.ValidationError) as ctx:
+			_ops_client()._raise_for_status(resp)
+		self.assertIn("rejected the stored credentials", str(ctx.exception))
+
+	def test_other_400s_still_surface_the_platform_message(self):
+		resp = _FakeResponse(
+			{"error": "Bad Request", "message": "startDate must be in the future"},
+			status_code=400,
+		)
+		with self.assertRaises(frappe.ValidationError) as ctx:
+			_ops_client()._raise_for_status(resp)
+		message = str(ctx.exception)
+		self.assertIn("startDate must be in the future", message)
+		self.assertNotIn("rejected the stored credentials", message)
 
 
 class TestEsalinkPartnerClient(UnitTestCase):
