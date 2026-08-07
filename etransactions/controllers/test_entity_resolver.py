@@ -115,3 +115,69 @@ class TestEntityResolver(FrappeTestCase):
 
 		self.assertEqual(result, "")
 		self.assertEqual(self.resolver._match_confidence, "low")
+
+	# --- Vendor name aliases -------------------------------------------------
+
+	def _make_alias(self, supplier, vendor_name):
+		# Inserted straight into the table: the controller now refuses ambiguous rows, but
+		# sites upgraded from earlier versions still hold them.
+		alias = frappe.new_doc("eTransactions Supplier Name Alias")
+		alias.supplier = supplier
+		alias.vendor_name = vendor_name
+		alias.db_insert()
+		return alias
+
+	def test_unique_alias_matches_high(self):
+		sup = _make_supplier(f"Aliased Seller {self.suffix}")
+		vendor_name = f"ALIASED SELLER SARL {self.suffix}"
+		self._make_alias(sup.name, vendor_name)
+
+		result = self.resolver.resolve_supplier(seller_name=vendor_name)
+
+		self.assertEqual(result, sup.name)
+		self.assertEqual(self.resolver._match_confidence, "high")
+
+	def test_alias_matches_across_ocr_line_breaks(self):
+		sup = _make_supplier(f"Wrapped Seller {self.suffix}")
+		self._make_alias(sup.name, f"Wrapped Vendor Block {self.suffix}")
+
+		result = self.resolver.resolve_supplier(
+			seller_name=f"Wrapped Vendor\n Block  {self.suffix}"
+		)
+
+		self.assertEqual(result, sup.name)
+
+	def test_ambiguous_alias_does_not_pick_arbitrarily(self):
+		"""The reported symptom: one OCR'd name claimed by several suppliers."""
+		shared_vendor_name = f"DOKOS SAS {self.suffix}"
+		_make_supplier(f"Alias Claimant A {self.suffix}")
+		_make_supplier(f"Alias Claimant B {self.suffix}")
+		self._make_alias(f"Alias Claimant A {self.suffix}", shared_vendor_name)
+		self._make_alias(f"Alias Claimant B {self.suffix}", shared_vendor_name)
+
+		result = self.resolver.resolve_supplier(seller_name=shared_vendor_name)
+
+		self.assertEqual(result, "")
+		self.assertEqual(self.resolver._match_confidence, "low")
+
+	def test_alias_on_own_company_name_is_rejected(self):
+		company = frappe.get_all("Company", limit=1, pluck="name")[0]
+		sup = _make_supplier(f"Wrongly Learned {self.suffix}")
+
+		alias = frappe.new_doc("eTransactions Supplier Name Alias")
+		alias.supplier = sup.name
+		alias.vendor_name = f"{company} SAS"
+
+		self.assertRaises(frappe.ValidationError, alias.insert)
+
+	def test_alias_cannot_be_claimed_by_a_second_supplier(self):
+		vendor_name = f"Contested Vendor {self.suffix}"
+		first = _make_supplier(f"First Claimant {self.suffix}")
+		second = _make_supplier(f"Second Claimant {self.suffix}")
+		self._make_alias(first.name, vendor_name)
+
+		alias = frappe.new_doc("eTransactions Supplier Name Alias")
+		alias.supplier = second.name
+		alias.vendor_name = vendor_name
+
+		self.assertRaises(frappe.ValidationError, alias.insert)

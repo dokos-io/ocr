@@ -11,6 +11,15 @@ from erpnext.accounts.doctype.sales_invoice.sales_invoice import SalesInvoice
 from erpnext.accounts.services.payment_schedule import PaymentScheduleService
 from erpnext.accounts.services.taxes import TaxService
 from erpnext.controllers.accounts_controller import merge_taxes
+from etransactions.controllers.entity_resolver import (
+	InvoiceEntityResolverMixin,
+	is_learnable_vendor_name,
+	normalize_vendor_name,
+)
+from etransactions.etransactions.doctype.etransactions_supplier_item_alias.etransactions_supplier_item_alias import (
+	get_supplier_item_alias,
+	normalize_supplier_item_code,
+)
 from frappe.model.document import Document
 from frappe.model.mapper import get_mapped_doc
 from pypika.terms import ExistsCriterion
@@ -109,6 +118,9 @@ class SupplierInvoice(Document):
 		if not self.is_return and not self.items:
 			self.append_matched_orders()
 
+		if not self.is_return and not self.items:
+			self.prefill_items()
+
 		self.validate_credit_note_allocations()
 
 	def before_save(self):
@@ -116,12 +128,20 @@ class SupplierInvoice(Document):
 
 	def on_update(self):
 		self.auto_reconcile()
+		self._learn_supplier_item_aliases()
 		if getattr(self, "_supplier_manually_set", False):
 			self._learn_from_manual_match()
 			self._maybe_update_supplier_tax_id()
 
 	def _detect_manual_supplier_change(self):
-		if self.is_new():
+		"""Flag a supplier the *user* chose, so the match can be learned and trusted.
+
+		Only a human correction earns "high" confidence. `retry_supplier_match` sets
+		`flags.automatic_supplier_match` before saving, because a bulk re-match is another
+		guess: recording it as confirmed is what turned single-machine guesses into
+		permanent aliases.
+		"""
+		if self.is_new() or self.flags.automatic_supplier_match:
 			return
 		db_supplier = frappe.db.get_value("Supplier Invoice", self.name, "supplier")
 		if db_supplier != self.supplier and self.supplier:
@@ -129,16 +149,45 @@ class SupplierInvoice(Document):
 			self.match_confidence = "high"
 
 	def _learn_from_manual_match(self):
+		"""Remember the vendor name the user just mapped, when it identifies that vendor.
+
+		The alias table is consulted at "high" confidence on every later intake, so a bad
+		row is not a missed match — it actively misroutes invoices. Anything that is not
+		unambiguously this supplier's name is therefore dropped rather than stored.
+		"""
 		if not self.ocr_request:
 			return
 		raw_data = frappe.db.get_value("OCR Request", self.ocr_request, "analysis")
 		if not raw_data:
 			return
-		vendor_name = (frappe.parse_json(raw_data) or {}).get("VENDOR_NAME")
-		if not vendor_name or vendor_name == self.supplier_name:
+
+		vendor_name = normalize_vendor_name((frappe.parse_json(raw_data) or {}).get("VENDOR_NAME"))
+		if not vendor_name or vendor_name == normalize_vendor_name(self.supplier_name):
 			return
-		if frappe.db.exists("eTransactions Supplier Name Alias", {"vendor_name": vendor_name, "supplier": self.supplier}):
+
+		# Our own letterhead read as the vendor block, or a fragment too generic to identify
+		# anyone. Both are the OCR's error, not a mapping worth keeping.
+		if not is_learnable_vendor_name(vendor_name):
 			return
+
+		claimants = set(
+			frappe.get_all(
+				"eTransactions Supplier Name Alias",
+				filters={"vendor_name": vendor_name},
+				pluck="supplier",
+			)
+		)
+		if claimants:
+			# Already known — either for this supplier (nothing to do) or for another one,
+			# in which case a second row would make the name ambiguous and useless to both.
+			if self.supplier not in claimants:
+				frappe.log_error(
+					f"Vendor name {vendor_name!r} is already mapped to {sorted(claimants)}; "
+					f"not adding {self.supplier}.",
+					_("Ambiguous supplier name alias"),
+				)
+			return
+
 		alias: eTransactionsSupplierNameAlias = frappe.new_doc("eTransactions Supplier Name Alias")
 		alias.supplier = self.supplier
 		alias.vendor_name = vendor_name
@@ -180,18 +229,20 @@ class SupplierInvoice(Document):
 		if self.supplier:
 			return
 
-		# 1. Match by IBAN
-		if self.vendor_iban:
-			normalized_iban = re.sub(r"\s", "", self.vendor_iban).upper()
-			bank_account = frappe.db.get_value(
-				"Bank Account",
-				{"iban": normalized_iban, "party_type": "Supplier"},
-				"party",
-			)
-			if bank_account:
-				self.supplier = bank_account
-				self.match_confidence = "high"
-				return
+		ocr_data = self.get_ocr_analysis()
+
+		# 1. The shared resolver — tax id, IBAN, confirmed alias, name. It is what the OCR and
+		# e-invoicing intake paths already use; running a weaker matcher here made a later save
+		# disagree with the intake about the same document.
+		resolver = InvoiceEntityResolverMixin()
+		if supplier := resolver.resolve_supplier(
+			seller_name=ocr_data.get("VENDOR_NAME") or self.supplier_name,
+			tax_id=self.tax_id,
+			iban=self.vendor_iban,
+		):
+			self.supplier = supplier
+			self.match_confidence = resolver._match_confidence
+			return
 
 		# 2. Previous invoices with same vendor address (improved: 20-char prefix + similarity ≥ 0.75)
 		if self.vendor_address:
@@ -228,7 +279,6 @@ class SupplierInvoice(Document):
 
 		# 3. Previous OCR requests sharing the same VENDOR_URL
 		if self.ocr_request:
-			ocr_data = self.get_ocr_analysis()
 			if ocr_data.get("VENDOR_URL"):
 				if matching_ocr_requests := frappe.get_all(
 					"OCR Request",
@@ -707,6 +757,117 @@ class SupplierInvoice(Document):
 			for field in ["project", "cost_center"]:
 				if self.get(field) and not item.get(field):
 					item.set(field, self.get(field))
+
+
+	# --- Item line suggestions ----------------------------------------------
+
+	def prefill_items(self):
+		"""Suggest item lines for a captured invoice that has none.
+
+		Neither intake path fills `items`: OCR only ever wrote the header, and the matched
+		Purchase Order / Receipt route covers just the suppliers we order from. Everyone
+		else's invoice arrives empty, so the same expense account and item get retyped every
+		month for the same supplier.
+
+		Two sources, in order of precision: the supplier item mapping, which recognises the
+		individual lines; failing that, the supplier's last invoice, which at least gets the
+		item and expense account right for the single-line suppliers that dominate this table.
+		Everything suggested stays editable and nothing is submitted automatically.
+		"""
+		if not self.supplier or not self.company:
+			return
+		if not frappe.db.get_single_value("eTransactions Settings", "prefill_invoice_items"):
+			return
+
+		for row in self.get_mapped_captured_lines() or self.get_last_invoice_line():
+			self.append("items", row)
+
+	def get_mapped_captured_lines(self) -> list[dict]:
+		"""Captured lines that the supplier item mapping recognises.
+
+		Unrecognised lines are dropped rather than appended blank: raw OCR line text is
+		mostly fragments ("Charges USD 3.39", "VAT USD 0.13"), and a row the user has to
+		delete costs more than the one it saves.
+		"""
+		rows = []
+		for line in self.get_ocr_analysis().get("items") or []:
+			label = line.get("item") or line.get("expense_row")
+			alias = get_supplier_item_alias(self.supplier, label)
+			if not alias:
+				continue
+
+			rows.append({
+				"item_code": alias.item_code,
+				"expense_account": alias.expense_account,
+				"cost_center": alias.cost_center,
+				"item_tax_template": alias.item_tax_template,
+				"supplier_item_code": normalize_supplier_item_code(label),
+				"supplier_description": label,
+				"qty": flt(line.get("quantity")) or 1,
+				"rate": flt(line.get("unit_price")) or flt(line.get("price")),
+			})
+
+		return rows
+
+	def get_last_invoice_line(self) -> list[dict]:
+		"""A single line copying how this supplier's last invoice was booked."""
+		last_invoice = frappe.get_all(
+			"Purchase Invoice",
+			filters={
+				"supplier": self.supplier,
+				"company": self.company,
+				"docstatus": 1,
+				"is_return": 0,
+			},
+			order_by="posting_date desc, creation desc",
+			limit=1,
+			pluck="name",
+		)
+		if not last_invoice:
+			return []
+
+		lines = frappe.get_all(
+			"Purchase Invoice Item",
+			filters={"parent": last_invoice[0], "parenttype": "Purchase Invoice"},
+			fields=["item_code", "expense_account", "cost_center", "item_tax_template"],
+			order_by="idx asc",
+			limit=1,
+		)
+		if not lines:
+			return []
+
+		# The amount OCR read, not the previous invoice's: only the booking is being reused.
+		return [{**lines[0], "qty": 1, "rate": flt(self.supplier_net_amount)}]
+
+	def _learn_supplier_item_aliases(self):
+		"""Remember how the user mapped each captured line to an Item.
+
+		Only rows that carry both the supplier's own label and a chosen Item teach anything;
+		the alias controller refuses a label already mapped for this supplier, so a changed
+		mapping has to be edited there rather than silently forked.
+		"""
+		if not self.supplier:
+			# An unmatched invoice has nobody to attribute the mapping to.
+			return
+
+		for item in self.items:
+			label = normalize_supplier_item_code(item.supplier_item_code or item.supplier_description)
+			if not label or not item.item_code:
+				continue
+			if frappe.db.exists(
+				"eTransactions Supplier Item Alias",
+				{"supplier": self.supplier, "supplier_item_code": label},
+			):
+				continue
+
+			alias = frappe.new_doc("eTransactions Supplier Item Alias")
+			alias.supplier = self.supplier
+			alias.supplier_item_code = label
+			alias.item_code = item.item_code
+			alias.expense_account = item.expense_account
+			alias.cost_center = item.cost_center
+			alias.item_tax_template = item.item_tax_template
+			alias.insert(ignore_permissions=True)
 
 
 	def validate_credit_note_allocations(self):
@@ -1256,8 +1417,12 @@ def create_purchase_order(docname: str, transaction_date: str | None = None, sub
 
 @frappe.whitelist()
 def retry_supplier_match(invoices: list | str) -> int:
-	from etransactions.controllers.entity_resolver import InvoiceEntityResolverMixin
+	"""Re-run supplier resolution over a selection of invoices.
 
+	This is a machine guess, not a user confirmation: the invoices are saved with
+	`flags.automatic_supplier_match` so the result keeps the confidence the resolver
+	computed and is never learned as an alias.
+	"""
 	if isinstance(invoices, str):
 		invoices = frappe.parse_json(invoices)
 
@@ -1266,6 +1431,7 @@ def retry_supplier_match(invoices: list | str) -> int:
 
 	for name in invoices:
 		doc: SupplierInvoice = frappe.get_doc("Supplier Invoice", name) # type: ignore
+		doc.flags.automatic_supplier_match = True
 
 		vendor_name = None
 		if doc.ocr_request:

@@ -31,6 +31,7 @@ class eTransactionsSettings(Document):
 		mistral_api_key: DF.Password | None
 		no_purchase_order: DF.Check
 		ocr_service: DF.Literal["Amazon Textract", "Mistral OCR"]
+		prefill_invoice_items: DF.Check
 		reconcile_with_purchase_receipts: DF.Check
 	# end: auto-generated types
 

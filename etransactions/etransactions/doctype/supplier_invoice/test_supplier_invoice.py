@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 from etransactions.tests.utils import eTransactionsTestSuite
 from frappe.tests.utils import change_settings
 import frappe
-from frappe.utils import add_days, flt
+from frappe.utils import add_days, flt, getdate
 from frappe.utils.data import nowdate
 
 from erpnext.buying.doctype.purchase_order.test_purchase_order import create_purchase_order
@@ -234,6 +234,221 @@ class TestSupplierInvoice(eTransactionsTestSuite):
 		doc.supplier = supplier
 		doc.tax_id = tax_id
 		return doc
+
+	# --- Posting date propagation -------------------------------------------
+
+	def _supplier_invoice_with_posting_date(self, posting_date):
+		doc = frappe.get_doc({
+			"doctype": "Supplier Invoice",
+			"supplier": self.supplier.name,
+			"company": self.company,
+			"bill_no": frappe.generate_hash(length=8),
+			"bill_date": posting_date,
+			"posting_date": posting_date,
+		})
+		doc.insert()
+		return doc
+
+	def test_purchase_invoice_mapped_from_order_keeps_supplier_invoice_posting_date(self):
+		"""The order-first route must not repost the invoice on the day it was mapped."""
+		from erpnext.buying.doctype.purchase_order.mapper import make_purchase_invoice as make_pi_from_po
+
+		posting_date = add_days(nowdate(), -45)
+		supplier_invoice = self._supplier_invoice_with_posting_date(posting_date)
+
+		po = create_purchase_order(
+			supplier=self.supplier.name, company=self.company, qty=1.0, rate=100,
+			warehouse="_Test Warehouse - _TC",
+		)
+		frappe.db.set_value("Purchase Order", po.name, "supplier_invoice", supplier_invoice.name)
+
+		pi = make_pi_from_po(po.name)
+
+		self.assertEqual(getdate(pi.posting_date), getdate(posting_date))
+		# Without this flag `validate_posting_time` rewrites posting_date to now on save.
+		self.assertTrue(pi.set_posting_time)
+
+	def test_purchase_invoice_created_from_supplier_invoice_keeps_posting_date(self):
+		"""Pin the invoice-first route, which already carried the date correctly."""
+		posting_date = add_days(nowdate(), -45)
+		supplier_invoice = self._supplier_invoice_with_posting_date(posting_date)
+		supplier_invoice.append("items", {
+			"item_code": "_Test Item",
+			"qty": 1,
+			"rate": 100,
+			"amount": 100,
+			"expense_account": self.EXPENSE_ACCOUNT,
+		})
+		supplier_invoice.save()
+
+		pi = supplier_invoice.get_purchase_invoice(purchase_order_is_mandatory=False)
+
+		self.assertEqual(getdate(pi.posting_date), getdate(posting_date))
+		self.assertTrue(pi.set_posting_time)
+
+	# --- Item line prefill ---------------------------------------------------
+
+	def _captured_invoice(self, supplier=None, net_amount=100, ocr_request=None):
+		doc = frappe.new_doc("Supplier Invoice")
+		doc.supplier = supplier or self.supplier.name
+		doc.company = self.company
+		doc.posting_date = nowdate()
+		doc.bill_no = frappe.generate_hash(length=8)
+		doc.supplier_net_amount = net_amount
+		doc.ocr_request = ocr_request
+		doc.insert(ignore_mandatory=True)
+		return doc
+
+	def test_items_prefilled_from_the_suppliers_last_invoice(self):
+		"""The single-line suppliers that dominate captured invoices become zero-touch."""
+		previous = self._make_submitted_invoice(1000)
+
+		invoice = self._captured_invoice(net_amount=250)
+
+		self.assertEqual(len(invoice.items), 1)
+		self.assertEqual(invoice.items[0].item_code, previous.items[0].item_code)
+		self.assertEqual(invoice.items[0].expense_account, previous.items[0].expense_account)
+		# The amount comes from the invoice being captured, not from the previous one.
+		self.assertEqual(flt(invoice.items[0].rate), 250)
+
+	def test_items_prefilled_from_the_supplier_item_mapping(self):
+		alias = frappe.new_doc("eTransactions Supplier Item Alias")
+		alias.supplier = self.supplier.name
+		alias.supplier_item_code = "Abonnement Fibre Pro"
+		alias.item_code = "_Test Item"
+		alias.expense_account = self.EXPENSE_ACCOUNT
+		alias.insert()
+
+		ocr_request = frappe.new_doc("OCR Request")
+		ocr_request.name = frappe.generate_hash(length=10)
+		ocr_request.analysis = frappe.as_json({
+			"_children": [{"ITEM": "Abonnement Fibre Pro 39,90 EUR", "PRICE": "39.90", "QUANTITY": "1"}]
+		})
+		ocr_request.db_insert()
+
+		invoice = self._captured_invoice(ocr_request=ocr_request.name)
+
+		self.assertEqual(len(invoice.items), 1)
+		self.assertEqual(invoice.items[0].item_code, "_Test Item")
+		self.assertEqual(invoice.items[0].expense_account, self.EXPENSE_ACCOUNT)
+		self.assertEqual(flt(invoice.items[0].rate), 39.90)
+
+	def test_no_prefill_for_a_supplier_with_no_history(self):
+		newcomer = self._new_supplier(f"Newcomer {frappe.generate_hash(length=6)}")
+
+		invoice = self._captured_invoice(supplier=newcomer.name)
+
+		self.assertFalse(invoice.items)
+
+	def test_no_prefill_when_the_setting_is_off(self):
+		self._make_submitted_invoice(1000)
+		frappe.db.set_single_value("eTransactions Settings", "prefill_invoice_items", 0)
+
+		invoice = self._captured_invoice()
+
+		self.assertFalse(invoice.items)
+
+	def test_supplier_item_mapping_learned_from_a_confirmed_line(self):
+		invoice = frappe.new_doc("Supplier Invoice")
+		invoice.supplier = self.supplier.name
+		invoice.company = self.company
+		invoice.posting_date = nowdate()
+		invoice.append("items", {
+			"item_code": "_Test Item",
+			"qty": 1,
+			"rate": 42,
+			"expense_account": self.EXPENSE_ACCOUNT,
+			"supplier_description": "Forfait mensuel 42,00 EUR",
+		})
+		invoice.insert(ignore_mandatory=True)
+
+		alias = frappe.get_all(
+			"eTransactions Supplier Item Alias",
+			filters={"supplier": self.supplier.name, "supplier_item_code": "forfait mensuel"},
+			fields=["item_code", "expense_account"],
+		)
+		self.assertEqual(len(alias), 1)
+		self.assertEqual(alias[0].item_code, "_Test Item")
+		self.assertEqual(alias[0].expense_account, self.EXPENSE_ACCOUNT)
+
+	# --- Vendor name alias learning -----------------------------------------
+
+	def _ocr_request_with_vendor_name(self, vendor_name):
+		# Written straight to the table: `after_insert` would call out to the OCR service
+		# and, finding no file, roll the transaction back.
+		ocr_request = frappe.new_doc("OCR Request")
+		ocr_request.name = frappe.generate_hash(length=10)
+		ocr_request.analysis = frappe.as_json({"VENDOR_NAME": vendor_name})
+		ocr_request.db_insert()
+		return ocr_request
+
+	def _learn_alias_from(self, vendor_name, supplier=None):
+		doc = frappe.new_doc("Supplier Invoice")
+		doc.supplier = supplier or self.supplier.name
+		doc.supplier_name = doc.supplier
+		doc.ocr_request = self._ocr_request_with_vendor_name(vendor_name).name
+		doc._learn_from_manual_match()
+		return doc
+
+	def _alias_exists(self, vendor_name):
+		return bool(
+			frappe.db.exists("eTransactions Supplier Name Alias", {"vendor_name": vendor_name})
+		)
+
+	def test_alias_learned_from_a_real_vendor_name(self):
+		vendor_name = f"Vendor Block {frappe.generate_hash(length=6)}"
+
+		self._learn_alias_from(vendor_name)
+
+		self.assertTrue(self._alias_exists(vendor_name))
+
+	def test_alias_not_learned_from_buyer_company_name(self):
+		"""OCR reading our own letterhead as the vendor is what poisoned the table."""
+		company_name = frappe.db.get_value("Company", self.company, "company_name")
+		vendor_name = f"{company_name} SAS"
+
+		self._learn_alias_from(vendor_name)
+
+		self.assertFalse(self._alias_exists(vendor_name))
+
+	def test_alias_not_learned_when_claimed_by_another_supplier(self):
+		vendor_name = f"Contested Block {frappe.generate_hash(length=6)}"
+		other = self._new_supplier(f"Other Claimant {frappe.generate_hash(length=6)}")
+		self._learn_alias_from(vendor_name, supplier=other.name)
+
+		self._learn_alias_from(vendor_name)
+
+		self.assertEqual(
+			frappe.get_all(
+				"eTransactions Supplier Name Alias",
+				filters={"vendor_name": vendor_name},
+				pluck="supplier",
+			),
+			[other.name],
+		)
+
+	def test_retry_supplier_match_does_not_learn_an_alias(self):
+		"""A bulk re-match is a guess; only a human correction may become an alias."""
+		from etransactions.etransactions.doctype.supplier_invoice.supplier_invoice import (
+			retry_supplier_match,
+		)
+
+		suffix = frappe.generate_hash(length=6)
+		target = self._new_supplier(f"Retry Target {suffix}")
+		ocr_request = self._ocr_request_with_vendor_name(target.supplier_name)
+
+		invoice = frappe.new_doc("Supplier Invoice")
+		invoice.supplier = self.supplier.name
+		invoice.company = self.company
+		invoice.posting_date = nowdate()
+		invoice.ocr_request = ocr_request.name
+		invoice.insert(ignore_mandatory=True)
+
+		retry_supplier_match([invoice.name])
+
+		invoice.reload()
+		self.assertEqual(invoice.supplier, target.name)
+		self.assertFalse(self._alias_exists(target.supplier_name))
 
 	def test_supplier_tax_id_learned_when_unique(self):
 		suffix = frappe.generate_hash(length=6).upper()

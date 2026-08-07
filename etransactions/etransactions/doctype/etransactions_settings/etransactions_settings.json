@@ -24,6 +24,7 @@
   "purchase_invoices_tab",
   "purchase_invoices_section",
   "no_purchase_order",
+  "prefill_invoice_items",
   "block_if_grand_total_exceeds_pending_pi",
   "block_if_net_total_exceeds_pending_pi",
   "auto_reconciliation_section",
@@ -139,6 +140,13 @@
    "fieldname": "no_purchase_order",
    "fieldtype": "Check",
    "label": "Create purchase invoices without purchase orders or purchase receipts"
+  },
+  {
+   "default": "1",
+   "description": "Suggest item lines on a captured supplier invoice, from the supplier item mapping and, failing that, from that supplier's last invoice. Suggestions are always editable.",
+   "fieldname": "prefill_invoice_items",
+   "fieldtype": "Check",
+   "label": "Prefill item lines from supplier history"
   },
   {
    "default": "0",
