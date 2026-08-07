@@ -338,6 +338,11 @@ class OCRRequest(Document, InvoiceEntityResolverMixin):
 		doc.bill_no = data.get("bill_no")
 		doc.bill_date = data.get("bill_date")
 		doc.due_date = data.get("due_date")
+		# Post in the supplier's invoice period, not on the day the PDF happened to be
+		# imported. `posting_date` defaults to Today, which pushes a late-captured invoice
+		# into the wrong month; the extracted invoice date is the accountant's intent.
+		if data.get("bill_date"):
+			doc.posting_date = data.get("bill_date")
 		doc.supplier_net_amount = data.get("net_total")
 		doc.supplier_tax_amount = data.get("tax_total")
 		doc.supplier_grand_total = data.get("grand_total")

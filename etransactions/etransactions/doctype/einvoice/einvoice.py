@@ -12,6 +12,9 @@ from frappe.model.document import Document
 from frappe.utils import flt
 
 from etransactions.controllers.entity_resolver import InvoiceEntityResolverMixin
+from etransactions.etransactions.doctype.etransactions_supplier_item_alias.etransactions_supplier_item_alias import (
+	get_supplier_item_alias,
+)
 from etransactions.etransactions.doctype.einvoice.parser import eInvoiceParser
 from etransactions.etransactions.doctype.einvoice.generator import (
 	EInvoiceGenerator,
@@ -975,6 +978,10 @@ class IncomingInvoiceDataTransformer(InvoiceEntityResolverMixin):
 			"supplier_name": self.invoice_doc.seller_name,
 			"bill_no": self.invoice_doc.id,
 			"bill_date": self.invoice_doc.issue_date,
+			# Post in the issuer's period rather than on the day the flow was received:
+			# `posting_date` otherwise defaults to Today. Still editable before the
+			# Purchase Invoice is created.
+			"posting_date": self.invoice_doc.issue_date,
 			"due_date": self.invoice_doc.due_date,
 			"currency": self.invoice_doc.currency,
 			"supplier_net_amount": self.invoice_doc.line_total,
@@ -989,7 +996,7 @@ class IncomingInvoiceDataTransformer(InvoiceEntityResolverMixin):
 		}
 
 		for item in self.invoice_doc.items:
-			data["items"].append({
+			row = {
 				"supplier_description": item.product_name,
 				"description": item.product_description,
 				"supplier_item_code": item.seller_product_id,
@@ -997,7 +1004,17 @@ class IncomingInvoiceDataTransformer(InvoiceEntityResolverMixin):
 				"qty": item.billed_quantity,
 				"rate": item.net_rate,
 				"amount": item.total_amount,
-			})
+			}
+			# A received e-invoice names the seller's own product, which only maps to one of
+			# our Items once someone has said so. Reuse that answer instead of asking again.
+			if not row["item_code"] and data["supplier"]:
+				alias = get_supplier_item_alias(
+					data["supplier"], item.seller_product_id or item.product_name
+				)
+				if alias:
+					row.update(alias)
+
+			data["items"].append(row)
 
 		return data
 

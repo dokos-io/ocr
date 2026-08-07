@@ -2,11 +2,80 @@ import re
 import frappe
 import difflib
 
+from frappe import _
+
 LEGAL_FORMS = frozenset({
 	"SA", "SAS", "SARL", "EURL", "SCI", "SNC", "GIE", "SASU",
 	"SELARL", "SELAFA", "SCOP", "SCP", "SEP",
 })
 STOP_WORDS = frozenset({"ET", "DE", "DU", "LA", "LE", "LES", "DES", "EN", "AU", "AUX"})
+
+# Below this, a vendor name is a fragment rather than an identity ("SSP", "V-").
+MIN_LEARNABLE_VENDOR_NAME_LENGTH = 4
+# A name this close to one of our own companies is the buyer, whatever OCR labelled it.
+OWN_COMPANY_SIMILARITY = 0.85
+
+
+def normalize_vendor_name(name: str | None) -> str:
+	"""Collapse the whitespace OCR inherits from the PDF's line breaks.
+
+	Textract returns the vendor block verbatim, so the same supplier arrives as
+	"Tete en\nl'air" on one invoice and "Tete en l'air" on the next. Aliases keyed on the
+	raw string would treat those as two different vendors.
+	"""
+	return re.sub(r"\s+", " ", name or "").strip()
+
+
+def is_own_company_name(name: str | None) -> bool:
+	"""True when the name denotes one of our own companies rather than a supplier.
+
+	OCR routinely reads the buyer's letterhead as VENDOR_NAME. Learning that as a supplier
+	alias maps our own name onto whichever supplier was being corrected at the time, and
+	every later misread then resolves to that supplier with high confidence.
+	"""
+	candidate = normalize_vendor_name(name).lower()
+	if not candidate:
+		return False
+
+	for company, abbr in frappe.get_all("Company", fields=["name", "abbr"], as_list=True):
+		# The abbreviation is only trusted on an exact match: it is often two letters, and
+		# "DK" as a substring rule would swallow real suppliers.
+		if candidate in {normalize_vendor_name(company).lower(), normalize_vendor_name(abbr).lower()}:
+			return True
+
+		own = normalize_vendor_name(company).lower()
+		if len(own) < MIN_LEARNABLE_VENDOR_NAME_LENGTH:
+			continue
+		# "DOKOS SAS", "SAS DOKOS" — the legal form is noise around our own name.
+		if own in candidate.split():
+			return True
+		if difflib.SequenceMatcher(None, candidate, own).ratio() >= OWN_COMPANY_SIMILARITY:
+			return True
+
+	return False
+
+
+def vendor_name_rejection_reason(name: str | None) -> str | None:
+	"""Why this vendor name may not be learned as an alias, or None if it may.
+
+	Resolution trusts the alias table at "high" confidence, ahead of every similarity
+	heuristic, so a row that does not identify exactly one supplier actively misroutes
+	invoices instead of merely failing to help.
+	"""
+	candidate = normalize_vendor_name(name)
+
+	if len(candidate) < MIN_LEARNABLE_VENDOR_NAME_LENGTH or not any(c.isalpha() for c in candidate):
+		return _("{0} is too generic to identify a supplier.").format(candidate)
+
+	if is_own_company_name(candidate):
+		return _("{0} is one of your own companies, not a supplier name.").format(candidate)
+
+	return None
+
+
+def is_learnable_vendor_name(name: str | None) -> bool:
+	"""Whether a vendor name is specific enough to be worth remembering as an alias."""
+	return vendor_name_rejection_reason(name) is None
 
 
 class InvoiceEntityResolverMixin:
@@ -65,12 +134,20 @@ class InvoiceEntityResolverMixin:
 				self._match_confidence = "high"
 
 		# 3. Match by vendor name alias (manually confirmed mappings)
+		# Same rule as the tax id above: an alias claimed by several suppliers is evidence of
+		# a bad mapping, not of a match. Picking one arbitrarily — and calling it "high"
+		# confidence — is how an OCR misread of the buyer's own name silently reassigns every
+		# invoice bearing it. Fall through to name matching instead.
 		if not supplier and seller_name:
-			alias_supplier = frappe.db.get_value(
-				"eTransactions Supplier Name Alias", {"vendor_name": seller_name}, "supplier"
+			alias_suppliers = set(
+				frappe.get_all(
+					"eTransactions Supplier Name Alias",
+					filters={"vendor_name": normalize_vendor_name(seller_name)},
+					pluck="supplier",
+				)
 			)
-			if alias_supplier:
-				supplier = alias_supplier
+			if len(alias_suppliers) == 1:
+				supplier = alias_suppliers.pop()
 				self._match_confidence = "high"
 
 		# 4. Exact supplier_name match (also try name field for non-series naming)

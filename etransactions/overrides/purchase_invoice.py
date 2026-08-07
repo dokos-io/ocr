@@ -17,10 +17,27 @@ def on_submit(doc, method):
 		frappe.log_error(frappe.get_traceback(), _("e-reporting purchase capture failed"))
 
 
-def after_mapping(doc, method, purchase_order):
-	if purchase_order.get("supplier_invoice"):
-		doc.supplier_invoice = purchase_order.supplier_invoice
-		doc.ocr_original_file = purchase_order.get("ocr_original_file")
+def after_mapping(doc, method, source):
+	"""Carry the Supplier Invoice context onto an invoice mapped from an order or receipt.
+
+	`source` is whichever document the user mapped from; today only Purchase Order carries
+	`supplier_invoice`, so anything else no-ops here.
+
+	The invoice must inherit the Supplier Invoice's posting date. Without `set_posting_time`,
+	`validate_posting_time` silently rewrites `posting_date` to *now*, so an invoice captured
+	for June but mapped in July lands in the wrong period. `SupplierInvoice.get_purchase_invoice`
+	already does this for the invoice-first route; this covers the order-first one.
+	"""
+	if not source.get("supplier_invoice"):
+		return
+
+	doc.supplier_invoice = source.supplier_invoice
+	doc.ocr_original_file = source.get("ocr_original_file")
+
+	posting_date = frappe.db.get_value("Supplier Invoice", source.supplier_invoice, "posting_date")
+	if posting_date:
+		doc.posting_date = posting_date
+		doc.set_posting_time = 1
 
 def validate_over_billing(doc, method):
 	if not doc.supplier_invoice:
