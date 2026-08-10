@@ -232,6 +232,58 @@ class TestProfileKillSwitch(UnitTestCase):
 		self.assertEqual(self._findings("B2C"), [])
 
 
+class TestPlatformFrameworkSupport(UnitTestCase):
+	"""Esalink handles only B2B and B2G billing frameworks, and exposes no
+	e-reporting either — a B2Bi/B2C sale would be neither invoiced nor declared,
+	so the invoice form must say so."""
+
+	def _findings(self, cls_name, platform_type):
+		from types import SimpleNamespace
+		from unittest.mock import patch
+
+		from etransactions.plateforme_agreee.classification import TransactionClass
+		from etransactions.plateforme_agreee.readiness import _platform_framework_findings
+
+		doc = SimpleNamespace(
+			get=lambda k, d=None: {
+				"company": "_Test Company",
+				"customer": "_Test Customer",
+				"customer_address": None,
+			}.get(k, d),
+		)
+		with (
+			patch(
+				"etransactions.plateforme_agreee.session.get_platform_for_company",
+				return_value=SimpleNamespace(name="_Test Platform", platform_type=platform_type),
+			),
+			patch(
+				"etransactions.plateforme_agreee.classification.classify_transaction",
+				return_value=TransactionClass(cls_name),
+			),
+		):
+			return _platform_framework_findings(doc)
+
+	def test_esalink_warns_on_unsupported_framework(self):
+		findings = self._findings("B2Bi", "Esalink")
+		self.assertEqual([f.key for f in findings], ["platform_framework_unsupported"])
+		self.assertEqual(findings[0].severity, "warning")
+		self.assertIn("B2B, B2G", findings[0].detail)
+
+	def test_esalink_stays_silent_on_supported_frameworks(self):
+		self.assertEqual(self._findings("B2B", "Esalink"), [])
+		self.assertEqual(self._findings("B2G", "Esalink"), [])
+
+	def test_unrestricted_platform_stays_silent(self):
+		self.assertEqual(self._findings("B2Bi", "SuperPDP"), [])
+
+	def test_unknown_platform_type_is_never_gated(self):
+		from etransactions.plateforme_agreee.session import platform_supports_processing_rule
+
+		self.assertTrue(platform_supports_processing_rule("BrandNewPDP", "B2Bi"))
+		self.assertTrue(platform_supports_processing_rule("Esalink", "B2G"))
+		self.assertFalse(platform_supports_processing_rule("Esalink", "OutOfScope"))
+
+
 class TestCompanyChecks(UnitTestCase):
 	"""Seller-side readiness specs (company widget)."""
 

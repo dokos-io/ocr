@@ -52,6 +52,36 @@ DEFAULT_FR_MENTIONS = {
 	"AAB": "Pas d'escompte pour paiement anticipé.",
 }
 
+# Billing-framework note (BT-21 subject code / BT-22 content). The accredited
+# platforms require it explicitly, and the FNFE BR-FR-Flux2 schematron keys
+# several rules on it (BR-FR-11/21/22 only fire once BAR = B2B is present), so an
+# unlabelled invoice is silently treated as B2B *and* validated less strictly.
+# The public-sector case carries its own subject code ADN: B2G is not an accepted
+# BAR value (BR-FR-20).
+CTC_FRAMEWORK_NOTES = {
+	"B2B": ("BAR", "B2B"),
+	"B2G": ("ADN", "B2G"),
+	"B2Bi": ("BAR", "B2BINT"),
+	"B2C": ("BAR", "B2C"),
+	"OutOfScope": ("BAR", "OUTOFSCOPE"),
+}
+
+
+def resolve_ctc_framework_note(einvoice) -> tuple[str, str] | None:
+	"""(BT-21 subject code, BT-22 content) for this invoice, or None when out of scope.
+
+	Derived from the classifier's verdict (``pa_processing_rule``), so the label
+	can never disagree with the routing actually applied. Emitted for every French
+	seller — not only French domestic invoices, otherwise the B2BINT case (foreign
+	buyer by definition) would never be labelled.
+	"""
+	if getattr(einvoice, "seller_country", None) != "France":
+		return None
+	# Same fallback as the platform submission (see eInvoice.send_to_plateform) and
+	# as the field default: an unset rule means B2B.
+	return CTC_FRAMEWORK_NOTES.get(getattr(einvoice, "pa_processing_rule", None) or "B2B")
+
+
 uom_codes = CommonCodeRetriever(
 	["urn:xoev-de:kosit:codeliste:rec20_3", "urn:xoev-de:kosit:codeliste:rec21_3"], "C62"
 )
@@ -558,6 +588,23 @@ class EInvoiceGenerator:
 			self.doc.header.notes.add(note)
 
 		self._add_french_mandatory_mentions()
+		self._add_ctc_framework_note()
+
+	def _add_ctc_framework_note(self):
+		"""Add the explicit billing-framework note (BT-21/BT-22).
+
+		BAR = B2B for businesses, ADN = B2G for the public sector (and the other
+		regulated treatments for flows that are e-reported rather than invoiced).
+		A single BAR note is ever emitted, so BR-FR-31 stays satisfied.
+		"""
+		resolved = resolve_ctc_framework_note(self.einvoice)
+		if not resolved:
+			return
+
+		subject_code, content = resolved
+		note = IncludedNote(subject_code=subject_code)
+		note.content.add(content)
+		self.doc.header.notes.add(note)
 
 	def _add_french_mandatory_mentions(self):
 		"""Add the mandatory French legal mentions (BR-FR-05) for CTC invoices.

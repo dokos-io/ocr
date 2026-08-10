@@ -18,24 +18,31 @@ from frappe.utils import now_datetime
 #   ``directory_registration_via_partner`` advertises own-entry management
 #   through the integrator/partner API (Esalink HUBTIMIZE): requests are
 #   validated by the platform and take effect at a start date ≥10 days out.
+#   ``supported_processing_rules`` restricts the billing frameworks (BT-22) the
+#   platform accepts on a structured invoice; ``None`` means no restriction.
+#   Esalink handles only B2B and B2G today — the other normative treatments
+#   (B2BINT, B2C, OUTOFSCOPE, ARCHIVEONLY) are not served.
 PLATFORM_CAPABILITIES = {
 	"SuperPDP": {
 		"self_provision": False,
 		"ereporting": True,
 		"directory_registration": True,
 		"directory_registration_via_partner": False,
+		"supported_processing_rules": None,
 	},
 	"Esalink": {
 		"self_provision": False,
 		"ereporting": False,
 		"directory_registration": False,
 		"directory_registration_via_partner": True,
+		"supported_processing_rules": ("B2B", "B2G"),
 	},
 	"Custom": {
 		"self_provision": False,
 		"ereporting": False,
 		"directory_registration": False,
 		"directory_registration_via_partner": False,
+		"supported_processing_rules": None,
 	},
 }
 
@@ -43,6 +50,18 @@ PLATFORM_CAPABILITIES = {
 def platform_supports(platform_type: str, capability: str) -> bool:
 	"""True if the given platform type advertises the named capability."""
 	return bool(PLATFORM_CAPABILITIES.get(platform_type, {}).get(capability))
+
+
+def platform_supports_processing_rule(platform_type: str, processing_rule: str) -> bool:
+	"""True if the platform accepts this billing framework on a structured invoice.
+
+	Unknown platform types and platforms that declare no restriction accept
+	everything, so a new platform is never gated by omission.
+	"""
+	supported = PLATFORM_CAPABILITIES.get(platform_type, {}).get("supported_processing_rules")
+	if not supported:
+		return True
+	return processing_rule in supported
 
 
 @frappe.whitelist()

@@ -30,7 +30,7 @@ PROFILE_TO_XSL = {
 UBL_XSL = ["EN16931-UBL-validation.xslt", "PEPPOL-EN16931-UBL.xslt"]
 
 # French CTC business-rule pre-flight (FNFE BR-FR-Flux2, v1.4.0), run in the
-# non-blocking "WARNING" build: failed rules surface as successful-reports, which
+# non-blocking "WARNING" build: its rules carry flag="warning", which
 # extract_failed_asserts() routes to warnings (never validation_errors), so they
 # never block Factur-X PDF generation. Applied only to the French Extended /
 # CTC-FR CII profiles — never to international Peppol UBL, which does not carry
@@ -80,10 +80,18 @@ def get_errors_from_stylesheet(xml_string: str, stylesheet: str):
 
 
 def extract_failed_asserts(xml: bytes) -> tuple[list[str], list[str]]:
+	"""Split an SVRL report into blocking errors and non-blocking warnings.
+
+	A failed assertion is blocking only when the schematron flags it as such:
+	``flag="warning"`` is the SVRL way of saying "report this, don't reject the
+	document", and whole stylesheets are shipped in that form (the FNFE
+	BR-FR-Flux2 pre-flight). Since ``validation_errors`` blocks Factur-X PDF
+	generation, honouring the flag is what keeps advisory rules advisory.
+	"""
 	root = objectify.fromstring(xml)
 	ns = {"svrl": "http://purl.oclc.org/dsdl/svrl"}
 	failed_asserts = root.xpath("//svrl:failed-assert", namespaces=ns)
-	warnings = root.xpath("//svrl:successful-report/svrl:text", namespaces=ns)
+	reports = root.xpath("//svrl:successful-report/svrl:text", namespaces=ns)
 
 	def message(node) -> str | None:
 		text_nodes = node.xpath("svrl:text", namespaces=ns)
@@ -95,8 +103,14 @@ def extract_failed_asserts(xml: bytes) -> tuple[list[str], list[str]]:
 		location = node.get("location")
 		return f"{text} [{location}]" if location else text
 
-	errors = [m for node in failed_asserts if (m := message(node))]
-	warnings = [warning.text.strip() for warning in warnings if warning.text]
+	errors: list[str] = []
+	warnings: list[str] = []
+	for node in failed_asserts:
+		if (m := message(node)) is None:
+			continue
+		(warnings if node.get("flag") == "warning" else errors).append(m)
+
+	warnings += [report.text.strip() for report in reports if report.text]
 	return errors, warnings
 
 

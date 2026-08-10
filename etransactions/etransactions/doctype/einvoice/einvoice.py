@@ -241,6 +241,7 @@ class eInvoice(Document):
 		client = get_client(self.company, customer=customer)
 		file_content, filename, syntax = self._get_file_for_pa()
 		processing_rule = self.pa_processing_rule or "B2B"
+		self._check_platform_handles(processing_rule)
 
 		result = client.submit_invoice(
 			file_content,
@@ -261,6 +262,32 @@ class eInvoice(Document):
 			# Clear any error text from a previous (rejected) send on a successful resend.
 			"pa_error_details": None,
 		})
+
+	def _check_platform_handles(self, processing_rule: str):
+		"""Block a framework the platform does not serve, before it fails opaquely.
+
+		The billing framework (BT-22) is stamped by the classifier. Esalink handles
+		only B2B and B2G; pushing a B2Bi or OutOfScope flow at it returns an
+		unhelpful platform-side error, so refuse it here with the reason.
+		"""
+		from etransactions.plateforme_agreee.session import (
+			get_platform_for_company,
+			platform_supports_processing_rule,
+		)
+
+		platform = get_platform_for_company(self.company)
+		if not platform or platform_supports_processing_rule(platform.platform_type, processing_rule):
+			return
+
+		frappe.throw(
+			_(
+				"This invoice is classified <b>{0}</b>, a billing framework the accredited "
+				"platform <b>{1}</b> does not handle. Check the customer's identification "
+				"(SIREN, country, directory entry) if you expected a different classification."
+			).format(processing_rule, platform.name),
+			frappe.ValidationError,
+			title=_("Framework not handled by the platform"),
+		)
 
 	@frappe.whitelist()
 	def refresh_pa_status(self):

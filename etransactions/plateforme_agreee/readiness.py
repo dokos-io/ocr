@@ -523,9 +523,57 @@ def evaluate_einvoice_readiness(doc) -> list[Finding]:
 	findings: list[Finding] = []
 	findings += _seller_findings(doc)
 	findings += _routing_findings(doc)
+	findings += _platform_framework_findings(doc)
 	findings += _tax_findings(doc)
 	findings += _payment_schedule_findings(doc)
 	return findings
+
+
+def _platform_framework_findings(doc) -> list[Finding]:
+	"""Warn when the configured platform does not serve this invoice's framework.
+
+	The billing framework (BT-22: B2B, B2G, B2BINT, B2C…) is stamped on every
+	invoice from the classifier's verdict. Esalink handles only B2B and B2G, and
+	exposes no e-reporting endpoints either, so a B2Bi/B2C sale would end up
+	neither invoiced nor declared — say so while the user is still on the form.
+	"""
+	if not (doc.get("company") and doc.get("customer")):
+		return []
+	try:
+		from etransactions.plateforme_agreee.classification import classify_transaction
+		from etransactions.plateforme_agreee.session import (
+			PLATFORM_CAPABILITIES,
+			get_platform_for_company,
+			platform_supports_processing_rule,
+		)
+
+		platform = get_platform_for_company(doc.get("company"))
+		if not platform:
+			return []
+		cls = classify_transaction(
+			doc.get("company"), "Customer", doc.get("customer"), doc.get("customer_address")
+		)
+		if platform_supports_processing_rule(platform.platform_type, cls.value):
+			return []
+		supported = PLATFORM_CAPABILITIES[platform.platform_type]["supported_processing_rules"]
+	except Exception:
+		return []
+
+	return [
+		Finding(
+			"platform_framework_unsupported",
+			"warning",
+			_("The accredited platform does not handle {0} flows").format(cls.value),
+			detail=_(
+				"This invoice is classified <b>{0}</b>, but the accredited platform"
+				" <b>{1}</b> only handles {2}. It will not be transmitted as a structured"
+				" invoice. Check the customer's identification (SIREN, country, directory"
+				" entry) if you expected a different classification."
+			).format(cls.value, frappe.utils.sanitize_html(platform.name), ", ".join(supported)),
+			fix_doctype="Customer",
+			fix_name=doc.get("customer"),
+		)
+	]
 
 
 def _profile_findings(doc) -> list[Finding]:
