@@ -2212,6 +2212,10 @@ msgstr "Force la syntaxe XML des factures utilisant ce profil. Laissez vide pour
 msgid "French CTC (PPF)"
 msgstr "CTC français (PPF)"
 
+#: etransactions/etransactions/doctype/einvoice/einvoice.py:289
+msgid "Framework not handled by the platform"
+msgstr "Cadre de facturation non pris en charge par la plateforme"
+
 #. Label of the frequency (Select) field in DocType 'Closing Checklist
 #. Template'
 #: etransactions/etransactions_hub/doctype/closing_checklist_template/closing_checklist_template.json
@@ -5308,6 +5312,11 @@ msgstr "Le compte s'active automatiquement une fois qu'Esalink valide l'enrôlem
 msgid "The accredited platform does not support the 'Cancelled' lifecycle status: the invoice is cancelled locally only. Inform the buyer through another channel."
 msgstr "La plateforme agréée ne prend pas en charge le statut de cycle de vie 'Annulée' : la facture n'est annulée que localement. Informez l'acheteur par un autre canal."
 
+#: etransactions/plateforme_agreee/readiness.py:566
+#, python-brace-format
+msgid "The accredited platform does not handle {0} flows"
+msgstr "La plateforme agréée ne prend pas en charge les flux {0}"
+
 #: etransactions/plateforme_agreee/directory.py:155
 #, python-brace-format
 msgid "The accredited-platform directory could not be synced for this customer, which is required before confirmation. Sync the directory on the customer (or set Directory Sync on Submit to 'not blocking'). Error: {0}"
@@ -5567,6 +5576,16 @@ msgstr "Cette facture présente des problèmes de facturation électronique qui 
 #, python-brace-format
 msgid "This invoice is classified <b>{0}</b> and falls under the French e-invoicing mandate, but no <b>eTransaction Profile</b> is set — so no electronic invoice will be generated or transmitted. Set a profile (e.g. EN16931) on the <a href='/app/customer/{1}'>customer</a> or on this invoice."
 msgstr "Cette facture est classée <b>{0}</b> et relève de l'obligation française de facturation électronique, mais aucun <b>profil eTransaction</b> n'est défini — aucune facture électronique ne sera donc générée ni transmise. Définissez un profil (ex. EN16931) sur le <a href='/app/customer/{1}'>client</a> ou sur cette facture."
+
+#: etransactions/plateforme_agreee/readiness.py:568
+#, python-brace-format
+msgid "This invoice is classified <b>{0}</b>, but the accredited platform <b>{1}</b> only handles {2}. It will not be transmitted as a structured invoice. Check the customer's identification (SIREN, country, directory entry) if you expected a different classification."
+msgstr "Cette facture est classée <b>{0}</b>, mais la plateforme agréée <b>{1}</b> ne prend en charge que {2}. Elle ne sera pas transmise comme facture structurée. Vérifiez l'identification du client (SIREN, pays, inscription à l'annuaire) si vous attendiez une autre classification."
+
+#: etransactions/etransactions/doctype/einvoice/einvoice.py:284
+#, python-brace-format
+msgid "This invoice is classified <b>{0}</b>, a billing framework the accredited platform <b>{1}</b> does not handle. Check the customer's identification (SIREN, country, directory entry) if you expected a different classification."
+msgstr "Cette facture est classée <b>{0}</b>, un cadre de facturation que la plateforme agréée <b>{1}</b> ne prend pas en charge. Vérifiez l'identification du client (SIREN, pays, inscription à l'annuaire) si vous attendiez une autre classification."
 
 #: etransactions/etransactions/doctype/einvoice/einvoice.py:214
 msgid "This invoice is classified B2C: the customer is not reachable through the e-invoicing directory, so the sale is declared to the tax authority via e-reporting, not submitted as a structured e-invoice.<br><br>To send a structured invoice instead, register the customer in the directory (set a valid SIREN and re-sync the directory) so an active routing line is resolved — the invoice will then be classified B2B."

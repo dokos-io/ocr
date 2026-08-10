@@ -114,6 +114,12 @@ class TestUBLGeneration(UnitTestCase):
 		for subject_code in ("#PMD#", "#PMT#", "#AAB#"):
 			self.assertIn(subject_code, xml)
 
+	def test_billing_framework_note(self):
+		# BT-21/BT-22 must be explicit: BAR = B2B for businesses, ADN = B2G for
+		# the public sector, flattened into the single Peppol note.
+		self.assertIn("#BAR#B2B", _generate(_fixture_einvoice(pa_processing_rule="B2B")))
+		self.assertIn("#ADN#B2G", _generate(_fixture_einvoice(pa_processing_rule="B2G")))
+
 	def test_credit_note_root_and_billing_reference(self):
 		xml = _generate(
 			_fixture_einvoice(is_return=1, return_against="SINV-0042", due_date=None)

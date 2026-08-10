@@ -7,9 +7,10 @@ buyer is addressed through the Peppol network.
 
 Divergences from the CII/EXTENDED path (UBL carries only the EN16931 core +
 Peppol CIUS):
-- Peppol allows a single document note (cbc:Note): terms, incoterm and the
-  French mandatory mentions are concatenated with the ``#SUBJECTCODE#`` prefix
-  convention.
+- Peppol allows a single document note (cbc:Note): terms, incoterm, the French
+  mandatory mentions and the billing-framework note (BAR/ADN) are concatenated
+  with the ``#SUBJECTCODE#`` prefix convention — the same convention the FNFE
+  BR-FR-Flux2 UBL schematron parses back.
 - No structured instalments: the payment schedule is flattened into one
   cac:PaymentTerms note plus the document-level DueDate.
 """
@@ -23,6 +24,7 @@ from etransactions.etransactions.doctype.einvoice.generator import (
 	DEFAULT_FR_MENTIONS,
 	duty_tax_fee_category_codes,
 	payment_means_codes,
+	resolve_ctc_framework_note,
 	vat_exemption_reason_codes,
 )
 from etransactions.utils import EInvoiceProfile
@@ -140,8 +142,9 @@ class UBLGenerator:
 			_cbc(self.root, "BuyerReference", self.einvoice.buyer_reference)
 
 	def _document_note(self) -> str | None:
-		"""Peppol allows one document note: concatenate terms, incoterm and the
-		French mentions using the ``#SUBJECTCODE#`` prefix convention."""
+		"""Peppol allows one document note: concatenate terms, incoterm, the French
+		mentions and the billing framework using the ``#SUBJECTCODE#`` prefix
+		convention."""
 		segments = []
 		if self.einvoice.terms:
 			segments.append(f"#ABC#{to_markdown(self.einvoice.terms).strip()}")
@@ -156,6 +159,9 @@ class UBLGenerator:
 			}
 			for subject_code, text in mentions.items():
 				segments.append(f"#{subject_code}#{(text or DEFAULT_FR_MENTIONS[subject_code]).strip()}")
+		framework = resolve_ctc_framework_note(self.einvoice)
+		if framework:
+			segments.append("#{0}#{1}".format(*framework))
 		return "\n".join(segments) or None
 
 	def _is_french_domestic(self) -> bool:
