@@ -125,9 +125,12 @@ after_migrate = "ocr.migrate.after_migrate"
 # ---------------
 # Override standard doctype classes
 
-# override_doctype_class = {
-#	"ToDo": "custom_app.overrides.CustomToDo"
-# }
+# Lets the credit note allocation post its own reconciliation entries without
+# granting OCR users rights on every journal entry of the system.
+# See ocr.overrides.journal_entry.system_generated_reconciliation.
+override_doctype_class = {
+	"Journal Entry": "ocr.overrides.journal_entry.OCRJournalEntry"
+}
 
 # Document Events
 # ---------------

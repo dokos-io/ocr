@@ -626,8 +626,35 @@ class PendingPurchaseInvoice(Document):
 			total_allocated += flt(row.allocated_amount)
 
 			pi = frappe.db.get_value(
-				"Purchase Invoice", row.purchase_invoice, ["docstatus", "grand_total"], as_dict=True
+				"Purchase Invoice",
+				row.purchase_invoice,
+				["docstatus", "grand_total", "supplier", "company", "is_return"],
+				as_dict=True,
 			)
+			# The reconciliation is posted with elevated rights, so the eligibility of each
+			# target is enforced here rather than relying on the dialog's link query.
+			if pi:
+				if pi.supplier != self.supplier:
+					frappe.throw(
+						_("Row {0}: invoice {1} belongs to supplier {2} and cannot be allocated to this credit note.").format(
+							row.idx, row.purchase_invoice, pi.supplier
+						)
+					)
+
+				if pi.company != self.company:
+					frappe.throw(
+						_("Row {0}: invoice {1} belongs to company {2} and cannot be allocated to this credit note.").format(
+							row.idx, row.purchase_invoice, pi.company
+						)
+					)
+
+				if pi.is_return:
+					frappe.throw(
+						_("Row {0}: invoice {1} is itself a debit note and cannot be a target of an allocation.").format(
+							row.idx, row.purchase_invoice
+						)
+					)
+
 			# Drafts are allowed in the table but skipped at reconciliation time, so the
 			# amount check only applies to submitted invoices.
 			if not pi or pi.docstatus != 1:
@@ -750,8 +777,16 @@ class PendingPurchaseInvoice(Document):
 		invoices listed in ``credit_note_allocations`` using ERPNext's Payment
 		Reconciliation engine. Only submitted target invoices are reconciled; drafts
 		are skipped with a comment.
+
+		ERPNext posts the reconciliation as a system generated Journal Entry. That entry
+		is created with elevated rights (see
+		``ocr.overrides.journal_entry.system_generated_reconciliation``) so OCR users do
+		not need rights on every journal entry; the user's own authority is checked here,
+		on the invoices whose outstanding is about to change.
 		"""
 		from erpnext.accounts.party import get_party_account
+
+		from ocr.overrides.journal_entry import system_generated_reconciliation
 
 		if not self.credit_note_allocations or purchase_invoice.docstatus != 1:
 			return
@@ -760,6 +795,7 @@ class PendingPurchaseInvoice(Document):
 		for row in self.credit_note_allocations:
 			if flt(row.allocated_amount) <= 0:
 				continue
+			frappe.has_permission("Purchase Invoice", "write", doc=row.purchase_invoice, throw=True)
 			if frappe.db.get_value("Purchase Invoice", row.purchase_invoice, "docstatus") != 1:
 				self.add_comment(
 					text=_("Invoice {0} is not submitted and was skipped during credit note reconciliation.").format(row.purchase_invoice)
@@ -816,7 +852,12 @@ class PendingPurchaseInvoice(Document):
 			entry.difference_amount = pr.get_difference_amount(pay, inv, allocate)
 			entry.difference_account = default_exc_gain_loss
 			entry.exchange_rate = inv.get("exchange_rate")
-			entry.update({"gain_loss_posting_date": pay.get("posting_date")})
+			# Without debit_or_credit_note_posting_date the reconciliation entry falls back
+			# to today() in ERPNext, which back-dated credit notes must not do.
+			entry.update({
+				"gain_loss_posting_date": pay.get("posting_date"),
+				"debit_or_credit_note_posting_date": purchase_invoice.posting_date,
+			})
 			allocations.append(entry)
 			remaining -= allocate
 
@@ -827,7 +868,9 @@ class PendingPurchaseInvoice(Document):
 		for entry in allocations:
 			pr.append("allocation", entry)
 
-		pr.reconcile()
+		with system_generated_reconciliation(self.company, self.supplier, self.name):
+			pr.reconcile()
+
 		self.add_comment(
 			text=_("Credit note {0} reconciled against {1} invoice(s).").format(purchase_invoice.name, len(allocations))
 		)
