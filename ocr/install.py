@@ -11,9 +11,33 @@ def after_install():
 
 
 def before_tests():
-	from erpnext.setup.utils import before_tests as erpnext_before_tests
+	# erpnext no longer exposes a before_tests helper, so the company bootstrap is
+	# inlined here (same approach as hrms.tests.test_utils.before_tests).
+	from frappe.desk.page.setup_wizard.setup_wizard import setup_complete
+	from frappe.utils import now_datetime
 
-	erpnext_before_tests()
+	frappe.clear_cache()
+
+	if not frappe.get_list("Company"):
+		year = now_datetime().year
+		setup_complete({
+			"currency": "EUR",
+			"full_name": "Test User",
+			"company_name": "_Test Company",
+			"timezone": "Europe/Paris",
+			"company_abbr": "_TC",
+			"industry": "Manufacturing",
+			"country": "France",
+			"fy_start_date": f"{year}-01-01",
+			"fy_end_date": f"{year}-12-31",
+			"language": "english",
+			"company_tagline": "Testing",
+			"email": "test@dokos.io",
+			"password": "test",
+			"chart_of_accounts": "Standard",
+		})
+
+	frappe.db.commit()
 
 
 def add_custom_fields():
