@@ -33,23 +33,21 @@ frappe.ui.form.on("Communication", {
 	},
 
 	create_basket_for_purchase_invoice: (frm) => {
-		frm.events.create_basket(frm, "Purchase Invoice");
+		frm.events.create_basket(frm);
 	},
 
 	create_basket_for_expense: (frm) => {
-		frm.events.create_basket(frm, "Expense");
+		frm.events.create_basket(frm);
 	},
 
-	create_basket: (frm, basket_type) => {
+	create_basket: (frm) => {
 		return frappe.call({
-			method: "etransactions.etransactions.doctype.supplier_invoice_basket.supplier_invoice_basket.make_basket_from_communication",
+			method: "etransactions.etransactions.doctype.supplier_invoices_basket.supplier_invoices_basket.make_basket_from_communication",
 			args: {
-				communication: frm.doc.name,
-				basket_type: basket_type
+				communication: frm.doc.name
 			},
 			freeze: true,
 			callback: (r) => {
-				console.log(r)
 				if(r.message) {
 					frm.reload_doc()
 				}
