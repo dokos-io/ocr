@@ -157,11 +157,13 @@ def create_basket_from_files(file_names: list[str] | str):
 
 
 @frappe.whitelist()
-def make_basket_from_communication(communication: str, basket_type: str, ignore_communication_links: bool | None = False):
+def make_basket_from_communication(communication: str, ignore_communication_links: bool | None = False):
+	frappe.has_permission("Communication", "write", communication, throw=True)
+	frappe.has_permission("Supplier Invoices Basket", "create", throw=True)
+
 	communication_doc = frappe.get_doc("Communication", communication)
 
 	basket = frappe.new_doc("Supplier Invoices Basket")
-	basket.document_type = basket_type
 	basket.subject = frappe.as_unicode(communication_doc.subject)[:140]
 	basket.sender = frappe.as_unicode(communication_doc.sender)
 
@@ -170,7 +172,8 @@ def make_basket_from_communication(communication: str, basket_type: str, ignore_
 
 	link_communication_to_document(communication_doc, "Supplier Invoices Basket", basket.name, ignore_communication_links)
 
-	basket.run_method("create_requests")
+	# The files live on the Communication, so route only once the link exists.
+	basket.route_invoices()
 
 	return basket
 
