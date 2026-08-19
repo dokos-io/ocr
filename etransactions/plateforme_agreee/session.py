@@ -133,6 +133,17 @@ def _build_client(
 	# Esalink (HUBTIMIZE) — native AFNOR-style client with the hubtimize-api-key header.
 	# Credentials are the company's minted clientId/clientSecret; the api-key is site-level
 	# and the base URL follows the platform record's environment (defaults to prod).
+	from etransactions.plateforme_agreee.dokos_connector import use_proxy
+
+	if use_proxy():
+		# The partner-level hubtimize-api-key never reaches this site once the proxy is on;
+		# only the company's own clientId/clientSecret are forwarded, per call, to dokops.
+		from etransactions.components.esalink import EsalinkProxyClient
+
+		return EsalinkProxyClient(
+			client_id=client_id, client_secret=client_secret, environment=esalink_environment
+		)
+
 	from etransactions.components.esalink import EsalinkClient, base_url_for_environment
 	from etransactions.plateforme_agreee.esalink_provisioning import esalink_api_key
 
