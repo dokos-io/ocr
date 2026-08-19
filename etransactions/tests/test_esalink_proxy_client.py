@@ -8,7 +8,7 @@ import frappe
 from frappe.tests import UnitTestCase
 
 from etransactions.components.esalink import EsalinkPartnerProxyClient, EsalinkProxyClient
-from etransactions.plateforme_agreee import esalink_provisioning as prov
+from etransactions.plateforme_agreee import dokos_connector, esalink_provisioning as prov
 from etransactions.plateforme_agreee import session
 
 
@@ -98,17 +98,20 @@ class TestEsalinkPartnerProxyClientForwarding(UnitTestCase):
 
 
 class TestEsalinkProxyModeSwitching(UnitTestCase):
-	def test_dokos_connector_configured_requires_all_three_keys(self):
+	"""No separate opt-in flag: whether the shared dokos_connector_* triplet is configured
+	*is* the toggle, exactly like Bridge's own bank_api -> bridge_proxy cutover."""
+
+	def test_use_proxy_requires_all_three_connector_keys(self):
 		keys = ("dokos_connector_url", "dokos_connector_client_id", "dokos_connector_client_secret")
 		saved = {k: frappe.conf.get(k) for k in keys}
 		try:
 			frappe.conf["dokos_connector_url"] = "https://x"
 			frappe.conf["dokos_connector_client_id"] = "id"
 			frappe.conf["dokos_connector_client_secret"] = None
-			self.assertFalse(prov._dokos_connector_configured())
+			self.assertFalse(dokos_connector.use_proxy())
 
 			frappe.conf["dokos_connector_client_secret"] = "secret"
-			self.assertTrue(prov._dokos_connector_configured())
+			self.assertTrue(dokos_connector.use_proxy())
 		finally:
 			for k, v in saved.items():
 				if v is None:
@@ -116,27 +119,21 @@ class TestEsalinkProxyModeSwitching(UnitTestCase):
 				else:
 					frappe.conf[k] = v
 
-	def test_partner_client_returns_proxy_client_when_enabled(self):
-		with (
-			patch.object(prov, "use_proxy", return_value=True),
-			patch.object(prov, "_dokos_connector_configured", return_value=True),
-		):
+	def test_partner_client_returns_proxy_client_when_connector_configured(self):
+		with patch.object(prov, "use_proxy", return_value=True):
 			client = prov._partner_client("test")
 		self.assertIsInstance(client, EsalinkPartnerProxyClient)
 
-	def test_partner_client_raises_when_proxy_enabled_but_unconfigured(self):
+	def test_partner_client_raises_when_nothing_is_configured(self):
 		with (
-			patch.object(prov, "use_proxy", return_value=True),
-			patch.object(prov, "_dokos_connector_configured", return_value=False),
+			patch.object(prov, "use_proxy", return_value=False),
+			patch.object(prov, "esalink_partner_config", return_value={"username": "", "password": "", "api_key": "", "base_url": ""}),
 		):
 			with self.assertRaises(frappe.ValidationError):
 				prov._partner_client("test")
 
-	def test_partner_credentials_configured_checks_connector_in_proxy_mode(self):
-		with (
-			patch.object(prov, "use_proxy", return_value=True),
-			patch.object(prov, "_dokos_connector_configured", return_value=True),
-		):
+	def test_partner_credentials_configured_checks_connector_first(self):
+		with patch.object(prov, "use_proxy", return_value=True):
 			self.assertTrue(prov.partner_credentials_configured())
 
 	def test_build_client_uses_proxy_client_when_enabled(self):

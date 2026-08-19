@@ -9,11 +9,13 @@ active once Esalink validates the account.
 
 The integrator (partner) credentials and the ``hubtimize-api-key`` are read from
 ``site_config`` (``esalink_api_key``, ``esalink_partner_username``,
-``esalink_partner_password``) -- or, once ``esalink_use_proxy`` is set, not read on this
-site at all: dokops holds them and every partner call is forwarded through it (see
-:mod:`dokos_connector`). The minted per-company ``clientId``/``clientSecret`` live on each
-platform record either way and are what :func:`session.get_client` uses for invoice
-operations.
+``esalink_partner_password``) -- or, once this site's shared ``dokos_connector_*`` identity
+(see :mod:`dokos_connector`) is configured, not read on this site at all: dokops holds them
+and every partner call is forwarded through it instead. No separate opt-in flag decides
+this -- exactly like Bridge's own cutover, whichever credentials are actually configured is
+what gets used, and the connector is preferred when present. The minted per-company
+``clientId``/``clientSecret`` live on each platform record either way and are what
+:func:`session.get_client` uses for invoice operations.
 
 The *environment* (``test`` / ``prod``, defaulting to ``prod``) is chosen per platform record
 on its ``esalink_environment`` field — it is not a site-level setting. Both the partner client
@@ -69,24 +71,15 @@ def esalink_partner_config(environment: str | None = None) -> dict:
 	}
 
 
-def _dokos_connector_configured() -> bool:
-	"""True when this site's dokos proxy identity is set up in ``site_config``."""
-	return bool(
-		frappe.conf.get("dokos_connector_url")
-		and frappe.conf.get("dokos_connector_client_id")
-		and frappe.conf.get("dokos_connector_client_secret")
-	)
-
-
 def partner_credentials_configured() -> bool:
 	"""True when partner-management calls are usable from this site.
 
-	Once ``esalink_use_proxy`` is set, that means the dokos connector is configured (the
-	partner credentials themselves live only on dokops and are never checked here);
-	otherwise it means the 3 legacy partner credentials are present in ``site_config``.
+	``use_proxy()`` already means the dokos connector is configured (the partner
+	credentials themselves live only on dokops and are never checked here); otherwise this
+	falls back to the 3 legacy partner credentials in ``site_config``.
 	"""
 	if use_proxy():
-		return _dokos_connector_configured()
+		return True
 	cfg = esalink_partner_config()
 	return bool(cfg["username"] and cfg["password"] and cfg["api_key"])
 
@@ -115,12 +108,11 @@ def is_dokos_cloud() -> bool:
 
 
 def _partner_credentials_message() -> str:
-	"""Audience-aware guidance shown when Esalink partner-management calls aren't usable."""
-	if use_proxy():
-		return _(
-			"This site's dokos connector is not configured. Contact your account manager"
-			" to provision it."
-		)
+	"""Audience-aware guidance shown when Esalink partner-management calls aren't usable.
+
+	Reached only when neither the dokos connector nor the legacy site_config credentials
+	are configured -- ``use_proxy()`` already covers the connector case.
+	"""
 	base = _("The Esalink partner credentials are not configured on this site.")
 	if is_dokos_cloud():
 		return base + " " + _("Send a message to help@dokos.cloud to enable Esalink.")
@@ -155,8 +147,6 @@ def _partner_client(environment: str | None) -> "EsalinkPartnerClient | EsalinkP
 	or reads an account on the wrong Esalink.
 	"""
 	if use_proxy():
-		if not _dokos_connector_configured():
-			frappe.throw(_partner_credentials_message())
 		return EsalinkPartnerProxyClient(environment=environment or "prod")
 
 	cfg = esalink_partner_config(environment)

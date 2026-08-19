@@ -73,6 +73,17 @@ def esalink_request(endpoint: str, **kwargs):
 def use_proxy() -> bool:
 	"""Whether this site routes Esalink calls through dokops instead of Hubtimize directly.
 
-	Staged per-site cutover flag: sites flip this once provisioned, no code deploy needed.
+	No separate opt-in flag: Bridge's own bank_api -> bridge_proxy cutover never used one
+	either -- which backend a site reaches is decided purely by whether its connector
+	credentials (here, the shared ``dokos_connector_*`` triplet) are configured, mirroring
+	``bank_connector_url`` for Bridge. A Dokos Cloud site gets these auto-provisioned (see
+	``dokops.www.cnuage.v1.create_update_site``); an external self-hosted site is cut over
+	by running ``dokops.dokops_accounts.provisioning.provision_account`` and writing the
+	result into its site_config -- in both cases, configuring the connector *is* opting in,
+	so there's nothing else to flip.
 	"""
-	return bool(frappe.conf.get("esalink_use_proxy"))
+	return bool(
+		frappe.conf.get("dokos_connector_url")
+		and frappe.conf.get("dokos_connector_client_id")
+		and frappe.conf.get("dokos_connector_client_secret")
+	)
