@@ -279,6 +279,13 @@ CUSTOM_FIELDS_TO_DELETE = [
 		"fieldname": "siret",
 		"fieldtype": "Data",
 	},
+	# Removed: replaced by the etransactions_tab Tab Break (was a Section Break
+	# nested inside whatever tab siret_number happened to be in).
+	{
+		"dt": "Address",
+		"fieldname": "etransactions_section",
+		"fieldtype": "Section Break",
+	},
 	# Removed: the establishments table now lives inside the collapsible routing
 	# section (pa_directory_section); its standalone section break is obsolete.
 	{
