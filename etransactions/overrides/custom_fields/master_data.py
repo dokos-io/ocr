@@ -1,4 +1,4 @@
-from erpnext.setup.utils import identity as _
+from frappe import N_ as _
 
 
 customer_fields = [
