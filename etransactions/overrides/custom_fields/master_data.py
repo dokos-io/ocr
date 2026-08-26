@@ -1,4 +1,4 @@
-from erpnext.setup.utils import identity as _
+from frappe import N_ as _
 
 
 customer_fields = [
@@ -300,18 +300,17 @@ supplier_fields = [
 # service code / "code service exécutant") is establishment-specific for B2G.
 address_fields = [
 	{
-		"fieldname": "etransactions_section",
+		"fieldname": "etransactions_tab",
+		"fieldtype": "Tab Break",
 		"label": _("eTransactions"),
-		"fieldtype": "Section Break",
 		"insert_after": "siret_number",
-		"collapsible": 1,
 		"depends_on": "eval:frappe.boot.einvoicing_enabled",
 	},
 	{
 		"fieldname": "etransactions_buyer_reference",
 		"label": _("Buyer Reference"),
 		"fieldtype": "Data",
-		"insert_after": "etransactions_section",
+		"insert_after": "etransactions_tab",
 		"description": _("Service code (code service exécutant, BT-10) for this establishment. Overrides the customer-level default."),
 	},
 ]
