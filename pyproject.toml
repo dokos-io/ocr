@@ -15,9 +15,11 @@ dependencies = [
     "drafthorse~=2025.1.0",
     "saxonche>=12.5.0,<13.0.0",
     "lxml==6.0.2",
-    # v0.10 — pinned by commit (no 0.10 tag upstream); 0.9 changed CDAR parse
-    # return shapes, so bump deliberately and re-run test_cdar.py.
-    "pyfrctc @ git+https://github.com/akretion/pyfrctc.git@17f8ff17d2975adc60bca937cb64fb1f539ab97a",
+    # v0.16 — pinned by commit (tag 0.16). 0.12 switched generate_cdar()'s
+    # date fields (MDT-8/78/95/100/219) from pre-formatted strings to raw
+    # date/datetime objects — see cdar.py's build_cdar_data(). Bump
+    # deliberately and re-run test_cdar.py.
+    "pyfrctc @ git+https://github.com/akretion/pyfrctc.git@19b7788a304ab72f8cfba13a9218be94818660da",
 ]
 
 [build-system]

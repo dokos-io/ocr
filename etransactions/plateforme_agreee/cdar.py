@@ -9,6 +9,8 @@ The mapping is ported from the Odoo reference implementation
 ``l10n_fr_einvoicing/models/fr_einvoicing_event.py::_prepare_xml_data``.
 """
 
+from datetime import date
+
 import frappe
 from frappe import _
 
@@ -113,7 +115,9 @@ def build_cdar_data(einvoice, status: str, details: list[dict] | None = None,
 		"MDT-2": "REGULATED",
 		"MDT-3": CDAR_GUIDELINE,
 		"MDT-4": identifier,
-		"MDT-8": now_str,
+		# pyfrctc >=0.12 formats these itself (strftime); pass raw date/datetime
+		# objects, not pre-formatted strings.
+		"MDT-8": now,
 		"MDT-21": sender_role,
 		"MDT-38": {_SCHEME_SIREN: company_siren},
 		"MDT-39": company_name,
@@ -125,12 +129,12 @@ def build_cdar_data(einvoice, status: str, details: list[dict] | None = None,
 		"MDT-73-1": _SCHEME_SIRET,
 		"MDT-74": False,
 		"MDT-77": 23,  # Information — for statuses after transmission
-		"MDT-78": now_str,
+		"MDT-78": now,
 		"MDT-87": inv_number,
 		"MDT-88": mdt88,
 		"MDT-91": inv_type_code,
-		"MDT-95": now_str,
-		"MDT-100": inv_date_str,
+		"MDT-95": now,
+		"MDT-100": inv_date,
 		"MDT-105": mdt105,
 		"MDT-106": label,
 		"MDT-129": {_SCHEME_SIREN: issuer_siren},
@@ -191,10 +195,11 @@ def generate_cdar_flow(einvoice, status: str, details: list[dict] | None = None,
 	return cdar_bytes, filename
 
 
-def _fmt_date(value) -> str | bool:
+def _fmt_date(value) -> date | bool:
+	# pyfrctc >=0.12 formats this itself (strftime); pass a raw date object.
 	if not value:
 		return False
-	return frappe.utils.getdate(value).strftime(_DT_SHORT)
+	return frappe.utils.getdate(value)
 
 
 def _seller_siren_best_effort(einvoice) -> str:
