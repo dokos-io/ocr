@@ -28,18 +28,51 @@ GET_CLIENT = "etransactions.plateforme_agreee.session.get_client"
 
 
 class _FakePlatformClient:
-	"""Returns the bytes we hand it, or raises, on download_flow()."""
+	"""Returns the bytes we hand it, or raises, on download_flow().
 
-	def __init__(self, content: bytes | None = None, error: Exception | None = None):
+	``download_flow_readable_pdf`` is only exposed as an attribute when the test asks
+	for it — real clients duck-type this capability, and some platforms don't have it,
+	so the fake has to be able to not have it either.
+	"""
+
+	def __init__(
+		self,
+		content: bytes | None = None,
+		error: Exception | None = None,
+		readable_pdf: bytes | None = None,
+		readable_pdf_error: Exception | None = None,
+		supports_readable_pdf: bool = False,
+	):
 		self.content = content
 		self.error = error
 		self.calls = 0
+		self.readable_pdf = readable_pdf
+		self.readable_pdf_error = readable_pdf_error
+		self.readable_pdf_calls = 0
+		if supports_readable_pdf or readable_pdf is not None or readable_pdf_error is not None:
+			self.download_flow_readable_pdf = self._download_flow_readable_pdf
 
 	def download_flow(self, flow_id):
 		self.calls += 1
 		if self.error:
 			raise self.error
 		return self.content
+
+	def _download_flow_readable_pdf(self, flow_id):
+		self.readable_pdf_calls += 1
+		if self.readable_pdf_error:
+			raise self.readable_pdf_error
+		return self.readable_pdf
+
+
+class _FakeListingClient:
+	"""Answers list_incoming_invoices() with a canned list of flows."""
+
+	def __init__(self, flows):
+		self.flows = flows
+
+	def list_incoming_invoices(self, updated_after=None):
+		return self.flows
 
 
 class TestFlowExtensionDetection(UnitTestCase):
@@ -72,6 +105,9 @@ class TestIncomingFlowIngestion(eTransactionsTestSuite):
 		return self._fixture(
 			"1.basic_wl", "Facture_F20220023-LE_FOURNISSEUR-POUR-LE_CLIENT_BASIC_WL.pdf"
 		)
+
+	def _ubl_xml(self) -> bytes:
+		return self._fixture("5.ubl", "UBL-Invoice-2.1-Example.xml")
 
 	def _flow(self, flow_id, **kwargs) -> IncomingFlow:
 		return IncomingFlow(
@@ -146,6 +182,92 @@ class TestIncomingFlowIngestion(eTransactionsTestSuite):
 		self.assertEqual(einvoice.id, "F20220023")
 		self.assertTrue(self._supplier_invoice_of(einvoice))
 
+	# ------------------------------------------------------------------
+	# Phase 2b — readable PDF for structured-only (XML) flows
+	# ------------------------------------------------------------------
+	def test_structured_only_flow_gets_a_readable_pdf(self):
+		"""A pure UBL flow has no PDF of its own; if the platform can render one on
+		request, it becomes the Supplier Invoice's preview instead of the XML."""
+		einvoice = eInvoice.create_from_plateforme_flow(
+			self._flow("FLOW-PDF-001"), None, "_Test Company"
+		)
+
+		client = _FakePlatformClient(content=self._ubl_xml(), readable_pdf=self._facturx_pdf())
+		with patch(GET_CLIENT, return_value=client):
+			einvoice.fetch_content_from_platform()
+
+		einvoice.reload()
+		self.assertEqual(client.readable_pdf_calls, 1)
+		self.assertTrue(einvoice.einvoice_readable_pdf)
+		self.assertTrue(frappe.db.get_value("File", einvoice.einvoice, "file_name").endswith(".xml"))
+
+		supplier_invoice_name = self._supplier_invoice_of(einvoice)
+		self.assertTrue(supplier_invoice_name)
+		supplier_invoice = frappe.get_doc("Supplier Invoice", supplier_invoice_name)
+		self.assertTrue(supplier_invoice.file_url.endswith(".pdf"))
+
+	def test_readable_pdf_is_not_requested_for_an_already_pdf_flow(self):
+		"""Factur-X already carries its own PDF; no extra platform call is needed."""
+		einvoice = eInvoice.create_from_plateforme_flow(
+			self._flow("FLOW-PDF-002"), None, "_Test Company"
+		)
+
+		client = _FakePlatformClient(
+			content=self._facturx_pdf(), readable_pdf=self._facturx_pdf(), supports_readable_pdf=True
+		)
+		with patch(GET_CLIENT, return_value=client):
+			einvoice.fetch_content_from_platform()
+
+		einvoice.reload()
+		self.assertEqual(client.readable_pdf_calls, 0)
+		self.assertFalse(einvoice.einvoice_readable_pdf)
+
+	def test_no_readable_pdf_capability_falls_back_to_the_xml(self):
+		"""A platform that can't render a PDF just leaves the invoice with its XML."""
+		einvoice = eInvoice.create_from_plateforme_flow(
+			self._flow("FLOW-PDF-003"), None, "_Test Company"
+		)
+
+		client = _FakePlatformClient(content=self._ubl_xml())  # no readable-PDF support
+		with patch(GET_CLIENT, return_value=client):
+			einvoice.fetch_content_from_platform()
+
+		einvoice.reload()
+		self.assertEqual(einvoice.pa_content_state, "fetched")
+		self.assertFalse(einvoice.einvoice_readable_pdf)
+		supplier_invoice_name = self._supplier_invoice_of(einvoice)
+		self.assertTrue(frappe.db.get_value("Supplier Invoice", supplier_invoice_name, "file_url").endswith(".xml"))
+
+	def test_readable_pdf_failure_does_not_block_ingestion(self):
+		"""The platform erroring on the readable-PDF request must not lose the invoice."""
+		einvoice = eInvoice.create_from_plateforme_flow(
+			self._flow("FLOW-PDF-004"), None, "_Test Company"
+		)
+
+		client = _FakePlatformClient(
+			content=self._ubl_xml(), readable_pdf_error=Exception("rendering unavailable")
+		)
+		with patch(GET_CLIENT, return_value=client):
+			einvoice.fetch_content_from_platform()
+
+		einvoice.reload()
+		self.assertEqual(einvoice.pa_content_state, "fetched")
+		self.assertFalse(einvoice.einvoice_readable_pdf)
+		self.assertTrue(self._supplier_invoice_of(einvoice))
+
+	def test_readable_pdf_response_that_is_not_actually_a_pdf_is_discarded(self):
+		"""Defend against a platform returning something bogus for docType=ReadableView."""
+		einvoice = eInvoice.create_from_plateforme_flow(
+			self._flow("FLOW-PDF-005"), None, "_Test Company"
+		)
+
+		client = _FakePlatformClient(content=self._ubl_xml(), readable_pdf=b"not a pdf")
+		with patch(GET_CLIENT, return_value=client):
+			einvoice.fetch_content_from_platform()
+
+		einvoice.reload()
+		self.assertFalse(einvoice.einvoice_readable_pdf)
+
 	def test_a_failed_download_leaves_the_invoice_behind_to_retry(self):
 		einvoice = eInvoice.create_from_plateforme_flow(
 			self._flow("FLOW-FETCH-002"), None, "_Test Company"
@@ -202,6 +324,118 @@ class TestIncomingFlowIngestion(eTransactionsTestSuite):
 
 		fetches = [c for c in enqueue.call_args_list if c.kwargs.get("einvoice") == name]
 		self.assertEqual(len(fetches), 1, "the content fetch should be enqueued exactly once")
+
+	# ------------------------------------------------------------------
+	# The poll window must not advance past a flow that failed to ingest
+	# ------------------------------------------------------------------
+	def _ensure_active_platform(self, company="_Test Company") -> str:
+		existing = frappe.db.get_value("eTransactions Accredited Platform", {"company": company})
+		if existing:
+			frappe.db.set_value(
+				"eTransactions Accredited Platform",
+				existing,
+				{"is_active": 1, "last_incoming_poll": None},
+				update_modified=False,
+			)
+			return existing
+
+		platform = frappe.get_doc({
+			"doctype": "eTransactions Accredited Platform",
+			"platform_name": "Test Poll Window Platform",
+			"platform_type": "Custom",
+			"platform_code": "TESTWIN",
+			"company": company,
+			"transaction_type": "Both",
+			"is_active": 1,
+			"api_base_url": "http://localhost:1/never-called",
+			"client_id": "test",
+			"client_secret": "test-secret",
+		})
+		platform.flags.ignore_permissions = True
+		platform.insert()
+		return platform.name
+
+	def test_a_failed_ingestion_pins_the_poll_window_instead_of_losing_the_flow(self):
+		"""A flow whose eInvoice creation fails has no pa_flow_id, so it can never join
+		known_flow_ids — normally harmless, because it's still inside next run's window
+		and gets retried. But the window is anchored on last_incoming_poll, which used to
+		advance unconditionally: two or three failing hourly runs later, the flow falls
+		outside "last poll - 1h" and is never listed, and so never retried, again."""
+		from etransactions.plateforme_agreee import flow as flow_module
+
+		GET_CLIENT_IN_FLOW = "etransactions.plateforme_agreee.flow.get_client"
+		platform_name = self._ensure_active_platform()
+
+		def make_flow(flow_id, submitted_at):
+			return IncomingFlow(
+				flow_id=flow_id,
+				submitted_at=submitted_at,
+				updated_at=None,
+				flow_type="SupplierInvoice",
+				syntax=None,
+			)
+
+		good_flow = make_flow("FLOW-WINDOW-GOOD", "2026-06-05 10:00:00")
+		bad_flow = make_flow("FLOW-WINDOW-BAD", "2026-06-01 08:00:00")
+		client = _FakeListingClient([bad_flow, good_flow])
+
+		real_ingest = flow_module._ingest_incoming_flow
+
+		def ingest_unless_bad(flow, company, platform=None):
+			if flow.flow_id == bad_flow.flow_id:
+				raise ValueError("simulated ingestion failure")
+			return real_ingest(flow, company, platform=platform)
+
+		with (
+			patch(GET_CLIENT_IN_FLOW, return_value=client),
+			patch.object(flow_module, "_ingest_incoming_flow", side_effect=ingest_unless_bad),
+			patch("frappe.enqueue"),
+		):
+			flow_module.poll_incoming_flows()
+
+		self.assertTrue(
+			frappe.db.exists("eInvoice", {"pa_flow_id": good_flow.flow_id}),
+			"the flow that succeeded must still be recorded",
+		)
+		self.assertFalse(
+			frappe.db.exists("eInvoice", {"pa_flow_id": bad_flow.flow_id}),
+			"the flow that failed must not have an eInvoice",
+		)
+
+		last_poll = frappe.db.get_value(
+			"eTransactions Accredited Platform", platform_name, "last_incoming_poll"
+		)
+		self.assertEqual(
+			frappe.utils.get_datetime(last_poll),
+			frappe.utils.get_datetime(bad_flow.submitted_at),
+			"the window must stay pinned at the failed flow's own timestamp, not jump to now",
+		)
+
+		# A second run, still failing: the window must not creep forward either.
+		with (
+			patch(GET_CLIENT_IN_FLOW, return_value=client),
+			patch.object(flow_module, "_ingest_incoming_flow", side_effect=ingest_unless_bad),
+			patch("frappe.enqueue"),
+		):
+			flow_module.poll_incoming_flows()
+
+		still_pinned = frappe.db.get_value(
+			"eTransactions Accredited Platform", platform_name, "last_incoming_poll"
+		)
+		self.assertEqual(frappe.utils.get_datetime(still_pinned), frappe.utils.get_datetime(bad_flow.submitted_at))
+
+		# Once the flow finally ingests, the window is free to advance again.
+		with (
+			patch(GET_CLIENT_IN_FLOW, return_value=client),
+			patch("frappe.enqueue"),
+		):
+			flow_module.poll_incoming_flows()
+
+		self.assertTrue(frappe.db.exists("eInvoice", {"pa_flow_id": bad_flow.flow_id}))
+		advanced = frappe.db.get_value(
+			"eTransactions Accredited Platform", platform_name, "last_incoming_poll"
+		)
+		self.assertGreater(frappe.utils.get_datetime(advanced), frappe.utils.get_datetime(bad_flow.submitted_at))
 
 	# ------------------------------------------------------------------
 	# Events arriving before their invoice

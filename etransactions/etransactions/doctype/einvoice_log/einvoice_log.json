@@ -1,0 +1,115 @@
+{
+ "name": "eInvoice Log",
+ "module": "eTransactions",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "autoname": "hash",
+ "naming_rule": "Random",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "field_order": [
+  "company",
+  "einvoice",
+  "platform",
+  "column_break_eil_1",
+  "operation",
+  "flow_id",
+  "status",
+  "request_section",
+  "request",
+  "response_section",
+  "response"
+ ],
+ "fields": [
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "einvoice",
+   "fieldtype": "Link",
+   "label": "eInvoice",
+   "options": "eInvoice",
+   "in_list_view": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "platform",
+   "fieldtype": "Link",
+   "label": "Platform",
+   "options": "eTransactions Accredited Platform",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_eil_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "operation",
+   "fieldtype": "Select",
+   "label": "Operation",
+   "options": "list_incoming_invoices\ndownload_flow\ndownload_flow_readable_pdf",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "flow_id",
+   "fieldtype": "Data",
+   "label": "Flow ID",
+   "in_list_view": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "success\nerror",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "request_section",
+   "fieldtype": "Section Break",
+   "label": "Request"
+  },
+  {
+   "fieldname": "request",
+   "fieldtype": "Small Text",
+   "label": "Request",
+   "read_only": 1
+  },
+  {
+   "fieldname": "response_section",
+   "fieldtype": "Section Break",
+   "label": "Result"
+  },
+  {
+   "fieldname": "response",
+   "fieldtype": "Long Text",
+   "label": "Result",
+   "read_only": 1
+  }
+ ],
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "delete": 1,
+   "export": 1,
+   "print": 1,
+   "report": 1,
+   "share": 1
+  }
+ ],
+ "creation": "2026-09-02 00:00:00.000000",
+ "modified": "2026-09-02 00:00:00.000000",
+ "modified_by": "Administrator",
+ "owner": "Administrator"
+}

@@ -228,6 +228,18 @@ class AFNORClient:
             params={"docType": "Original"},
         ).content
 
+    def download_flow_readable_view(self, flow_id: str) -> bytes:
+        """Download the platform-rendered human-readable PDF for a flow, when available.
+
+        Structured-only submissions (pure UBL/CII XML) have no PDF of their own; the
+        platform can render one on request via ``docType=ReadableView``.
+        """
+        return self._request(
+            "GET",
+            f"{self._FLOWS_PATH}/{flow_id}",
+            params={"docType": "ReadableView"},
+        ).content
+
     def search_flows(
         self,
         directions: list[str] = None,
@@ -339,6 +351,10 @@ class AFNORClient:
     def download_flow(self, flow_id: str) -> bytes:
         """Download an invoice file by its flow ID."""
         return self.download_flow_file(flow_id)
+
+    def download_flow_readable_pdf(self, flow_id: str) -> bytes:
+        """Unified-interface name for :meth:`download_flow_readable_view`."""
+        return self.download_flow_readable_view(flow_id)
 
     def get_directory_for_siren(self, siren: str, directory_type: str = "ppf") -> DirectoryData:
         """Look up e-invoicing directory entries for a company by SIREN.
