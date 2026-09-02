@@ -19,3 +19,4 @@ etransactions.patches.backfill_einvoice_lifecycle_status # 20260730
 etransactions.patches.add_purchase_invoice_einvoice_fields # 20260801
 etransactions.patches.clean_supplier_name_aliases # 20260807
 etransactions.patches.set_default_prefill_invoice_items # 20260807
+etransactions.patches.set_default_enable_receiving_einvoices # 20260902

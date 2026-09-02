@@ -86,6 +86,10 @@ def enable_einvoicing():
 	"""
 	settings = frappe.get_single("eTransactions Settings")
 	settings.enable_einvoicing = 1
+	# receive_incoming_flow() drives poll_incoming_flows() directly; make sure that
+	# doesn't depend on the set_default_enable_receiving_einvoices patch having already
+	# run on this (freshly created) site.
+	settings.enable_receiving_einvoices = 1
 	# create_purchase_invoice() otherwise refuses to build a PI without a submitted
 	# Purchase Order, and the received invoice references none.
 	settings.no_purchase_order = 1

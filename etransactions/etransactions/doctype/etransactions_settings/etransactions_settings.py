@@ -25,6 +25,8 @@ class eTransactionsSettings(Document):
 		block_submission_on_facturx_failure: DF.Check
 		default_business_process_code: DF.Data | None
 		default_etransaction_profile: DF.Link | None
+		enable_receiving_einvoices: DF.Check
+		enable_sending_einvoices: DF.Check
 		generate_facturx_on_submit: DF.Check
 		max_difference_amount: DF.Currency
 		max_difference_percentage_on_net_total: DF.Percent
