@@ -77,6 +77,63 @@ class EsalinkPartnerProxyClient:
 			f"{_METHOD_PREFIX}.resend_kyc_email", environment=self._environment, customer_id=customer_id
 		)
 
+	def create_identifier(
+		self,
+		customer_id: int,
+		*,
+		addressing_identifier: str,
+		start_date: str,
+		addressing_qualifier: str = "0225",
+		identifier_type: str = "RECEIVE",
+		end_date: str = None,
+		comment: str = None,
+	) -> dict:
+		"""``POST /v1/customerPA/{id}/identifier`` -- request a directory identifier (proxied)."""
+		return esalink_request(
+			f"{_METHOD_PREFIX}.create_identifier",
+			environment=self._environment,
+			customer_id=customer_id,
+			addressing_identifier=addressing_identifier,
+			start_date=start_date,
+			addressing_qualifier=addressing_qualifier,
+			identifier_type=identifier_type,
+			end_date=end_date,
+			comment=comment,
+		)
+
+	def search_identifiers(self, customer_id: int, limit: int = 100) -> list[dict]:
+		"""``POST /v1/customerPA/{id}/identifier/search`` -- all identifiers, paginated (proxied).
+
+		The proxy RPC returns one page at a time (dokops stays a thin passthrough), so
+		pagination happens here client-side, same as :meth:`find_customer_by_legal_id`.
+		"""
+		identifiers: list[dict] = []
+		offset = 0
+		while True:
+			page = esalink_request(
+				f"{_METHOD_PREFIX}.search_identifiers",
+				environment=self._environment,
+				customer_id=customer_id,
+				limit=limit,
+				offset=offset,
+			) or {}
+			batch = page.get("identifiers") or []
+			identifiers.extend(batch)
+			offset += len(batch)
+			if not batch or offset >= (page.get("total") or 0):
+				break
+		return identifiers
+
+	def delete_identifier(self, customer_id: int, identifier: str, qualifier: str) -> None:
+		"""``DELETE /v1/customerPA/{id}/identifier`` -- remove an identifier (proxied)."""
+		esalink_request(
+			f"{_METHOD_PREFIX}.delete_identifier",
+			environment=self._environment,
+			customer_id=customer_id,
+			identifier=identifier,
+			qualifier=qualifier,
+		)
+
 	def healthcheck(self) -> None:
 		"""Probe partner connectivity via a cheap, side-effect-free search call."""
 		self.search_customers(limit=1, offset=0)
