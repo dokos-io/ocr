@@ -24,6 +24,7 @@ from etransactions.etransactions.doctype.einvoice.generator import (
 from etransactions.schematron import get_validation_errors
 from etransactions.utils import EInvoiceProfile, get_drafthorse_schema
 from etransactions.utils.files import copy_file_to_document, detect_flow_extension
+from etransactions.etransactions.doctype.einvoice_log.einvoice_log import log_fetch
 
 
 if TYPE_CHECKING:
@@ -592,9 +593,35 @@ class eInvoice(Document):
 		frappe.db.savepoint(save_point)
 		try:
 			client = get_client(self.company, transaction_type="purchases")
-			file_content = client.download_flow(self.pa_flow_id)
-			if not file_content:
-				raise ValueError(_("The platform returned an empty file."))
+
+			# Logged around the platform call itself, not the parse/save that follows:
+			# a parse failure further down must not read back as a download failure.
+			try:
+				file_content = client.download_flow(self.pa_flow_id)
+				if not file_content:
+					raise ValueError(_("The platform returned an empty file."))
+			except Exception as e:
+				log_fetch(
+					operation="download_flow",
+					status="error",
+					company=self.company,
+					einvoice=self.name,
+					platform=self.pa_platform,
+					flow_id=self.pa_flow_id,
+					request=f"download_flow({self.pa_flow_id})",
+					response=str(e),
+				)
+				raise
+			log_fetch(
+				operation="download_flow",
+				status="success",
+				company=self.company,
+				einvoice=self.name,
+				platform=self.pa_platform,
+				flow_id=self.pa_flow_id,
+				request=f"download_flow({self.pa_flow_id})",
+				response=f"{len(file_content)} byte(s), {detect_flow_extension(file_content)}",
+			)
 
 			file_doc = self._store_flow_file(self.pa_flow_id, file_content)
 			self.einvoice = file_doc.name
@@ -636,17 +663,48 @@ class eInvoice(Document):
 
 		try:
 			pdf_content = download(self.pa_flow_id)
-		except Exception:
+		except Exception as e:
 			frappe.log_error(
 				title=f"eInvoice readable PDF fetch failed ({self.pa_flow_id})",
 				message=frappe.get_traceback(),
 				reference_doctype="eInvoice",
 				reference_name=self.name,
 			)
+			log_fetch(
+				operation="download_flow_readable_pdf",
+				status="error",
+				company=self.company,
+				einvoice=self.name,
+				platform=self.pa_platform,
+				flow_id=self.pa_flow_id,
+				request=f"download_flow_readable_pdf({self.pa_flow_id})",
+				response=str(e),
+			)
 			return
 
 		if not pdf_content or detect_flow_extension(pdf_content) != "pdf":
+			log_fetch(
+				operation="download_flow_readable_pdf",
+				status="success",
+				company=self.company,
+				einvoice=self.name,
+				platform=self.pa_platform,
+				flow_id=self.pa_flow_id,
+				request=f"download_flow_readable_pdf({self.pa_flow_id})",
+				response="platform returned no usable PDF",
+			)
 			return
+
+		log_fetch(
+			operation="download_flow_readable_pdf",
+			status="success",
+			company=self.company,
+			einvoice=self.name,
+			platform=self.pa_platform,
+			flow_id=self.pa_flow_id,
+			request=f"download_flow_readable_pdf({self.pa_flow_id})",
+			response=f"{len(pdf_content)} byte(s)",
+		)
 
 		pdf_doc = frappe.get_doc({
 			"doctype": "File",

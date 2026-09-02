@@ -65,6 +65,16 @@ class _FakePlatformClient:
 		return self.readable_pdf
 
 
+class _FakeListingClient:
+	"""Answers list_incoming_invoices() with a canned list of flows."""
+
+	def __init__(self, flows):
+		self.flows = flows
+
+	def list_incoming_invoices(self, updated_after=None):
+		return self.flows
+
+
 class TestFlowExtensionDetection(UnitTestCase):
 	def test_pdf_is_detected_from_its_magic_bytes(self):
 		self.assertEqual(detect_flow_extension(b"%PDF-1.4\n%\xe2\xe3\xcf\xd3\n"), "pdf")
@@ -314,6 +324,118 @@ class TestIncomingFlowIngestion(eTransactionsTestSuite):
 
 		fetches = [c for c in enqueue.call_args_list if c.kwargs.get("einvoice") == name]
 		self.assertEqual(len(fetches), 1, "the content fetch should be enqueued exactly once")
+
+	# ------------------------------------------------------------------
+	# The poll window must not advance past a flow that failed to ingest
+	# ------------------------------------------------------------------
+	def _ensure_active_platform(self, company="_Test Company") -> str:
+		existing = frappe.db.get_value("eTransactions Accredited Platform", {"company": company})
+		if existing:
+			frappe.db.set_value(
+				"eTransactions Accredited Platform",
+				existing,
+				{"is_active": 1, "last_incoming_poll": None},
+				update_modified=False,
+			)
+			return existing
+
+		platform = frappe.get_doc({
+			"doctype": "eTransactions Accredited Platform",
+			"platform_name": "Test Poll Window Platform",
+			"platform_type": "Custom",
+			"platform_code": "TESTWIN",
+			"company": company,
+			"transaction_type": "Both",
+			"is_active": 1,
+			"api_base_url": "http://localhost:1/never-called",
+			"client_id": "test",
+			"client_secret": "test-secret",
+		})
+		platform.flags.ignore_permissions = True
+		platform.insert()
+		return platform.name
+
+	def test_a_failed_ingestion_pins_the_poll_window_instead_of_losing_the_flow(self):
+		"""A flow whose eInvoice creation fails has no pa_flow_id, so it can never join
+		known_flow_ids — normally harmless, because it's still inside next run's window
+		and gets retried. But the window is anchored on last_incoming_poll, which used to
+		advance unconditionally: two or three failing hourly runs later, the flow falls
+		outside "last poll - 1h" and is never listed, and so never retried, again."""
+		from etransactions.plateforme_agreee import flow as flow_module
+
+		GET_CLIENT_IN_FLOW = "etransactions.plateforme_agreee.flow.get_client"
+		platform_name = self._ensure_active_platform()
+
+		def make_flow(flow_id, submitted_at):
+			return IncomingFlow(
+				flow_id=flow_id,
+				submitted_at=submitted_at,
+				updated_at=None,
+				flow_type="SupplierInvoice",
+				syntax=None,
+			)
+
+		good_flow = make_flow("FLOW-WINDOW-GOOD", "2026-06-05 10:00:00")
+		bad_flow = make_flow("FLOW-WINDOW-BAD", "2026-06-01 08:00:00")
+		client = _FakeListingClient([bad_flow, good_flow])
+
+		real_ingest = flow_module._ingest_incoming_flow
+
+		def ingest_unless_bad(flow, company, platform=None):
+			if flow.flow_id == bad_flow.flow_id:
+				raise ValueError("simulated ingestion failure")
+			return real_ingest(flow, company, platform=platform)
+
+		with (
+			patch(GET_CLIENT_IN_FLOW, return_value=client),
+			patch.object(flow_module, "_ingest_incoming_flow", side_effect=ingest_unless_bad),
+			patch("frappe.enqueue"),
+		):
+			flow_module.poll_incoming_flows()
+
+		self.assertTrue(
+			frappe.db.exists("eInvoice", {"pa_flow_id": good_flow.flow_id}),
+			"the flow that succeeded must still be recorded",
+		)
+		self.assertFalse(
+			frappe.db.exists("eInvoice", {"pa_flow_id": bad_flow.flow_id}),
+			"the flow that failed must not have an eInvoice",
+		)
+
+		last_poll = frappe.db.get_value(
+			"eTransactions Accredited Platform", platform_name, "last_incoming_poll"
+		)
+		self.assertEqual(
+			frappe.utils.get_datetime(last_poll),
+			frappe.utils.get_datetime(bad_flow.submitted_at),
+			"the window must stay pinned at the failed flow's own timestamp, not jump to now",
+		)
+
+		# A second run, still failing: the window must not creep forward either.
+		with (
+			patch(GET_CLIENT_IN_FLOW, return_value=client),
+			patch.object(flow_module, "_ingest_incoming_flow", side_effect=ingest_unless_bad),
+			patch("frappe.enqueue"),
+		):
+			flow_module.poll_incoming_flows()
+
+		still_pinned = frappe.db.get_value(
+			"eTransactions Accredited Platform", platform_name, "last_incoming_poll"
+		)
+		self.assertEqual(frappe.utils.get_datetime(still_pinned), frappe.utils.get_datetime(bad_flow.submitted_at))
+
+		# Once the flow finally ingests, the window is free to advance again.
+		with (
+			patch(GET_CLIENT_IN_FLOW, return_value=client),
+			patch("frappe.enqueue"),
+		):
+			flow_module.poll_incoming_flows()
+
+		self.assertTrue(frappe.db.exists("eInvoice", {"pa_flow_id": bad_flow.flow_id}))
+		advanced = frappe.db.get_value(
+			"eTransactions Accredited Platform", platform_name, "last_incoming_poll"
+		)
+		self.assertGreater(frappe.utils.get_datetime(advanced), frappe.utils.get_datetime(bad_flow.submitted_at))
 
 	# ------------------------------------------------------------------
 	# Events arriving before their invoice

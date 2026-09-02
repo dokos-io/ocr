@@ -271,6 +271,11 @@ scheduler_events = {
 	# ],
 }
 
+# log doctype cleanups to automatically add in log settings
+default_log_clearing_doctypes = {
+	"eInvoice Log": 90,
+}
+
 # Testing
 # -------
 

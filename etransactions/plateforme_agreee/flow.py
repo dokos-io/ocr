@@ -5,6 +5,7 @@ from etransactions.components.common import to_db_datetime
 from etransactions.plateforme_agreee.session import get_client, get_platform_for_context
 from etransactions.plateforme_agreee import lifecycle_status
 from etransactions.etransactions.doctype.einvoicing_log.einvoicing_log import eInvoicingLog
+from etransactions.etransactions.doctype.einvoice_log.einvoice_log import log_fetch
 from etransactions.etransactions.doctype.einvoice_event.einvoice_event import record_event
 
 
@@ -433,7 +434,24 @@ def poll_incoming_flows():
 		except Exception as e:
 			result["logs"].append(("error", f"Failed to list incoming invoices: {str(e)}"))
 			eInvoicingLog.create_log(result)
+			log_fetch(
+				operation="list_incoming_invoices",
+				status="error",
+				company=company,
+				platform=platform_name,
+				request=f"updated_after={updated_after}",
+				response=str(e),
+			)
 			continue
+
+		log_fetch(
+			operation="list_incoming_invoices",
+			status="success",
+			company=company,
+			platform=platform_name,
+			request=f"updated_after={updated_after}",
+			response=f"{len(incoming_flows)} flow(s) listed",
+		)
 
 		known_flow_ids = set(
 			frappe.get_all(
@@ -443,25 +461,47 @@ def poll_incoming_flows():
 			)
 		)
 
-		for flow in incoming_flows:
+		failed_flow_times = []
+
+		for flow_idx, flow in enumerate(incoming_flows):
 			if not flow.flow_id or flow.flow_id in known_flow_ids:
 				continue
 
+			# A savepoint, not a full rollback: one flow's failure must undo only its
+			# own half-written attempt, not every flow already ingested earlier in this
+			# same run (bare rollback() unwinds the whole transaction back to the last
+			# commit — in production that's the previous flow's own commit, but nothing
+			# stops a batch of several failures in a row from reaching further back).
+			# Named by index, not flow_id: a savepoint name is a bare SQL identifier and
+			# a platform's flow id is free-form (dashes and all).
+			save_point = f"einvoice_flow_{flow_idx}"
+			frappe.db.savepoint(save_point)
 			try:
 				einvoice = _ingest_incoming_flow(flow, company, platform=platform_name)
 				result["new_count"] += 1
 				known_flow_ids.add(flow.flow_id)
 				result["logs"].append(("info", f"Created eInvoice {einvoice} from incoming flow {flow.flow_id}"))
 			except Exception as e:
-				frappe.db.rollback()
+				frappe.db.rollback(save_point=save_point)
 				result["logs"].append(("error", f"Failed to create eInvoice from flow {flow.flow_id}: {str(e)}"))
+				flow_time = flow.updated_at or flow.submitted_at
+				if flow_time:
+					failed_flow_times.append(frappe.utils.get_datetime(flow_time))
 
 		if platform_name:
+			# A flow whose ingestion failed has no eInvoice, so known_flow_ids never
+			# catches it — normally harmless, since it stays inside the poll window and
+			# gets retried next run. But the window itself is anchored on this very
+			# timestamp: advancing it unconditionally would walk past the failed flow
+			# before it ever succeeds, silently losing it for good the moment it falls
+			# outside the "last poll − 1h" range. Pinning the anchor to the oldest
+			# failure instead keeps it inside every window until ingestion succeeds.
+			next_poll_anchor = min([poll_started_at, *failed_flow_times]) if failed_flow_times else poll_started_at
 			frappe.db.set_value(
 				"eTransactions Accredited Platform",
 				platform_name,
 				"last_incoming_poll",
-				poll_started_at,
+				next_poll_anchor,
 				update_modified=False,
 			)
 
