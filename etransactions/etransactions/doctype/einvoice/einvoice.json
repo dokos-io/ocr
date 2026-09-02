@@ -103,6 +103,8 @@
   "pa_processing_rule",
   "column_break_pa_1",
   "pa_flow_id",
+  "pa_platform",
+  "pa_platform_name",
   "pa_status",
   "lifecycle_status",
   "lifecycle_status_datetime",
@@ -708,6 +710,21 @@
    "fieldname": "pa_flow_id",
    "fieldtype": "Data",
    "label": "Flow ID (PA)",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "pa_platform",
+   "fieldtype": "Link",
+   "label": "Platform",
+   "options": "eTransactions Accredited Platform",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "pa_platform_name",
+   "fieldtype": "Data",
+   "label": "Platform Name",
    "read_only": 1,
    "no_copy": 1
   },
