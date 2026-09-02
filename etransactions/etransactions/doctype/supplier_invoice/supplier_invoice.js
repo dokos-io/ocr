@@ -67,6 +67,10 @@ frappe.ui.form.on("Supplier Invoice", {
 		frm.trigger("set_bottom_button_label");
 		frm.trigger("compare_totals");
 
+		if (frm.doc.pa_platform_name) {
+			frm.dashboard.add_indicator(__("Received via {0}", [frm.doc.pa_platform_name]), "purple");
+		}
+
 		try { 
 			$('[data-fieldname="data_column"]').removeClass("col-sm-6").addClass("col-sm-4")
 			$('[data-fieldname="preview_column"]').removeClass("col-sm-6").addClass("col-sm-8")

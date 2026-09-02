@@ -448,7 +448,7 @@ def poll_incoming_flows():
 				continue
 
 			try:
-				einvoice = _ingest_incoming_flow(flow, company)
+				einvoice = _ingest_incoming_flow(flow, company, platform=platform_name)
 				result["new_count"] += 1
 				known_flow_ids.add(flow.flow_id)
 				result["logs"].append(("info", f"Created eInvoice {einvoice} from incoming flow {flow.flow_id}"))
@@ -468,7 +468,7 @@ def poll_incoming_flows():
 		eInvoicingLog.create_log(result)
 
 
-def _ingest_incoming_flow(flow, company: str) -> str:
+def _ingest_incoming_flow(flow, company: str, platform: str | None = None) -> str:
 	"""Record one incoming flow, then fetch its content out of band.
 
 	Downloading and parsing the invoice used to happen inline, so a file the parser
@@ -479,10 +479,14 @@ def _ingest_incoming_flow(flow, company: str) -> str:
 	Platforms that inline the invoice with the listing (SuperPDP, via ``expand[]``)
 	give the record its number, dates and counterparty right away; the others show
 	the flow metadata until the file arrives.
+
+	``platform`` is the ``eTransactions Accredited Platform`` this flow was polled
+	from, snapshotted onto the eInvoice so it stays correct even if the company's
+	active platform changes later.
 	"""
 	from etransactions.etransactions.doctype.einvoice.einvoice import eInvoice
 
-	einvoice = eInvoice.create_from_plateforme_flow(flow, None, company)
+	einvoice = eInvoice.create_from_plateforme_flow(flow, None, company, platform=platform)
 	_record_flow_events(einvoice, flow)
 	# The worker reads its own connection, so the record must be committed before
 	# the job can pick it up — except under test, where committing would break the

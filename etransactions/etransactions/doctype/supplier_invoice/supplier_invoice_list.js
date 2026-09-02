@@ -1,5 +1,11 @@
 frappe.listview_settings["Supplier Invoice"] = {
 	hide_name_column: true,
+	add_fields: ["pa_platform_name"],
+	get_indicator: function (doc) {
+		if (doc.pa_platform_name) {
+			return [doc.pa_platform_name, "purple", "pa_platform_name,=," + doc.pa_platform_name];
+		}
+	},
 	onload: function (listview) {
 		listview.page.add_inner_button(__("Upload Invoices"), function () {
 			new frappe.ui.FileUploader({

@@ -57,7 +57,8 @@
   "file_url",
   "ocr_request",
   "ocr_basket",
-  "einvoice"
+  "einvoice",
+  "pa_platform_name"
  ],
  "fields": [
   {
@@ -391,6 +392,13 @@
    "fieldtype": "Link",
    "label": "eInvoice",
    "options": "eInvoice",
+   "read_only": 1
+  },
+  {
+   "fieldname": "pa_platform_name",
+   "fieldtype": "Data",
+   "label": "Received via",
+   "no_copy": 1,
    "read_only": 1
   }
  ],

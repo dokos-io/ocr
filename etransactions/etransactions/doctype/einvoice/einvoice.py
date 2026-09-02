@@ -467,7 +467,9 @@ class eInvoice(Document):
 		return file_content, file_doc.file_name or f"{self.sales_invoice}.pdf", "Factur-X"
 
 	@classmethod
-	def create_from_plateforme_flow(cls, flow, file_content: bytes | None, company: str) -> "eInvoice":
+	def create_from_plateforme_flow(
+		cls, flow, file_content: bytes | None, company: str, platform: str | None = None
+	) -> "eInvoice":
 		"""Create an Incoming eInvoice from a flow received from the accredited platform.
 
 		``flow`` is an IncomingFlow dataclass (etransactions.components.superpdp.models).
@@ -480,6 +482,11 @@ class eInvoice(Document):
 
 		With the file present, validate() parses it and on_update() generates the
 		Supplier Invoice, as before.
+
+		``platform`` is the name of the ``eTransactions Accredited Platform`` this
+		flow was polled from. It is snapshotted onto ``pa_platform_name`` rather
+		than fetched live, so the invoice keeps showing the platform that actually
+		delivered it even if the company's active platform is reconfigured later.
 		"""
 		file_doc = cls._store_flow_file(flow.flow_id, file_content) if file_content else None
 
@@ -488,6 +495,11 @@ class eInvoice(Document):
 		doc.company = company
 		doc.pa_flow_id = flow.flow_id
 		doc.pa_status = "done"
+		if platform:
+			doc.pa_platform = platform
+			doc.pa_platform_name = frappe.db.get_value(
+				"eTransactions Accredited Platform", platform, "platform_name"
+			)
 		doc.pa_submitted_at = flow.submitted_at
 		doc.pa_updated_at = flow.updated_at or flow.submitted_at
 		doc.pa_flow_type = flow.flow_type
@@ -1018,6 +1030,7 @@ class IncomingInvoiceDataTransformer(InvoiceEntityResolverMixin):
 			"tax_id": self.invoice_doc.seller_tax_id,
 			"vendor_iban": self.invoice_doc.payee_iban,
 			"einvoice": self.invoice_doc.name,
+			"pa_platform_name": self.invoice_doc.pa_platform_name,
 			"ocr_basket": self.invoice_doc.supplier_invoices_basket,
 			"items": []
 		}
