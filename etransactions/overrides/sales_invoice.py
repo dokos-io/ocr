@@ -133,9 +133,9 @@ def on_submit(doc, method):
 				)
 
 	# accredited platform submission
-	from etransactions.plateforme_agreee.session import get_platform_settings
+	from etransactions.plateforme_agreee.session import get_platform_settings, is_sending_enabled
 	platform_settings = get_platform_settings(doc.company)
-	if platform_settings and platform_settings.auto_send_on_submit:
+	if platform_settings and platform_settings.auto_send_on_submit and is_sending_enabled():
 		from etransactions.plateforme_agreee.classification import EINVOICED, classify_transaction
 
 		cls = classify_transaction(doc.company, "Customer", doc.customer, doc.customer_address)
@@ -286,6 +286,11 @@ def get_facturx_pdf(sales_invoice: str) -> str:
 def send_to_plateform(sales_invoice: str):
 	"""Manually submit the eInvoice linked to this Sales Invoice to the accredited platform."""
 	frappe.get_doc("Sales Invoice", sales_invoice).check_permission("submit")
+
+	from etransactions.plateforme_agreee.session import is_sending_enabled
+	if not is_sending_enabled():
+		frappe.throw(_("Sending invoices to accredited platforms is currently disabled."))
+
 	einvoice_name = frappe.db.get_value("eInvoice", {"sales_invoice": sales_invoice}, "name")
 	if not einvoice_name:
 		frappe.throw(_("No eInvoice found for Sales Invoice {0}").format(sales_invoice))

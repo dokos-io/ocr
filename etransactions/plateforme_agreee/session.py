@@ -70,6 +70,32 @@ def get_platform_capabilities() -> dict:
 	return PLATFORM_CAPABILITIES
 
 
+def is_receiving_enabled() -> bool:
+	"""Whether the PA receiving pipeline (poll_incoming_flows) may run.
+
+	The ``etransactions_disable_receiving`` site_config key is a deployment-level
+	override that wins over the Desk setting (e.g. an ops kill switch), independent
+	of whether an ``eTransactions Accredited Platform`` record is itself active.
+	"""
+	if frappe.conf.get("etransactions_disable_receiving"):
+		return False
+	settings = frappe.get_cached_doc("eTransactions Settings")
+	return bool(settings.enable_einvoicing and settings.enable_receiving_einvoices)
+
+
+def is_sending_enabled() -> bool:
+	"""Whether the PA sending pipeline (auto-send and manual send) may run.
+
+	The ``etransactions_disable_sending`` site_config key is a deployment-level
+	override that wins over the Desk setting (e.g. an ops kill switch), independent
+	of whether an ``eTransactions Accredited Platform`` record is itself active.
+	"""
+	if frappe.conf.get("etransactions_disable_sending"):
+		return False
+	settings = frappe.get_cached_doc("eTransactions Settings")
+	return bool(settings.enable_einvoicing and settings.enable_sending_einvoices)
+
+
 def _platform_credentials(doc):
 	"""(client_id, client_secret) from the platform doc.
 

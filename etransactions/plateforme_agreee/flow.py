@@ -2,7 +2,11 @@ import frappe
 from frappe import _
 
 from etransactions.components.common import to_db_datetime
-from etransactions.plateforme_agreee.session import get_client, get_platform_for_context
+from etransactions.plateforme_agreee.session import (
+	get_client,
+	get_platform_for_context,
+	is_receiving_enabled,
+)
 from etransactions.plateforme_agreee import lifecycle_status
 from etransactions.etransactions.doctype.einvoicing_log.einvoicing_log import eInvoicingLog
 from etransactions.etransactions.doctype.einvoice_event.einvoice_event import record_event
@@ -388,6 +392,9 @@ def poll_ereporting_status():
 
 def poll_incoming_flows():
 	"""Cron: fetch new incoming flows from the PA and create eInvoice records for each."""
+	if not is_receiving_enabled():
+		return
+
 	active_platforms = frappe.get_all(
 		"eTransactions Accredited Platform",
 		filters={"is_active": 1, "transaction_type": ["in", ["Purchases", "Both"]]},

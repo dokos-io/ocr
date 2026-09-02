@@ -8,6 +8,8 @@
   "general_settings_tab",
   "activation_section",
   "enable_einvoicing",
+  "enable_receiving_einvoices",
+  "enable_sending_einvoices",
   "column_break_qhyq",
   "ocr_service",
   "aws_textract_key",
@@ -58,6 +60,22 @@
    "fieldname": "enable_einvoicing",
    "fieldtype": "Check",
    "label": "Enable E-Invoicing"
+  },
+  {
+   "default": "1",
+   "depends_on": "eval:doc.enable_einvoicing",
+   "description": "Receive invoices from accredited platforms that are configured and active. A site_config.json key, etransactions_disable_receiving, overrides this off regardless of this setting.",
+   "fieldname": "enable_receiving_einvoices",
+   "fieldtype": "Check",
+   "label": "Receive invoices from accredited platforms"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.enable_einvoicing",
+   "description": "Send invoices to accredited platforms that are configured and active. A site_config.json key, etransactions_disable_sending, overrides this off regardless of this setting.",
+   "fieldname": "enable_sending_einvoices",
+   "fieldtype": "Check",
+   "label": "Send invoices to accredited platforms"
   },
   {
    "fieldname": "sales_invoices_tab",
