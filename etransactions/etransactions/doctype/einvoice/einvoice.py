@@ -23,7 +23,7 @@ from etransactions.etransactions.doctype.einvoice.generator import (
 )
 from etransactions.schematron import get_validation_errors
 from etransactions.utils import EInvoiceProfile, get_drafthorse_schema
-from etransactions.utils.files import copy_file_to_document
+from etransactions.utils.files import copy_file_to_document, detect_flow_extension
 
 
 if TYPE_CHECKING:
@@ -523,8 +523,6 @@ class eInvoice(Document):
 	@staticmethod
 	def _store_flow_file(flow_id: str, file_content: bytes) -> "File":
 		"""Save a downloaded flow, naming it after what the bytes actually are."""
-		from etransactions.utils.files import detect_flow_extension
-
 		file_doc = frappe.get_doc({
 			"doctype": "File",
 			"file_name": f"{flow_id}.{detect_flow_extension(file_content)}",
@@ -603,6 +601,8 @@ class eInvoice(Document):
 			self.einvoice_embedded_document = file_doc.file_url
 			self.pa_content_state = "fetched"
 			self.pa_content_error = None
+			if detect_flow_extension(file_content) != "pdf":
+				self._fetch_readable_pdf(client)
 			self.flags.ignore_permissions = True
 			self.save()
 			self._attach_flow_file(file_doc, self.name)
@@ -621,6 +621,45 @@ class eInvoice(Document):
 			)
 		else:
 			frappe.db.release_savepoint(save_point)
+
+	def _fetch_readable_pdf(self, client) -> None:
+		"""Best-effort: fetch a platform-rendered PDF for a structured-only (XML) flow.
+
+		A pure UBL/CII invoice carries no human-readable PDF of its own; some platforms can
+		render one on request (Esalink's ReadableView, SuperPDP's factur-x format). Never
+		blocks ingestion — a platform that can't render one, or errors, just leaves this
+		empty, and the Supplier Invoice preview falls back to the XML.
+		"""
+		download = getattr(client, "download_flow_readable_pdf", None)
+		if not download:
+			return
+
+		try:
+			pdf_content = download(self.pa_flow_id)
+		except Exception:
+			frappe.log_error(
+				title=f"eInvoice readable PDF fetch failed ({self.pa_flow_id})",
+				message=frappe.get_traceback(),
+				reference_doctype="eInvoice",
+				reference_name=self.name,
+			)
+			return
+
+		if not pdf_content or detect_flow_extension(pdf_content) != "pdf":
+			return
+
+		pdf_doc = frappe.get_doc({
+			"doctype": "File",
+			"file_name": f"{self.pa_flow_id}-readable.pdf",
+			"content": pdf_content,
+			"is_private": 1,
+			"attached_to_doctype": "eInvoice",
+			"attached_to_name": self.name,
+			"attached_to_field": "einvoice_readable_pdf",
+		})
+		pdf_doc.flags.ignore_permissions = True
+		pdf_doc.insert()
+		self.einvoice_readable_pdf = pdf_doc.file_url
 
 	def onload(self):
 		if self.docstatus == 0:
@@ -766,15 +805,32 @@ class eInvoice(Document):
 		Invoice itself is what lets an Accounts User read the private file: File permissions
 		are derived from the document the file hangs off, and eInvoice is not readable by
 		that role.
+
+		Prefers the platform-rendered readable PDF over the structured XML, when one was
+		fetched (see :meth:`_fetch_readable_pdf`) — a nicer preview for the same invoice.
+		The XML stays the eInvoice's own source of record either way.
 		"""
-		if not self.einvoice or not frappe.db.exists("File", self.einvoice):
+		source_file = self._readable_pdf_file_name() or self.einvoice
+		if not source_file or not frappe.db.exists("File", source_file):
 			return
 
-		file_name = copy_file_to_document(self.einvoice, "Supplier Invoice", supplier_invoice.name)
+		file_name = copy_file_to_document(source_file, "Supplier Invoice", supplier_invoice.name)
 		file_url = frappe.db.get_value("File", file_name, "file_url")
 
 		# db_set because file_url only fetches from file on save, and the document was just inserted
 		supplier_invoice.db_set({"file": file_name, "file_url": file_url}, update_modified=False)
+
+	def _readable_pdf_file_name(self) -> str | None:
+		if not self.einvoice_readable_pdf:
+			return None
+		return frappe.db.get_value(
+			"File",
+			{
+				"attached_to_doctype": "eInvoice",
+				"attached_to_name": self.name,
+				"attached_to_field": "einvoice_readable_pdf",
+			},
+		)
 
 
 

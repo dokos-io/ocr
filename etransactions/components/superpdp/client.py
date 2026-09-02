@@ -437,6 +437,16 @@ class SuperPDPClient:
         """Download the raw invoice file (PDF or XML)."""
         return self._request("GET", f"/v1.beta/invoices/{invoice_id}/download").content
 
+    def download_invoice_pdf(self, invoice_id: int | str) -> bytes:
+        """Download a Factur-X (human-readable PDF) rendition of an invoice.
+
+        Structured-only submissions (pure UBL/CII XML) have no PDF of their own; SuperPDP
+        can render one on request via ``format=factur-x``, regardless of the original syntax.
+        """
+        return self._request(
+            "GET", f"/v1.beta/invoices/{invoice_id}", params={"format": "factur-x"}
+        ).content
+
     def validate_invoice(self, file_content: bytes, syntax: str) -> dict:
         """Validate an invoice against the Super PDP rules and return the report."""
         resp = self._request(
@@ -629,6 +639,10 @@ class SuperPDPClient:
     def download_flow(self, flow_id: str) -> bytes:
         """Download an invoice file by its platform flow_id."""
         return self.download_invoice(flow_id)
+
+    def download_flow_readable_pdf(self, flow_id: str) -> bytes:
+        """Unified-interface name for :meth:`download_invoice_pdf`."""
+        return self.download_invoice_pdf(flow_id)
 
     def get_directory_for_siren(self, siren: str, directory_type: str = "ppf") -> DirectoryData:
         """Look up e-invoicing directory entries for a company by SIREN.

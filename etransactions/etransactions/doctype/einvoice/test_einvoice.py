@@ -347,6 +347,31 @@ class TesteInvoice(eTransactionsTestSuite):
 		self.assertTrue(supplier_invoice.file)
 		self.assertTrue(frappe.db.get_value("File", supplier_invoice.file, "file_name").endswith(".xml"))
 
+	def test_validation_errors_field_accepts_more_than_64kb(self):
+		"""A large multi-line invoice can produce one schematron error per rule per line,
+		each carrying its own XPath location — easily past the 65,535-byte cap of a MySQL
+		``Text`` column. ``validation_errors``/``validation_warnings`` must be wide enough
+		(``Long Text``) that this can never abort eInvoice creation with a MySQL 1406
+		"Data too long" error again."""
+		oversized = "\n".join(
+			f"Some schematron rule failed [/*:Invoice/*:InvoiceLine[{i}]]" for i in range(2000)
+		)
+		self.assertGreater(len(oversized.encode("utf-8")), 65535)
+
+		einvoice = frappe.get_doc({
+			"doctype": "eInvoice",
+			"einvoice_type": "Incoming",
+			# Skip Supplier Invoice generation — irrelevant here, and it needs real
+			# invoice data this test doesn't provide.
+			"pa_content_state": "pending",
+			"validation_errors": oversized,
+			"validation_warnings": oversized,
+		}).insert()
+
+		einvoice.reload()
+		self.assertEqual(einvoice.validation_errors, oversized)
+		self.assertEqual(einvoice.validation_warnings, oversized)
+
 	def test_backfill_patch_is_idempotent(self):
 		"""The patch fills `file` on legacy rows once, and leaves already-filled rows alone."""
 		from etransactions.patches.backfill_einvoice_supplier_invoice_file import execute

@@ -28,18 +28,41 @@ GET_CLIENT = "etransactions.plateforme_agreee.session.get_client"
 
 
 class _FakePlatformClient:
-	"""Returns the bytes we hand it, or raises, on download_flow()."""
+	"""Returns the bytes we hand it, or raises, on download_flow().
 
-	def __init__(self, content: bytes | None = None, error: Exception | None = None):
+	``download_flow_readable_pdf`` is only exposed as an attribute when the test asks
+	for it — real clients duck-type this capability, and some platforms don't have it,
+	so the fake has to be able to not have it either.
+	"""
+
+	def __init__(
+		self,
+		content: bytes | None = None,
+		error: Exception | None = None,
+		readable_pdf: bytes | None = None,
+		readable_pdf_error: Exception | None = None,
+		supports_readable_pdf: bool = False,
+	):
 		self.content = content
 		self.error = error
 		self.calls = 0
+		self.readable_pdf = readable_pdf
+		self.readable_pdf_error = readable_pdf_error
+		self.readable_pdf_calls = 0
+		if supports_readable_pdf or readable_pdf is not None or readable_pdf_error is not None:
+			self.download_flow_readable_pdf = self._download_flow_readable_pdf
 
 	def download_flow(self, flow_id):
 		self.calls += 1
 		if self.error:
 			raise self.error
 		return self.content
+
+	def _download_flow_readable_pdf(self, flow_id):
+		self.readable_pdf_calls += 1
+		if self.readable_pdf_error:
+			raise self.readable_pdf_error
+		return self.readable_pdf
 
 
 class TestFlowExtensionDetection(UnitTestCase):
@@ -72,6 +95,9 @@ class TestIncomingFlowIngestion(eTransactionsTestSuite):
 		return self._fixture(
 			"1.basic_wl", "Facture_F20220023-LE_FOURNISSEUR-POUR-LE_CLIENT_BASIC_WL.pdf"
 		)
+
+	def _ubl_xml(self) -> bytes:
+		return self._fixture("5.ubl", "UBL-Invoice-2.1-Example.xml")
 
 	def _flow(self, flow_id, **kwargs) -> IncomingFlow:
 		return IncomingFlow(
@@ -145,6 +171,92 @@ class TestIncomingFlowIngestion(eTransactionsTestSuite):
 		self.assertEqual(einvoice.seller_name, "LE FOURNISSEUR")
 		self.assertEqual(einvoice.id, "F20220023")
 		self.assertTrue(self._supplier_invoice_of(einvoice))
+
+	# ------------------------------------------------------------------
+	# Phase 2b — readable PDF for structured-only (XML) flows
+	# ------------------------------------------------------------------
+	def test_structured_only_flow_gets_a_readable_pdf(self):
+		"""A pure UBL flow has no PDF of its own; if the platform can render one on
+		request, it becomes the Supplier Invoice's preview instead of the XML."""
+		einvoice = eInvoice.create_from_plateforme_flow(
+			self._flow("FLOW-PDF-001"), None, "_Test Company"
+		)
+
+		client = _FakePlatformClient(content=self._ubl_xml(), readable_pdf=self._facturx_pdf())
+		with patch(GET_CLIENT, return_value=client):
+			einvoice.fetch_content_from_platform()
+
+		einvoice.reload()
+		self.assertEqual(client.readable_pdf_calls, 1)
+		self.assertTrue(einvoice.einvoice_readable_pdf)
+		self.assertTrue(frappe.db.get_value("File", einvoice.einvoice, "file_name").endswith(".xml"))
+
+		supplier_invoice_name = self._supplier_invoice_of(einvoice)
+		self.assertTrue(supplier_invoice_name)
+		supplier_invoice = frappe.get_doc("Supplier Invoice", supplier_invoice_name)
+		self.assertTrue(supplier_invoice.file_url.endswith(".pdf"))
+
+	def test_readable_pdf_is_not_requested_for_an_already_pdf_flow(self):
+		"""Factur-X already carries its own PDF; no extra platform call is needed."""
+		einvoice = eInvoice.create_from_plateforme_flow(
+			self._flow("FLOW-PDF-002"), None, "_Test Company"
+		)
+
+		client = _FakePlatformClient(
+			content=self._facturx_pdf(), readable_pdf=self._facturx_pdf(), supports_readable_pdf=True
+		)
+		with patch(GET_CLIENT, return_value=client):
+			einvoice.fetch_content_from_platform()
+
+		einvoice.reload()
+		self.assertEqual(client.readable_pdf_calls, 0)
+		self.assertFalse(einvoice.einvoice_readable_pdf)
+
+	def test_no_readable_pdf_capability_falls_back_to_the_xml(self):
+		"""A platform that can't render a PDF just leaves the invoice with its XML."""
+		einvoice = eInvoice.create_from_plateforme_flow(
+			self._flow("FLOW-PDF-003"), None, "_Test Company"
+		)
+
+		client = _FakePlatformClient(content=self._ubl_xml())  # no readable-PDF support
+		with patch(GET_CLIENT, return_value=client):
+			einvoice.fetch_content_from_platform()
+
+		einvoice.reload()
+		self.assertEqual(einvoice.pa_content_state, "fetched")
+		self.assertFalse(einvoice.einvoice_readable_pdf)
+		supplier_invoice_name = self._supplier_invoice_of(einvoice)
+		self.assertTrue(frappe.db.get_value("Supplier Invoice", supplier_invoice_name, "file_url").endswith(".xml"))
+
+	def test_readable_pdf_failure_does_not_block_ingestion(self):
+		"""The platform erroring on the readable-PDF request must not lose the invoice."""
+		einvoice = eInvoice.create_from_plateforme_flow(
+			self._flow("FLOW-PDF-004"), None, "_Test Company"
+		)
+
+		client = _FakePlatformClient(
+			content=self._ubl_xml(), readable_pdf_error=Exception("rendering unavailable")
+		)
+		with patch(GET_CLIENT, return_value=client):
+			einvoice.fetch_content_from_platform()
+
+		einvoice.reload()
+		self.assertEqual(einvoice.pa_content_state, "fetched")
+		self.assertFalse(einvoice.einvoice_readable_pdf)
+		self.assertTrue(self._supplier_invoice_of(einvoice))
+
+	def test_readable_pdf_response_that_is_not_actually_a_pdf_is_discarded(self):
+		"""Defend against a platform returning something bogus for docType=ReadableView."""
+		einvoice = eInvoice.create_from_plateforme_flow(
+			self._flow("FLOW-PDF-005"), None, "_Test Company"
+		)
+
+		client = _FakePlatformClient(content=self._ubl_xml(), readable_pdf=b"not a pdf")
+		with patch(GET_CLIENT, return_value=client):
+			einvoice.fetch_content_from_platform()
+
+		einvoice.reload()
+		self.assertFalse(einvoice.einvoice_readable_pdf)
 
 	def test_a_failed_download_leaves_the_invoice_behind_to_retry(self):
 		einvoice = eInvoice.create_from_plateforme_flow(

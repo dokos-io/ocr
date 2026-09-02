@@ -83,6 +83,7 @@
   "billing_period_end",
   "po_date",
   "einvoice_embedded_document",
+  "einvoice_readable_pdf",
   "is_return",
   "return_against",
   "terms",
@@ -330,7 +331,7 @@
   {
    "depends_on": "eval:!doc.e_invoice_is_correct",
    "fieldname": "validation_errors",
-   "fieldtype": "Text",
+   "fieldtype": "Long Text",
    "label": "Validation Errors",
    "read_only": 1
   },
@@ -479,7 +480,7 @@
   {
    "depends_on": "eval:doc.validation_warnings",
    "fieldname": "validation_warnings",
-   "fieldtype": "Text",
+   "fieldtype": "Long Text",
    "label": "Validation Warnings",
    "read_only": 1
   },
@@ -620,6 +621,13 @@
    "fieldname": "einvoice_embedded_document",
    "fieldtype": "Attach",
    "label": "Embedded Document",
+   "read_only": 1
+  },
+  {
+   "description": "Platform-rendered human-readable PDF, fetched only when the embedded document is a structured-only file (UBL/CII XML) with no PDF of its own.",
+   "fieldname": "einvoice_readable_pdf",
+   "fieldtype": "Attach",
+   "label": "Readable PDF",
    "read_only": 1
   },
   {
