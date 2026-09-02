@@ -96,6 +96,49 @@ class TestEsalinkPartnerProxyClientForwarding(UnitTestCase):
 		self.assertFalse(hasattr(client, "_password"))
 		self.assertFalse(hasattr(client, "_username"))
 
+	def test_create_identifier_forwards_kwargs(self):
+		client = EsalinkPartnerProxyClient(environment="test")
+		with patch(
+			"etransactions.components.esalink.partner_proxy_client.esalink_request",
+			return_value={"identifierStatus": "NEW"},
+		) as req:
+			result = client.create_identifier(
+				42, addressing_identifier="315143296", start_date="20-07-2026"
+			)
+		self.assertEqual(result["identifierStatus"], "NEW")
+		args, kwargs = req.call_args
+		self.assertEqual(args[0], "dokops.esalink_proxy.partner_proxy.create_identifier")
+		self.assertEqual(kwargs["customer_id"], 42)
+		self.assertEqual(kwargs["addressing_identifier"], "315143296")
+		self.assertEqual(kwargs["start_date"], "20-07-2026")
+		self.assertEqual(kwargs["addressing_qualifier"], "0225")
+
+	def test_search_identifiers_paginates_across_proxy_calls(self):
+		client = EsalinkPartnerProxyClient(environment="prod")
+		pages = [
+			{"total": 3, "identifiers": [{"identifier": "1"}, {"identifier": "2"}]},
+			{"total": 3, "identifiers": [{"identifier": "3"}]},
+		]
+		with patch(
+			"etransactions.components.esalink.partner_proxy_client.esalink_request",
+			side_effect=pages,
+		) as req:
+			result = client.search_identifiers(42, limit=2)
+		self.assertEqual([r["identifier"] for r in result], ["1", "2", "3"])
+		self.assertEqual(req.call_count, 2)
+		self.assertEqual(req.call_args_list[1].kwargs["offset"], 2)
+
+	def test_delete_identifier_forwards_identifier_and_qualifier(self):
+		client = EsalinkPartnerProxyClient(environment="test")
+		with patch(
+			"etransactions.components.esalink.partner_proxy_client.esalink_request", return_value=None
+		) as req:
+			client.delete_identifier(42, "315143296", "0225")
+		kwargs = req.call_args.kwargs
+		self.assertEqual(kwargs["customer_id"], 42)
+		self.assertEqual(kwargs["identifier"], "315143296")
+		self.assertEqual(kwargs["qualifier"], "0225")
+
 
 class TestEsalinkProxyModeSwitching(UnitTestCase):
 	"""No separate opt-in flag: whether the shared dokos_connector_* triplet is configured
