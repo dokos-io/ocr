@@ -364,6 +364,13 @@ class TestIncomingFlowIngestion(eTransactionsTestSuite):
 		from etransactions.plateforme_agreee import flow as flow_module
 
 		GET_CLIENT_IN_FLOW = "etransactions.plateforme_agreee.flow.get_client"
+		# poll_incoming_flows() is gated on is_receiving_enabled(), which also checks
+		# enable_einvoicing — off by default, unlike enable_receiving_einvoices.
+		settings = frappe.get_single("eTransactions Settings")
+		settings.enable_einvoicing = 1
+		settings.enable_receiving_einvoices = 1
+		settings.flags.ignore_permissions = True
+		settings.save()
 		platform_name = self._ensure_active_platform()
 
 		def make_flow(flow_id, submitted_at):
