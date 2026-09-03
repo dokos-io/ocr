@@ -117,6 +117,7 @@
   "pa_syntax",
   "pa_content_state",
   "pa_content_error",
+  "attachment_retry_count",
   "pa_error_section",
   "pa_error_details"
  ],
@@ -816,6 +817,15 @@
    "fieldname": "pa_content_error",
    "fieldtype": "Small Text",
    "label": "Content Error",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "description": "How many times a readable-PDF fetch has been retried for this invoice's Supplier Invoice. Stops retrying at 5.",
+   "fieldname": "attachment_retry_count",
+   "fieldtype": "Int",
+   "label": "Attachment Retry Count",
    "no_copy": 1,
    "read_only": 1
   },

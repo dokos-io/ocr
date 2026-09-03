@@ -47,6 +47,7 @@ class eInvoice(Document):
 
 		allowance_total: DF.Currency
 		amended_from: DF.Link | None
+		attachment_retry_count: DF.Int
 		billing_period_end: DF.Date | None
 		billing_period_start: DF.Date | None
 		buyer_address_line_1: DF.Data | None
@@ -890,6 +891,52 @@ class eInvoice(Document):
 			},
 		)
 
+	def retry_missing_pdf_attachment(self) -> None:
+		"""Cron: this invoice's Supplier Invoice still has no readable PDF (either no file
+		at all, or only the raw XML/CII) — retry requesting one from the platform and replace
+		the attachment. Gives up for good after 5 attempts: a platform that will never render
+		one shouldn't retry forever.
+		"""
+		from etransactions.plateforme_agreee.session import get_client
+
+		supplier_invoice_name = frappe.db.get_value("Supplier Invoice", {"einvoice": self.name})
+		if not supplier_invoice_name:
+			return
+		file_url = frappe.db.get_value("Supplier Invoice", supplier_invoice_name, "file_url")
+		if file_url and file_url.lower().endswith(".pdf"):
+			return
+		if self.pa_content_state != "fetched" or self.attachment_retry_count >= 5:
+			return
+
+		self.db_set("attachment_retry_count", self.attachment_retry_count + 1, update_modified=False)
+
+		try:
+			client = get_client(self.company, transaction_type="purchases")
+			self._fetch_readable_pdf(client)
+			self.flags.ignore_permissions = True
+			self.save()
+		except Exception:
+			frappe.log_error(
+				title=f"Readable PDF retry failed ({self.pa_flow_id})",
+				message=frappe.get_traceback(),
+				reference_doctype="eInvoice",
+				reference_name=self.name,
+			)
+		else:
+			if self.einvoice_readable_pdf:
+				supplier_invoice = frappe.get_doc("Supplier Invoice", supplier_invoice_name)
+				self.attach_source_file_to(supplier_invoice)
+
+		if self.attachment_retry_count >= 5:
+			current_url = frappe.db.get_value("Supplier Invoice", supplier_invoice_name, "file_url")
+			if not (current_url and current_url.lower().endswith(".pdf")):
+				frappe.log_error(
+					title="Giving up on readable PDF for Supplier Invoice",
+					message=f"No PDF could be attached to Supplier Invoice {supplier_invoice_name} "
+					f"after 5 attempts (eInvoice {self.name}).",
+					reference_doctype="eInvoice",
+					reference_name=self.name,
+				)
 
 
 def _notify_incoming_einvoice(doc):
