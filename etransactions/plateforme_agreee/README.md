@@ -331,7 +331,7 @@ an `operation_type` (`flow_send`, `flow_status`, `flow_receive`, `lifecycle_send
   `hubtimize-api-key`), the `EsalinkPartnerClient` Customer API, and the account-provisioning /
   payload-builder logic.
 
-**`pyfrctc`** (`git+https://github.com/akretion/pyfrctc.git`, declared in `pyproject.toml`)
+**`pyfrctc`** (https://pypi.org/project/pyfrctc/, declared in `pyproject.toml`)
 is required only for **CDAR generation/parsing** (`generate_cdar`, `parse_cdar`) — the lifecycle
 wire format shared by the AFNOR and Esalink backends. All three platform clients (SuperPDP,
 AFNOR, Esalink) are native HTTP clients that need only `requests` for transport.
