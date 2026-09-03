@@ -9,7 +9,6 @@ never prevents the accounting document from being saved/submitted.
 """
 
 import frappe
-from frappe import _
 
 from etransactions.plateforme_agreee import lifecycle_status
 from etransactions.plateforme_agreee.session import get_platform_for_company
@@ -129,58 +128,6 @@ def on_supplier_invoice_after_insert(doc, method=None):
 	)
 	if ei and ei.einvoice_type == "Incoming" and ei.pa_flow_id:
 		_send(ei.name, "in_hand", "purchases")
-
-
-def notify_supplier_invoice_created(doc, method=None):
-	"""Supplier Invoice created from an incoming e-invoice -> bell notification.
-
-	Best-effort: staff should see the invoice landed without polling the
-	reception inbox, but a notification failure must never block ingestion.
-	"""
-	if not doc.einvoice:
-		return
-	ei = frappe.db.get_value("eInvoice", doc.einvoice, ["name", "einvoice_type"], as_dict=True)
-	if not ei or ei.einvoice_type != "Incoming":
-		return
-
-	try:
-		from frappe.desk.doctype.notification_log.notification_log import (
-			enqueue_create_notification,
-		)
-
-		users = frappe.get_all(
-			"Has Role",
-			filters={
-				"role": ["in", ("Accounts Manager", "Accounts User")],
-				"parenttype": "User",
-			},
-			pluck="parent",
-		)
-		users = [
-			u
-			for u in set(users)
-			if u not in ("Administrator", "Guest") and frappe.db.get_value("User", u, "enabled")
-		]
-		if not users:
-			return
-
-		sender = doc.supplier_name or doc.supplier or doc.name
-		enqueue_create_notification(
-			users,
-			{
-				"type": "Alert",
-				"document_type": "Supplier Invoice",
-				"document_name": doc.name,
-				"subject": _("New Supplier Invoice created from a received e-invoice: {0}").format(sender),
-			},
-		)
-	except Exception:
-		frappe.log_error(
-			title="Supplier Invoice creation notification failed",
-			message=frappe.get_traceback(),
-			reference_doctype="Supplier Invoice",
-			reference_name=doc.name,
-		)
 
 
 def _warn_if_lifecycle_closed(einvoice_name: str) -> bool:
