@@ -625,6 +625,7 @@ def _apply_customer_status(
 	platform_name: str, status: str | None, reason: str | None = None
 ) -> None:
 	"""Persist the Esalink activation status; activate the platform once ACTIVE."""
+	was_active = frappe.db.get_value("eTransactions Accredited Platform", platform_name, "is_active")
 	values = {"esalink_customer_status": status or "WAITING_VALIDATION"}
 	if status == "ACTIVE":
 		values["is_active"] = 1
@@ -638,6 +639,23 @@ def _apply_customer_status(
 		values,
 		update_modified=False,
 	)
+	if values.get("is_active") and not was_active:
+		_default_auto_send_settings()
+
+
+def _default_auto_send_settings() -> None:
+	"""Default the lifecycle auto-send flags on the first time a PA connection activates.
+
+	The eTransactions Settings singleton can already exist with these flags at 0 (e.g.
+	created on a site before the fields' JSON default of 1 was added) — a JSON default
+	only applies when the document is first created, never retroactively. Set them here,
+	right as a platform goes active for the first time, so a newly-connected company
+	doesn't silently end up with lifecycle reporting to the platform switched off.
+	"""
+	for field in ("auto_send_in_hand", "auto_send_approved", "auto_send_payment"):
+		if frappe.get_single_value("eTransactions Settings", field):
+			continue
+		frappe.db.set_single_value("eTransactions Settings", field, 1)
 
 
 @frappe.whitelist()

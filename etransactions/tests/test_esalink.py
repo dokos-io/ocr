@@ -646,6 +646,43 @@ class TestEsalinkProvisioningHelpers(UnitTestCase):
 		self.assertEqual(out["legal_id_type"], "siret")
 		self.assertEqual(out["routing_address"], "31514329600011")
 
+	def test_apply_customer_status_defaults_auto_send_flags_on_first_activation(self):
+		"""A platform going ACTIVE for the first time must not leave lifecycle reporting off."""
+		with (
+			patch("frappe.db.get_value", return_value=0),  # was_active
+			patch("frappe.db.set_value"),
+			patch("frappe.get_single_value", return_value=0),
+			patch("frappe.db.set_single_value") as set_single,
+		):
+			prov._apply_customer_status("P1", "ACTIVE")
+		self.assertEqual(
+			sorted(c.args[1] for c in set_single.call_args_list),
+			["auto_send_approved", "auto_send_in_hand", "auto_send_payment"],
+		)
+
+	def test_apply_customer_status_skips_defaults_on_repeat_activation(self):
+		"""Re-confirming ACTIVE on an already-active platform must not touch Settings again."""
+		with (
+			patch("frappe.db.get_value", return_value=1),  # was_active already
+			patch("frappe.db.set_value"),
+			patch("frappe.get_single_value") as get_single,
+			patch("frappe.db.set_single_value") as set_single,
+		):
+			prov._apply_customer_status("P1", "ACTIVE")
+		get_single.assert_not_called()
+		set_single.assert_not_called()
+
+	def test_apply_customer_status_leaves_settings_alone_when_already_on(self):
+		"""Flags already at 1 should not be rewritten."""
+		with (
+			patch("frappe.db.get_value", return_value=0),  # was_active
+			patch("frappe.db.set_value"),
+			patch("frappe.get_single_value", return_value=1),
+			patch("frappe.db.set_single_value") as set_single,
+		):
+			prov._apply_customer_status("P1", "ACTIVE")
+		set_single.assert_not_called()
+
 
 class TestEsalinkPartnerGate(UnitTestCase):
 	"""Cloud-aware hard block when the Esalink partner credentials are missing."""
