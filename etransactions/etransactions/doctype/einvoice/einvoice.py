@@ -1066,11 +1066,30 @@ def get_transaction_einvoice(doctype: str, name: str) -> dict | None:
 
 
 @frappe.whitelist()
-def report_lifecycle_status(einvoice: str, status: str, **kwargs):
+def report_lifecycle_status(
+	einvoice: str,
+	status: str,
+	comment: str | None = None,
+	reason_code: str | None = None,
+	reason_text: str | None = None,
+	amount: float | None = None,
+	currency: str | None = None,
+	payment_date: str | None = None,
+	origin: str = "Manual",
+):
 	"""Thin wrapper so transaction forms can drive lifecycle on the linked eInvoice."""
 	doc = frappe.get_doc("eInvoice", einvoice)
 	doc.check_permission("write")
-	return doc.submit_lifecycle_status(status, **kwargs)
+	return doc.submit_lifecycle_status(
+		status,
+		comment=comment,
+		reason_code=reason_code,
+		reason_text=reason_text,
+		amount=amount,
+		currency=currency,
+		payment_date=payment_date,
+		origin=origin,
+	)
 
 
 @frappe.whitelist()
