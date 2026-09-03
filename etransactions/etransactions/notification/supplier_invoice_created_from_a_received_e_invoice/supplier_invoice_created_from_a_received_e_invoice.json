@@ -1,0 +1,33 @@
+{
+ "attach_print": 0,
+ "channel": "System Notification",
+ "condition": "doc.einvoice and frappe.db.get_value(\"eInvoice\", doc.einvoice, \"einvoice_type\") == \"Incoming\"",
+ "condition_type": "Python",
+ "creation": "2026-09-03 00:00:00.000000",
+ "days_in_advance": 0,
+ "docstatus": 0,
+ "doctype": "Notification",
+ "document_type": "Supplier Invoice",
+ "enabled": 1,
+ "event": "New",
+ "idx": 0,
+ "is_standard": 1,
+ "minutes_offset": 0,
+ "modified": "2026-09-03 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "eTransactions",
+ "name": "Supplier Invoice created from a received e-invoice",
+ "notification_title": "New Supplier Invoice created from a received e-invoice: {{ doc.supplier_name or doc.supplier or doc.name }}",
+ "notification_type": "Alert",
+ "owner": "Administrator",
+ "recipients": [
+  {
+   "receiver_by_role": "Accounts Manager"
+  },
+  {
+   "receiver_by_role": "Accounts User"
+  }
+ ],
+ "send_system_notification": 0,
+ "send_to_all_assignees": 0
+}
