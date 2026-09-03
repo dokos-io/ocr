@@ -251,6 +251,7 @@ scheduler_events = {
 		"etransactions.plateforme_agreee.flow.poll_pending_outgoing_flows",
 		"etransactions.plateforme_agreee.flow.poll_incoming_flows",
 		"etransactions.plateforme_agreee.flow.retry_pending_einvoice_content",
+		"etransactions.plateforme_agreee.flow.retry_missing_pdf_attachments",
 		"etransactions.plateforme_agreee.flow.poll_outgoing_lifecycle_events",
 		"etransactions.plateforme_agreee.flow.poll_incoming_lifecycle_flows",
 		"etransactions.plateforme_agreee.flow.submit_pending_ereporting_entries",

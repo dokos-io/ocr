@@ -295,6 +295,91 @@ class TestIncomingFlowIngestion(eTransactionsTestSuite):
 		enqueued = [call.kwargs.get("einvoice") for call in enqueue.call_args_list]
 		self.assertIn(einvoice.name, enqueued)
 
+	# ------------------------------------------------------------------
+	# Phase 3 — bounded retry for a missing readable PDF
+	# ------------------------------------------------------------------
+	def test_missing_pdf_sweep_picks_up_an_xml_only_supplier_invoice(self):
+		from etransactions.plateforme_agreee.flow import retry_missing_pdf_attachments
+
+		einvoice = eInvoice.create_from_plateforme_flow(
+			self._flow("FLOW-PDF-RETRY-001"), None, "_Test Company"
+		)
+		client = _FakePlatformClient(content=self._ubl_xml())  # no readable-PDF support
+		with patch(GET_CLIENT, return_value=client):
+			einvoice.fetch_content_from_platform()
+
+		with patch("frappe.enqueue") as enqueue:
+			retry_missing_pdf_attachments()
+
+		enqueued = [call.kwargs.get("einvoice") for call in enqueue.call_args_list]
+		self.assertIn(einvoice.name, enqueued)
+
+	def test_missing_pdf_sweep_skips_invoices_that_already_have_a_pdf(self):
+		from etransactions.plateforme_agreee.flow import retry_missing_pdf_attachments
+
+		einvoice = eInvoice.create_from_plateforme_flow(
+			self._flow("FLOW-PDF-RETRY-002"), None, "_Test Company"
+		)
+		client = _FakePlatformClient(content=self._facturx_pdf())
+		with patch(GET_CLIENT, return_value=client):
+			einvoice.fetch_content_from_platform()
+
+		with patch("frappe.enqueue") as enqueue:
+			retry_missing_pdf_attachments()
+
+		enqueued = [call.kwargs.get("einvoice") for call in enqueue.call_args_list]
+		self.assertNotIn(einvoice.name, enqueued)
+
+	def test_retry_replaces_the_xml_with_a_pdf_once_the_platform_serves_one(self):
+		einvoice = eInvoice.create_from_plateforme_flow(
+			self._flow("FLOW-PDF-RETRY-003"), None, "_Test Company"
+		)
+		with patch(GET_CLIENT, return_value=_FakePlatformClient(content=self._ubl_xml())):
+			einvoice.fetch_content_from_platform()
+
+		supplier_invoice_name = self._supplier_invoice_of(einvoice)
+		self.assertTrue(
+			frappe.db.get_value("Supplier Invoice", supplier_invoice_name, "file_url").endswith(".xml")
+		)
+
+		client = _FakePlatformClient(content=self._ubl_xml(), readable_pdf=self._facturx_pdf())
+		with patch(GET_CLIENT, return_value=client):
+			einvoice.retry_missing_pdf_attachment()
+
+		einvoice.reload()
+		self.assertEqual(einvoice.attachment_retry_count, 1)
+		self.assertTrue(
+			frappe.db.get_value("Supplier Invoice", supplier_invoice_name, "file_url").endswith(".pdf")
+		)
+
+	def test_retry_gives_up_for_good_after_five_failed_attempts(self):
+		einvoice = eInvoice.create_from_plateforme_flow(
+			self._flow("FLOW-PDF-RETRY-004"), None, "_Test Company"
+		)
+		with patch(GET_CLIENT, return_value=_FakePlatformClient(content=self._ubl_xml())):
+			einvoice.fetch_content_from_platform()
+
+		supplier_invoice_name = self._supplier_invoice_of(einvoice)
+
+		# No readable-PDF capability: every retry fails to produce a PDF.
+		client = _FakePlatformClient(content=self._ubl_xml())
+		with patch(GET_CLIENT, return_value=client):
+			for _ in range(6):
+				einvoice.retry_missing_pdf_attachment()
+				einvoice.reload()
+
+		self.assertEqual(einvoice.attachment_retry_count, 5, "must stop counting past 5")
+		self.assertFalse(
+			frappe.db.get_value("Supplier Invoice", supplier_invoice_name, "file_url").endswith(".pdf")
+		)
+		self.assertTrue(
+			frappe.get_all(
+				"Error Log",
+				filters={"reference_doctype": "eInvoice", "reference_name": einvoice.name},
+			),
+			"the final failure must be logged for support to notice",
+		)
+
 	def test_poller_records_the_flow_and_defers_the_download(self):
 		"""One listing call is enough to land the invoice; the file follows."""
 		from etransactions.plateforme_agreee.flow import _ingest_incoming_flow

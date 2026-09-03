@@ -599,3 +599,40 @@ def retry_pending_einvoice_content():
 	)
 	for name in stuck:
 		_enqueue_content_fetch(name)
+
+
+def _enqueue_missing_pdf_retry(einvoice: str) -> None:
+	frappe.enqueue(
+		"etransactions.plateforme_agreee.flow.retry_missing_pdf_attachment",
+		queue="long",
+		job_id=f"einvoice-pdf-retry::{einvoice}",
+		deduplicate=True,
+		einvoice=einvoice,
+	)
+
+
+def retry_missing_pdf_attachment(einvoice: str) -> None:
+	"""Background job: retry attaching a readable PDF to a Supplier Invoice that has none."""
+	doc = frappe.get_doc("eInvoice", einvoice)
+	doc.flags.ignore_permissions = True
+	doc.retry_missing_pdf_attachment()
+
+
+def retry_missing_pdf_attachments():
+	"""Cron: re-attempt attaching a readable PDF to Supplier Invoices that only have the
+	raw XML/CII (or nothing at all).
+
+	Bounded to 5 attempts per eInvoice (``attachment_retry_count``) — unlike
+	``retry_pending_einvoice_content``, a missing PDF is cosmetic, not something to chase
+	forever.
+	"""
+	missing = frappe.get_all(
+		"Supplier Invoice",
+		filters={"einvoice": ("is", "set")},
+		or_filters=[["file", "in", ("", None)], ["file_url", "not like", "%.pdf"]],
+		pluck="einvoice",
+	)
+	for einvoice_name in missing:
+		if (frappe.db.get_value("eInvoice", einvoice_name, "attachment_retry_count") or 0) >= 5:
+			continue
+		_enqueue_missing_pdf_retry(einvoice_name)
