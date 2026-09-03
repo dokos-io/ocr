@@ -212,7 +212,10 @@ doc_events = {
 	},
 	"Supplier Invoice": {
 		"on_close": "etransactions.etransactions.doctype.ocr_request.ocr_request.update_ocr_request_status",
-		"after_insert": "etransactions.plateforme_agreee.auto_status.on_supplier_invoice_after_insert",
+		"after_insert": [
+			"etransactions.plateforme_agreee.auto_status.on_supplier_invoice_after_insert",
+			"etransactions.plateforme_agreee.auto_status.notify_supplier_invoice_created",
+		],
 	},
 	"Sales Invoice": {
 		"validate": "etransactions.overrides.sales_invoice.on_validate",
