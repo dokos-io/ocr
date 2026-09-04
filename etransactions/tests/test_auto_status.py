@@ -171,6 +171,24 @@ class TestAutomaticLifecycleStatus(eTransactionsTestSuite):
 		self.assertEqual(client.sent, [])
 		self.assertEqual(self._comments(einvoice), [])
 
+	def test_no_active_platform_leaves_a_comment_not_silence(self):
+		"""A company with no active platform yet must not vanish without a trace.
+
+		Regression guard: this used to return silently, with no comment, no log entry,
+		and no error — the only way to notice was to compare timestamps across three
+		different doctypes after the fact.
+		"""
+		einvoice = self._einvoice("FLOW-AUTO-008")
+
+		with patch("frappe.log_error") as log_error:
+			client = self._run(einvoice, "in_hand", platform_type=None)
+
+		self.assertEqual(client.sent, [])
+		log_error.assert_not_called()
+		comments = self._comments(einvoice)
+		self.assertTrue(comments, "the skip should leave an audit trail on the eInvoice")
+		self.assertIn("In Hand", comments[0])
+
 	def test_an_automatic_send_is_logged_as_automatic(self):
 		einvoice = self._einvoice("FLOW-AUTO-007")
 
