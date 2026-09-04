@@ -415,6 +415,62 @@ class TesteInvoice(eTransactionsTestSuite):
 		self.assertEqual(len(copies()), 1, "a second run must not create another copy")
 		self.assertEqual(frappe.db.get_value("Supplier Invoice", supplier_invoice.name, "file"), filled)
 
+	def test_backfill_pa_platform_patch(self):
+		"""The patch stamps pa_platform/pa_platform_name on legacy PA-received eInvoices
+		(and their generated Supplier Invoice) that predate create_from_plateforme_flow()
+		stamping them at creation, inferring the platform from the company's currently
+		active purchases platform. A second run must not disturb the now-labelled rows."""
+		from etransactions.etransactions.doctype.einvoice.einvoice import eInvoice
+		from etransactions.components.superpdp.models import IncomingFlow
+		from etransactions.patches.backfill_einvoice_pa_platform import execute
+
+		if not frappe.db.exists(
+			"eTransactions Accredited Platform",
+			{"company": "_Test Company", "is_active": 1, "transaction_type": ("in", ["Purchases", "Both"])},
+		):
+			frappe.get_doc({
+				"doctype": "eTransactions Accredited Platform",
+				"platform_name": "Backfill Test Platform",
+				"platform_type": "Custom",
+				"platform_code": "BACKFILLTEST",
+				"company": "_Test Company",
+				"transaction_type": "Both",
+				"is_active": 1,
+				"api_base_url": "http://localhost:1/never-called",
+				"client_id": "backfill-test",
+				"client_secret": "backfill-test-secret",
+			}).insert(ignore_permissions=True)
+
+		flow = IncomingFlow(
+			flow_id="FLOW-BACKFILL-001",
+			submitted_at="2024-01-01 00:00:00",
+			updated_at=None,
+			flow_type="SupplierInvoice",
+			syntax="Factur-X",
+		)
+		# platform=None simulates a record created before the pill feature stamped it.
+		einvoice = eInvoice.create_from_plateforme_flow(
+			flow, self._facturx_pdf(), "_Test Company", platform=None
+		)
+		self.assertFalse(einvoice.pa_platform_name)
+
+		supplier_invoice = self._supplier_invoice_of(einvoice)
+		self.assertFalse(supplier_invoice.pa_platform_name)
+
+		execute()
+
+		einvoice.reload()
+		self.assertTrue(einvoice.pa_platform)
+		self.assertTrue(einvoice.pa_platform_name)
+		labelled_as = einvoice.pa_platform_name
+
+		supplier_invoice.reload()
+		self.assertEqual(supplier_invoice.pa_platform_name, labelled_as)
+
+		execute()
+		einvoice.reload()
+		self.assertEqual(einvoice.pa_platform_name, labelled_as, "a second run must not relabel an already-set row")
+
 	def test_sales_invoice_to_einvoice(self):
 		company = "_Test Company"
 
