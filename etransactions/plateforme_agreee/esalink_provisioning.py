@@ -641,6 +641,9 @@ def _apply_customer_status(
 	)
 	if values.get("is_active") and not was_active:
 		_default_auto_send_settings()
+		company = frappe.db.get_value("eTransactions Accredited Platform", platform_name, "company")
+		if company:
+			_send_pending_in_hand_statuses(company)
 
 
 def _default_auto_send_settings() -> None:
@@ -656,6 +659,35 @@ def _default_auto_send_settings() -> None:
 		if frappe.get_single_value("eTransactions Settings", field):
 			continue
 		frappe.db.set_single_value("eTransactions Settings", field, 1)
+
+
+def _send_pending_in_hand_statuses(company: str) -> None:
+	"""Catch up 'in_hand' sends skipped because no platform was active yet.
+
+	A Supplier Invoice created from an incoming e-invoice while the company's PA
+	connection was still activating never gets a second chance: its 'in_hand' send
+	is attempted once, at Supplier Invoice creation (see
+	``auto_status.on_supplier_invoice_after_insert``), and silently skipped if no
+	active platform is found at that moment. Re-run the same eligibility check here,
+	right as the platform goes active, so those invoices are not left behind.
+	"""
+	from etransactions.plateforme_agreee.auto_status import _send
+
+	if not frappe.get_single_value("eTransactions Settings", "auto_send_in_hand"):
+		return
+	einvoice_names = set(
+		frappe.get_all(
+			"Supplier Invoice",
+			filters={"company": company, "einvoice": ["is", "set"]},
+			pluck="einvoice",
+		)
+	)
+	for einvoice_name in einvoice_names:
+		ei = frappe.db.get_value(
+			"eInvoice", einvoice_name, ["name", "einvoice_type", "pa_flow_id"], as_dict=True
+		)
+		if ei and ei.einvoice_type == "Incoming" and ei.pa_flow_id:
+			_send(ei.name, "in_hand", "purchases")
 
 
 @frappe.whitelist()

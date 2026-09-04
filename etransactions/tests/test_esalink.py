@@ -683,6 +683,69 @@ class TestEsalinkProvisioningHelpers(UnitTestCase):
 			prov._apply_customer_status("P1", "ACTIVE")
 		set_single.assert_not_called()
 
+	def test_apply_customer_status_catches_up_pending_in_hand_sends_on_activation(self):
+		"""A Supplier Invoice created before the platform finished activating must not
+		be left behind: it never gets a second chance otherwise, since the auto-send is
+		only ever attempted once, at Supplier Invoice creation."""
+
+		def gv(doctype, name, fieldname=None, *args, **kwargs):
+			if doctype == "eTransactions Accredited Platform" and fieldname == "is_active":
+				return 0  # was_active
+			if doctype == "eTransactions Accredited Platform" and fieldname == "company":
+				return "_Test Company"
+			return None
+
+		with (
+			patch("frappe.db.get_value", side_effect=gv),
+			patch("frappe.db.set_value"),
+			patch("frappe.get_single_value", return_value=0),
+			patch("frappe.db.set_single_value"),
+			patch.object(prov, "_send_pending_in_hand_statuses") as backfill,
+		):
+			prov._apply_customer_status("P1", "ACTIVE")
+
+		backfill.assert_called_once_with("_Test Company")
+
+	def test_apply_customer_status_skips_backfill_on_repeat_activation(self):
+		"""Re-confirming ACTIVE on an already-active platform must not re-run the backfill."""
+		with (
+			patch("frappe.db.get_value", return_value=1),  # was_active already
+			patch("frappe.db.set_value"),
+			patch.object(prov, "_send_pending_in_hand_statuses") as backfill,
+		):
+			prov._apply_customer_status("P1", "ACTIVE")
+		backfill.assert_not_called()
+
+	def test_send_pending_in_hand_statuses_targets_supplier_invoices_without_a_flow(self):
+		"""Only Incoming e-invoices with a flow id and an existing Supplier Invoice qualify
+		— the same eligibility as the normal Supplier Invoice `after_insert` trigger."""
+		einvoices = {
+			"EINV-ELIGIBLE": frappe._dict(name="EINV-ELIGIBLE", einvoice_type="Incoming", pa_flow_id="FLOW-1"),
+			"EINV-NO-FLOW": frappe._dict(name="EINV-NO-FLOW", einvoice_type="Incoming", pa_flow_id=None),
+			"EINV-OUTGOING": frappe._dict(name="EINV-OUTGOING", einvoice_type="Outgoing", pa_flow_id="FLOW-2"),
+		}
+
+		def gv(doctype, name, fields=None, as_dict=False, **kwargs):
+			return einvoices[name]
+
+		with (
+			patch("frappe.get_single_value", return_value=1),
+			patch("frappe.get_all", return_value=list(einvoices.keys())),
+			patch("frappe.db.get_value", side_effect=gv),
+			patch("etransactions.plateforme_agreee.auto_status._send") as send,
+		):
+			prov._send_pending_in_hand_statuses("_Test Company")
+
+		send.assert_called_once_with("EINV-ELIGIBLE", "in_hand", "purchases")
+
+	def test_send_pending_in_hand_statuses_noop_when_flag_is_off(self):
+		with (
+			patch("frappe.get_single_value", return_value=0),
+			patch("frappe.get_all") as get_all,
+		):
+			prov._send_pending_in_hand_statuses("_Test Company")
+		get_all.assert_not_called()
+
 
 class TestEsalinkPartnerGate(UnitTestCase):
 	"""Cloud-aware hard block when the Esalink partner credentials are missing."""

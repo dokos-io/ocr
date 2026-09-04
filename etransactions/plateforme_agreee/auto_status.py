@@ -86,6 +86,17 @@ def run_auto_lifecycle_status(einvoice_name: str, status: str, transaction_type:
 	``submit_lifecycle_status``. Best-effort: failures are logged, never raised.
 	"""
 	einvoice = frappe.get_doc("eInvoice", einvoice_name)
+	if not get_platform_for_company(einvoice.company, transaction_type=transaction_type):
+		# Distinct from a platform that simply can't carry this status (see
+		# _platform_supports below): there is nothing to report to yet, which is worth
+		# surfacing since it can resolve itself once the platform connection activates.
+		einvoice.add_comment(
+			"Comment",
+			text=frappe._(
+				"Lifecycle status '{0}' was not reported: no accredited platform is currently active for {1}."
+			).format(lifecycle_status.label(status), transaction_type),
+		)
+		return
 	if not _platform_supports(einvoice.company, transaction_type, status):
 		return
 
