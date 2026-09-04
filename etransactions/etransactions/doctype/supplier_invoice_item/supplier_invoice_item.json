@@ -31,8 +31,10 @@
  ],
  "fields": [
   {
+   "columns": 2,
    "fieldname": "supplier_description",
    "fieldtype": "Small Text",
+   "in_list_view": 1,
    "label": "Supplier Description",
    "read_only": 1
   },
