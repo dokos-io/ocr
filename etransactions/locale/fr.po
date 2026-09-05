@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: eTransactions VERSION\n"
 "Report-Msgid-Bugs-To: hello@dokos.io\n"
-"POT-Creation-Date: 2026-09-04 03:19+0000\n"
+"POT-Creation-Date: 2026-09-05 03:23+0000\n"
 "PO-Revision-Date: 2025-04-02 14:52+0200\n"
 "Last-Translator: hello@dokos.io\n"
 "Language-Team: hello@dokos.io\n"
@@ -2720,14 +2720,19 @@ msgstr "Statut de cycle de vie"
 msgid "Lifecycle Status Reported At"
 msgstr "Date de signalement du statut de cycle de vie"
 
-#: etransactions/plateforme_agreee/auto_status.py:164
+#: etransactions/plateforme_agreee/auto_status.py:175
 msgid "Lifecycle already closed"
 msgstr "Cycle de vie déjà clôturé"
 
-#: etransactions/plateforme_agreee/auto_status.py:101
+#: etransactions/plateforme_agreee/auto_status.py:112
 #, python-brace-format
 msgid "Lifecycle status '{0}' was not reported to the accredited platform: {1}"
 msgstr "Le statut de cycle de vie '{0}' n'a pas été signalé à la plateforme agréée : {1}"
+
+#: etransactions/plateforme_agreee/auto_status.py:96
+#, python-brace-format
+msgid "Lifecycle status '{0}' was not reported: no accredited platform is currently active for {1}."
+msgstr "L'état du cycle de vie '{0}' n'a pas été signalé : aucune plateforme accréditée n'est actuellement active pour {1}."
 
 #: etransactions/etransactions/doctype/einvoice/einvoice.py:379
 msgid "Lifecycle status not allowed"
@@ -5360,7 +5365,7 @@ msgstr "La bibliothèque 'requests' est requise pour la recherche SIRENE."
 msgid "The 'requests' library is required for the SuperPDP integration."
 msgstr "La bibliothèque 'requests' est requise pour l'intégration SuperPDP."
 
-#: etransactions/plateforme_agreee/auto_status.py:161
+#: etransactions/plateforme_agreee/auto_status.py:172
 #, python-brace-format
 msgid "The '{0}' lifecycle status will not be reported."
 msgstr "Le statut de cycle de vie '{0}' ne sera pas signalé."
@@ -5490,7 +5495,7 @@ msgstr "Le statut de cycle de vie '{0}' n'est pas encore pris en charge par Supe
 msgid "The line label as the supplier writes it, e.g. \"Abonnement Fibre Pro\"."
 msgstr "L'étiquette de ligne telle qu'écrite par le fournisseur, par ex. \"Abonnement Fibre Pro\"."
 
-#: etransactions/plateforme_agreee/auto_status.py:156
+#: etransactions/plateforme_agreee/auto_status.py:167
 #, python-brace-format
 msgid "The linked e-invoice was reported as '{0}' on the accredited platform"
 msgstr "La e-facture liée a été signalée comme '{0}' sur la plateforme agréée"
@@ -5717,11 +5722,11 @@ msgstr "Il s'agit d'une facture B2G (entité publique). Le <b>code service</b> (
 msgid "This party is ready for electronic invoicing."
 msgstr "Ce tiers est prêt pour la facturation électronique."
 
-#: etransactions/plateforme_agreee/esalink_provisioning.py:669
+#: etransactions/plateforme_agreee/esalink_provisioning.py:701
 msgid "This platform has no Esalink customer id to refresh."
 msgstr "Cette plateforme n'a pas d'identifiant client Esalink à actualiser."
 
-#: etransactions/plateforme_agreee/esalink_provisioning.py:687
+#: etransactions/plateforme_agreee/esalink_provisioning.py:719
 msgid "This platform has no Esalink customer id."
 msgstr "Cette plateforme n'a pas d'identifiant client Esalink."
 
