@@ -49,6 +49,10 @@ msgstr "5"
 msgid "A Peppol identifier must carry its scheme, e.g. 0088:1234567890123."
 msgstr "Un identifiant Peppol doit inclure son schéma, ex. 0088:1234567890123."
 
+#: etransactions/plateforme_agreee/lifecycle_status.py:204
+msgid "A VAT rate applied on the invoice is wrong."
+msgstr "Un taux de TVA appliqué sur la facture est erroné."
+
 #: etransactions/plateforme_agreee/readiness.py:828
 msgid "A document level discount is currently not supported in the e-invoice."
 msgstr "Une remise au niveau du document n'est actuellement pas prise en charge dans la facture électronique."
@@ -61,6 +65,18 @@ msgstr "Une facture d'achat en brouillon existe déjà pour cette facture fourni
 #, python-brace-format
 msgid "A reason code is required to report the status '{0}'."
 msgstr "Un code motif est requis pour signaler le statut '{0}'."
+
+#: etransactions/plateforme_agreee/lifecycle_status.py:200
+msgid "A reference carried by the invoice is wrong."
+msgstr "Une référence portée par la facture est erronée."
+
+#: etransactions/plateforme_agreee/lifecycle_status.py:191
+msgid "A required supporting document is missing from the invoice."
+msgstr "Un justificatif obligatoire est absent de la facture."
+
+#: etransactions/plateforme_agreee/lifecycle_status.py:196
+msgid "A unit price differs from the order or the price list."
+msgstr "Un prix unitaire diffère de la commande ou du tarif."
 
 #. Default value of the naming_series (Select) field in DocType 'Accounting
 #. Request'
@@ -445,9 +461,21 @@ msgstr "Une URL de base d'API doit être configurée pour les plateformes AFNOR 
 msgid "An Esalink base URL must be configured."
 msgstr "Une URL de base Esalink doit être configurée."
 
+#: etransactions/plateforme_agreee/lifecycle_status.py:201
+msgid "An agreed discount is missing or miscalculated."
+msgstr "Une remise convenue est absente ou mal calculée."
+
 #: etransactions/plateforme_agreee/own_directory.py:153
 msgid "An identifier is required (e.g. 0225:123456789)."
 msgstr "Un identifiant est requis (ex. 0225:123456789)."
+
+#: etransactions/plateforme_agreee/lifecycle_status.py:179
+msgid "An invoiced item is not the one that was ordered or delivered."
+msgstr "Un article facturé n'est pas celui qui a été commandé ou livré."
+
+#: etransactions/plateforme_agreee/lifecycle_status.py:197
+msgid "An invoiced quantity differs from the one ordered or received."
+msgstr "Une quantité facturée diffère de celle commandée ou reçue."
 
 #. Label of the analysis (Code) field in DocType 'OCR Request'
 #: etransactions/etransactions/doctype/ocr_request/ocr_request.json
@@ -853,6 +881,10 @@ msgstr "Montant calculé"
 msgid "Calculation Percent"
 msgstr "Pourcentage de calcul"
 
+#: etransactions/plateforme_agreee/lifecycle_status.py:149
+msgid "Calculation error"
+msgstr "Erreur de calcul"
+
 #: frontend/src/components/ClosingPeriodDialog.vue:35
 #: frontend/src/components/ClosingTaskDialog.vue:33
 #: frontend/src/components/RequestDialog.vue:33
@@ -1218,6 +1250,10 @@ msgstr "Référence de contrat / de marché public (numéro de marché, BT-12)."
 #: etransactions/overrides/custom_fields/transactions.py:63
 msgid "Contract Reference"
 msgstr "Référence de contrat"
+
+#: etransactions/plateforme_agreee/lifecycle_status.py:152
+msgid "Contract ended"
+msgstr "Contrat terminé"
 
 #: etransactions/etransactions/doctype/etransactions_accredited_platform/etransactions_accredited_platform.js:138
 #: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:385
@@ -1797,6 +1833,10 @@ msgstr "Terminé"
 msgid "Done."
 msgstr "Terminé."
 
+#: etransactions/plateforme_agreee/lifecycle_status.py:156
+msgid "Double invoicing"
+msgstr "Double facturation"
+
 #: etransactions/public/js/sales_invoice.js:21
 msgid "Download FacturX Invoice"
 msgstr "Télécharger la facture FacturX"
@@ -1848,6 +1888,10 @@ msgstr "Date d'échéance = date de fin de période + N jours"
 #, python-brace-format
 msgid "Due {0}"
 msgstr "Échéance {0}"
+
+#: etransactions/plateforme_agreee/lifecycle_status.py:157
+msgid "Duplicate"
+msgstr "Doublon"
 
 #: etransactions/etransactions/doctype/etransactions_supplier_item_alias/etransactions_supplier_item_alias.py:68
 msgid "Duplicate supplier item code"
@@ -2406,6 +2450,66 @@ msgstr "Entrant"
 msgid "Incomplete address (missing: {0})"
 msgstr "Adresse incomplète (manquant : {0})"
 
+#: etransactions/plateforme_agreee/lifecycle_status.py:160
+msgid "Incomplete delivery"
+msgstr "Livraison incomplète"
+
+#: etransactions/plateforme_agreee/lifecycle_status.py:170
+msgid "Incorrect SIRET"
+msgstr "SIRET erroné"
+
+#: etransactions/plateforme_agreee/lifecycle_status.py:172
+msgid "Incorrect VAT rate"
+msgstr "Taux de TVA erroné"
+
+#: etransactions/plateforme_agreee/lifecycle_status.py:146
+msgid "Incorrect address"
+msgstr "Adresse erronée"
+
+#: etransactions/plateforme_agreee/lifecycle_status.py:153
+msgid "Incorrect bank details"
+msgstr "Coordonnées bancaires erronées"
+
+#: etransactions/plateforme_agreee/lifecycle_status.py:169
+msgid "Incorrect discount"
+msgstr "Remise erronée"
+
+#: etransactions/plateforme_agreee/lifecycle_status.py:147
+msgid "Incorrect item"
+msgstr "Article erroné"
+
+#: etransactions/plateforme_agreee/lifecycle_status.py:150
+msgid "Incorrect order reference"
+msgstr "Référence de commande erronée"
+
+#: etransactions/plateforme_agreee/lifecycle_status.py:161
+msgid "Incorrect payment method"
+msgstr "Moyen de paiement erroné"
+
+#: etransactions/plateforme_agreee/lifecycle_status.py:165
+msgid "Incorrect quantity"
+msgstr "Quantité erronée"
+
+#: etransactions/plateforme_agreee/lifecycle_status.py:154
+msgid "Incorrect recipient"
+msgstr "Destinataire erroné"
+
+#: etransactions/plateforme_agreee/lifecycle_status.py:168
+msgid "Incorrect reference"
+msgstr "Référence erronée"
+
+#: etransactions/plateforme_agreee/lifecycle_status.py:151
+msgid "Incorrect routing code"
+msgstr "Code de routage erroné"
+
+#: etransactions/plateforme_agreee/lifecycle_status.py:162
+msgid "Incorrect total amount"
+msgstr "Montant total erroné"
+
+#: etransactions/plateforme_agreee/lifecycle_status.py:164
+msgid "Incorrect unit price"
+msgstr "Prix unitaire erroné"
+
 #. Label of the incoterm (Link) field in DocType 'eInvoice'
 #: etransactions/etransactions/doctype/einvoice/einvoice.json
 msgid "Incoterm"
@@ -2883,9 +2987,17 @@ msgstr "Identifiant du vendeur manquant"
 msgid "Missing Supplier"
 msgstr "Fournisseur manquant"
 
+#: etransactions/plateforme_agreee/lifecycle_status.py:167
+msgid "Missing contract reference"
+msgstr "Référence de contrat absente"
+
 #: frontend/src/pages/Overview.vue:80
 msgid "Missing justificatives"
 msgstr "Justificatifs manquants"
+
+#: etransactions/plateforme_agreee/lifecycle_status.py:159
+msgid "Missing supporting document"
+msgstr "Justificatif absent"
 
 #. Label of the mistral_api_key (Password) field in DocType 'eTransactions
 #. Settings'
@@ -3121,6 +3233,10 @@ msgstr "Aucun fichier au format fournisseur (PDF, XML) trouvé dans cette corbei
 msgid "No new matches found"
 msgstr "Aucune nouvelle correspondance trouvée"
 
+#: etransactions/plateforme_agreee/lifecycle_status.py:203
+msgid "No order or contract matching this invoice can be found."
+msgstr "Aucune commande ni aucun contrat correspondant à cette facture n'a été trouvé."
+
 #: frontend/src/pages/Overview.vue:73
 msgid "No period"
 msgstr "Aucune période"
@@ -3159,9 +3275,17 @@ msgstr "Aucune facture non rapprochée sélectionnée"
 msgid "Nobody yet"
 msgstr "Personne pour l'instant"
 
+#: etransactions/plateforme_agreee/lifecycle_status.py:163
+msgid "Non-compliant invoice"
+msgstr "Facture non conforme"
+
 #: frontend/src/components/ChecklistTemplateDialog.vue:36
 msgid "None"
 msgstr "Aucun"
+
+#: etransactions/plateforme_agreee/lifecycle_status.py:180
+msgid "None of the other reasons applies; explain it in the comment."
+msgstr "Aucun des autres motifs ne s'applique ; précisez-le dans le commentaire."
 
 #. Option for the 'Status' (Select) field in DocType 'Closing Task'
 #: etransactions/etransactions_hub/doctype/closing_task/closing_task.json
@@ -3408,6 +3532,10 @@ msgstr "Événements PPF"
 #, python-brace-format
 msgid "PPF e-reporting: {0}"
 msgstr "e-reporting PPF : {0}"
+
+#: etransactions/plateforme_agreee/lifecycle_status.py:192
+msgid "Part of the invoiced delivery has not been received."
+msgstr "Une partie de la livraison facturée n'a pas été reçue."
 
 #. Label of the partial_amount (Currency) field in DocType 'eInvoice Payment
 #. Term'
@@ -3912,6 +4040,10 @@ msgstr "Commande fournisseur créée"
 msgid "Purchases"
 msgstr "Achats"
 
+#: etransactions/plateforme_agreee/lifecycle_status.py:166
+msgid "Quality not as agreed"
+msgstr "Qualité non conforme"
+
 #. Label of the quantity (Float) field in DocType 'OCR Line Items Mapping'
 #. Label of the qty (Float) field in DocType 'Supplier Invoice Item'
 #: etransactions/etransactions/doctype/ocr_line_items_mapping/ocr_line_items_mapping.json
@@ -4011,6 +4143,10 @@ msgstr "Code motif"
 #: etransactions/public/js/lifecycle.js:121
 msgid "Reason code"
 msgstr "Code motif"
+
+#: etransactions/public/js/lifecycle.js:165
+msgid "Reason codes unavailable"
+msgstr "Codes motifs indisponibles"
 
 #: frontend/src/pages/Overview.vue:40
 msgid "Receivables & Payables"
@@ -5400,6 +5536,10 @@ msgstr "Le numéro SIREN de {0} ({1}) est requis pour signaler un statut de cycl
 msgid "The SIRENE registry could not be reached. Try again later or fill the fields manually."
 msgstr "Le registre SIRENE est injoignable. Réessayez plus tard ou remplissez les champs manuellement."
 
+#: etransactions/plateforme_agreee/lifecycle_status.py:202
+msgid "The SIRET on the invoice is wrong or does not match the recipient."
+msgstr "Le SIRET figurant sur la facture est erroné ou ne correspond pas au destinataire."
+
 #: etransactions/etransactions/doctype/einvoice/einvoice.py:450
 msgid "The UBL XML has not been generated for this eInvoice."
 msgstr "Le XML UBL n'a pas été généré pour cette eInvoice."
@@ -5435,10 +5575,26 @@ msgstr "Le rapprochement automatique a échoué car le total net est supérieur 
 msgid "The automatic reconciliation has failed because the totals do not match"
 msgstr "Le rapprochement automatique a échoué car les totaux ne correspondent pas"
 
+#: etransactions/plateforme_agreee/lifecycle_status.py:185
+msgid "The bank details differ from the ones on file for the supplier."
+msgstr "Les coordonnées bancaires diffèrent de celles enregistrées pour le fournisseur."
+
+#: etransactions/plateforme_agreee/lifecycle_status.py:178
+msgid "The billing or postal address on the invoice is wrong."
+msgstr "L'adresse de facturation ou postale figurant sur la facture est erronée."
+
 #: etransactions/plateforme_agreee/readiness.py:664
 #, python-brace-format
 msgid "The buyer address has no country set (rule BR-09). Add a country to the address <a href='/app/address/{0}'>{0}</a>."
 msgstr "L'adresse de l'acheteur n'a pas de pays défini (règle BR-09). Ajoutez un pays à l'adresse <a href='/app/address/{0}'>{0}</a>."
+
+#: etransactions/plateforme_agreee/lifecycle_status.py:199
+msgid "The contract reference required for payment is missing."
+msgstr "La référence de contrat nécessaire au paiement est absente."
+
+#: etransactions/plateforme_agreee/lifecycle_status.py:184
+msgid "The contract this invoice relies on has already ended."
+msgstr "Le contrat sur lequel repose cette facture est déjà terminé."
 
 #: etransactions/overrides/master_data.py:107
 #, python-brace-format
@@ -5464,6 +5620,10 @@ msgstr ""
 msgid "The format of the uploaded file ({0}) is not supported for E-Invoices. Please upload a valid E-Invoice file or create a regular Purchase Invoice manually instead."
 msgstr "Le format du fichier téléversé ({0}) n'est pas pris en charge pour les factures électroniques. Veuillez téléverser un fichier de facture électronique valide ou créer manuellement une facture d'achat classique."
 
+#: etransactions/plateforme_agreee/lifecycle_status.py:198
+msgid "The goods or services delivered are not of the agreed quality."
+msgstr "Les biens ou services livrés ne sont pas de la qualité convenue."
+
 #: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:629
 msgid "The identifier the company is registered under on Esalink."
 msgstr "L'identifiant sous lequel l'entreprise est enregistrée sur Esalink."
@@ -5472,9 +5632,17 @@ msgstr "L'identifiant sous lequel l'entreprise est enregistrée sur Esalink."
 msgid "The invoice date is missing from this eInvoice; cannot report a lifecycle status."
 msgstr "La date de facture est absente de cette eInvoice ; impossible de signaler un statut de cycle de vie."
 
+#: etransactions/plateforme_agreee/lifecycle_status.py:195
+msgid "The invoice does not meet the legal or contractual requirements."
+msgstr "La facture ne respecte pas les exigences légales ou contractuelles."
+
 #: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:1401
 msgid "The invoice grand total exceeds the supplier provided grand total. You are not allowed to create this purchase invoice."
 msgstr "Le total TTC de cette facture dépasse le total TTC fourni par le fournisseur. Vous n'êtes pas autorisé à créer cette facture fournisseur."
+
+#: etransactions/plateforme_agreee/lifecycle_status.py:186
+msgid "The invoice is addressed to the wrong legal entity or establishment."
+msgstr "La facture est adressée à la mauvaise entité juridique ou au mauvais établissement."
 
 #: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:1405
 msgid "The invoice net total exceeds the supplier provided net total. You are not allowed to create this purchase invoice."
@@ -5483,6 +5651,10 @@ msgstr "Le total HT de cette facture dépasse le total HT fourni par le fourniss
 #: etransactions/plateforme_agreee/cdar.py:77
 msgid "The invoice number is missing from this eInvoice; cannot report a lifecycle status."
 msgstr "Le numéro de facture est absent de cette eInvoice ; impossible de signaler un statut de cycle de vie."
+
+#: etransactions/plateforme_agreee/lifecycle_status.py:190
+msgid "The issuer is not a known supplier."
+msgstr "L'émetteur n'est pas un fournisseur connu."
 
 #: etransactions/plateforme_agreee/lifecycle_status.py:173
 #, python-brace-format
@@ -5516,6 +5688,10 @@ msgstr "Le fichier original n'a pas pu être téléchargé ou analysé — voir 
 msgid "The original file has not been downloaded from the platform yet."
 msgstr "Le fichier original n'a pas encore été téléchargé depuis la plateforme."
 
+#: etransactions/plateforme_agreee/lifecycle_status.py:193
+msgid "The payment method differs from the agreed one."
+msgstr "Le moyen de paiement diffère de celui convenu."
+
 #: etransactions/etransactions/doctype/einvoice/einvoice.py:603
 msgid "The platform returned an empty file."
 msgstr "La plateforme a renvoyé un fichier vide."
@@ -5528,13 +5704,33 @@ msgstr "La soumission précédente a été rejetée par la plateforme agréée. 
 msgid "The previous submission was rejected by the accredited platform:"
 msgstr "La soumission précédente a été rejetée par la plateforme agréée :"
 
+#: etransactions/plateforme_agreee/lifecycle_status.py:182
+msgid "The purchase order referenced on the invoice is wrong or unknown."
+msgstr "La commande référencée sur la facture est erronée ou inconnue."
+
 #: etransactions/plateforme_agreee/cdar.py:190
 msgid "The pyfrctc library is not installed."
 msgstr "La bibliothèque pyfrctc n'est pas installée."
 
+#: etransactions/public/js/lifecycle.js:166
+msgid "The reason codes for '{0}' could not be loaded. Please try again."
+msgstr "Les codes motifs pour '{0}' n'ont pas pu être chargés. Veuillez réessayer."
+
+#: etransactions/plateforme_agreee/lifecycle_status.py:187
+msgid "The recipient identified on the invoice cannot be found."
+msgstr "Le destinataire identifié sur la facture est introuvable."
+
 #: etransactions/components/superpdp/client.py:332
 msgid "The recipient's routing address could not be found in the e-invoicing directory (PPF/Peppol), so this invoice can't be delivered. The directory line resolved for this customer may be out of date, or the establishment may not be registered. To fix this: <br>1. Re-sync the directory for this customer (Customer &rarr; e-invoicing &rarr; <b>Sync directory</b>) so the active routing line reflects the current directory.<br>2. Check the billing <b>Address SIRET</b> matches a registered establishment (a SIRET is 14 digits) and that the recipient is live on an accredited platform (PDP).<br>3. Re-save the Sales Invoice to regenerate the e-invoice, then retry."
 msgstr "L'adresse de routage du destinataire est introuvable dans l'annuaire de facturation électronique (PPF/Peppol), cette facture ne peut donc pas être remise. La ligne d'annuaire résolue pour ce client est peut-être obsolète, ou l'établissement n'est peut-être pas inscrit. Pour corriger : <br>1. Resynchronisez l'annuaire pour ce client (Client &rarr; facturation électronique &rarr; <b>Synchroniser l'annuaire</b>) afin que la ligne de routage active reflète l'annuaire actuel.<br>2. Vérifiez que le <b>SIRET de l'adresse</b> de facturation correspond à un établissement enregistré (un SIRET compte 14 chiffres) et que le destinataire est actif sur une plateforme agréée (PDP).<br>3. Réenregistrez la facture de vente pour régénérer la facture électronique, puis réessayez."
+
+#: etransactions/plateforme_agreee/lifecycle_status.py:183
+msgid "The routing code does not correspond to the recipient service."
+msgstr "Le code de routage ne correspond pas au service destinataire."
+
+#: etransactions/plateforme_agreee/lifecycle_status.py:188
+msgid "The same goods or services have already been invoiced separately."
+msgstr "Les mêmes biens ou services ont déjà été facturés séparément."
 
 #: etransactions/plateforme_agreee/sandbox.py:75
 msgid "The sandbox test is only available for SuperPDP platforms."
@@ -5594,6 +5790,14 @@ msgstr "Le statut '{0}' a déjà été signalé pour cette facture."
 #: etransactions/etransactions/doctype/etransactions_supplier_item_alias/etransactions_supplier_item_alias.py:53
 msgid "The supplier item code carries no text to match on."
 msgstr "Le code d'article du fournisseur ne contient aucun texte à faire correspondre."
+
+#: etransactions/plateforme_agreee/lifecycle_status.py:194
+msgid "The total amount does not match what was agreed."
+msgstr "Le montant total ne correspond pas à ce qui a été convenu."
+
+#: etransactions/plateforme_agreee/lifecycle_status.py:181
+msgid "The totals do not add up from the lines and taxes."
+msgstr "Les totaux ne correspondent pas aux lignes et aux taxes."
 
 #: etransactions/etransactions/doctype/einvoice/parser.py:47
 msgid "The uploaded file does not contain valid XML data or could not be parsed by the e-invoice engine."
@@ -5667,6 +5871,10 @@ msgstr "Cette eInvoice a déjà été soumise à la plateforme agréée."
 msgid "This eInvoice has not been submitted to the accredited platform yet."
 msgstr "Cette eInvoice n'a pas encore été soumise à la plateforme agréée."
 
+#: etransactions/plateforme_agreee/lifecycle_status.py:189
+msgid "This exact invoice has already been received."
+msgstr "Cette facture a déjà été reçue à l'identique."
+
 #: etransactions/overrides/sales_invoice.py:96
 #, python-brace-format
 msgid "This invoice cannot be submitted while blocking e-invoicing issues remain (enforced by eTransactions Settings):<ul>{0}</ul>"
@@ -5703,6 +5911,10 @@ msgstr "Cette facture a été annulée sur la plateforme agréée : aucun autre 
 #, python-brace-format
 msgid "This invoice was refused on the accredited platform and the refusal is definitive: only '{0}' can still be reported."
 msgstr "Cette facture a été refusée sur la plateforme agréée et le refus est définitif : seul le statut '{0}' peut encore être signalé."
+
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:122
+msgid "This invoice was refused. Close it so it leaves your pending list?"
+msgstr "Cette facture a été refusée. La clôturer pour qu'elle sorte de votre liste en attente ?"
 
 #: etransactions/overrides/sales_invoice.py:173
 #, python-brace-format
@@ -5894,12 +6106,24 @@ msgstr "Prix unitaire"
 msgid "Unit Rate"
 msgstr "Prix unitaire"
 
+#: etransactions/plateforme_agreee/lifecycle_status.py:158
+msgid "Unknown issuer"
+msgstr "Émetteur inconnu"
+
 #: etransactions/etransactions/doctype/einvoice/einvoice.py:362
 #: etransactions/plateforme_agreee/lifecycle_status.py:187
 #: etransactions/plateforme_agreee/lifecycle_status.py:307
 #, python-brace-format
 msgid "Unknown lifecycle status '{0}'."
 msgstr "Statut de cycle de vie inconnu '{0}'."
+
+#: etransactions/plateforme_agreee/lifecycle_status.py:155
+msgid "Unknown recipient"
+msgstr "Destinataire inconnu"
+
+#: etransactions/plateforme_agreee/lifecycle_status.py:171
+msgid "Unknown transaction"
+msgstr "Transaction inconnue"
 
 #: frontend/src/pages/Overview.vue:30
 msgid "Unreconciled transactions"

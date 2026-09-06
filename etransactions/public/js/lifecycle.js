@@ -25,7 +25,10 @@ etransactions.lifecycle = {
 	// Sales and Purchase Invoice attach the lifecycle the same way: ask the server which
 	// eInvoice the transaction belongs to, then render. Kept here so the two sides cannot
 	// drift apart over which fields they forward.
-	attach_for_transaction(frm) {
+	// `on_sent` is an optional per-doctype callback run after a status is successfully
+	// reported, so a form can react to its own statuses (Supplier Invoice offers to close
+	// itself after a refusal) without this shared module accumulating doctype special cases.
+	attach_for_transaction(frm, { on_sent } = {}) {
 		if (frm.is_new()) return;
 
 		frappe.call({
@@ -40,6 +43,7 @@ etransactions.lifecycle = {
 					pa_flow_id: r.message.pa_flow_id,
 					pa_content_state: r.message.pa_content_state,
 					group: __("eInvoicing"),
+					on_sent,
 				});
 			},
 			// The lifecycle panel is an add-on: a lookup failure must never throw a
@@ -48,8 +52,8 @@ etransactions.lifecycle = {
 		});
 	},
 
-	attach(frm, { einvoice, side, pa_status, pa_flow_id, pa_content_state, group }) {
-		frm._et_lc = { einvoice, side, pa_status, pa_flow_id, pa_content_state, lc: null };
+	attach(frm, { einvoice, side, pa_status, pa_flow_id, pa_content_state, group, on_sent }) {
+		frm._et_lc = { einvoice, side, pa_status, pa_flow_id, pa_content_state, on_sent, lc: null };
 		frappe
 			.xcall(
 				"etransactions.etransactions.doctype.einvoice.einvoice.get_supported_lifecycle_statuses",
@@ -86,6 +90,11 @@ etransactions.lifecycle = {
 				.then((r) => {
 					if (!r.exc) {
 						frappe.show_alert({ message: __("Status '{0}' sent", [def.label]), indicator: "green" });
+						// The hook may itself reload the form (Supplier Invoice closes itself
+						// after a refusal), so give it the chance to run before after_send
+						// rebuilds the buttons — otherwise the two race over the same form.
+						const hook = frm._et_lc.on_sent;
+						if (hook && hook(def, frm) === false) return;
 						this.after_send(frm);
 					}
 				});
@@ -113,14 +122,30 @@ etransactions.lifecycle = {
 				status: def.status,
 			})
 			.then((codes) => {
+				// The server sends {value, label, description}: the wire code is what travels,
+				// the label is what the user reads. A Select (rather than an Autocomplete)
+				// because the code list is closed — the server rejects anything outside it,
+				// and there is no reason to let the user type a code that will be refused.
+				const options = codes || [];
+				const described = Object.fromEntries(
+					options.filter((o) => o.description).map((o) => [o.value, o.description])
+				);
+
 				frappe.prompt(
 					[
 						{
 							fieldname: "reason_code",
 							fieldtype: "Select",
-							label: __("Reason code"),
-							options: (codes || []).join("\n"),
+							label: __("Reason"),
+							// Leading blank so nothing is preselected under reqd: 1 — the reason
+							// travels to the platform and must be a deliberate choice.
+							options: [{ value: "", label: "" }].concat(
+								options.map((o) => ({ value: o.value, label: o.label }))
+							),
 							reqd: 1,
+							change() {
+								this.set_description(described[this.get_value()] || "");
+							},
 						},
 						{ fieldname: "comment", fieldtype: "Small Text", label: __("Comment (optional)") },
 					],
@@ -132,6 +157,17 @@ etransactions.lifecycle = {
 					__("Report '{0}'", [def.label]),
 					__("Send")
 				);
+			})
+			.catch(() => {
+				// Unlike the panel's silent failures, this one follows a click: saying nothing
+				// would look like the button is broken.
+				frappe.msgprint({
+					title: __("Reason codes unavailable"),
+					message: __("The reason codes for '{0}' could not be loaded. Please try again.", [
+						def.label,
+					]),
+					indicator: "red",
+				});
 			});
 	},
 
@@ -154,7 +190,14 @@ etransactions.lifecycle = {
 		frappe.db
 			.get_list("eInvoice Event", {
 				filters: { einvoice },
-				fields: ["direction", "status_label", "state", "status_datetime", "comment"],
+				fields: [
+					"direction",
+					"status_label",
+					"state",
+					"status_datetime",
+					"reason_code",
+					"comment",
+				],
 				order_by: "status_datetime desc",
 				limit: 20,
 			})
@@ -166,7 +209,7 @@ etransactions.lifecycle = {
 						${this.ribbon_html(pa_status, pa_flow_id)}
 						${this.content_state_html(frm._et_lc.pa_content_state)}
 						${this.state_html(frm._et_lc.lc)}
-						${this.events_html(events || [])}
+						${this.events_html(events || [], (frm._et_lc.lc || {}).reason_labels || {})}
 						<div class="et-lc-link"><a class="et-lc-open">${__("Open eInvoice")} →</a></div>
 					</div>`;
 				if (frm._et_lc_section) {
@@ -251,7 +294,9 @@ etransactions.lifecycle = {
 		return `<div style="margin-top:10px">${chips}${blocked}</div>`;
 	},
 
-	events_html(events) {
+	// `reason_labels` maps the stored MDT-113 code to its wording: a refusal's reason is
+	// the whole point of the row, and "NON_CONFORME" is not an answer to "why".
+	events_html(events, reason_labels = {}) {
 		if (!events.length) return "";
 		const rows = events
 			.map((e) => {
@@ -264,12 +309,19 @@ etransactions.lifecycle = {
 					e.state === "error"
 						? `<span style="color:var(--red-500)">${e.state}</span>`
 						: e.state || "";
+				const reason_label = e.reason_code
+					? reason_labels[e.reason_code] || e.reason_code
+					: "";
+				const reason = [reason_label, e.comment]
+					.filter(Boolean)
+					.map((part) => frappe.utils.escape_html(part))
+					.join(" — ");
 				return `<tr>
 						<td>${arrow}</td>
 						<td><strong>${frappe.utils.escape_html(e.status_label || "")}</strong></td>
 						<td>${state}</td>
 						<td>${when}</td>
-						<td>${frappe.utils.escape_html(e.comment || "")}</td>
+						<td>${reason}</td>
 					</tr>`;
 			})
 			.join("");
@@ -280,7 +332,7 @@ etransactions.lifecycle = {
 					<th>${__("Status")}</th>
 					<th>${__("State")}</th>
 					<th>${__("Date/Time")}</th>
-					<th>${__("Comment")}</th>
+					<th>${__("Reason")}</th>
 				</tr></thead>
 				<tbody>${rows}</tbody>
 			</table>`;

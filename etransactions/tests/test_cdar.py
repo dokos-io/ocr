@@ -7,7 +7,7 @@ from unittest.mock import patch
 import frappe
 from frappe.tests import UnitTestCase
 
-from etransactions.plateforme_agreee import cdar
+from etransactions.plateforme_agreee import cdar, lifecycle_status
 
 # Only the lookups our CDAR builder makes are mocked; everything else (e.g.
 # framework-internal get_value calls) is delegated to the real implementation.
@@ -79,3 +79,29 @@ class TestCdarBuilder(UnitTestCase):
 					cdar_bytes, filename = cdar.generate_cdar_flow(factory(), status, details=details)
 					self.assertTrue(cdar_bytes and len(cdar_bytes) > 0)
 					self.assertTrue(filename.endswith(".xml"))
+
+	def test_every_allowed_reason_code_passes_schematron(self):
+		"""BR-FR-CDV-CL-09 is a closed list per status, and we keep a copy of it.
+
+		A typo in REASON_CODES would otherwise only surface as a platform rejection in
+		production. Generating a CDAR for every code we offer catches it here instead.
+		"""
+		with patch("frappe.db.get_value", side_effect=_router(frappe.db.get_value)):
+			for status, codes in lifecycle_status.REASON_CODES.items():
+				for code in codes:
+					with self.subTest(status=status, reason_code=code):
+						cdar_bytes, _filename = cdar.generate_cdar_flow(
+							_incoming(), status, details=[{"reason_code": code}]
+						)
+						self.assertTrue(cdar_bytes)
+
+	def test_the_refusal_cdar_carries_its_status_and_reason(self):
+		"""MDT-105 and MDT-113 are what the platform actually reads off a refusal."""
+		with patch("frappe.db.get_value", side_effect=_router(frappe.db.get_value)):
+			cdar_bytes, _filename = cdar.generate_cdar_flow(
+				_incoming(), "refused", details=[{"reason_code": "NON_CONFORME"}]
+			)
+
+		xml = cdar_bytes.decode("utf-8")
+		self.assertIn("210", xml, "MDT-105 (status code) is missing from the CDAR")
+		self.assertIn("NON_CONFORME", xml, "MDT-113 (reason code) is missing from the CDAR")

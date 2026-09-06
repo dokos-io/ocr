@@ -234,6 +234,35 @@ class MicrocksTestCase(IntegrationTestCase):
 			self._attach_embedded_pdf(einvoice)
 		return einvoice
 
+	def make_incoming_einvoice(self, *, flow_id: str, supplier_siren: str = BUYER_SIREN):
+		"""Insert an Incoming eInvoice ready to carry a lifecycle status.
+
+		Inserted directly rather than polled: what these tests exercise is the *outbound*
+		CDAR, and driving a full two-phase ingestion would only add a file download to
+		mock. Every field ``cdar.build_cdar_data`` reads on the incoming branch is set
+		here — miss one and generation throws before any HTTP happens, which would look
+		like a transport failure.
+		"""
+		einvoice = frappe.get_doc(
+			{
+				"doctype": "eInvoice",
+				"einvoice_type": "Incoming",
+				"company": COMPANY,
+				"id": f"SUP-{flow_id}",
+				"issue_date": frappe.utils.today(),
+				"seller_name": "Fournisseur E2E SA",
+				"supplier_siren": supplier_siren,
+				"seller_electronic_address": f"{supplier_siren}00014",
+				"seller_electronic_address_scheme": "0009",
+				"pa_flow_id": flow_id,
+				"pa_status": "done",
+				"pa_content_state": "fetched",
+			}
+		)
+		einvoice.flags.ignore_permissions = True
+		einvoice.insert(ignore_mandatory=True)
+		return einvoice
+
 	def _attach_embedded_pdf(self, einvoice):
 		"""Attach a minimal PDF as the eInvoice's embedded document so the Factur-X
 		send path never invokes wkhtmltopdf."""

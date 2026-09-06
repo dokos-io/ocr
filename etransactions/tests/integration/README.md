@@ -33,7 +33,7 @@ etransactions/components/mocks/microcks-up.sh
 bench --site <site> set-config microcks_url http://localhost:8585
 bench --site <site> run-tests --app etransactions \
     --module etransactions.tests.integration.test_einvoicing_e2e
-# …repeat for test_ereporting_e2e and test_annuaire_esalink_e2e
+# …repeat for test_ereporting_e2e, test_annuaire_esalink_e2e and test_lifecycle_e2e
 bench --site <site> set-config microcks_url ""            # prove the skip contract
 ```
 
@@ -64,10 +64,18 @@ via `curl`, then sets `microcks_url` automatically (see `.gitlab-ci.yml`).
 | Annuaire: identifier register/list/remove | — | — | ✅ | `…::test_directory_identifier_register_list_remove` |
 | Annuaire: resend KYC email | — | — | ✅ | `…::test_resend_kyc_email` |
 | Annuaire: partner-creds gate | — | — | ✅ | `…::test_registration_blocked_without_partner_credentials` |
+| Lifecycle refusal (210) → CDAR submit | ✅ | — | ✅ | `test_lifecycle_e2e::test_refusal_submits_a_cdar_over_http` |
+| CDAR carries MDT-105 / MDT-113 | — | — | ✅ | `…::test_the_cdar_carries_the_refusal_codes` |
+| Refusal without a prior receipt | ✅ | — | ✅ | `…::test_an_invoice_can_be_refused_without_a_prior_receipt` |
+| Repeat refusal blocked before HTTP | — | — | ✅ | `…::test_a_second_refusal_is_refused_locally` |
+| Invalid reason code blocked before HTTP | — | — | ✅ | `…::test_an_invalid_reason_code_never_reaches_the_platform` |
 
 E-reporting is SuperPDP-only (capability `ereporting`); AFNOR/Esalink stub those
-endpoints. Incoming lifecycle CDAR flows are exercised at the list/download HTTP
-level only — parsing a full CDAR payload is covered by `tests/test_cdar.py`.
+endpoints. Lifecycle reporting is CDAR-only: `refused` (210) has no SuperPDP `fr:`
+code, so `test_lifecycle_e2e` runs on Custom/Esalink and asserts the SuperPDP path
+throws rather than guessing. *Incoming* lifecycle CDAR flows are still exercised at
+the list/download HTTP level only — parsing a full CDAR payload is covered by
+`tests/test_cdar.py`, which also generates one per allowed MDT-113 reason code.
 
 ## Tested flows
 
@@ -106,6 +114,27 @@ sequenceDiagram
     M-->>C: events / acknowledgement
     C-->>EI: StatusResult(status, error_details)
     EI->>EI: db_set(pa_status=done|rejected|error)
+```
+
+### Lifecycle refusal (buyer → platform)
+
+```mermaid
+sequenceDiagram
+    participant U as Supplier Invoice / eInvoice form
+    participant EI as eInvoice.submit_lifecycle_status
+    participant LS as lifecycle_status
+    participant CD as cdar.generate_cdar_flow
+    participant C as AFNORClient (Esalink)
+    participant M as Microcks
+    U->>EI: report "refused" + reason_code
+    EI->>LS: reason_required / reason_codes (BR-FR-CDV-CL-09)
+    EI->>LS: transition_error(state, "refused")
+    Note over EI,LS: both guards run before the network:<br/>a bad code or a closed lifecycle never leaves the server
+    EI->>C: submit_lifecycle_status(flow_id, "refused", details)
+    C->>CD: generate_cdar_flow → MDT-105=210, MDT-113=<reason>
+    C->>M: POST /v1/flows  (flowType=CDAR)
+    M-->>C: {flowId, submittedAt}
+    EI->>EI: record_event(direction="out", status="refused")
 ```
 
 ### B2C e-reporting
