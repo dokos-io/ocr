@@ -69,6 +69,28 @@ context("Inbound e-invoice flow", () => {
 		cy.expect_no_error_dialog();
 	});
 
+	it("shows the e-invoice lifecycle on the Supplier Invoice", () => {
+		// The Supplier Invoice is the document a buyer decides on — a refusal happens
+		// here, before any Purchase Invoice exists — so the lifecycle has to be reachable
+		// from it and not only from the Purchase Invoice created later.
+		cy.record_einvoice_event(received.einvoice, "in_hand");
+
+		cy.visit(`/desk/supplier-invoice/${received.supplier_invoice}`);
+		cy.await_form_idle();
+
+		cy.window().its("cur_frm.doc.einvoice").should("eq", received.einvoice);
+
+		cy.lifecycle_panel().should("have.attr", "data-et-einvoice", received.einvoice);
+		cy.lifecycle_panel().find(".et-lc-events tbody tr").should("have.length.greaterThan", 0);
+
+		// The refusal action, with its reason picker, is what this panel is here for.
+		cy.findByRole("button", { name: "eInvoicing" }).click();
+		cy.findByRole("link", { name: "Refused" }).should("exist");
+		cy.get("body").type("{esc}");
+
+		cy.expect_no_error_dialog();
+	});
+
 	it("creates the Purchase Invoice from the Supplier Invoice", () => {
 		cy.visit(`/desk/supplier-invoice/${received.supplier_invoice}`);
 		cy.await_form_idle();

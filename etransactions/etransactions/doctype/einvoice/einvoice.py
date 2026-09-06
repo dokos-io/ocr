@@ -985,10 +985,16 @@ def _notify_incoming_einvoice(doc):
 
 
 @frappe.whitelist()
-def get_lifecycle_reason_codes(status: str) -> list[str]:
-	"""Return the allowed MDT-113 reason codes for a lifecycle status (for the UI)."""
+def get_lifecycle_reason_codes(status: str) -> list[dict]:
+	"""The allowed MDT-113 reason codes for a lifecycle status, ready for a picker.
+
+	Returns ``{value, label, description}`` rather than bare codes: nobody choosing a
+	refusal reason reads MDT-113. The wire code is still what travels, and
+	:meth:`eInvoice.submit_lifecycle_status` re-validates it against the same closed
+	list, so a client that sends something else is rejected before any network call.
+	"""
 	from etransactions.plateforme_agreee import lifecycle_status
-	return lifecycle_status.reason_codes(status)
+	return lifecycle_status.reason_code_options(status)
 
 
 @frappe.whitelist()
@@ -1059,6 +1065,9 @@ def get_supported_lifecycle_statuses(einvoice: str) -> dict:
 	return {
 		"side": side,
 		"statuses": statuses,
+		# The whole code->wording map, so the timeline can render the reason stored on a
+		# past event without asking again per row.
+		"reason_labels": lifecycle_status.all_reason_labels(),
 		"state": {
 			"purchase": _axis("purchase"),
 			"sale": _axis("sale"),
@@ -1070,7 +1079,7 @@ def get_supported_lifecycle_statuses(einvoice: str) -> dict:
 
 
 def einvoice_for_transaction(doctype: str, name: str) -> str | None:
-	"""Name of the eInvoice behind a Sales / Purchase Invoice, whatever its origin.
+	"""Name of the eInvoice behind a Sales / Purchase / Supplier Invoice, whatever its origin.
 
 	The single resolver both the lifecycle panel and the readiness panel go through, so
 	the two cannot disagree about which e-invoice a transaction belongs to.
@@ -1083,6 +1092,12 @@ def einvoice_for_transaction(doctype: str, name: str) -> str | None:
 		from etransactions.plateforme_agreee.auto_status import einvoice_for_purchase_invoice
 
 		return einvoice_for_purchase_invoice(name)
+	if doctype == "Supplier Invoice":
+		# No flow-id requirement, deliberately: this is the display side, and an
+		# e-invoice received by email or file upload still has a lifecycle worth
+		# showing. The Supplier Invoice is also where a buyer decides on an invoice
+		# — before any Purchase Invoice exists — so it is where a refusal happens.
+		return frappe.db.get_value("Supplier Invoice", name, "einvoice")
 	return None
 
 

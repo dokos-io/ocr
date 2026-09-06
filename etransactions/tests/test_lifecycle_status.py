@@ -289,3 +289,68 @@ class TestSupportedLifecycleStatuses(UnitTestCase):
 		self.assertEqual(state["purchase"]["status"], "approved")
 		self.assertEqual(state["purchase"]["label"], ls.label("approved"))
 		self.assertEqual(state["sale"]["status"], "completed")
+
+
+class TestReasonCodes(UnitTestCase):
+	"""The MDT-113 reason codes and the wording served to the picker.
+
+	Pure logic: the code lists come from the CDAR schematron (BR-FR-CDV-CL-09) and the
+	wording is keyed by code, so these tests are mostly drift guards between the two.
+	"""
+
+	def _all_codes(self) -> set[str]:
+		return {code for codes in ls.REASON_CODES.values() for code in codes}
+
+	def test_every_reason_code_has_a_label(self):
+		missing = self._all_codes() - set(ls.REASON_LABELS)
+		self.assertFalse(missing, f"reason codes without a label: {sorted(missing)}")
+
+	def test_every_reason_code_has_a_description(self):
+		missing = self._all_codes() - set(ls.REASON_DESCRIPTIONS)
+		self.assertFalse(missing, f"reason codes without a description: {sorted(missing)}")
+
+	def test_no_orphan_reason_wording(self):
+		# Wording for a code no status accepts is dead weight the schematron will never
+		# validate — most likely a typo in one of the REASON_CODES lists.
+		codes = self._all_codes()
+		self.assertFalse(set(ls.REASON_LABELS) - codes)
+		self.assertFalse(set(ls.REASON_DESCRIPTIONS) - codes)
+
+	def test_reason_code_options_preserve_the_schematron_list(self):
+		# Membership and order stay derived from REASON_CODES: the picker can never offer
+		# a code the platform would reject.
+		for status, codes in ls.REASON_CODES.items():
+			self.assertEqual([o["value"] for o in ls.reason_code_options(status)], codes)
+
+	def test_reason_code_options_are_plain_strings(self):
+		# The registry holds lazy translations, which cannot be serialised to JSON and
+		# raise on __eq__. They must be resolved before crossing the whitelisted boundary.
+		for status in ls.REASON_CODES:
+			for option in ls.reason_code_options(status):
+				self.assertIs(type(option["label"]), str)
+				self.assertIs(type(option["description"]), str)
+
+	def test_labels_and_confirm_messages_are_resolved_too(self):
+		for status in ls.STATUSES:
+			self.assertIs(type(ls.label(status)), str)
+		self.assertIs(type(ls.confirm_message("refused")), str)
+		self.assertIsNone(ls.confirm_message("approved"))
+
+	def test_a_status_without_reason_codes_offers_no_options(self):
+		self.assertEqual(ls.reason_code_options("approved"), [])
+		self.assertEqual(ls.reason_codes("approved"), [])
+		self.assertFalse(ls.reason_required("approved"))
+
+	def test_every_status_requiring_a_reason_has_codes_for_it(self):
+		for status, vals in ls.STATUSES.items():
+			if vals.get("detail_required"):
+				self.assertTrue(ls.reason_codes(status), f"{status} requires a reason but has no codes")
+
+	def test_an_unknown_code_degrades_to_itself(self):
+		self.assertEqual(ls.reason_label("NOT_A_CODE"), "NOT_A_CODE")
+		self.assertEqual(ls.reason_description("NOT_A_CODE"), "")
+
+	def test_all_reason_labels_covers_every_code(self):
+		labels = ls.all_reason_labels()
+		self.assertEqual(set(labels), set(ls.REASON_LABELS))
+		self.assertTrue(all(type(v) is str for v in labels.values()))

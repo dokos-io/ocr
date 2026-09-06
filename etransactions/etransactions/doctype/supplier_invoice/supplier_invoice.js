@@ -100,6 +100,36 @@ frappe.ui.form.on("Supplier Invoice", {
 		frm.trigger("add_credit_note_allocation_button");
 		frm.trigger("add_create_debit_note_button");
 		frm.trigger("render_credit_note_allocation_recap");
+		frm.trigger("attach_lifecycle");
+	},
+
+	// The e-invoicing lifecycle, driven from the document a buyer actually looks at when
+	// an invoice arrives. This is where a refusal belongs: it happens before any Purchase
+	// Invoice exists, so the panel on the Purchase Invoice is always too late.
+	attach_lifecycle(frm) {
+		// The einvoice check is a cheap local skip — most supplier invoices are typed in
+		// or OCR'd and never went through an accredited platform, and asking the server
+		// about every one of them would be a round-trip per form load for nothing.
+		if (frm.is_new() || !frappe.boot.einvoicing_enabled || !frm.doc.einvoice) return;
+
+		etransactions.lifecycle.attach_for_transaction(frm, {
+			on_sent: (def) => {
+				if (def.status !== "refused") return;
+				// "Completed" means a Purchase Invoice was already created from this one:
+				// closing it would misrepresent what happened, and "Closed" is already there.
+				if (["Completed", "Closed"].includes(frm.doc.status)) return;
+
+				// A refused invoice will never be booked, so leaving it in the worklist is
+				// noise. Asked rather than done: it is the user's call, and Reopen undoes it.
+				frappe.confirm(
+					__("This invoice was refused. Close it so it leaves your pending list?"),
+					() => frm.call("close_request").then(() => frm.reload_doc()),
+					() => frm.refresh()
+				);
+				// The confirm owns the form from here: both branches refresh it themselves.
+				return false;
+			},
+		});
 	},
 
 	add_credit_note_allocation_button(frm) {

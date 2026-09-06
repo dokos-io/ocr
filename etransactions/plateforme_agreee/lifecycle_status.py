@@ -17,7 +17,7 @@ the canonical string; the clients translate it on the wire.
 Reference: ``~/einvoicing-fr/fr-einvoicing/l10n_fr_einvoicing/models/fr_einvoicing_event.py``
 """
 
-from frappe import _
+from frappe import _, _lt
 
 
 # canonical str_code -> status definition
@@ -78,24 +78,31 @@ STATUSES: dict[str, dict] = {
 
 # Human-readable labels, translatable. Kept separate so they are picked up by
 # the translation tooling and stay out of the plain data table above.
+#
+# ``_lt`` and not ``_``: this dict is built once at import time, so ``_`` would
+# freeze every label into whatever language the worker happened to be serving on
+# first import and hand that to every later user. The lazy string resolves per
+# request instead. The accessors below coerce it back to a real ``str`` — a
+# ``_LazyTranslate`` must never escape into a whitelisted return value, since it
+# raises on ``__eq__`` and has no ``__json__``.
 LABELS: dict[str, str] = {
-    "in_hand": _("In Hand"),
-    "approved": _("Approved"),
-    "partially_approved": _("Partially Approved"),
-    "dispute": _("Disputed"),
-    "suspended": _("Suspended"),
-    "completed": _("Completed"),
-    "refused": _("Refused"),
-    "payment_sent": _("Payment Sent"),
-    "payment_received": _("Payment Received"),
-    "cancelled": _("Cancelled"),
+    "in_hand": _lt("In Hand"),
+    "approved": _lt("Approved"),
+    "partially_approved": _lt("Partially Approved"),
+    "dispute": _lt("Disputed"),
+    "suspended": _lt("Suspended"),
+    "completed": _lt("Completed"),
+    "refused": _lt("Refused"),
+    "payment_sent": _lt("Payment Sent"),
+    "payment_received": _lt("Payment Received"),
+    "cancelled": _lt("Cancelled"),
 }
 
 # Extra confirmation prompt for the irreversible statuses (``confirm_required``).
 # Kept next to LABELS so the translation tooling picks it up, and served to the
 # client so the wording lives in one place instead of being duplicated in JS.
 CONFIRM_MESSAGES: dict[str, str] = {
-    "refused": _(
+    "refused": _lt(
         "Refusal is definitive and cannot be undone. To block the invoice temporarily"
         " instead (e.g. pending a correction), report 'Disputed'. Continue with the refusal?"
     ),
@@ -128,10 +135,120 @@ REASON_CODES: dict[str, list[str]] = {
 	],
 }
 
+# Human-readable wording for the MDT-113 codes, keyed by *code* rather than by
+# status: the four lists above hold 59 entries but only 27 distinct codes (every
+# refusal code is also a dispute code), so keying by status would duplicate most
+# of them and let the copies drift apart. ``test_every_reason_code_has_a_label``
+# guards that every code in REASON_CODES is covered here.
+#
+# ``_lt`` for the same reason as LABELS above.
+REASON_LABELS: dict[str, str] = {
+	"ADR_ERR": _lt("Incorrect address"),
+	"ART_ERR": _lt("Incorrect item"),
+	"AUTRE": _lt("Other"),
+	"CALCUL_ERR": _lt("Calculation error"),
+	"CMD_ERR": _lt("Incorrect order reference"),
+	"CODE_ROUTAGE_ERR": _lt("Incorrect routing code"),
+	"CONTRAT_TERM": _lt("Contract ended"),
+	"COORD_BANC_ERR": _lt("Incorrect bank details"),
+	"DEST_ERR": _lt("Incorrect recipient"),
+	"DEST_INC": _lt("Unknown recipient"),
+	"DOUBLE_FACT": _lt("Double invoicing"),
+	"DOUBLON": _lt("Duplicate"),
+	"EMMET_INC": _lt("Unknown issuer"),
+	"JUSTIF_ABS": _lt("Missing supporting document"),
+	"LIVR_INCOMP": _lt("Incomplete delivery"),
+	"MODPAI_ERR": _lt("Incorrect payment method"),
+	"MONTANTTOTAL_ERR": _lt("Incorrect total amount"),
+	"NON_CONFORME": _lt("Non-compliant invoice"),
+	"PU_ERR": _lt("Incorrect unit price"),
+	"QTE_ERR": _lt("Incorrect quantity"),
+	"QUALITE_ERR": _lt("Quality not as agreed"),
+	"REF_CT_ABSENT": _lt("Missing contract reference"),
+	"REF_ERR": _lt("Incorrect reference"),
+	"REM_ERR": _lt("Incorrect discount"),
+	"SIRET_ERR": _lt("Incorrect SIRET"),
+	"TRANSAC_INC": _lt("Unknown transaction"),
+	"TX_TVA_ERR": _lt("Incorrect VAT rate"),
+}
+
+# One sentence per code, shown under the picker so the user does not have to infer
+# the difference between, say, "Duplicate" and "Double invoicing".
+REASON_DESCRIPTIONS: dict[str, str] = {
+	"ADR_ERR": _lt("The billing or postal address on the invoice is wrong."),
+	"ART_ERR": _lt("An invoiced item is not the one that was ordered or delivered."),
+	"AUTRE": _lt("None of the other reasons applies; explain it in the comment."),
+	"CALCUL_ERR": _lt("The totals do not add up from the lines and taxes."),
+	"CMD_ERR": _lt("The purchase order referenced on the invoice is wrong or unknown."),
+	"CODE_ROUTAGE_ERR": _lt("The routing code does not correspond to the recipient service."),
+	"CONTRAT_TERM": _lt("The contract this invoice relies on has already ended."),
+	"COORD_BANC_ERR": _lt("The bank details differ from the ones on file for the supplier."),
+	"DEST_ERR": _lt("The invoice is addressed to the wrong legal entity or establishment."),
+	"DEST_INC": _lt("The recipient identified on the invoice cannot be found."),
+	"DOUBLE_FACT": _lt("The same goods or services have already been invoiced separately."),
+	"DOUBLON": _lt("This exact invoice has already been received."),
+	"EMMET_INC": _lt("The issuer is not a known supplier."),
+	"JUSTIF_ABS": _lt("A required supporting document is missing from the invoice."),
+	"LIVR_INCOMP": _lt("Part of the invoiced delivery has not been received."),
+	"MODPAI_ERR": _lt("The payment method differs from the agreed one."),
+	"MONTANTTOTAL_ERR": _lt("The total amount does not match what was agreed."),
+	"NON_CONFORME": _lt("The invoice does not meet the legal or contractual requirements."),
+	"PU_ERR": _lt("A unit price differs from the order or the price list."),
+	"QTE_ERR": _lt("An invoiced quantity differs from the one ordered or received."),
+	"QUALITE_ERR": _lt("The goods or services delivered are not of the agreed quality."),
+	"REF_CT_ABSENT": _lt("The contract reference required for payment is missing."),
+	"REF_ERR": _lt("A reference carried by the invoice is wrong."),
+	"REM_ERR": _lt("An agreed discount is missing or miscalculated."),
+	"SIRET_ERR": _lt("The SIRET on the invoice is wrong or does not match the recipient."),
+	"TRANSAC_INC": _lt("No order or contract matching this invoice can be found."),
+	"TX_TVA_ERR": _lt("A VAT rate applied on the invoice is wrong."),
+}
+
 
 def reason_codes(status: str) -> list[str]:
-	"""Return the allowed MDT-113 reason codes for a status (empty if none required)."""
+	"""Return the allowed MDT-113 reason codes for a status (empty if none required).
+
+	The bare wire codes, kept as the server-side validator's input. The UI wants
+	:func:`reason_code_options` instead.
+	"""
 	return REASON_CODES.get(status, [])
+
+
+def reason_label(code: str) -> str:
+	"""Human-readable wording for an MDT-113 code, falling back to the code itself."""
+	return str(REASON_LABELS.get(code, code))
+
+
+def reason_description(code: str) -> str:
+	"""One-sentence explanation of an MDT-113 code, or an empty string."""
+	description = REASON_DESCRIPTIONS.get(code)
+	return str(description) if description else ""
+
+
+def all_reason_labels() -> dict[str, str]:
+	"""Every MDT-113 code mapped to its wording, for rendering a stored reason.
+
+	The event history keeps the wire code; the client needs the whole map at once to
+	show a past refusal's reason without a lookup per row.
+	"""
+	return {code: str(text) for code, text in REASON_LABELS.items()}
+
+
+def reason_code_options(status: str) -> list[dict]:
+	"""The MDT-113 codes for a status, ready for a picker.
+
+	Derived from :data:`REASON_CODES` so the offered list can never drift from the
+	one the schematron accepts. Labels are coerced to plain ``str`` here: this feeds
+	a whitelisted endpoint, and a lazy translation cannot be serialised to JSON.
+	"""
+	return [
+		{
+			"value": code,
+			"label": reason_label(code),
+			"description": reason_description(code),
+		}
+		for code in reason_codes(status)
+	]
 
 
 def reason_required(status: str) -> bool:
@@ -147,8 +264,12 @@ _BY_MDT105: dict[str, str] = {v["mdt105"]: k for k, v in STATUSES.items()}
 
 
 def label(status: str) -> str:
-    """Return the human-readable label for a canonical status."""
-    return LABELS.get(status, status)
+    """Return the human-readable label for a canonical status.
+
+    Coerced to ``str``: LABELS holds lazy translations, and callers put the result
+    into JSON payloads and message formatting.
+    """
+    return str(LABELS.get(status, status))
 
 
 def is_warning(status: str) -> bool:
@@ -221,7 +342,8 @@ def confirm_required(status: str) -> bool:
 
 def confirm_message(status: str) -> str | None:
 	"""The confirmation prompt for an irreversible status, if it has a specific one."""
-	return CONFIRM_MESSAGES.get(status)
+	message = CONFIRM_MESSAGES.get(status)
+	return str(message) if message else None
 
 
 # -----------------------------------------------------------------------------

@@ -280,6 +280,21 @@ ten. Helpers: `to_superpdp_code` / `from_superpdp_code`, `to_cdar_codes` / `from
 `reason_codes` / `reason_required` (MDT-113 reason lists from the CDAR schematron
 `BR-FR-CDV-CL-09`), `manual_statuses(side)`, `label`, `is_warning`.
 
+**Ordering.** There is none: the CDAR schematron validates each status message on its own,
+and `INITIAL` lets any status of a side open that side's axis. In particular an invoice can
+be **refused without `in_hand` having been reported first** — a buyer who spots a bad
+invoice on arrival should not have to acknowledge it before rejecting it. What `TRANSITIONS`
+does forbid is contradiction: nothing after `refused`/`cancelled`, no second `in_hand`, and
+no refusal of an invoice already paid (`dispute` is the remedy there).
+
+**Reason wording.** `REASON_LABELS` / `REASON_DESCRIPTIONS` give each MDT-113 code a
+translatable phrase, keyed by *code* (the four lists share 27 distinct codes), and
+`reason_code_options(status)` serves `{value, label, description}` to the picker.
+`reason_codes()` keeps returning bare codes — it is the server-side validator. All of these
+dicts use `frappe._lt`, not `_`: they are built at import time, so `_` would freeze the
+wording into the first language a worker happened to serve. The accessors coerce back to
+`str`, since a lazy string cannot be JSON-serialised.
+
 ## Cron jobs & document hooks
 
 Wired in [`../hooks.py`](../hooks.py).
