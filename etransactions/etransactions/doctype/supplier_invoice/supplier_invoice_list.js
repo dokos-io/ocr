@@ -107,10 +107,8 @@ class SupplierInvoiceDashboard {
 				icon: "down-arrow",
 				color: this.pa_incoming_count > 0 ? "var(--purple-500)" : "var(--gray-500)",
 				bg: this.pa_incoming_count > 0 ? "var(--purple-100)" : "var(--bg-light-gray)",
-				action: () => frappe.set_route("List", "eInvoice", {
-					einvoice_type: "Incoming",
-					pa_flow_id: ["is", "set"],
-				}),
+				action: () => this.toggle_pa_filter(),
+				active: this.pa_filter_applied,
 			},
 		];
 
@@ -120,6 +118,7 @@ class SupplierInvoiceDashboard {
 			card.style.setProperty("--card-color", card_settings.color);
 			card.style.setProperty("--card-bg-color", card_settings.bg);
 			card.onclick = card_settings.action;
+			if (card_settings.active) card.classList.add("active");
 
 			const icon_wrapper = document.createElement("div");
 			icon_wrapper.classList.add("icon-wrapper");
@@ -146,6 +145,26 @@ class SupplierInvoiceDashboard {
 		this.page_toolbar.classList.remove("hide");
 	}
 
+	/**
+	 * Whether the list is currently narrowed to invoices received through the
+	 * e-invoicing platform, i.e. carrying a `pa_platform_name`.
+	 */
+	get pa_filter_applied() {
+		return this.list_view.filter_area
+			.get()
+			.some((f) => f[1] === "pa_platform_name" && f[2] === "is" && f[3] === "set");
+	}
+
+	toggle_pa_filter() {
+		if (this.pa_filter_applied) {
+			this.list_view.filter_area.remove("pa_platform_name");
+		} else {
+			this.list_view.filter_area.add([
+				[this.list_view.doctype, "pa_platform_name", "is", "set"],
+			]);
+		}
+	}
+
 	async get_data() {
 		[this.basket_count, this.ocr_count, this.pa_incoming_count] = await Promise.all([
 			frappe.db.count("Supplier Invoices Basket", {
@@ -154,11 +173,8 @@ class SupplierInvoiceDashboard {
 			frappe.db.count("OCR Request", {
 				filters: [["status", "in", ["Pending", "Error"]]],
 			}),
-			frappe.db.count("eInvoice", {
-				filters: [
-					["einvoice_type", "=", "Incoming"],
-					["pa_flow_id", "is", "set"],
-				],
+			frappe.db.count("Supplier Invoice", {
+				filters: [["pa_platform_name", "is", "set"]],
 			}),
 		]);
 	}
