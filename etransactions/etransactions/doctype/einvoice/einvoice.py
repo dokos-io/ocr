@@ -12,6 +12,7 @@ from frappe.model.document import Document
 from frappe.utils import flt
 
 from etransactions.controllers.entity_resolver import InvoiceEntityResolverMixin
+from etransactions.controllers.item_catalog_matcher import get_item_catalog, match_item_from_catalog
 from etransactions.etransactions.doctype.etransactions_supplier_item_alias.etransactions_supplier_item_alias import (
 	get_supplier_item_alias,
 )
@@ -1215,6 +1216,7 @@ class IncomingInvoiceDataTransformer(InvoiceEntityResolverMixin):
 			"items": []
 		}
 
+		item_catalog = get_item_catalog()
 		for item in self.invoice_doc.items:
 			row = {
 				"supplier_description": item.product_name,
@@ -1233,6 +1235,16 @@ class IncomingInvoiceDataTransformer(InvoiceEntityResolverMixin):
 				)
 				if alias:
 					row.update(alias)
+
+			# First invoice from this supplier: no alias exists yet either. Fall back to a
+			# plain word-overlap guess against the Item catalog rather than leave this blank.
+			if not row["item_code"]:
+				guess = match_item_from_catalog(
+					item.seller_product_id or item.product_name, item_catalog
+				)
+				if guess:
+					row["item_code"] = guess
+					data["match_confidence"] = "low"
 
 			data["items"].append(row)
 
