@@ -5,6 +5,7 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
+  "title",
   "document_tab",
   "file_section_section",
   "einvoice_type",
@@ -117,11 +118,21 @@
   "pa_syntax",
   "pa_content_state",
   "pa_content_error",
+  "pa_content_attempts",
+  "pa_content_last_attempt",
   "attachment_retry_count",
   "pa_error_section",
   "pa_error_details"
  ],
  "fields": [
+  {
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Title",
+   "no_copy": 1,
+   "read_only": 1
+  },
   {
    "fieldname": "section_break_z2sq",
    "fieldtype": "Section Break"
@@ -821,6 +832,23 @@
    "read_only": 1
   },
   {
+   "depends_on": "eval:doc.einvoice_type==\"Incoming\"",
+   "description": "How many times the original file has been downloaded and parsed. A count that keeps climbing while the content state stays pending means the fetch is failing before it can report why.",
+   "fieldname": "pa_content_attempts",
+   "fieldtype": "Int",
+   "label": "Content Fetch Attempts",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval:doc.einvoice_type==\"Incoming\"",
+   "fieldname": "pa_content_last_attempt",
+   "fieldtype": "Datetime",
+   "label": "Last Content Fetch Attempt",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
    "default": "0",
    "description": "How many times a readable-PDF fetch has been retried for this invoice's Supplier Invoice. Stops retrying at 5.",
    "fieldname": "attachment_retry_count",
@@ -918,5 +946,6 @@
  "sort_field": "creation",
  "sort_order": "DESC",
  "states": [],
- "title_field": "seller_name"
+ "title_field": "title",
+ "show_title_field_in_link": 1
 }

@@ -16,6 +16,8 @@ frappe.ui.form.on("eInvoice", {
 				pa_status: frm.doc.pa_status,
 				pa_flow_id: frm.doc.pa_flow_id,
 				pa_content_state: frm.doc.pa_content_state,
+				pa_content_attempts: frm.doc.pa_content_attempts,
+				pa_content_last_attempt: frm.doc.pa_content_last_attempt,
 			});
 		}
 	},
@@ -100,6 +102,17 @@ function _add_pa_buttons(frm) {
 			} else {
 				_send_to_plateform(frm);
 			}
+		}, __("Accredited platform"));
+	}
+
+	if (pa_flow_id && frm.doc.einvoice_type === "Incoming" && frm.doc.pa_content_state !== "fetched") {
+		frm.add_custom_button(__("Fetch the original file"), () => {
+			frm.call({
+				method: "fetch_content_now",
+				doc: frm.doc,
+				freeze: true,
+				freeze_message: __("Retrieving the original file…"),
+			}).then(() => frm.reload_doc());
 		}, __("Accredited platform"));
 	}
 

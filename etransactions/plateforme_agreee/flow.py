@@ -13,6 +13,15 @@ from etransactions.etransactions.doctype.einvoice_log.einvoice_log import log_fe
 from etransactions.etransactions.doctype.einvoice_event.einvoice_event import record_event
 
 
+#: How many stuck flows one hourly sweep re-attempts inline. Each makes one or two HTTP
+#: calls to the platform, so the sweep stays bounded; the rest are picked up next hour.
+MAX_INLINE_CONTENT_RETRIES = 20
+
+#: A flow still "pending" after this many attempts has hit something the fetch cannot
+#: report on its own. Escalated to "error" so it stops looking like a transient state.
+STALLED_CONTENT_ATTEMPTS = 3
+
+
 def send_einvoice_to_plateforme(einvoice_name: str):
 	"""Send an outgoing eInvoice to the accredited platform.
 
@@ -535,12 +544,12 @@ def _ingest_incoming_flow(flow, company: str, platform: str | None = None) -> st
 
 	einvoice = eInvoice.create_from_plateforme_flow(flow, None, company, platform=platform)
 	_record_flow_events(einvoice, flow)
-	# The worker reads its own connection, so the record must be committed before
-	# the job can pick it up — except under test, where committing would break the
-	# rollback that isolates each case.
-	if not frappe.flags.in_test:
-		frappe.db.commit()
-
+	# The worker reads its own connection, so the record has to be committed before the
+	# job can pick it up. Committing here would end the transaction and destroy the
+	# caller's per-flow savepoint, so the enqueue rides on the poll's own commit
+	# instead: a crash mid-batch loses the batch rather than half-ingesting it, and the
+	# poller re-lists those flows next hour (known_flow_ids and the pinned poll anchor
+	# make that safe).
 	_enqueue_content_fetch(einvoice.name)
 	return einvoice.name
 
@@ -570,12 +579,17 @@ def _enqueue_content_fetch(einvoice: str) -> None:
 		queue="long",
 		job_id=f"einvoice-content::{einvoice}",
 		deduplicate=True,
+		enqueue_after_commit=True,
 		einvoice=einvoice,
 	)
 
 
 def fetch_einvoice_content(einvoice: str) -> None:
 	"""Background job: download and parse the original file of an incoming flow."""
+	# Rolling back to a per-flow savepoint does not cancel an enqueue already registered
+	# for the commit that follows, so the job can be handed a flow that was undone.
+	if not frappe.db.exists("eInvoice", einvoice):
+		return
 	doc = frappe.get_doc("eInvoice", einvoice)
 	doc.flags.ignore_permissions = True
 	doc.fetch_content_from_platform()
@@ -587,6 +601,12 @@ def retry_pending_einvoice_content():
 	Without this, a platform outage during ``poll_incoming_flows`` would leave the
 	invoice stuck as metadata for good: its flow id is already known, so the poller
 	skips it on every later run.
+
+	Runs the fetch inline rather than only re-enqueueing it. Enqueueing alone reports
+	"dispatched N" and calls it a success even when every one of those jobs then fails
+	invisibly — which is how an incoming invoice came to sit at "pending" for days with
+	nothing in the log to say why. Inline, the outcome lands in this sweep's own
+	eInvoicing Log.
 	"""
 	stuck = frappe.get_all(
 		"eInvoice",
@@ -595,10 +615,83 @@ def retry_pending_einvoice_content():
 			"pa_content_state": ["in", ["pending", "error"]],
 			"pa_flow_id": ["is", "set"],
 		},
-		pluck="name",
+		fields=["name", "company", "pa_flow_id", "pa_content_attempts", "pa_content_state"],
+		order_by="creation asc",
 	)
-	for name in stuck:
-		_enqueue_content_fetch(name)
+	if not stuck:
+		return
+
+	# One log per company: eInvoicing Log is read (and filtered) per company, so a
+	# run spanning several must not collapse into a single company-less row.
+	results: dict[str, dict] = {}
+
+	def result_for(company: str) -> dict:
+		return results.setdefault(
+			company,
+			{
+				"operation_type": "flow_receive",
+				"origin": "Cron",
+				"company": company,
+				"new_count": 0,
+				"updated_count": 0,
+				"logs": [],
+			},
+		)
+
+	for idx, row in enumerate(stuck[:MAX_INLINE_CONTENT_RETRIES]):
+		result = result_for(row.company)
+		if _escalate_stalled_content(row, result):
+			continue
+
+		# One invoice's failure must not undo the ones already retried in this same run.
+		save_point = f"einvoice_retry_{idx}"
+		frappe.db.savepoint(save_point)
+		try:
+			doc = frappe.get_doc("eInvoice", row.name)
+			doc.flags.ignore_permissions = True
+			doc.fetch_content_from_platform()
+		except Exception as e:
+			frappe.db.rollback(save_point=save_point)
+			result["logs"].append(("error", f"Content retry failed for eInvoice {row.name}: {str(e)}"))
+		else:
+			frappe.db.release_savepoint(save_point)
+			if frappe.db.get_value("eInvoice", row.name, "pa_content_state") == "fetched":
+				result["updated_count"] += 1
+
+	for row in stuck[MAX_INLINE_CONTENT_RETRIES:]:
+		_enqueue_content_fetch(row.name)
+
+	for result in results.values():
+		if result["logs"] or result["updated_count"]:
+			eInvoicingLog.create_log(result)
+
+
+def _escalate_stalled_content(row, result: dict) -> bool:
+	"""Mark a flow that keeps being retried without ever reporting why, and say so.
+
+	``fetch_content_from_platform`` records its own failures as ``pa_content_state =
+	"error"``. A record that is still ``pending`` after several attempts is therefore
+	one whose fetch died before it could report anything — a bug, not a platform
+	outage — and left alone it would retry silently forever. Returns whether the flow
+	was escalated (and so should be skipped this run).
+	"""
+	if row.pa_content_state != "pending" or (row.pa_content_attempts or 0) < STALLED_CONTENT_ATTEMPTS:
+		return False
+
+	message = _(
+		"The original file could not be retrieved after {0} attempts, and the failure was not"
+		" reported. Check the Error Log for flow {1}."
+	).format(row.pa_content_attempts, row.pa_flow_id)
+	frappe.db.set_value(
+		"eInvoice",
+		row.name,
+		{"pa_content_state": "error", "pa_content_error": message},
+		update_modified=False,
+	)
+	result["logs"].append(
+		("error", f"eInvoice {row.name} stalled at 'pending' after {row.pa_content_attempts} attempts")
+	)
+	return True
 
 
 def _enqueue_missing_pdf_retry(einvoice: str) -> None:

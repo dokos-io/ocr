@@ -42,6 +42,8 @@ etransactions.lifecycle = {
 					pa_status: r.message.pa_status,
 					pa_flow_id: r.message.pa_flow_id,
 					pa_content_state: r.message.pa_content_state,
+					pa_content_attempts: r.message.pa_content_attempts,
+					pa_content_last_attempt: r.message.pa_content_last_attempt,
 					group: __("eInvoicing"),
 					on_sent,
 				});
@@ -52,8 +54,28 @@ etransactions.lifecycle = {
 		});
 	},
 
-	attach(frm, { einvoice, side, pa_status, pa_flow_id, pa_content_state, group, on_sent }) {
-		frm._et_lc = { einvoice, side, pa_status, pa_flow_id, pa_content_state, on_sent, lc: null };
+	attach(frm, {
+		einvoice,
+		side,
+		pa_status,
+		pa_flow_id,
+		pa_content_state,
+		pa_content_attempts,
+		pa_content_last_attempt,
+		group,
+		on_sent,
+	}) {
+		frm._et_lc = {
+			einvoice,
+			side,
+			pa_status,
+			pa_flow_id,
+			pa_content_state,
+			pa_content_attempts,
+			pa_content_last_attempt,
+			on_sent,
+			lc: null,
+		};
 		frappe
 			.xcall(
 				"etransactions.etransactions.doctype.einvoice.einvoice.get_supported_lifecycle_statuses",
@@ -207,7 +229,7 @@ etransactions.lifecycle = {
 						einvoice
 					)}" data-et-pa-status="${frappe.utils.escape_html(pa_status || "")}">
 						${this.ribbon_html(pa_status, pa_flow_id)}
-						${this.content_state_html(frm._et_lc.pa_content_state)}
+						${this.content_state_html(frm._et_lc)}
 						${this.state_html(frm._et_lc.lc)}
 						${this.events_html(events || [], (frm._et_lc.lc || {}).reason_labels || {})}
 						<div class="et-lc-link"><a class="et-lc-open">${__("Open eInvoice")} →</a></div>
@@ -254,11 +276,21 @@ etransactions.lifecycle = {
 
 	// The original file is downloaded after the flow is recorded, so an invoice can be
 	// known but not yet readable. Saying so beats showing an empty lifecycle.
-	content_state_html(pa_content_state) {
+	content_state_html({ pa_content_state, pa_content_attempts, pa_content_last_attempt }) {
 		if (pa_content_state === "pending") {
+			// After a couple of tries this has stopped being "not yet" and become "not
+			// working" — say which, so a stuck invoice cannot read as a transient one.
+			const detail =
+				pa_content_attempts > 1
+					? " " +
+					  __("Tried {0} times, last on {1}.", [
+							pa_content_attempts,
+							frappe.datetime.str_to_user(pa_content_last_attempt),
+					  ])
+					: "";
 			return `<div class="et-lc-content-state text-muted" data-et-content-state="pending">${__(
 				"The original file has not been downloaded from the platform yet."
-			)}</div>`;
+			)}${frappe.utils.escape_html(detail)}</div>`;
 		}
 		if (pa_content_state === "error") {
 			return `<div class="et-lc-content-state" style="color:var(--red-500)" data-et-content-state="error">${__(
