@@ -689,3 +689,171 @@ class TestIncomingFlowIngestion(eTransactionsTestSuite):
 		self.assertEqual(adopt_orphan_events("EINV-A", "FLOW-A"), 1)
 		self.assertEqual(frappe.db.get_value("eInvoice Event", mine.name, "einvoice"), "EINV-A")
 		self.assertFalse(frappe.db.get_value("eInvoice Event", other.name, "einvoice"))
+
+
+class TestReceivingGateRecovery(eTransactionsTestSuite):
+	"""The receiving gate must not silently strand a site that was already receiving.
+
+	`poll_incoming_flows` is gated on `enable_einvoicing and enable_receiving_einvoices`.
+	That gate arrived after `enable_einvoicing` did, and only the newer flag was
+	backfilled — so a site whose `enable_einvoicing` had stayed at its default of 0 kept
+	receiving right up to the upgrade, then stopped with no log of any kind.
+	"""
+
+	def setUp(self):
+		super().setUp()
+		frappe.db.set_default("company", "_Test Company")
+		self._set_switches(einvoicing=0, receiving=1)
+		frappe.db.delete("eInvoicing Log", {"operation_type": "receiving_disabled"})
+
+	def _set_switches(self, einvoicing: int, receiving: int) -> None:
+		settings = frappe.get_single("eTransactions Settings")
+		settings.enable_einvoicing = einvoicing
+		settings.enable_receiving_einvoices = receiving
+		settings.flags.ignore_permissions = True
+		settings.save()
+		frappe.clear_document_cache("eTransactions Settings", "eTransactions Settings")
+
+	def _platform(self, *, last_incoming_poll=None, transaction_type="Both", is_active=1) -> str:
+		platform = frappe.get_doc({
+			"doctype": "eTransactions Accredited Platform",
+			"platform_name": f"Gate {frappe.generate_hash(length=6)}",
+			"platform_type": "Custom",
+			"platform_code": "TESTGATE",
+			"company": "_Test Company",
+			"transaction_type": transaction_type,
+			"is_active": is_active,
+			"api_base_url": "http://localhost:1/never-called",
+			"client_id": "test",
+			"client_secret": "test-secret",
+		})
+		platform.flags.ignore_permissions = True
+		platform.insert()
+		if last_incoming_poll:
+			frappe.db.set_value(
+				"eTransactions Accredited Platform",
+				platform.name,
+				"last_incoming_poll",
+				last_incoming_poll,
+				update_modified=False,
+			)
+		return platform.name
+
+	def _run_patch(self) -> None:
+		from etransactions.patches.backfill_enable_einvoicing_for_receiving_sites import execute
+
+		execute()
+
+	def _enable_einvoicing(self) -> int:
+		return frappe.get_single_value("eTransactions Settings", "enable_einvoicing")
+
+	# ------------------------------------------------------------------
+	# The backfill patch
+	# ------------------------------------------------------------------
+	def test_a_platform_that_has_polled_gets_einvoicing_switched_back_on(self):
+		"""last_incoming_poll is only written after a successful listing, so its presence
+		is proof the site really was receiving before the gate landed."""
+		self._platform(last_incoming_poll="2026-09-03 20:01:01")
+
+		self._run_patch()
+
+		self.assertEqual(self._enable_einvoicing(), 1)
+
+	def test_a_platform_that_never_polled_is_left_alone(self):
+		"""An active record that never received anything is the stale-platform case the
+		gate was written to block — re-enabling on that would undo the gate."""
+		self._platform(last_incoming_poll=None)
+
+		self._run_patch()
+
+		self.assertEqual(self._enable_einvoicing(), 0)
+
+	def test_a_sales_only_platform_is_left_alone(self):
+		self._platform(last_incoming_poll="2026-09-03 20:01:01", transaction_type="Sales")
+
+		self._run_patch()
+
+		self.assertEqual(self._enable_einvoicing(), 0)
+
+	def test_an_inactive_platform_is_left_alone(self):
+		self._platform(last_incoming_poll="2026-09-03 20:01:01", is_active=0)
+
+		self._run_patch()
+
+		self.assertEqual(self._enable_einvoicing(), 0)
+
+	def test_the_patch_does_not_touch_a_site_that_already_has_it_on(self):
+		self._set_switches(einvoicing=1, receiving=0)
+		self._platform(last_incoming_poll="2026-09-03 20:01:01")
+
+		self._run_patch()
+
+		self.assertEqual(self._enable_einvoicing(), 1)
+		self.assertEqual(
+			frappe.get_single_value("eTransactions Settings", "enable_receiving_einvoices"),
+			0,
+			"the patch owns one flag and must not reinstate the other",
+		)
+
+	# ------------------------------------------------------------------
+	# The disabled gate is no longer silent
+	# ------------------------------------------------------------------
+	def test_a_disabled_gate_is_reported_for_a_site_that_used_to_receive(self):
+		from etransactions.plateforme_agreee import flow as flow_module
+
+		self._platform(last_incoming_poll="2026-09-03 20:01:01")
+
+		flow_module.poll_incoming_flows()
+
+		logs = frappe.get_all(
+			"eInvoicing Log",
+			filters={"operation_type": "receiving_disabled", "company": "_Test Company"},
+			fields=["status", "logs"],
+		)
+		self.assertEqual(len(logs), 1)
+		self.assertEqual(logs[0].status, "success_warn")
+		self.assertIn("E-Invoicing", logs[0].logs)
+
+	def test_the_disabled_gate_is_reported_once_a_day_not_once_an_hour(self):
+		from etransactions.plateforme_agreee import flow as flow_module
+
+		self._platform(last_incoming_poll="2026-09-03 20:01:01")
+
+		flow_module.poll_incoming_flows()
+		flow_module.poll_incoming_flows()
+
+		self.assertEqual(
+			frappe.db.count(
+				"eInvoicing Log",
+				{"operation_type": "receiving_disabled", "company": "_Test Company"},
+			),
+			1,
+		)
+
+	def test_a_site_that_never_received_is_not_nagged(self):
+		"""E-invoicing simply not being in use is not a problem to report hourly."""
+		from etransactions.plateforme_agreee import flow as flow_module
+
+		self._platform(last_incoming_poll=None)
+
+		flow_module.poll_incoming_flows()
+
+		self.assertFalse(
+			frappe.db.exists("eInvoicing Log", {"operation_type": "receiving_disabled"})
+		)
+
+	def test_the_report_names_the_switch_that_is_off(self):
+		from etransactions.plateforme_agreee import flow as flow_module
+
+		self._set_switches(einvoicing=1, receiving=0)
+		self._platform(last_incoming_poll="2026-09-03 20:01:01")
+
+		flow_module.poll_incoming_flows()
+
+		logs = frappe.get_all(
+			"eInvoicing Log",
+			filters={"operation_type": "receiving_disabled"},
+			fields=["logs"],
+		)
+		self.assertEqual(len(logs), 1)
+		self.assertIn("Receive E-Invoices", logs[0].logs)

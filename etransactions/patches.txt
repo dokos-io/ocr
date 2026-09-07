@@ -23,3 +23,4 @@ etransactions.patches.set_default_enable_receiving_einvoices # 20260902
 etransactions.patches.set_default_auto_send_lifecycle_status # 20260903
 etransactions.patches.backfill_einvoice_pa_platform # 20260904
 etransactions.patches.backfill_einvoice_title # 20260907
+etransactions.patches.backfill_enable_einvoicing_for_receiving_sites # 20260907

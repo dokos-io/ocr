@@ -21,6 +21,11 @@ MAX_INLINE_CONTENT_RETRIES = 20
 #: report on its own. Escalated to "error" so it stops looking like a transient state.
 STALLED_CONTENT_ATTEMPTS = 3
 
+#: How often to repeat the "receiving is switched off but this site used to receive"
+#: warning. The condition persists until someone acts on it, so it is stated once a day
+#: rather than on all 24 polls.
+RECEIVING_DISABLED_LOG_INTERVAL_HOURS = 24
+
 
 def send_einvoice_to_plateforme(einvoice_name: str):
 	"""Send an outgoing eInvoice to the accredited platform.
@@ -400,9 +405,79 @@ def poll_ereporting_status():
 			eInvoicingLog.create_log(result)
 
 
+def _receiving_disabled_reason() -> str:
+	"""Which of the three switches is holding the poll back."""
+	if frappe.conf.get("etransactions_disable_receiving"):
+		return _("the etransactions_disable_receiving site config key is set")
+
+	settings = frappe.get_cached_doc("eTransactions Settings")
+	if not settings.enable_einvoicing:
+		return _("E-Invoicing is disabled in eTransactions Settings")
+
+	return _("Receive E-Invoices is disabled in eTransactions Settings")
+
+
+def _warn_receiving_disabled() -> None:
+	"""Say why a site that used to receive invoices is no longer receiving any.
+
+	Returning silently is right when e-invoicing is not in use, and staying quiet for a
+	platform record merely left active is the point of the gate. But a platform that has
+	completed a poll — `last_incoming_poll` is only written after a successful listing —
+	was genuinely receiving, so the switch going off is a regression someone needs to see.
+	Without this the outage is invisible: a disabled poll writes no log at all and its
+	Scheduled Job Log still reads "Complete".
+	"""
+	previously_receiving = frappe.get_all(
+		"eTransactions Accredited Platform",
+		filters={
+			"is_active": 1,
+			"transaction_type": ["in", ["Purchases", "Both"]],
+			"last_incoming_poll": ["is", "set"],
+		},
+		fields=["company"],
+		group_by="company",
+	)
+	if not previously_receiving:
+		return
+
+	reason = _receiving_disabled_reason()
+	since = frappe.utils.add_to_date(
+		frappe.utils.now_datetime(), hours=-RECEIVING_DISABLED_LOG_INTERVAL_HOURS
+	)
+
+	for company_row in previously_receiving:
+		already_warned = frappe.db.exists(
+			"eInvoicing Log",
+			{
+				"operation_type": "receiving_disabled",
+				"company": company_row.company,
+				"creation": [">", since],
+			},
+		)
+		if already_warned:
+			continue
+
+		eInvoicingLog.create_log(
+			{
+				"operation_type": "receiving_disabled",
+				"origin": "Cron",
+				"company": company_row.company,
+				"new_count": 0,
+				"updated_count": 0,
+				"logs": [
+					(
+						"warning",
+						_("Incoming invoices were not polled: {0}.").format(reason),
+					)
+				],
+			}
+		)
+
+
 def poll_incoming_flows():
 	"""Cron: fetch new incoming flows from the PA and create eInvoice records for each."""
 	if not is_receiving_enabled():
+		_warn_receiving_disabled()
 		return
 
 	active_platforms = frappe.get_all(
