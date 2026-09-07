@@ -281,19 +281,106 @@ class TestIncomingFlowIngestion(eTransactionsTestSuite):
 		self.assertEqual(einvoice.pa_content_state, "error")
 		self.assertIn("platform unavailable", einvoice.pa_content_error)
 		self.assertTrue(frappe.db.exists("eInvoice", einvoice.name), "the record must survive")
+		self.assertTrue(
+			frappe.db.exists(
+				"eInvoice Log",
+				{"einvoice": einvoice.name, "operation": "download_flow", "status": "error"},
+			),
+			"the failed call must be in the audit trail a support investigation reads",
+		)
 
-	def test_retry_picks_up_pending_and_errored_flows(self):
+	def test_retry_fetches_a_pending_flow_instead_of_only_dispatching_it(self):
+		"""Dispatching alone reported success while every job it dispatched failed
+		invisibly — which is how an invoice sat at 'pending' for days."""
 		from etransactions.plateforme_agreee.flow import retry_pending_einvoice_content
 
 		einvoice = eInvoice.create_from_plateforme_flow(
 			self._flow("FLOW-RETRY-001"), None, "_Test Company"
 		)
 
-		with patch("frappe.enqueue") as enqueue:
+		client = _FakePlatformClient(content=self._facturx_pdf())
+		with patch(GET_CLIENT, return_value=client):
 			retry_pending_einvoice_content()
 
-		enqueued = [call.kwargs.get("einvoice") for call in enqueue.call_args_list]
-		self.assertIn(einvoice.name, enqueued)
+		einvoice.reload()
+		self.assertEqual(einvoice.pa_content_state, "fetched")
+		self.assertEqual(einvoice.seller_name, "LE FOURNISSEUR")
+
+	def test_retry_reports_a_failure_in_its_own_log_instead_of_swallowing_it(self):
+		from etransactions.plateforme_agreee.flow import retry_pending_einvoice_content
+
+		einvoice = eInvoice.create_from_plateforme_flow(
+			self._flow("FLOW-RETRY-002"), None, "_Test Company"
+		)
+
+		client = _FakePlatformClient(error=Exception("platform unavailable"))
+		with patch(GET_CLIENT, return_value=client):
+			retry_pending_einvoice_content()
+
+		einvoice.reload()
+		self.assertEqual(einvoice.pa_content_state, "error")
+		self.assertIn("platform unavailable", einvoice.pa_content_error)
+
+	def test_a_flow_stalled_at_pending_is_escalated_rather_than_retried_forever(self):
+		"""fetch_content_from_platform records its own failures. Still 'pending' after
+		several attempts means the failure never got reported — surface that."""
+		from etransactions.plateforme_agreee.flow import (
+			STALLED_CONTENT_ATTEMPTS,
+			retry_pending_einvoice_content,
+		)
+
+		einvoice = eInvoice.create_from_plateforme_flow(
+			self._flow("FLOW-STALL-001"), None, "_Test Company"
+		)
+		einvoice.db_set("pa_content_attempts", STALLED_CONTENT_ATTEMPTS, update_modified=False)
+
+		client = _FakePlatformClient(content=self._facturx_pdf())
+		with patch(GET_CLIENT, return_value=client):
+			retry_pending_einvoice_content()
+
+		einvoice.reload()
+		self.assertEqual(einvoice.pa_content_state, "error")
+		self.assertIn(str(STALLED_CONTENT_ATTEMPTS), einvoice.pa_content_error)
+		self.assertEqual(
+			einvoice.pa_content_attempts,
+			STALLED_CONTENT_ATTEMPTS,
+			"an escalated flow is not retried again in the same run",
+		)
+
+	def test_every_content_fetch_counts_itself(self):
+		einvoice = eInvoice.create_from_plateforme_flow(
+			self._flow("FLOW-COUNT-001"), None, "_Test Company"
+		)
+		self.assertEqual(einvoice.pa_content_attempts or 0, 0)
+
+		with patch(GET_CLIENT, return_value=_FakePlatformClient(error=Exception("nope"))):
+			einvoice.fetch_content_from_platform()
+		einvoice.reload()
+		self.assertEqual(einvoice.pa_content_attempts, 1)
+		self.assertTrue(einvoice.pa_content_last_attempt)
+
+		with patch(GET_CLIENT, return_value=_FakePlatformClient(content=self._facturx_pdf())):
+			einvoice.fetch_content_from_platform()
+		einvoice.reload()
+		self.assertEqual(einvoice.pa_content_attempts, 2)
+
+	# ------------------------------------------------------------------
+	# Readable identity before the file arrives
+	# ------------------------------------------------------------------
+	def test_a_flow_without_its_file_yet_still_has_a_readable_title(self):
+		"""The record is named by hash, so an empty title renders as "undefined"."""
+		einvoice = eInvoice.create_from_plateforme_flow(
+			self._flow("FLOW-TITLE-001"), None, "_Test Company"
+		)
+
+		self.assertEqual(einvoice.title, "Incoming flow FLOW-TITLE-001")
+
+		client = _FakePlatformClient(content=self._facturx_pdf())
+		with patch(GET_CLIENT, return_value=client):
+			einvoice.fetch_content_from_platform()
+
+		einvoice.reload()
+		self.assertEqual(einvoice.title, "F20220023 · LE FOURNISSEUR")
 
 	# ------------------------------------------------------------------
 	# Phase 3 — bounded retry for a missing readable PDF

@@ -9,7 +9,7 @@ from erpnext.edi.doctype.code_list.code_list import get_docnames_for
 
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import flt
+from frappe.utils import flt, now_datetime
 
 from etransactions.controllers.entity_resolver import InvoiceEntityResolverMixin
 from etransactions.controllers.item_catalog_matcher import get_item_catalog, match_item_from_catalog
@@ -25,7 +25,7 @@ from etransactions.etransactions.doctype.einvoice.generator import (
 from etransactions.schematron import get_validation_errors
 from etransactions.utils import EInvoiceProfile, get_drafthorse_schema
 from etransactions.utils.files import copy_file_to_document, detect_flow_extension
-from etransactions.etransactions.doctype.einvoice_log.einvoice_log import log_fetch
+from etransactions.etransactions.doctype.einvoice_log.einvoice_log import FetchLogBuffer
 
 
 if TYPE_CHECKING:
@@ -107,6 +107,25 @@ class eInvoice(Document):
 		elif self.einvoice_type == "Outgoing":
 			self.create_outgoing_einvoice()
 			self.validate_einvoice()
+		self.set_title()
+
+	def set_title(self):
+		"""Name the record for a human, at every stage of its life.
+
+		The document itself is named by hash, so the title is all the list and the
+		breadcrumb have to go on. An incoming flow is recorded before its file is
+		downloaded, so for a while it has neither number nor seller — and a title field
+		that resolves to nothing renders as the literal "undefined". Fall back through
+		what is known until something is.
+		"""
+		if self.id and self.seller_name:
+			self.title = f"{self.id} · {self.seller_name}"
+		elif self.id or self.seller_name:
+			self.title = self.id or self.seller_name
+		elif self.pa_flow_id:
+			self.title = _("Incoming flow {0}").format(self.pa_flow_id)
+		else:
+			self.title = self.name
 
 	def after_insert(self):
 		# Claim the lifecycle events that were polled before this invoice existed.
@@ -321,6 +340,26 @@ class eInvoice(Document):
 
 		if update:
 			self.db_set(update)
+
+	@frappe.whitelist()
+	def fetch_content_now(self):
+		"""Download and parse the original file right now, and say why if it fails.
+
+		The same work the hourly sweep does, run in the foreground so the reason an
+		incoming invoice is still empty lands in front of whoever asked, instead of only
+		in the server log.
+		"""
+		self.check_permission("write")
+		if self.einvoice_type != "Incoming" or not self.pa_flow_id:
+			frappe.throw(_("Only an invoice received from an accredited platform has a file to fetch."))
+
+		self.fetch_content_from_platform()
+		self.reload()
+		if self.pa_content_state != "fetched":
+			frappe.throw(
+				self.pa_content_error or _("The original file could not be retrieved."),
+				title=_("Could not retrieve the original file"),
+			)
 
 	def lifecycle_transition_error(self, status: str) -> str | None:
 		"""Why ``status`` cannot be reported for this invoice right now, or ``None``.
@@ -589,8 +628,31 @@ class eInvoice(Document):
 		if self.einvoice_type != "Incoming" or not self.pa_flow_id:
 			return
 
+		# Counted before the attempt, not after it, and outside the savepoint below: an
+		# attempt that fails is exactly the one worth counting, and a job killed mid-flight
+		# still leaves the trace that says so.
+		self.db_set(
+			{
+				"pa_content_attempts": (self.pa_content_attempts or 0) + 1,
+				"pa_content_last_attempt": now_datetime(),
+			},
+			update_modified=False,
+		)
+
 		# A savepoint, not a full rollback: a half-written attempt is undone without
 		# touching whatever the caller (the poller, or the retry job) already did.
+		#
+		# Nothing inside this region may commit. A COMMIT ends the transaction and takes
+		# every savepoint with it, so the RELEASE/ROLLBACK TO below then fails with
+		# MariaDB error 1305 — and since the RELEASE sits in an ``else`` clause, that
+		# error escapes the very handler meant to record the failure, leaving the invoice
+		# stuck at "pending" for good. Hence the buffered audit log: see FetchLogBuffer.
+		fetch_log = FetchLogBuffer(
+			company=self.company,
+			einvoice=self.name,
+			platform=self.pa_platform,
+			flow_id=self.pa_flow_id,
+		)
 		save_point = "einvoice_content"
 		frappe.db.savepoint(save_point)
 		try:
@@ -603,24 +665,16 @@ class eInvoice(Document):
 				if not file_content:
 					raise ValueError(_("The platform returned an empty file."))
 			except Exception as e:
-				log_fetch(
+				fetch_log.add(
 					operation="download_flow",
 					status="error",
-					company=self.company,
-					einvoice=self.name,
-					platform=self.pa_platform,
-					flow_id=self.pa_flow_id,
 					request=f"download_flow({self.pa_flow_id})",
 					response=str(e),
 				)
 				raise
-			log_fetch(
+			fetch_log.add(
 				operation="download_flow",
 				status="success",
-				company=self.company,
-				einvoice=self.name,
-				platform=self.pa_platform,
-				flow_id=self.pa_flow_id,
 				request=f"download_flow({self.pa_flow_id})",
 				response=f"{len(file_content)} byte(s), {detect_flow_extension(file_content)}",
 			)
@@ -631,7 +685,7 @@ class eInvoice(Document):
 			self.pa_content_state = "fetched"
 			self.pa_content_error = None
 			if detect_flow_extension(file_content) != "pdf":
-				self._fetch_readable_pdf(client)
+				self._fetch_readable_pdf(client, fetch_log)
 			self.flags.ignore_permissions = True
 			self.save()
 			self._attach_flow_file(file_doc, self.name)
@@ -650,8 +704,12 @@ class eInvoice(Document):
 			)
 		else:
 			frappe.db.release_savepoint(save_point)
+		finally:
+			# Outside the region on every path: the record of a call that did reach the
+			# platform must survive the rollback of the parse that followed it.
+			fetch_log.flush()
 
-	def _fetch_readable_pdf(self, client) -> None:
+	def _fetch_readable_pdf(self, client, fetch_log: FetchLogBuffer) -> None:
 		"""Best-effort: fetch a platform-rendered PDF for a structured-only (XML) flow.
 
 		A pure UBL/CII invoice carries no human-readable PDF of its own; some platforms can
@@ -672,38 +730,26 @@ class eInvoice(Document):
 				reference_doctype="eInvoice",
 				reference_name=self.name,
 			)
-			log_fetch(
+			fetch_log.add(
 				operation="download_flow_readable_pdf",
 				status="error",
-				company=self.company,
-				einvoice=self.name,
-				platform=self.pa_platform,
-				flow_id=self.pa_flow_id,
 				request=f"download_flow_readable_pdf({self.pa_flow_id})",
 				response=str(e),
 			)
 			return
 
 		if not pdf_content or detect_flow_extension(pdf_content) != "pdf":
-			log_fetch(
+			fetch_log.add(
 				operation="download_flow_readable_pdf",
 				status="success",
-				company=self.company,
-				einvoice=self.name,
-				platform=self.pa_platform,
-				flow_id=self.pa_flow_id,
 				request=f"download_flow_readable_pdf({self.pa_flow_id})",
 				response="platform returned no usable PDF",
 			)
 			return
 
-		log_fetch(
+		fetch_log.add(
 			operation="download_flow_readable_pdf",
 			status="success",
-			company=self.company,
-			einvoice=self.name,
-			platform=self.pa_platform,
-			flow_id=self.pa_flow_id,
 			request=f"download_flow_readable_pdf({self.pa_flow_id})",
 			response=f"{len(pdf_content)} byte(s)",
 		)
@@ -911,9 +957,15 @@ class eInvoice(Document):
 
 		self.db_set("attachment_retry_count", self.attachment_retry_count + 1, update_modified=False)
 
+		fetch_log = FetchLogBuffer(
+			company=self.company,
+			einvoice=self.name,
+			platform=self.pa_platform,
+			flow_id=self.pa_flow_id,
+		)
 		try:
 			client = get_client(self.company, transaction_type="purchases")
-			self._fetch_readable_pdf(client)
+			self._fetch_readable_pdf(client, fetch_log)
 			self.flags.ignore_permissions = True
 			self.save()
 		except Exception:
@@ -927,6 +979,8 @@ class eInvoice(Document):
 			if self.einvoice_readable_pdf:
 				supplier_invoice = frappe.get_doc("Supplier Invoice", supplier_invoice_name)
 				self.attach_source_file_to(supplier_invoice)
+		finally:
+			fetch_log.flush()
 
 		if self.attachment_retry_count >= 5:
 			current_url = frappe.db.get_value("Supplier Invoice", supplier_invoice_name, "file_url")
@@ -1119,7 +1173,15 @@ def get_transaction_einvoice(doctype: str, name: str) -> dict | None:
 	data = frappe.db.get_value(
 		"eInvoice",
 		einvoice,
-		["name", "pa_status", "pa_flow_id", "pa_content_state", "einvoice_type"],
+		[
+			"name",
+			"pa_status",
+			"pa_flow_id",
+			"pa_content_state",
+			"pa_content_attempts",
+			"pa_content_last_attempt",
+			"einvoice_type",
+		],
 		as_dict=True,
 	)
 	if not data:
