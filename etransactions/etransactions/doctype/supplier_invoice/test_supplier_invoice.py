@@ -286,6 +286,91 @@ class TestSupplierInvoice(eTransactionsTestSuite):
 		self.assertEqual(getdate(pi.posting_date), getdate(posting_date))
 		self.assertTrue(pi.set_posting_time)
 
+	# --- E-invoice credit lines ----------------------------------------------
+
+	def test_lines_stating_their_own_amount_survive_total_recalculation(self):
+		"""A supplier states a discount as a line with no unit price carrying its own net
+		amount. Recalculating the totals used to recompute every line as qty * rate, which
+		collapsed those lines and dropped their value from the invoice.
+
+		The quantities vary on purpose: deriving a rate from the amount would round the
+		three-unit line (-1.00 / 3 does not divide) and would divide by zero on the line
+		whose quantity the supplier left out. One line is positive, because a stated amount
+		is not always a credit.
+		"""
+		invoice = frappe.get_doc({
+			"doctype": "Supplier Invoice",
+			"supplier": self.supplier.name,
+			"company": self.company,
+			"bill_no": frappe.generate_hash(length=8),
+			"bill_date": nowdate(),
+			"posting_date": nowdate(),
+			# Declared by the supplier, so the recalculation has an oracle to match.
+			"supplier_net_amount": 17.70,
+			"items": [
+				{"item_code": "_Test Item", "qty": 1, "rate": 12, "amount": 12,
+					"expense_account": self.EXPENSE_ACCOUNT},
+				{"item_code": "_Test Item", "qty": 2, "rate": 3.40, "amount": 6.80,
+					"expense_account": self.EXPENSE_ACCOUNT},
+				{"item_code": "_Test Item", "qty": 1, "rate": 0, "amount": -0.30,
+					"expense_account": self.EXPENSE_ACCOUNT},
+				{"item_code": "_Test Item", "qty": 3, "rate": 0, "amount": -1.00,
+					"expense_account": self.EXPENSE_ACCOUNT},
+				{"item_code": "_Test Item", "qty": 0, "rate": 0, "amount": -0.30,
+					"expense_account": self.EXPENSE_ACCOUNT},
+				{"item_code": "_Test Item", "qty": 0, "rate": 0, "amount": 0.50,
+					"expense_account": self.EXPENSE_ACCOUNT},
+			],
+		})
+		invoice.insert(ignore_mandatory=True)
+
+		self.assertEqual(flt(invoice.net_total, 2), flt(invoice.supplier_net_amount, 2))
+
+	@change_settings(
+		"eTransactions Settings",
+		{"reconcile_with_purchase_receipts": 1, "auto_submit_purchase_invoices": 1},
+	)
+	@change_settings("Accounts Settings", {"mandatory_accounting_journal": 0})
+	def test_invoice_carrying_a_credit_line_is_not_reconciled_automatically(self):
+		"""Now that the totals agree with the supplier, nothing else stops this invoice
+		booking itself — and the purchase invoice it would book cannot hold the credit.
+
+		The ordered item doubles as a regression guard on the recalculation: it has a
+		purchase history, which `set_missing_values` would price the credit line from if
+		the line were still sitting at a zero rate by then.
+		"""
+		po = create_purchase_order(supplier=self.supplier.name, company=self.company, qty=1.0, rate=5000, warehouse="_Test Warehouse - _TC")
+		pr = make_purchase_receipt(po.name)
+		pr.submit()
+
+		invoice = frappe.get_doc({
+			"doctype": "Supplier Invoice",
+			"supplier": po.supplier,
+			"company": po.company,
+			"purchase_order_number": po.name,
+			"supplier_net_amount": flt(pr.net_total) - 1,
+			"bill_no": frappe.generate_hash(length=8),
+			"bill_date": nowdate(),
+			"items": [
+				{
+					"item_code": pr.items[0].item_code,
+					"qty": 1,
+					"rate": pr.net_total,
+					"amount": pr.net_total,
+					"expense_account": self.EXPENSE_ACCOUNT,
+					"reference_doctype": "Purchase Receipt",
+					"reference_docname": pr.name,
+					"row": pr.items[0].name,
+				},
+				{"item_code": "_Test Item", "qty": 1, "rate": 0, "amount": -1.00,
+					"expense_account": self.EXPENSE_ACCOUNT},
+			],
+		})
+		invoice.insert(ignore_mandatory=True)
+
+		self.assertEqual(flt(invoice.net_total), flt(invoice.supplier_net_amount))
+		self.assertFalse(frappe.db.exists("Purchase Invoice", {"supplier_invoice": invoice.name}))
+
 	# --- Item line prefill ---------------------------------------------------
 
 	def _captured_invoice(self, supplier=None, net_amount=100, ocr_request=None):
