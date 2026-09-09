@@ -339,6 +339,11 @@ class SupplierInvoice(Document):
 				for item in self.items:
 					doc.append("items", frappe.copy_doc(item).as_dict())
 				doc.update(self.as_dict())
+				for row in doc.items:
+					if states_its_own_amount(row):
+						# One unit at the line's own amount survives qty * rate at any quantity,
+						# and beats `set_missing_values` pricing a zero-rate row from purchase history.
+						row.update({"qty": 1, "rate": flt(row.get("amount"))})
 				doc.run_method("set_missing_values")
 				# append taxes
 				doc.set("taxes", [])
@@ -1113,6 +1118,13 @@ class SupplierInvoice(Document):
 		if frappe.db.exists("Purchase Invoice", dict(supplier_invoice=self.name, docstatus=("!=", 2))):
 			return
 
+		if any(states_its_own_amount(item) for item in self.items):
+			# The purchase invoice this would book recomputes every line as quantity x unit
+			# price and drops these back to zero, posting the wrong payable. ERPNext has no
+			# representation for such a line, so leave the call to a human.
+			self.add_comment(text=_("The automatic reconciliation was skipped because a line with no unit price states its own amount, which a purchase invoice cannot reproduce."))
+			return
+
 		pending_invoicing_amount = self.get_pending_invoicing_amount()
 
 		# Do not automatically submit if amount do not match
@@ -1184,6 +1196,20 @@ def get_item_details(row, company, tax_category=None):
 		"description": description,
 		"item_tax_template": out.get("item_tax_template")
 	}
+
+
+def states_its_own_amount(row) -> bool:
+	"""True for a line that carries a net amount but no unit price to rebuild it from.
+
+	Suppliers state discounts and credits this way (BT-131 / BT-146), and
+	`calculate_taxes_and_totals` recomputes every amount as qty * rate, destroying them.
+
+	Narrow on purpose: the general `qty * rate != amount` also matches a line-level
+	allowance (BT-136) that keeps a real unit price, where a stale `amount` left by an edit
+	to `rate` is indistinguishable from a stated one. With no rate, the amount is all the
+	line has.
+	"""
+	return not flt(row.get("rate")) and bool(flt(row.get("amount")))
 
 
 def get_best_match_from_list_of_dicts(data, matching_element, key):
