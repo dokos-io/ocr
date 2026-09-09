@@ -289,14 +289,12 @@ class TestSupplierInvoice(eTransactionsTestSuite):
 	# --- E-invoice credit lines ----------------------------------------------
 
 	def test_lines_stating_their_own_amount_survive_total_recalculation(self):
-		"""A supplier states a discount as a line with no unit price carrying its own net
-		amount. Recalculating the totals used to recompute every line as qty * rate, which
-		collapsed those lines and dropped their value from the invoice.
+		"""Recalculating the totals used to recompute every line as qty * rate, collapsing
+		the lines that state their own amount.
 
 		The quantities vary on purpose: deriving a rate from the amount would round the
-		three-unit line (-1.00 / 3 does not divide) and would divide by zero on the line
-		whose quantity the supplier left out. One line is positive, because a stated amount
-		is not always a credit.
+		three-unit line and divide by zero on the quantity-less one. One line is positive,
+		because a stated amount is not always a credit.
 		"""
 		invoice = frappe.get_doc({
 			"doctype": "Supplier Invoice",
@@ -332,12 +330,11 @@ class TestSupplierInvoice(eTransactionsTestSuite):
 	)
 	@change_settings("Accounts Settings", {"mandatory_accounting_journal": 0})
 	def test_invoice_carrying_a_credit_line_is_not_reconciled_automatically(self):
-		"""Now that the totals agree with the supplier, nothing else stops this invoice
-		booking itself — and the purchase invoice it would book cannot hold the credit.
+		"""Now that the totals agree with the supplier, nothing else stops this invoice from
+		booking a purchase invoice that cannot hold the credit.
 
-		The ordered item doubles as a regression guard on the recalculation: it has a
-		purchase history, which `set_missing_values` would price the credit line from if
-		the line were still sitting at a zero rate by then.
+		The ordered item doubles as a regression guard: it has a purchase history, which
+		`set_missing_values` would price the credit line from if it were still zero-rate.
 		"""
 		po = create_purchase_order(supplier=self.supplier.name, company=self.company, qty=1.0, rate=5000, warehouse="_Test Warehouse - _TC")
 		pr = make_purchase_receipt(po.name)

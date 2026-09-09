@@ -341,10 +341,8 @@ class SupplierInvoice(Document):
 				doc.update(self.as_dict())
 				for row in doc.items:
 					if states_its_own_amount(row):
-						# One unit priced at the line's own amount survives the qty * rate
-						# recomputation below exactly, at any quantity. Keep this ahead of
-						# `set_missing_values`, which prices a zero-rate row from the item's
-						# purchase history and would inflate the credit into a charge.
+						# One unit at the line's own amount survives qty * rate at any quantity,
+						# and beats `set_missing_values` pricing a zero-rate row from purchase history.
 						row.update({"qty": 1, "rate": flt(row.get("amount"))})
 				doc.run_method("set_missing_values")
 				# append taxes
@@ -1121,12 +1119,9 @@ class SupplierInvoice(Document):
 			return
 
 		if any(states_its_own_amount(item) for item in self.items):
-			# The totals now count these lines at their stated amount, which is what lets
-			# them agree with the supplier below — but the purchase invoice this would book
-			# recomputes every line as quantity x unit price and drops them back to zero.
-			# Booking that automatically would post the wrong payable, so leave it to a
-			# human. Carrying such a line into a purchase invoice needs a representation
-			# ERPNext does not have, and is not attempted here.
+			# The purchase invoice this would book recomputes every line as quantity x unit
+			# price and drops these back to zero, posting the wrong payable. ERPNext has no
+			# representation for such a line, so leave the call to a human.
 			self.add_comment(text=_("The automatic reconciliation was skipped because a line with no unit price states its own amount, which a purchase invoice cannot reproduce."))
 			return
 
@@ -1206,15 +1201,13 @@ def get_item_details(row, company, tax_category=None):
 def states_its_own_amount(row) -> bool:
 	"""True for a line that carries a net amount but no unit price to rebuild it from.
 
-	A supplier states a discount or a credit that way (BT-131 / BT-146), as does a price
-	quoted per package once the per-unit price rounds to zero. `calculate_taxes_and_totals`
-	recomputes every amount as qty * rate, which destroys exactly these lines.
+	Suppliers state discounts and credits this way (BT-131 / BT-146), and
+	`calculate_taxes_and_totals` recomputes every amount as qty * rate, destroying them.
 
-	Deliberately narrow. The general condition is `qty * rate != amount`, which also holds
-	for a line-level allowance (BT-136) that keeps a real unit price — but there a stale
-	`amount` left behind by an edit to `rate` is indistinguishable from a stated one, and
-	trusting the amount would silently discard the new price. With no unit price at all
-	the amount is the only figure the line has, so there is nothing to weigh it against.
+	Narrow on purpose: the general `qty * rate != amount` also matches a line-level
+	allowance (BT-136) that keeps a real unit price, where a stale `amount` left by an edit
+	to `rate` is indistinguishable from a stated one. With no rate, the amount is all the
+	line has.
 	"""
 	return not flt(row.get("rate")) and bool(flt(row.get("amount")))
 
