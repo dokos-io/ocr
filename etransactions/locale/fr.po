@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: eTransactions VERSION\n"
 "Report-Msgid-Bugs-To: hello@dokos.io\n"
-"POT-Creation-Date: 2026-09-08 03:19+0000\n"
+"POT-Creation-Date: 2026-09-10 03:19+0000\n"
 "PO-Revision-Date: 2025-04-02 14:52+0200\n"
 "Last-Translator: hello@dokos.io\n"
 "Language-Team: hello@dokos.io\n"
@@ -363,7 +363,7 @@ msgstr "Toutes les lignes sont complètes"
 msgid "All companies"
 msgstr "Toutes les sociétés"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:1486
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:1512
 msgid "All items have already been Invoiced/Returned"
 msgstr "Tous les articles ont déjà été facturés/retournés"
 
@@ -1444,16 +1444,16 @@ msgstr "Affectations d'avoir"
 msgid "Credit note allocation"
 msgstr "Allocation de note de crédit"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:885
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:890
 msgid "Credit note allocations are only allowed when 'Is Debit Note' is checked."
 msgstr "Les affectations d'avoir ne sont autorisées que lorsque 'Est une note de débit' est coché."
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:1049
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:1054
 #, python-brace-format
 msgid "Credit note {0} has no outstanding balance to allocate."
 msgstr "L'avoir {0} n'a aucun solde restant à affecter."
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:1099
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:1104
 #, python-brace-format
 msgid "Credit note {0} reconciled against {1} invoice(s)."
 msgstr "L'avoir {0} est rapproché avec {1} facture(s)."
@@ -2621,12 +2621,12 @@ msgstr "Identifiant de facture"
 msgid "Invoice Preview"
 msgstr "Prévisualisation de la facture"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:1071
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:1076
 #, python-brace-format
 msgid "Invoice {0} has no outstanding amount and was skipped."
 msgstr "La facture {0} n'a aucun montant restant et a été ignorée."
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:1032
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:1037
 #, python-brace-format
 msgid "Invoice {0} is not submitted and was skipped during credit note reconciliation."
 msgstr "La facture {0} n'est pas soumise et a été ignorée lors du rapprochement de l'avoir."
@@ -3841,11 +3841,11 @@ msgstr "Veuillez sélectionner au moins une commande fournisseur"
 msgid "Please select at least one purchase receipt"
 msgstr "Veuillez sélectionner au moins une réception"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:375
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:380
 msgid "Please select documents linked to the same company"
 msgstr "Veuillez sélectionner des documents associés à la même société"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:378
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:383
 msgid "Please select documents linked to the same supplier"
 msgstr "Veuillez sélectionner des documents associés au même fournisseur"
 
@@ -3861,7 +3861,7 @@ msgstr "Veuillez sélectionner des reçus liés au même fournisseur"
 msgid "Please set the period start and end dates"
 msgstr "Veuillez définir les dates de début et de fin de période"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:472
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:477
 #, python-brace-format
 msgid "Please submit {0}: {1} before trying to create the corresponding invoice"
 msgstr "Veuillez valider {0}: {1} avant d'essayer de créer la facture correspondante"
@@ -4063,7 +4063,7 @@ msgstr "Modèle de taxes à l'achat"
 msgid "Purchase invoice created"
 msgstr "Facture d'achat créée"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:1133
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:1145
 #, python-brace-format
 msgid "Purchase invoice {0} has been automatically created for this invoice."
 msgstr "La facture d'achat {0} a été automatiquement créée pour cette facture."
@@ -4623,7 +4623,7 @@ msgstr "Ligne"
 msgid "Row {0}"
 msgstr "Ligne {0}"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:907
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:912
 #, python-brace-format
 msgid "Row {0}: allocated amount {1} exceeds the invoice amount {2} of invoice {3}."
 msgstr "Ligne {0} : le montant alloué {1} dépasse le montant de la facture {2} de la facture {3}."
@@ -5616,14 +5616,18 @@ msgstr "La plateforme agréée ne prend pas en charge le statut de cycle de vie 
 msgid "The accredited-platform directory could not be synced for this customer, which is required before confirmation. Sync the directory on the customer (or set Directory Sync on Submit to 'not blocking'). Error: {0}"
 msgstr "L'annuaire de la plateforme agréée n'a pas pu être synchronisé pour ce client, ce qui est requis avant confirmation. Synchronisez l'annuaire sur le client (ou réglez 'Synchronisation de l'annuaire à la validation' sur 'not_blocking'). Erreur : {0}"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:1143
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:1155
 #, python-brace-format
 msgid "The automatic reconciliation has failed because the net total is higher than {0}"
 msgstr "Le rapprochement automatique a échoué car le total net est supérieur à {0}"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:1138
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:1150
 msgid "The automatic reconciliation has failed because the totals do not match"
 msgstr "Le rapprochement automatique a échoué car les totaux ne correspondent pas"
+
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:1125
+msgid "The automatic reconciliation was skipped because a line with no unit price states its own amount, which a purchase invoice cannot reproduce."
+msgstr "La réconciliation automatique a été ignorée car une ligne sans prix unitaire indique son propre montant, ce qu'une facture d'achat ne peut pas reproduire."
 
 #: etransactions/plateforme_agreee/lifecycle_status.py:185
 msgid "The bank details differ from the ones on file for the supplier."
@@ -5686,7 +5690,7 @@ msgstr "La date de facture est absente de cette eInvoice ; impossible de signale
 msgid "The invoice does not meet the legal or contractual requirements."
 msgstr "La facture ne respecte pas les exigences légales ou contractuelles."
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:1401
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:1427
 msgid "The invoice grand total exceeds the supplier provided grand total. You are not allowed to create this purchase invoice."
 msgstr "Le total TTC de cette facture dépasse le total TTC fourni par le fournisseur. Vous n'êtes pas autorisé à créer cette facture fournisseur."
 
@@ -5694,7 +5698,7 @@ msgstr "Le total TTC de cette facture dépasse le total TTC fourni par le fourni
 msgid "The invoice is addressed to the wrong legal entity or establishment."
 msgstr "La facture est adressée à la mauvaise entité juridique ou au mauvais établissement."
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:1405
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:1431
 msgid "The invoice net total exceeds the supplier provided net total. You are not allowed to create this purchase invoice."
 msgstr "Le total HT de cette facture dépasse le total HT fourni par le fournisseur. Vous n'êtes pas autorisé à créer cette facture fournisseur."
 
@@ -6081,7 +6085,7 @@ msgstr "Montant total"
 msgid "Total Prepaid"
 msgstr "Total prépayé"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:916
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:921
 #, python-brace-format
 msgid "Total allocated amount {0} exceeds the credit note amount {1}."
 msgstr "Le montant total affecté {0} dépasse le montant de l'avoir {1}."
