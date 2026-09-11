@@ -7,15 +7,15 @@ msgid ""
 msgstr ""
 "Project-Id-Version: eTransactions VERSION\n"
 "Report-Msgid-Bugs-To: hello@dokos.io\n"
-"POT-Creation-Date: 2026-09-10 03:19+0000\n"
+"POT-Creation-Date: 2026-09-11 03:34+0000\n"
 "PO-Revision-Date: 2025-04-02 14:52+0200\n"
 "Last-Translator: hello@dokos.io\n"
-"Language-Team: hello@dokos.io\n"
 "Language: fr\n"
+"Language-Team: hello@dokos.io\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=2; plural=(n > 1);\n"
 "Generated-By: Babel 2.18.0\n"
 
 #: etransactions/etransactions/doctype/einvoice/einvoice.py:408
@@ -7196,3 +7196,4 @@ msgstr "{0} : Un seul mode de paiement sera pris en compte dans la facture élec
 #, python-brace-format
 msgid "{0}: {1}"
 msgstr "{0} : {1}"
+
