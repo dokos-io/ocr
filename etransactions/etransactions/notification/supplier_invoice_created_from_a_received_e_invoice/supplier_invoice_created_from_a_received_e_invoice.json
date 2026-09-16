@@ -13,11 +13,10 @@
  "idx": 0,
  "is_standard": 1,
  "minutes_offset": 0,
- "modified": "2026-09-03 00:00:00.000000",
+ "modified": "2026-09-16 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "eTransactions",
  "name": "Supplier Invoice created from a received e-invoice",
- "notification_title": "New Supplier Invoice created from a received e-invoice: {{ doc.supplier_name or doc.supplier or doc.name }}",
  "notification_type": "Alert",
  "owner": "Administrator",
  "recipients": [
@@ -29,5 +28,6 @@
   }
  ],
  "send_system_notification": 0,
- "send_to_all_assignees": 0
+ "send_to_all_assignees": 0,
+ "subject": "{{ _(\"New Supplier Invoice created from a received e-invoice: {0}\").format(doc.supplier_name or doc.supplier or doc.name) }}"
 }

@@ -124,7 +124,7 @@ etransactions.BasketDashboard = class BasketDashboard {
 					doctype: "OCR Request",
 					name: req.name,
 					label: req.filename || req.name,
-					status: req.status,
+					status: __(req.status),
 					color: this._get_indicator_color(req.status),
 				})));
 			}

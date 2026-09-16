@@ -2,6 +2,7 @@
 # For license information, please see license.txt
 
 import frappe
+from frappe import _
 from frappe.model.document import Document
 
 from etransactions.common.text import aws_textract_to_docx_and_attach
@@ -47,7 +48,7 @@ class OCRGenericTextTranscription(Document):
 		except Exception:
 			self.ocr_set_status("Error")
 			self.log_error()
-			frappe.msgprint("An error occurred while processing the eTransactions request")
+			frappe.msgprint(_("An error occurred while processing the eTransactions request"))
 
 	def _tick(self):
 		if self.status == "Completed":

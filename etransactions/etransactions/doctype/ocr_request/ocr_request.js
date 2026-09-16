@@ -27,7 +27,15 @@ frappe.ui.form.on("OCR Request", {
 		}
 
 		if (frm.doc.status == "Error") {
-			frm.dashboard.set_headline_alert(__(frm.doc.error))
+			// `error` holds either a known code or raw exception text from the OCR service.
+			const errors = {
+				"no file": __("No file attached"),
+				stale: __("The OCR analysis did not complete within 7 days"),
+				"no result": __("The OCR service returned no result"),
+			};
+			frm.dashboard.set_headline_alert(
+				errors[frm.doc.error] || frappe.utils.escape_html(frm.doc.error || "")
+			);
 		}
 	},
 

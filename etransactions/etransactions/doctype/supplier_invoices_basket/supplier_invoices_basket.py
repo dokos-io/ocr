@@ -103,7 +103,7 @@ class SupplierInvoicesBasket(Document):
 					frappe.clear_messages()
 
 					if not is_ocr_service_configured():
-						frappe.msgprint("File {} is not an eInvoice and needs to be processed with an OCR Service.<br>Activate Amazon Textract or Mistral in eTransactions Settings.".format(file["name"]), alert=True)
+						frappe.msgprint(_("File {0} is not an eInvoice and needs to be processed with an OCR Service.<br>Activate Amazon Textract or Mistral in eTransactions Settings.").format(file["name"]), alert=True)
 						continue
 
 					request: OCRRequest = frappe.new_doc("OCR Request") # type: ignore

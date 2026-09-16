@@ -272,6 +272,17 @@ def label(status: str) -> str:
     return str(LABELS.get(status, status))
 
 
+def source_label(status: str) -> str:
+    """Return the untranslated (English) label for a canonical status.
+
+    For values persisted to the database: a translated label would be frozen in the
+    language of whoever inserted the row (often the scheduler). The English source
+    is the translation key, so the desk translates it on display with ``__()``.
+    """
+    lazy = LABELS.get(status)
+    return lazy.msg if lazy is not None else status
+
+
 def is_warning(status: str) -> bool:
     """True if an incoming event with this status warrants user attention."""
     return bool(STATUSES.get(status, {}).get("warning"))

@@ -462,7 +462,7 @@ const items_are_not_linked_to_purchase_document = async(frm) => {
 }
 
 const create_purchase_invoice = (frm, submit=false) => {
-	frappe.show_alert("Purchase Invoice creation in progress")
+	frappe.show_alert(__("Purchase Invoice creation in progress"))
 	frappe.call({
 		method: "etransactions.etransactions.doctype.supplier_invoice.supplier_invoice.create_purchase_invoice",
 		args: {
@@ -483,7 +483,7 @@ const create_purchase_invoice = (frm, submit=false) => {
 
 
 const create_purchase_order = (frm, transaction_date, submit=false) => {
-	frappe.show_alert("Purchase Order creation in progress")
+	frappe.show_alert(__("Purchase Order creation in progress"))
 	frappe.call({
 		method: "etransactions.etransactions.doctype.supplier_invoice.supplier_invoice.create_purchase_order",
 		args: {
@@ -648,6 +648,9 @@ const open_credit_note_allocation_dialog = async (frm) => {
 		const pill = over_allocated
 			? `<span class="indicator-pill red">${__("{0} over-allocated", [format_currency(total - credit_amount, currency)])}</span>`
 			: "";
+		const allocated_total = `<b style="color: var(--text-color); font-variant-numeric: tabular-nums;">${format_currency(total, currency)}</b>`;
+		const credit_total = `<b>${format_currency(credit_amount, currency)}</b>`;
+		const allocated = __("Allocated: {0} of {1}", [allocated_total, credit_total]);
 
 		dialog.fields_dict.comparator.$wrapper.html(`
 			<div style="margin-top: 14px; padding: 14px 16px; background: var(--subtle-fg, #f4f5f6); border-radius: var(--border-radius-md, 8px);">
@@ -655,7 +658,7 @@ const open_credit_note_allocation_dialog = async (frm) => {
 					<div style="height: 100%; width:${pct}%; background-color:${bar_color}; border-radius: 6px; transition: width 0.2s ease;"></div>
 				</div>
 				<div class="d-flex justify-content-between align-items-center">
-					<span class="text-muted">${__("Allocated")}: <b style="color: var(--text-color); font-variant-numeric: tabular-nums;">${format_currency(total, currency)}</b> ${__("of")} <b>${format_currency(credit_amount, currency)}</b></span>
+					<span class="text-muted">${allocated}</span>
 					${pill}
 				</div>
 			</div>
@@ -719,6 +722,9 @@ const render_credit_note_allocation_recap = (frm) => {
 	const badge = over_allocated
 		? `<span class="indicator-pill red">${__("{0} over-allocated", [format_currency(total - supplier_net_total, currency)])}</span>`
 		: "";
+	const allocated_total = `<b style="color: var(--text-color); font-variant-numeric: tabular-nums;">${format_currency(total, currency)}</b>`;
+	const net_total = `<b>${format_currency(supplier_net_total, currency)}</b>`;
+	const allocated = __("Allocated: {0} of {1}", [allocated_total, net_total]);
 
 	const head = "padding: 8px 12px; font-weight: 500; color: var(--text-muted); border: none;";
 	field.$wrapper.html(`
@@ -736,7 +742,7 @@ const render_credit_note_allocation_recap = (frm) => {
 				<tbody>${body}</tbody>
 			</table>
 			<div class="d-flex justify-content-between align-items-center" style="padding: 10px 12px; border-top: 1px solid var(--border-color, #ebeef0); background: var(--subtle-fg, #f4f5f6);">
-				<span class="text-muted">${__("Allocated")}: <b style="color: var(--text-color); font-variant-numeric: tabular-nums;">${format_currency(total, currency)}</b> ${__("of")} <b>${format_currency(supplier_net_total, currency)}</b></span>
+				<span class="text-muted">${allocated}</span>
 				${badge}
 			</div>
 		</div>
@@ -969,7 +975,7 @@ etransactions.ui.SuccessAction = class SuccessAction {
 	get default_actions() {
 		return {
 			view: {
-				label: __("View {}", [__(this.target_doctype)]),
+				label: __("View {0}", [__(this.target_doctype)]),
 				action: (frm) => {
 					frappe.set_route("Form", this.target_doctype, this.target_docname);
 				},

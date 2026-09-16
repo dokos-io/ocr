@@ -19,7 +19,7 @@ frappe.ui.form.on("eTransactions Accredited Platform", {
 					callback(r) {
 						const res = r.message || {};
 						frappe.show_alert({
-							message: res.message || res.status,
+							message: res.message || etransactions.status_labels.health(res.status),
 							indicator: res.status === "ok" ? "green" : "red",
 						});
 						frm.reload_doc();
@@ -54,7 +54,7 @@ frappe.ui.form.on("eTransactions Accredited Platform", {
 						callback(r) {
 							const res = r.message || {};
 							frappe.show_alert({
-								message: __("Esalink status: {0}", [res.status || "—"]),
+								message: __("Esalink status: {0}", [etransactions.status_labels.esalink_customer(res.status)]),
 								indicator: res.status === "ACTIVE" ? "green" : "orange",
 							});
 							frm.reload_doc();
@@ -90,7 +90,9 @@ frappe.ui.form.on("eTransactions Accredited Platform", {
 								message: __("Test invoice {0} sent to SuperPDP (flow {1}, status {2}).", [
 									`<a href="/app/sales-invoice/${res.sales_invoice}">${res.sales_invoice}</a>`,
 									res.flow_id,
-									res.pa_status || "—",
+									res.pa_status
+										? etransactions.invoiceReadiness._status_meta(res.pa_status)[1]
+										: "—",
 								]),
 							});
 						},
@@ -132,15 +134,16 @@ frappe.ui.form.on("eTransactions Accredited Platform", {
 				<div class="input-group">
 					<input type="text" class="form-control" readonly value="${redirect_url}" id="superpdp-redirect-url">
 					<span class="input-group-btn">
-						<button class="btn btn-default" onclick="
-							navigator.clipboard.writeText('${redirect_url}');
-							frappe.show_alert({message: __('Copied!'), indicator: 'green'});
-						">${__("Copy")}</button>
+						<button class="btn btn-default et-copy-redirect-url">${__("Copy")}</button>
 					</span>
 				</div>
 			</div>`;
 
-		frm.get_field("redirect_url_html").$wrapper.html(html);
+		const $wrapper = frm.get_field("redirect_url_html").$wrapper.html(html);
+		$wrapper.find(".et-copy-redirect-url").on("click", () => {
+			navigator.clipboard.writeText(redirect_url);
+			frappe.show_alert({ message: __("Copied!"), indicator: "green" });
+		});
 	},
 });
 
@@ -239,7 +242,7 @@ function render_directory_entries($wrap, entries, frm, d) {
 			return `<tr>
 				<td>${frappe.utils.escape_html(e.identifier || "")}</td>
 				<td>${dir}</td>
-				<td>${frappe.utils.escape_html(e.status || "")}</td>
+				<td>${frappe.utils.escape_html(etransactions.status_labels.directory_identifier(e.status))}</td>
 				<td class="text-right"><button class="btn btn-xs btn-danger et-dir-remove" data-id="${e.id}">${__("Remove")}</button></td>
 			</tr>`;
 		})

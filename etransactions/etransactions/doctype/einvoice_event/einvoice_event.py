@@ -38,7 +38,7 @@ class eInvoiceEvent(Document):
 
 	def before_insert(self):
 		if self.status and not self.status_label:
-			self.status_label = lifecycle_status.label(self.status)
+			self.status_label = lifecycle_status.source_label(self.status)
 
 	def after_insert(self):
 		# An event can land before its invoice exists (a CDAR flow polled ahead of
@@ -106,7 +106,8 @@ class eInvoiceEvent(Document):
 		# counterparty-supplied text from an incoming CDAR/event, so escape before
 		# building the HTML ToDo description to avoid stored XSS.
 		description = frappe._("Invoice {0} received status '{1}' from the accredited platform.").format(
-			escape_html(sales_invoice or self.einvoice), escape_html(self.status_label or "")
+			escape_html(sales_invoice or self.einvoice),
+			escape_html(lifecycle_status.label(self.status) if self.status else ""),
 		)
 		if self.comment:
 			description += f"<br>{escape_html(self.comment)}"
@@ -278,7 +279,7 @@ def record_event(
 		"einvoice": einvoice,
 		"direction": direction,
 		"status": status,
-		"status_label": lifecycle_status.label(status),
+		"status_label": lifecycle_status.source_label(status),
 		"state": state,
 		"status_datetime": status_datetime or frappe.utils.now_datetime(),
 		"pa_event_id": pa_event_id,

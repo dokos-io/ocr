@@ -12,7 +12,7 @@ are translated here. Only SuperPDP exposes e-reporting today (see
 ``PLATFORM_CAPABILITIES`` in :mod:`etransactions.plateforme_agreee.session`).
 """
 
-from frappe import _
+from frappe import _lt
 
 
 # wire status_code -> definition
@@ -27,13 +27,14 @@ STATUSES: dict[str, dict] = {
 	"ppf:ereporting-rejected": {"state": "rejected", "warning": True, "weight": 4},
 }
 
-# Human-readable labels per internal state, translatable.
+# Human-readable labels per internal state, translatable. ``_lt`` because the dict is
+# built at import time (see ``lifecycle_status.LABELS``).
 STATE_LABELS: dict[str, str] = {
-	"sent": _("Submitted to PPF"),
-	"acknowledged": _("Acknowledged"),
-	"rejected": _("Rejected by PPF"),
-	"done": _("Accepted by PPF"),
-	"error": _("Error"),
+	"sent": _lt("Submitted to PPF"),
+	"acknowledged": _lt("Acknowledged"),
+	"rejected": _lt("Rejected by PPF"),
+	"done": _lt("Accepted by PPF"),
+	"error": _lt("Error"),
 }
 
 
@@ -49,7 +50,7 @@ def is_warning(status_code: str) -> bool:
 
 def label(state: str) -> str:
 	"""Return the human-readable label for an internal state."""
-	return STATE_LABELS.get(state, state)
+	return str(STATE_LABELS.get(state, state))
 
 
 def derive_state(status_codes: list[str]) -> str:

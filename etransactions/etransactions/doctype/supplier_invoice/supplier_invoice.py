@@ -474,7 +474,7 @@ class SupplierInvoice(Document):
 		if (purchase_order_is_mandatory := not self.is_return and not frappe.db.get_single_value("eTransactions Settings", "no_purchase_order")):
 			for item in self.items:
 				if not frappe.db.get_value(item.reference_doctype, item.reference_docname, "docstatus") == 1:
-					frappe.throw(_("Please submit {0}: {1} before trying to create the corresponding invoice").format(_(item.reference_doctype).lower(), item.reference_docname))
+					frappe.throw(_("Please submit {0}: {1} before trying to create the corresponding invoice").format(_(item.reference_doctype), item.reference_docname))
 
 		doc: PurchaseInvoice = self.get_purchase_invoice(purchase_order_is_mandatory)
 		doc.supplier_invoice = self.name # type: ignore

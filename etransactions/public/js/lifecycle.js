@@ -311,7 +311,7 @@ etransactions.lifecycle = {
 			if (!axis || !axis.status) return "";
 			const when = axis.reported_at ? ` · ${frappe.datetime.str_to_user(axis.reported_at)}` : "";
 			return `<span class="indicator-pill ${colors[axis.decoration] || "gray"}" style="margin-right:8px">
-					${frappe.utils.escape_html(title)}: ${frappe.utils.escape_html(axis.label)}${when}
+					${frappe.utils.escape_html(__("{0}: {1}", [title, axis.label]))}${when}
 				</span>`;
 		};
 
@@ -337,10 +337,19 @@ etransactions.lifecycle = {
 						? `<span style="color:var(--blue-500)">&#8593; ${__("Sent")}</span>`
 						: `<span style="color:var(--orange-500)">&#8595; ${__("Received")}</span>`;
 				const when = e.status_datetime ? frappe.datetime.str_to_user(e.status_datetime) : "";
+				const state_labels = {
+					created: __("Created"),
+					sent: __("Sent"),
+					done: __("Done"),
+					error: __("Error"),
+				};
+				const state_label = frappe.utils.escape_html(
+					e.state ? state_labels[e.state] || __(e.state) : ""
+				);
 				const state =
 					e.state === "error"
-						? `<span style="color:var(--red-500)">${e.state}</span>`
-						: e.state || "";
+						? `<span style="color:var(--red-500)">${state_label}</span>`
+						: state_label;
 				const reason_label = e.reason_code
 					? reason_labels[e.reason_code] || e.reason_code
 					: "";
@@ -350,7 +359,7 @@ etransactions.lifecycle = {
 					.join(" — ");
 				return `<tr>
 						<td>${arrow}</td>
-						<td><strong>${frappe.utils.escape_html(e.status_label || "")}</strong></td>
+						<td><strong>${frappe.utils.escape_html(e.status_label ? __(e.status_label) : "")}</strong></td>
 						<td>${state}</td>
 						<td>${when}</td>
 						<td>${reason}</td>

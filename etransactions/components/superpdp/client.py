@@ -737,7 +737,7 @@ class SuperPDPClient:
             events.append(
                 LifecycleEvent(
                     status=canonical,
-                    status_label=lifecycle_status.label(canonical),
+                    status_label=lifecycle_status.source_label(canonical),
                     direction="in",
                     datetime=_to_db_datetime(ev.get("created_at")),
                     comment=comment,

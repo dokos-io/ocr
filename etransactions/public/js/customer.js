@@ -153,7 +153,15 @@ function _routing_cell(row) {
 	if (line) {
 		const color =
 			line.line_status === "active" ? "green" : line.line_status === "upcoming" ? "blue" : "gray";
-		let html = `<span class="indicator-pill ${color}">${esc(line.routing_code_name || line.line_status)}</span>`;
+		const status_labels = {
+			upcoming: __("Upcoming"),
+			active: __("Active"),
+			disabled: __("Disabled"),
+			inactive: __("Inactive"),
+		};
+		const label =
+			line.routing_code_name || status_labels[line.line_status] || __(line.line_status || "");
+		let html = `<span class="indicator-pill ${color}">${esc(label)}</span>`;
 		if (line.commitment_required) {
 			html += ` <span class="et-estab-commit" title="${__("Every invoice to this route needs a purchase-order / commitment number.")}">${__("commitment required")}</span>`;
 		}

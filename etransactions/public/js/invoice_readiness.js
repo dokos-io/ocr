@@ -49,7 +49,7 @@ etransactions.invoiceReadiness = {
 			sent: ["blue", __("Sent")],
 			created: ["gray", __("Created")],
 		};
-		return map[status] || ["gray", status || ""];
+		return map[status] || ["gray", status ? __(status) : ""];
 	},
 
 	_render(frm, findings, panel) {
