@@ -8,12 +8,11 @@ frappe.ui.form.on("Communication", {
 	setup_ocr_buttons(frm) {
 
 		if(frm.doc.reference_doctype != "Supplier Invoices Basket") {
-			let confirm_msg = __("Are you sure you want to create {0} from this email ?");
 
 			frm.add_custom_button(
 				__("Purchase Invoice"),
 				() => {
-					frappe.confirm(__(confirm_msg, [__("Purchase Invoice")]), () => {
+					frappe.confirm(__("Are you sure you want to create {0} from this email ?", [__("Purchase Invoice")]), () => {
 						frm.trigger("create_basket_for_purchase_invoice");
 					})
 				},

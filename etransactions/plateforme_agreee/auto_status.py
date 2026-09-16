@@ -94,7 +94,10 @@ def run_auto_lifecycle_status(einvoice_name: str, status: str, transaction_type:
 			"Comment",
 			text=frappe._(
 				"Lifecycle status '{0}' was not reported: no accredited platform is currently active for {1}."
-			).format(lifecycle_status.label(status), transaction_type),
+			).format(
+				lifecycle_status.label(status),
+				frappe._("purchases") if transaction_type == "purchases" else frappe._("sales"),
+			),
 		)
 		return
 	if not _platform_supports(einvoice.company, transaction_type, status):
@@ -164,14 +167,20 @@ def _warn_if_lifecycle_closed(einvoice_name: str) -> bool:
 		"status_datetime",
 		order_by="status_datetime desc",
 	)
-	message = frappe._("The linked e-invoice was reported as '{0}' on the accredited platform").format(
-		lifecycle_status.label(closing)
-	)
 	if when:
-		message += f" ({frappe.utils.format_datetime(when)})"
-	message += ". " + frappe._("The '{0}' lifecycle status will not be reported.").format(
-		lifecycle_status.label("approved")
-	)
+		message = frappe._(
+			"The linked e-invoice was reported as '{0}' on the accredited platform ({1})."
+			" The '{2}' lifecycle status will not be reported."
+		).format(
+			lifecycle_status.label(closing),
+			frappe.utils.format_datetime(when),
+			lifecycle_status.label("approved"),
+		)
+	else:
+		message = frappe._(
+			"The linked e-invoice was reported as '{0}' on the accredited platform."
+			" The '{1}' lifecycle status will not be reported."
+		).format(lifecycle_status.label(closing), lifecycle_status.label("approved"))
 	frappe.msgprint(message, title=frappe._("Lifecycle already closed"), indicator="orange")
 	return True
 

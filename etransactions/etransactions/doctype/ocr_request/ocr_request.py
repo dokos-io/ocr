@@ -101,7 +101,7 @@ class OCRRequest(Document, InvoiceEntityResolverMixin):
 
 	def get_analysis(self) -> dict[str, Any] | None:
 		if not self.file:
-			return self.set_and_return_error("no file")
+			return self.set_and_return_error("no file", _("No file attached"))
 
 		if not self.job:
 			self.start_ocr_analysis()
@@ -140,10 +140,10 @@ class OCRRequest(Document, InvoiceEntityResolverMixin):
 				)
 
 			elif time_diff_in_hours(now_datetime(), get_datetime(self.creation)) > (7 * 24):
-				self.set_and_return_error("stale")
+				self.set_and_return_error("stale", _("The OCR analysis did not complete within 7 days"))
 
 		elif self.status != "Error":
-			self.set_and_return_error("no result")
+			self.set_and_return_error("no result", _("The OCR service returned no result"))
 
 		return analysis
 
@@ -202,13 +202,14 @@ class OCRRequest(Document, InvoiceEntityResolverMixin):
 		self.db_set("error", "")
 		self.set_status(True)
 
-	def set_and_return_error(self, msg: str) -> dict[str, str]:
+	def set_and_return_error(self, msg: str, message: str | None = None) -> dict[str, str]:
+		"""Store ``msg`` (an error code or raw exception text) and return a displayable message."""
 		frappe.db.rollback()
 		self.db_set("status", "Error")
 		self.db_set("error", msg)
 		return {
 			"status": "Error",
-			"message": msg
+			"message": message or msg
 		}
 
 	def get_supplier_name(self) -> str | None:

@@ -125,7 +125,15 @@ etransactions.EinvoiceReadinessIndicator = class EinvoiceReadinessIndicator {
 			summary = __("Routing pinned — managed manually.");
 		} else if (d.directory_update_date) {
 			const dir = (d.directory_type || "").toUpperCase() || "—";
-			const entity = d.directory_entity_type ? __(d.directory_entity_type) : __("not found");
+			const entity_labels = {
+				public: __("Public"),
+				private: __("Private"),
+				private_inactive: __("Private (inactive)"),
+				no: __("Not listed"),
+			};
+			const entity = d.directory_entity_type
+				? entity_labels[d.directory_entity_type] || __(d.directory_entity_type)
+				: __("not found");
 			summary = __("Directory: {0} · {1} · synced {2}", [
 				dir,
 				entity,

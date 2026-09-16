@@ -115,8 +115,9 @@ function _show_ereporting(frm) {
 			const e = r.message;
 			if (!e || !e.name) return;
 			const colors = { pending: "orange", sent: "blue", error: "red" };
+			const labels = { pending: __("Pending"), sent: __("Sent"), error: __("Error") };
 			frm.dashboard.add_indicator(
-				__("PPF e-reporting: {0}", [e.state]),
+				__("PPF e-reporting: {0}", [labels[e.state] || __(e.state)]),
 				colors[e.state] || "gray"
 			);
 		},
@@ -145,7 +146,7 @@ function _add_pa_buttons(frm) {
 					created: "gray",
 				};
 				frm.dashboard.add_indicator(
-					__("e-invoice: {0}", [pa_status]),
+					__("e-invoice: {0}", [etransactions.invoiceReadiness._status_meta(pa_status)[1]]),
 					colors[pa_status] || "gray"
 				);
 			}

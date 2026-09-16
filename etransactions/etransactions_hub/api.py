@@ -11,12 +11,13 @@ OPEN_REQUEST_STATUSES = ("Open", "Awaiting Response", "Response Received")
 
 @frappe.whitelist(allow_guest=True)
 def get_translations() -> dict:
+	language = None
 	if frappe.session.user != "Guest":
 		language = frappe.db.get_value("User", frappe.session.user, "language")
-	else:
-		language = frappe.db.get_single_value("System Settings", "language")
 
-	return get_all_translations(language)
+	return get_all_translations(
+		language or frappe.db.get_single_value("System Settings", "language") or frappe.local.lang
+	)
 
 
 def _request_counts(user: str) -> dict:

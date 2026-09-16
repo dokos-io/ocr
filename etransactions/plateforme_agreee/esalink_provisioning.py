@@ -26,7 +26,7 @@ they act on, so an account is always minted on the host it will later be used ag
 import json
 
 import frappe
-from frappe import _
+from frappe import _, _lt
 from frappe.utils import add_days, getdate
 
 from etransactions.components.esalink import (
@@ -286,13 +286,13 @@ _CUSTOMER_DATA_KEYS = (
 
 # Fields required by Esalink's CreateCustomerDTO (label used in the "missing data" error).
 _REQUIRED_PAYLOAD_FIELDS = {
-	"customerName": _("Company name"),
-	"customerLegalId": _("Legal identifier"),
-	"customerEmail": _("Contact email"),
-	"addressLine1": _("Address line 1"),
-	"postalCode": _("Postal code"),
-	"city": _("City"),
-	"country": _("Country"),
+	"customerName": _lt("Company name"),
+	"customerLegalId": _lt("Legal identifier"),
+	"customerEmail": _lt("Contact email"),
+	"addressLine1": _lt("Address line 1"),
+	"postalCode": _lt("Postal code"),
+	"city": _lt("City"),
+	"country": _lt("Country"),
 }
 
 
@@ -342,7 +342,7 @@ def _build_customer_payload(
 			if value not in (None, ""):
 				data[key] = value.strip() if isinstance(value, str) else value
 
-	missing = [label for field, label in _REQUIRED_PAYLOAD_FIELDS.items() if not data.get(field)]
+	missing = [str(label) for field, label in _REQUIRED_PAYLOAD_FIELDS.items() if not data.get(field)]
 	if missing:
 		frappe.throw(
 			_("Cannot register {0} on Esalink — missing data: {1}").format(
@@ -354,7 +354,7 @@ def _build_customer_payload(
 	# The scheme is never part of the routing address the user sees: it follows from the chosen
 	# legal-identifier type (SIREN → 0225, SIRET → 0009). An explicit routing_address still wins,
 	# and may carry its own scheme when it addresses something else (e.g. a Peppol address).
-	_, scheme = _legal_identifier(company, legal_id_type)
+	_legal_id, scheme = _legal_identifier(company, legal_id_type)
 	qualifier, addressing_value = _resolve_routing_address(routing_address, legal_id, scheme)
 	payload = {
 		"customerName": data["customerName"],

@@ -5,3 +5,4 @@ import "./einvoice_readiness_indicator";
 import "./invoice_readiness";
 import "./lifecycle";
 import "./sirene_dialog";
+import "./status_labels";
