@@ -67,7 +67,8 @@ frappe.ui.form.on("Supplier Invoice", {
 		frm.trigger("set_bottom_button_label");
 		frm.trigger("compare_totals");
 
-		if (frm.doc.pa_platform_name) {
+		// With e-invoicing on, the platform status card says where the invoice came from.
+		if (frm.doc.pa_platform_name && !(frappe.boot.einvoicing_enabled && frm.doc.einvoice)) {
 			frm.dashboard.add_indicator(__("Received via {0}", [frm.doc.pa_platform_name]), "purple");
 		}
 
@@ -112,7 +113,10 @@ frappe.ui.form.on("Supplier Invoice", {
 		// about every one of them would be a round-trip per form load for nothing.
 		if (frm.is_new() || !frappe.boot.einvoicing_enabled || !frm.doc.einvoice) return;
 
-		etransactions.lifecycle.attach_for_transaction(frm, {
+		etransactions.lifecycle.attach_overview(frm, {
+			einvoice: frm.doc.einvoice,
+			status_field: "einvoicing_status",
+			history_field: "einvoicing_history",
 			on_sent: (def) => {
 				if (def.status !== "refused") return;
 				// "Completed" means a Purchase Invoice was already created from this one:

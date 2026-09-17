@@ -6,7 +6,11 @@
  "engine": "InnoDB",
  "field_order": [
   "invoice_tab",
+  "einvoicing_section",
+  "einvoicing_status",
+  "invoice_section",
   "data_column",
+  "einvoicing_history",
   "extracted_data",
   "status",
   "company",
@@ -400,6 +404,26 @@
    "label": "Received via",
    "no_copy": 1,
    "read_only": 1
+  },
+  {
+   "depends_on": "eval:doc.einvoice",
+   "fieldname": "einvoicing_section",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "einvoicing_status",
+   "fieldtype": "HTML",
+   "label": "Platform Status"
+  },
+  {
+   "fieldname": "invoice_section",
+   "fieldtype": "Section Break"
+  },
+  {
+   "depends_on": "eval:doc.einvoice",
+   "fieldname": "einvoicing_history",
+   "fieldtype": "HTML",
+   "label": "Platform History"
   }
  ],
  "grid_page_length": 50,
@@ -416,7 +440,7 @@
    "link_fieldname": "supplier_invoice"
   }
  ],
- "modified": "2026-02-12 11:33:40.561019",
+ "modified": "2026-09-17 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "eTransactions",
  "name": "Supplier Invoice",

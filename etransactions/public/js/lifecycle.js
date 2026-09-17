@@ -206,6 +206,248 @@ etransactions.lifecycle = {
 		}
 	},
 
+	// The buyer's view of a received e-invoice: one headline saying where it stands, the
+	// four steps of its lifecycle, the next actions as buttons, and the history. The
+	// server reads the state (get_lifecycle_overview); this only draws it.
+	attach_overview(frm, { einvoice, status_field, history_field, on_sent } = {}) {
+		const status = frm.get_field(status_field);
+		const history = frm.get_field(history_field);
+		if (!status || !history) return;
+
+		// A slow answer for a previous refresh must not overwrite a newer one.
+		const token = (frm._et_overview_token = (frm._et_overview_token || 0) + 1);
+		frm._et_lc = { einvoice, on_sent };
+
+		frappe
+			.xcall(
+				"etransactions.etransactions.doctype.einvoice.einvoice.get_lifecycle_overview",
+				{
+					einvoice,
+				}
+			)
+			.then((overview) => {
+				if (token !== frm._et_overview_token) return;
+				if (!overview) {
+					status.$wrapper.empty();
+					history.$wrapper.empty();
+					return;
+				}
+				frm._et_lc.overview = overview;
+				frm.dashboard.add_indicator(__("Platform: {0}", [overview.pill]), overview.tone);
+				this.render_overview(frm, status.$wrapper, overview);
+				this.render_history(frm, history.$wrapper, overview);
+			})
+			// An add-on panel: a failed lookup must not throw a dialog over the invoice.
+			.catch(() => {});
+	},
+
+	// Which reportable statuses get a button of their own, per situation; the others go
+	// under "More". Buttons for statuses the server does not offer are never drawn.
+	MAIN_ACTIONS: {
+		approved: ["payment_sent"],
+		partially_approved: ["refused", "approved"],
+		dispute: ["refused", "approved"],
+		suspended: ["refused", "approved"],
+		default: ["dispute", "refused", "approved"],
+	},
+
+	render_overview(frm, $wrapper, overview) {
+		const esc = frappe.utils.escape_html;
+		const by_status = Object.fromEntries((overview.actions || []).map((a) => [a.status, a]));
+		const main_keys = (this.MAIN_ACTIONS[overview.key] || this.MAIN_ACTIONS.default).filter(
+			(k) => by_status[k]
+		);
+		const more = (overview.actions || []).filter((a) => !main_keys.includes(a.status));
+		const can_write = frm.perm[0] && frm.perm[0].write;
+
+		const button = (a) => {
+			const cls =
+				a.status === "approved" || a.status === "payment_sent"
+					? "btn-primary"
+					: a.status === "refused"
+					? "btn-default et-ov-danger"
+					: "btn-default";
+			return `<button class="btn btn-sm ${cls}" data-et-status="${esc(a.status)}">${esc(
+				a.label
+			)}</button>`;
+		};
+
+		let actions = "";
+		if (can_write) {
+			actions = main_keys.map((k) => button(by_status[k])).join("");
+			if (more.length) {
+				actions += `<div class="dropdown">
+						<button class="btn btn-sm btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">${__(
+							"More"
+						)}</button>
+						<div class="dropdown-menu dropdown-menu-right">
+							${more
+								.map(
+									(a) =>
+										`<a class="dropdown-item" href="#" data-et-status="${esc(
+											a.status
+										)}">${esc(a.label)}</a>`
+								)
+								.join("")}
+						</div>
+					</div>`;
+			}
+			if (overview.can_retry_download) {
+				actions = `<button class="btn btn-sm btn-primary" data-et-retry-download="1">${__(
+					"Retry download"
+				)}</button>`;
+			}
+		}
+
+		const blocked =
+			!actions && overview.blocked_reason
+				? `<div class="et-ov-blocked">${esc(overview.blocked_reason)}</div>`
+				: "";
+
+		const source = [
+			overview.platform
+				? `<span class="et-ov-platform">${esc(
+						__("Received via {0}", [overview.platform])
+				  )}</span>`
+				: "",
+			overview.flow_id
+				? `<span>${__("Flow")} <code>${esc(overview.flow_id)}</code></span>`
+				: "",
+			`<a class="et-ov-open">${__("Open eInvoice")} →</a>`,
+		]
+			.filter(Boolean)
+			.join("");
+
+		const glyphs = { done: "✓", warning: "!", error: "×", skipped: "–" };
+		const steps = overview.steps
+			.map((s, i) => {
+				const sub = [s.at ? frappe.datetime.str_to_user(s.at) : "", s.note || ""]
+					.filter(Boolean)
+					.join(" · ");
+				return `<li class="et-ov-step is-${esc(s.state)}">
+						<div class="et-ov-step-track">
+							<span class="et-ov-step-dot">${glyphs[s.state] || i + 1}</span>
+							<span class="et-ov-step-line"></span>
+						</div>
+						<div class="et-ov-step-label">${esc(s.label)}</div>
+						<div class="et-ov-step-sub">${esc(sub || "—")}</div>
+					</li>`;
+			})
+			.join("");
+
+		$wrapper.html(`<div class="et-ov" data-et-overview="${esc(overview.key)}">
+				<div class="et-ov-head">
+					<div class="et-ov-text">
+						<div class="et-ov-source">${source}</div>
+						<div class="et-ov-headline">
+							<span class="et-ov-dot tone-${esc(overview.tone)}"></span>
+							<h3>${esc(overview.headline)}</h3>
+						</div>
+						<p class="et-ov-summary">${esc(overview.summary)}</p>
+					</div>
+					<div class="et-ov-actions">${actions}${blocked}</div>
+				</div>
+				<ol class="et-ov-steps">${steps}</ol>
+			</div>`);
+
+		$wrapper
+			.find(".et-ov-open")
+			.on("click", () => frappe.set_route("Form", "eInvoice", overview.einvoice));
+		$wrapper.find("[data-et-status]").on("click", (e) => {
+			e.preventDefault();
+			const def = by_status[$(e.currentTarget).attr("data-et-status")];
+			if (def) this.send_status(frm, def);
+		});
+		$wrapper.find("[data-et-retry-download]").on("click", () => {
+			frappe
+				.call({
+					method: "etransactions.etransactions.doctype.einvoice.einvoice.retry_einvoice_content_fetch",
+					args: { einvoice: overview.einvoice },
+					freeze: true,
+				})
+				.then((r) => {
+					if (r.exc) return;
+					frappe.show_alert({
+						message: __("Download queued. Reload the invoice in a moment."),
+						indicator: "blue",
+					});
+				});
+		});
+	},
+
+	HISTORY_LIMIT: 4,
+
+	render_history(frm, $wrapper, overview) {
+		const esc = frappe.utils.escape_html;
+		const rows = overview.history || [];
+		const expanded = !!frm._et_history_expanded;
+		const shown = expanded ? rows : rows.slice(0, this.HISTORY_LIMIT);
+		const by_status = Object.fromEntries((overview.actions || []).map((a) => [a.status, a]));
+
+		const items = shown
+			.map((r, i) => {
+				const when = r.at ? frappe.datetime.str_to_user(r.at) : "";
+				const code = r.code ? `<code class="et-ov-code">${esc(r.code)}</code>` : "";
+				const reason = r.reason
+					? `<div class="et-ov-reason"><strong>${esc(
+							__("Reason: {0}", [r.reason])
+					  )}</strong>${r.comment ? `<div>${esc(r.comment)}</div>` : ""}</div>`
+					: r.comment
+					? `<div class="et-ov-reason">${esc(r.comment)}</div>`
+					: "";
+				const retry =
+					r.retry_status && by_status[r.retry_status]
+						? `<button class="btn btn-xs btn-default et-ov-danger" data-et-status="${esc(
+								r.retry_status
+						  )}">${__("Retry")}</button>`
+						: "";
+				const delivery = r.delivery
+					? `<div class="et-ov-delivery is-${esc(r.delivery)}">
+							<span>${r.delivery === "error" ? "!" : r.delivery === "done" ? "✓" : "…"}</span>
+							<span>${esc(r.delivery_label)}</span>${retry}
+						</div>`
+					: "";
+				const error = r.error ? `<div class="et-ov-error">${esc(r.error)}</div>` : "";
+				return `<li class="et-ov-event ${i === 0 ? "is-latest" : ""}">
+						<span class="et-ov-event-dot tone-${esc(r.tone)}"></span>
+						<div class="et-ov-event-body">
+							<div class="et-ov-event-title">
+								<span>${esc(r.title)}</span>${code}
+								<span class="et-ov-event-when">${esc(when)}</span>
+							</div>
+							<div class="et-ov-event-meta">
+								<span class="et-ov-actor tone-${esc(r.actor_tone)}">${esc(r.actor)}</span>
+								${r.detail ? `<span>${esc(r.detail)}</span>` : ""}
+							</div>
+							${reason}${delivery}${error}
+						</div>
+					</li>`;
+			})
+			.join("");
+
+		const toggle =
+			rows.length > this.HISTORY_LIMIT
+				? `<a class="et-ov-toggle">${
+						expanded ? __("Show less") : __("Show all ({0})", [rows.length])
+				  }</a>`
+				: "";
+
+		$wrapper.html(`<div class="et-ov-history">
+				<div class="et-ov-history-head">${__("Platform history")}</div>
+				<ol>${items}</ol>
+				${toggle}
+			</div>`);
+
+		$wrapper.find(".et-ov-toggle").on("click", () => {
+			frm._et_history_expanded = !expanded;
+			this.render_history(frm, $wrapper, overview);
+		});
+		$wrapper.find("[data-et-status]").on("click", (e) => {
+			const def = by_status[$(e.currentTarget).attr("data-et-status")];
+			if (def) this.send_status(frm, def);
+		});
+	},
+
 	render_timeline(frm) {
 		const { einvoice, pa_status, pa_flow_id } = frm._et_lc;
 
