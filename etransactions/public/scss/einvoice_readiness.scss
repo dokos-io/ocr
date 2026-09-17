@@ -223,3 +223,356 @@
     font-size: 12px;
   }
 }
+
+// Platform status card + history (Supplier Invoice)
+$et-ov-tones: "green", "blue", "orange", "red", "purple", "gray";
+
+.et-ov,
+.et-ov-history {
+	@each $tone in $et-ov-tones {
+		.tone-#{$tone} {
+			--et-ov-tone: var(--#{$tone}-500);
+			--et-ov-tone-bg: var(--bg-#{$tone});
+			--et-ov-tone-fg: var(--text-on-#{$tone});
+		}
+	}
+
+	.et-ov-danger {
+		color: var(--red-600, var(--red-500));
+	}
+}
+
+.et-ov {
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-lg, 12px);
+	padding: var(--padding-md, 16px) var(--padding-lg, 20px);
+	margin-bottom: var(--margin-md, 12px);
+	display: flex;
+	flex-direction: column;
+	gap: 18px;
+
+	&-head {
+		display: flex;
+		gap: 24px;
+		align-items: flex-start;
+		flex-wrap: wrap;
+	}
+
+	&-text {
+		flex: 1 1 360px;
+		min-width: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+	}
+
+	&-source {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 10px;
+		font-size: var(--text-xs, 12px);
+		color: var(--text-muted);
+
+		code {
+			font-size: inherit;
+			background: none;
+			padding: 0;
+			color: var(--text-color);
+		}
+
+		a {
+			cursor: pointer;
+		}
+	}
+
+	&-platform {
+		font-weight: 600;
+		padding: 1px 8px;
+		border-radius: var(--border-radius-sm, 6px);
+		background: var(--bg-purple);
+		color: var(--text-on-purple);
+	}
+
+	&-headline {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+
+		h3 {
+			margin: 0;
+			font-size: var(--text-2xl, 20px);
+			font-weight: 700;
+			color: var(--heading-color, var(--text-color));
+		}
+	}
+
+	&-dot {
+		width: 10px;
+		height: 10px;
+		border-radius: 50%;
+		flex-shrink: 0;
+		background: var(--et-ov-tone);
+	}
+
+	&-summary {
+		margin: 0;
+		color: var(--text-muted);
+		max-width: 72ch;
+	}
+
+	&-actions {
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: flex-end;
+		align-items: center;
+		gap: 8px;
+	}
+
+	&-blocked {
+		font-size: var(--text-xs, 12px);
+		color: var(--text-muted);
+		max-width: 320px;
+		text-align: right;
+	}
+
+	&-steps {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		display: flex;
+	}
+
+	&-step {
+		flex: 1 1 0;
+		min-width: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+
+		&:last-child .et-ov-step-line {
+			display: none;
+		}
+	}
+
+	&-step-track {
+		display: flex;
+		align-items: center;
+		margin-bottom: 6px;
+	}
+
+	&-step-dot {
+		width: 26px;
+		height: 26px;
+		border-radius: 50%;
+		flex-shrink: 0;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 12px;
+		font-weight: 700;
+		border: 1.5px solid var(--border-color);
+		background: var(--fg-color);
+		color: var(--text-muted);
+	}
+
+	&-step-line {
+		flex: 1;
+		height: 2px;
+		margin: 0 10px;
+		background: var(--border-color);
+	}
+
+	&-step-label {
+		font-weight: 600;
+		padding-right: 12px;
+	}
+
+	&-step-sub {
+		font-size: var(--text-xs, 12px);
+		color: var(--text-muted);
+		padding-right: 12px;
+	}
+
+	&-step.is-done {
+		.et-ov-step-dot {
+			border-color: var(--green-500);
+			background: var(--green-500);
+			color: #fff;
+		}
+		.et-ov-step-line {
+			background: var(--green-500);
+		}
+	}
+
+	&-step.is-current {
+		.et-ov-step-dot {
+			border: 2px solid var(--blue-500);
+			color: var(--blue-500);
+			box-shadow: 0 0 0 4px var(--bg-blue);
+		}
+		.et-ov-step-label {
+			color: var(--blue-500);
+		}
+	}
+
+	&-step.is-warning {
+		.et-ov-step-dot {
+			border-color: var(--orange-500);
+			background: var(--orange-500);
+			color: #fff;
+		}
+		.et-ov-step-label {
+			color: var(--text-on-orange);
+		}
+	}
+
+	&-step.is-error {
+		.et-ov-step-dot {
+			border-color: var(--red-500);
+			background: var(--red-500);
+			color: #fff;
+		}
+		.et-ov-step-label {
+			color: var(--text-on-red);
+		}
+	}
+
+	&-step.is-skipped {
+		.et-ov-step-dot {
+			border-style: dashed;
+		}
+		.et-ov-step-label {
+			color: var(--text-muted);
+			text-decoration: line-through;
+		}
+	}
+}
+
+.et-ov-history {
+	margin-bottom: var(--margin-lg, 20px);
+
+	&-head {
+		font-weight: 700;
+		margin-bottom: 10px;
+	}
+
+	ol {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+	}
+
+	.et-ov-event {
+		position: relative;
+		display: flex;
+		gap: 12px;
+		padding-bottom: 16px;
+
+		// The rail joining one event to the next.
+		&:not(:last-child)::before {
+			content: "";
+			position: absolute;
+			left: 5px;
+			top: 18px;
+			bottom: 0;
+			width: 2px;
+			background: var(--border-color);
+		}
+	}
+
+	.et-ov-event-dot {
+		width: 12px;
+		height: 12px;
+		margin-top: 4px;
+		flex-shrink: 0;
+		border-radius: 50%;
+		border: 2px solid var(--et-ov-tone);
+		background: var(--fg-color);
+	}
+
+	.is-latest .et-ov-event-dot {
+		background: var(--et-ov-tone);
+		box-shadow: 0 0 0 3px var(--et-ov-tone-bg);
+	}
+
+	.et-ov-event-body {
+		flex: 1;
+		min-width: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+	}
+
+	.et-ov-event-title {
+		display: flex;
+		align-items: center;
+		flex-wrap: wrap;
+		gap: 6px;
+		font-weight: 600;
+	}
+
+	.et-ov-event-when {
+		margin-left: auto;
+		font-weight: 400;
+		font-size: var(--text-xs, 12px);
+		color: var(--text-muted);
+	}
+
+	.et-ov-code {
+		font-size: 11px;
+		font-weight: 400;
+		padding: 0 5px;
+		color: var(--text-muted);
+	}
+
+	.et-ov-event-meta {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 6px;
+		font-size: var(--text-xs, 12px);
+		color: var(--text-muted);
+	}
+
+	.et-ov-actor {
+		font-weight: 600;
+		padding: 0 7px;
+		border-radius: 999px;
+		background: var(--et-ov-tone-bg);
+		color: var(--et-ov-tone-fg);
+	}
+
+	.et-ov-reason {
+		font-size: var(--text-xs, 12px);
+		padding: 6px 10px;
+		border-radius: var(--border-radius, 8px);
+		background: var(--subtle-fg, var(--bg-gray));
+	}
+
+	.et-ov-delivery {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		font-size: var(--text-xs, 12px);
+		color: var(--text-muted);
+
+		&.is-done {
+			color: var(--text-on-green);
+		}
+		&.is-error {
+			color: var(--text-on-red);
+		}
+	}
+
+	.et-ov-error {
+		font-size: var(--text-xs, 12px);
+		color: var(--text-on-red);
+		word-break: break-word;
+	}
+
+	.et-ov-toggle {
+		font-size: var(--text-xs, 12px);
+		cursor: pointer;
+	}
+}

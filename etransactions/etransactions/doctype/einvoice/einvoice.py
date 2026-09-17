@@ -1132,6 +1132,29 @@ def get_supported_lifecycle_statuses(einvoice: str) -> dict:
 	}
 
 
+@frappe.whitelist()
+def get_lifecycle_overview(einvoice: str) -> dict | None:
+	"""Where a received eInvoice stands on the platform: headline, steps and history.
+
+	``None`` for an outgoing eInvoice — the overview reads the buyer's path.
+	"""
+	frappe.get_doc("eInvoice", einvoice).check_permission("read")
+
+	from etransactions.plateforme_agreee import lifecycle_overview
+
+	return lifecycle_overview.get_overview(einvoice)
+
+
+@frappe.whitelist(methods=["POST"])
+def retry_einvoice_content_fetch(einvoice: str) -> None:
+	"""Download the original file again now, rather than at the next scheduled retry."""
+	frappe.get_doc("eInvoice", einvoice).check_permission("write")
+
+	from etransactions.plateforme_agreee import lifecycle_overview
+
+	lifecycle_overview.retry_content_fetch(einvoice)
+
+
 def einvoice_for_transaction(doctype: str, name: str) -> str | None:
 	"""Name of the eInvoice behind a Sales / Purchase / Supplier Invoice, whatever its origin.
 
