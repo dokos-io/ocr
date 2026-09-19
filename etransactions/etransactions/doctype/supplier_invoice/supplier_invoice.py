@@ -340,7 +340,7 @@ class SupplierInvoice(Document):
 					doc.append("items", frappe.copy_doc(item).as_dict())
 				doc.update(self.as_dict())
 				for row in doc.items:
-					if states_its_own_amount(row):
+					if states_its_own_amount(row) or unit_price_exceeds_precision(row, row.precision("rate")):
 						# One unit at the line's own amount survives qty * rate at any quantity,
 						# and beats `set_missing_values` pricing a zero-rate row from purchase history.
 						row.update({"qty": 1, "rate": flt(row.get("amount"))})
@@ -440,7 +440,10 @@ class SupplierInvoice(Document):
 				for key, value in REFERENCE_FIELDS.get(item.reference_doctype, {}).items():
 					new_row[value] = item.get(key)
 
-				doc.append("items", new_row)
+				row = doc.append("items", new_row)
+				# Order and receipt lines keep their quantity: billing progress is counted on it.
+				if not item.reference_doctype and unit_price_exceeds_precision(row, row.precision("rate")):
+					row.update({"qty": 1, "rate": flt(row.get("amount"))})
 
 		doc.is_return = bool(self.is_return)
 		if doc.is_return:
@@ -1210,6 +1213,23 @@ def states_its_own_amount(row) -> bool:
 	line has.
 	"""
 	return not flt(row.get("rate")) and bool(flt(row.get("amount")))
+
+
+def unit_price_exceeds_precision(row, precision: int) -> bool:
+	"""True for a line whose unit price has more decimals than a currency field keeps.
+
+	Surcharges are billed this way (563.71 kg at 0.015 = 8.46), and
+	`calculate_taxes_and_totals` rounds the rate before multiplying (0.02 gives 11.27).
+
+	The amount must still equal qty * rate at full precision, which keeps out the
+	stale `amount` described in `states_its_own_amount`.
+	"""
+	rate, amount = flt(row.get("rate")), flt(row.get("amount"))
+	return (
+		bool(amount)
+		and rate != flt(rate, precision)
+		and flt(flt(row.get("qty")) * rate, precision) == flt(amount, precision)
+	)
 
 
 def get_best_match_from_list_of_dicts(data, matching_element, key):

@@ -324,6 +324,41 @@ class TestSupplierInvoice(eTransactionsTestSuite):
 
 		self.assertEqual(flt(invoice.net_total, 2), flt(invoice.supplier_net_amount, 2))
 
+	def _invoice_with_sub_cent_unit_price(self, surcharge_amount=8.46):
+		return frappe.get_doc({
+			"doctype": "Supplier Invoice",
+			"supplier": self.supplier.name,
+			"company": self.company,
+			"bill_no": frappe.generate_hash(length=8),
+			"bill_date": nowdate(),
+			"posting_date": nowdate(),
+			"supplier_net_amount": 76.83,
+			"items": [
+				{"item_code": "_Test Item", "qty": 1, "rate": 12, "amount": 12,
+					"expense_account": self.EXPENSE_ACCOUNT},
+				{"item_code": "_Test Item", "qty": 563.71, "rate": 0.1, "amount": 56.37,
+					"expense_account": self.EXPENSE_ACCOUNT},
+				{"item_code": "_Test Item", "qty": 563.71, "rate": 0.015, "amount": surcharge_amount,
+					"expense_account": self.EXPENSE_ACCOUNT},
+			],
+		}).insert(ignore_mandatory=True)
+
+	def test_sub_cent_unit_price_survives_total_recalculation(self):
+		"""A rate of 0.015 was rounded to 0.02 before being multiplied, turning 8.46 into 11.27."""
+		invoice = self._invoice_with_sub_cent_unit_price()
+
+		self.assertEqual(flt(invoice.net_total, 2), 76.83)
+
+		pi = invoice.get_purchase_invoice(purchase_order_is_mandatory=False)
+		self.assertEqual(flt(pi.net_total, 2), 76.83)
+
+	def test_sub_cent_unit_price_with_stale_amount_is_recomputed(self):
+		"""An amount that no longer matches qty * rate is not trusted over the rate."""
+		invoice = self._invoice_with_sub_cent_unit_price(surcharge_amount=5)
+
+		# 12 + 56.37 + 563.71 * 0.02
+		self.assertEqual(flt(invoice.net_total, 2), 79.64)
+
 	@change_settings(
 		"eTransactions Settings",
 		{"reconcile_with_purchase_receipts": 1, "auto_submit_purchase_invoices": 1},
