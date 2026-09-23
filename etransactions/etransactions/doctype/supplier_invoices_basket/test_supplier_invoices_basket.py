@@ -2,13 +2,14 @@
 # For license information, please see license.txt
 
 import os
+from unittest.mock import patch
 
 import frappe
 
 from etransactions.etransactions.doctype.supplier_invoices_basket.supplier_invoices_basket import (
 	make_basket_from_communication,
 )
-from etransactions.tests.utils import eTransactionsTestSuite
+from etransactions.tests.utils import eTransactionsTestSuite, minimal_pdf_content
 
 
 # On IntegrationTestCase, the doctype test records and all
@@ -69,6 +70,60 @@ class IntegrationTestSupplierInvoicesBasket(eTransactionsTestSuite):
 		)
 		file.insert()
 		return file.name
+
+	def _basket_with_plain_pdf(self):
+		basket = frappe.new_doc("Supplier Invoices Basket")
+		basket.insert()
+		file = frappe.new_doc("File")
+		file.update(
+			{
+				"file_name": f"proforma-{frappe.generate_hash(length=6)}.pdf",
+				"attached_to_doctype": "Supplier Invoices Basket",
+				"attached_to_name": basket.name,
+				"is_private": 1,
+				"content": minimal_pdf_content(),
+			}
+		)
+		file.insert()
+		return basket, file.name
+
+	def _route_to_ocr(self, basket):
+		# A plain PDF is not an eInvoice, so it goes to OCR; keep the analysis
+		# job from calling the real OCR service.
+		with (
+			patch(
+				"etransactions.etransactions.doctype.supplier_invoices_basket.supplier_invoices_basket.is_ocr_service_configured",
+				return_value=True,
+			),
+			patch("frappe.enqueue_doc"),
+		):
+			frappe.get_doc("Supplier Invoices Basket", basket.name).route_invoices()
+
+	# ------------------------------------------------------------------
+	# route_invoices
+	# ------------------------------------------------------------------
+	def test_routing_twice_creates_one_ocr_request_per_file(self):
+		"""A double click on "Create purchase invoices" sent the same PDF to OCR twice."""
+		basket, file_name = self._basket_with_plain_pdf()
+
+		self._route_to_ocr(basket)
+		self._route_to_ocr(basket)
+
+		self.assertEqual(
+			frappe.db.count("OCR Request", {"ocr_basket": basket.name, "file": file_name}), 1
+		)
+		self.assertEqual(frappe.db.get_value("Supplier Invoices Basket", basket.name, "status"), "Completed")
+
+	def test_rerouting_a_reopened_basket_skips_files_already_sent_to_ocr(self):
+		basket, file_name = self._basket_with_plain_pdf()
+		self._route_to_ocr(basket)
+
+		frappe.db.set_value("Supplier Invoices Basket", basket.name, "status", "Not Started")
+		self._route_to_ocr(basket)
+
+		self.assertEqual(
+			frappe.db.count("OCR Request", {"ocr_basket": basket.name, "file": file_name}), 1
+		)
 
 	# ------------------------------------------------------------------
 	# make_basket_from_communication

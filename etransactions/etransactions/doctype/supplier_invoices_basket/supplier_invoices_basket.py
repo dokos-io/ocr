@@ -85,6 +85,12 @@ class SupplierInvoicesBasket(Document):
 		Always check first if invoice is an einvoice.
 		Else send it to OCR.
 		"""
+		# Lock the basket row so a double click, or a UI call racing the
+		# incoming-email job, waits here and then sees the basket already routed.
+		status = frappe.db.get_value(self.doctype, self.name, "status", for_update=True)
+		if status in ("In Progress", "Completed"):
+			return
+
 		self.db_set("status", "In Progress")
 		if linked_files := self.get_all_files():
 			for file in linked_files:
@@ -104,6 +110,9 @@ class SupplierInvoicesBasket(Document):
 
 					if not is_ocr_service_configured():
 						frappe.msgprint(_("File {0} is not an eInvoice and needs to be processed with an OCR Service.<br>Activate Amazon Textract or Mistral in eTransactions Settings.").format(file["name"]), alert=True)
+						continue
+
+					if frappe.db.exists("OCR Request", {"ocr_basket": self.name, "file": file["name"]}):
 						continue
 
 					request: OCRRequest = frappe.new_doc("OCR Request") # type: ignore
