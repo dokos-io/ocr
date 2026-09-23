@@ -1,10 +1,11 @@
+import base64
+import mimetypes
 from typing import TYPE_CHECKING
 import frappe
 
 from pydantic import BaseModel, Field
-from mistralai import Mistral
+from mistralai.client import Mistral
 from mistralai.extra import response_format_from_pydantic_model
-from mistralai.models.sdkerror import SDKError
 
 
 if TYPE_CHECKING:
@@ -67,6 +68,13 @@ class Invoice(BaseModel):
 
 
 
+DOCUMENT_ANNOTATION_PROMPT = (
+	"This document is a supplier invoice, pro forma invoice or credit note received by the buyer. "
+	"Extract the supplier and buyer details, the document header and totals, and every line item. "
+	"Keep amounts, dates and identifiers exactly as printed; leave a field empty when it is absent."
+)
+
+
 class MistralOCR:
 	def __init__(self, doc: "OCRRequest"):
 		ocr_settings = frappe.get_single("eTransactions Settings")
@@ -74,48 +82,29 @@ class MistralOCR:
 		self.client = Mistral(api_key=self.api_key) # type: ignore
 		self.doc = doc
 		self.file = frappe.get_doc("File", self.doc.file) if self.doc.file else frappe._dict()
-		self.uploaded_file = None
-		self.signed_url = None
 		self.model = "mistral-ocr-latest"
 
-
-	def upload_file(self):
+	def get_document_url(self) -> str:
+		"""Return the file as a base64 data URI, so no upload/signed URL round-trip is needed."""
 		if not self.file:
 			frappe.throw(frappe._("No encoded file found"))
 
-		self.uploaded_file = self.client.files.upload(
-			file={
-				"file_name": self.file.file_name, # type: ignore
-				"content": self.file.get_content(), # type: ignore
-			},
-			purpose="ocr"
-		)
+		content = self.file.get_content() # type: ignore
+		if isinstance(content, str):
+			content = content.encode()
 
-		return self.uploaded_file.id
+		mime_type = mimetypes.guess_type(self.file.file_name or "")[0] or "application/pdf" # type: ignore
+		return f"data:{mime_type};base64,{base64.b64encode(content).decode()}"
 
-	def get_signed_url(self, file_id):
-		try:
-			self.signed_url = self.client.files.get_signed_url(file_id=file_id)
-			return self.signed_url
-		except SDKError as e:
-			if e.status_code == 404:
-				file_id = self.upload_file()
-				self.doc.job = file_id
-				self.doc.db_set("job", file_id)
-				self.signed_url = self.client.files.get_signed_url(file_id=file_id)
-				return self.signed_url
-
-
-
-	def get_ocr_results(self, url):
+	def get_ocr_results(self):
 		self.ocr_response = self.client.ocr.process(
 			model=self.model,
 			document={
 				"type": "document_url",
-				"document_url": url,
+				"document_url": self.get_document_url(),
 			},
-			include_image_base64=True,
-			document_annotation_format=response_format_from_pydantic_model(Invoice)
+			document_annotation_format=response_format_from_pydantic_model(Invoice),
+			document_annotation_prompt=DOCUMENT_ANNOTATION_PROMPT,
 		)
 
 		return self.process_response()
@@ -130,11 +119,8 @@ class MistralOCR:
 		return response
 
 	def delete_file(self, file_id):
+		"""Delete a file uploaded by the previous upload + signed URL flow."""
 		try:
 			self.client.files.delete(file_id=file_id)
 		except Exception:
 			frappe.log_error("Mistral OCR File Deletion Error")
-
-
-
-
