@@ -72,7 +72,7 @@ class OCRRequest(Document, InvoiceEntityResolverMixin):
 		)
 
 	def before_save(self) -> None:
-		if self.job and self.analysis:
+		if self.analysis:
 			if self.transaction_type == "Purchase Invoice" and not frappe.db.get_value("Supplier Invoice", dict(ocr_request=self.name)):
 				self.create_supplier_invoice()
 
@@ -82,20 +82,13 @@ class OCRRequest(Document, InvoiceEntityResolverMixin):
 
 	def start_ocr_analysis(self) -> None:
 		ocr_service = frappe.db.get_single_value("eTransactions Settings", "ocr_service")
-		if ocr_service == "Mistral OCR":
-			self.start_mistral_analysis()
-		else:
+		# Mistral OCR is synchronous and receives the file inline: there is no job to start
+		if ocr_service != "Mistral OCR":
 			self.start_textract_analysis()
 
 	def start_textract_analysis(self) -> None:
 		textract = AWSTextractExpense(self)
 		jobid = textract.task.start()
-		self.job = jobid
-		self.db_set("job", jobid)
-
-	def start_mistral_analysis(self) -> None:
-		mistral = MistralOCR(self)
-		jobid = mistral.upload_file()
 		self.job = jobid
 		self.db_set("job", jobid)
 
@@ -148,13 +141,7 @@ class OCRRequest(Document, InvoiceEntityResolverMixin):
 		return analysis
 
 	def get_mistral_analysis(self) -> None:
-		if not self.job:
-			return
-
-		mistral = MistralOCR(self)
-
-		signed_url = mistral.get_signed_url(self.job)
-		results = mistral.get_ocr_results(signed_url.url)
+		results = MistralOCR(self).get_ocr_results()
 
 		if not results:
 			return
@@ -189,7 +176,7 @@ class OCRRequest(Document, InvoiceEntityResolverMixin):
 		if ppi_status := frappe.db.get_value("Supplier Invoice", dict(ocr_request=self.name)):
 			if ppi_status in ["Closed", "Completed"]:
 				status = ppi_status
-		if self.job:
+		if self.job or self.analysis:
 			status = "Analysis Completed"
 		if self.error:
 			status = "Error"

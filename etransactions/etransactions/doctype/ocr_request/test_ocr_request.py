@@ -1,9 +1,16 @@
 # Copyright (c) 2023, Dokos SAS and Contributors
 # For license information, please see license.txt
 
-import frappe
-from frappe.tests.utils import FrappeTestCase
+from types import SimpleNamespace
+from unittest.mock import MagicMock, patch
 
+import frappe
+import httpx
+from frappe.tests.utils import FrappeTestCase
+from frappe.utils.password import set_encrypted_password
+from mistralai.client.errors import SDKError
+
+from etransactions.tests.utils import minimal_pdf_content
 from etransactions.utils import parse_currency_symbol
 
 IGNORE_TEST_RECORD_DEPENDENCIES = []
@@ -88,3 +95,98 @@ class TestOCRRequestCurrency(FrappeTestCase):
 		currency = self.request.resolve_currency(None, {"TOTAL": "100,00"})
 
 		self.assertIsNone(currency)
+
+
+class TestMistralOCRAnalysis(FrappeTestCase):
+	def setUp(self):
+		frappe.db.set_single_value("eTransactions Settings", "ocr_service", "Mistral OCR")
+		set_encrypted_password("eTransactions Settings", "eTransactions Settings", "test-key", "mistral_api_key")
+
+		file = frappe.new_doc("File")
+		file.update(
+			{
+				"file_name": f"proforma-{frappe.generate_hash(length=6)}.pdf",
+				"is_private": 1,
+				"content": minimal_pdf_content(),
+			}
+		)
+		file.insert()
+		self.file = file
+
+		self.client = MagicMock()
+		patcher = patch(
+			"etransactions.etransactions.doctype.ocr_request.mistral_ocr.Mistral",
+			return_value=self.client,
+		)
+		patcher.start()
+		self.addCleanup(patcher.stop)
+
+	def tearDown(self):
+		frappe.db.rollback()
+
+	def _request(self):
+		request = frappe.new_doc("OCR Request")
+		request.file = self.file.name
+		request.filename = self.file.file_name
+		# Analysis is run explicitly below, not by the after_insert job
+		with patch("frappe.enqueue_doc"):
+			request.insert()
+		return request
+
+	def test_file_is_sent_inline_with_the_annotation_prompt(self):
+		self.client.ocr.process.return_value = SimpleNamespace(
+			document_annotation=frappe.as_json({"INVOICE_RECEIPT_ID": "PF-7492031", "children": []})
+		)
+		request = self._request()
+
+		request.make_analysis()
+
+		self.client.files.upload.assert_not_called()
+		self.client.files.get_signed_url.assert_not_called()
+		kwargs = self.client.ocr.process.call_args.kwargs
+		self.assertEqual(kwargs["model"], "mistral-ocr-latest")
+		self.assertTrue(kwargs["document"]["document_url"].startswith("data:application/pdf;base64,"))
+		self.assertTrue(kwargs["document_annotation_prompt"])
+		self.assertIn("document_annotation_format", kwargs)
+		self.assertNotIn("include_image_base64", kwargs)
+
+		request.reload()
+		self.assertFalse(request.job)
+		self.assertEqual(frappe.parse_json(request.analysis)["INVOICE_RECEIPT_ID"], "PF-7492031")
+		request.set_status()
+		self.assertEqual(request.status, "Analysis Completed")
+
+	def test_purchase_invoice_request_creates_its_supplier_invoice_without_a_job(self):
+		"""The supplier invoice used to be created only once a Mistral file id was stored in `job`."""
+		self.client.ocr.process.return_value = SimpleNamespace(
+			document_annotation=frappe.as_json(
+				{"INVOICE_RECEIPT_ID": "PF-7492031", "TOTAL": "120,00", "SUBTOTAL": "100,00", "children": []}
+			)
+		)
+		request = self._request()
+		request.db_set("transaction_type", "Purchase Invoice")
+
+		request.make_analysis()
+
+		self.assertTrue(frappe.db.exists("Supplier Invoice", {"ocr_request": request.name}))
+
+	def test_rate_limit_error_is_stored_on_the_request(self):
+		body = '{"object":"error","message":"Rate limit exceeded","type":"rate_limited","code":"1300"}'
+		self.client.ocr.process.side_effect = SDKError(
+			"API error occurred",
+			httpx.Response(
+				429,
+				text=body,
+				headers={"content-type": "application/json"},
+				request=httpx.Request("POST", "https://api.mistral.ai/v1/ocr"),
+			),
+		)
+		request = self._request()
+
+		request.make_analysis()
+
+		# set_and_return_error rolls back first (the uncommitted test request with it),
+		# so check the document it updated
+		self.assertEqual(request.status, "Error")
+		self.assertIn("429", request.error)
+		self.assertIn("Rate limit exceeded", request.error)
