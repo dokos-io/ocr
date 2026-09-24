@@ -13,12 +13,15 @@ from frappe.utils import now_datetime, time_diff_in_hours, get_datetime
 from frappe.model.document import Document
 
 from etransactions.etransactions.doctype.ocr_request.aws_textract import AWSTextractExpense
-from etransactions.etransactions.doctype.ocr_request.mistral_ocr import MistralOCR
+from etransactions.etransactions.doctype.ocr_request.mistral_ocr import MistralOCR, OCRRateLimited
 from etransactions.utils import parse_number, parse_currency_symbol, date_parser
 from etransactions.controllers.entity_resolver import InvoiceEntityResolverMixin
 
 if TYPE_CHECKING:
 	from etransactions.etransactions.doctype.supplier_invoice.supplier_invoice import SupplierInvoice
+
+# Requests (re)analysed per hourly run of check_pending_analysis, to stay under the OCR service rate limit
+PENDING_ANALYSIS_BATCH_SIZE = 50
 
 # https://docs.python.org/3/library/re.html#simulating-scanf
 FLOAT_PATTERN = re.compile(r"[-+]?(\d+([.,]\d*)?|[.,]\d+)([eE][-+]?\d+)?")
@@ -101,6 +104,8 @@ class OCRRequest(Document, InvoiceEntityResolverMixin):
 
 		try:
 			return self.get_ocr_analysis()
+		except OCRRateLimited:
+			return self.postpone_analysis()
 		except Exception as e:
 			self.log_error(_("eTransactions Analysis Error"))
 			return self.set_and_return_error(str(e))
@@ -120,6 +125,7 @@ class OCRRequest(Document, InvoiceEntityResolverMixin):
 		if analysis := textract.task.get_result():
 			if analysis["JobStatus"] == "SUCCEEDED":
 				self.analysis = frappe.as_json(analysis.get("ParsedData", {}))
+				self.error = None
 				self.save()
 				self.delete_remote_file()
 
@@ -147,6 +153,8 @@ class OCRRequest(Document, InvoiceEntityResolverMixin):
 			return
 
 		self.analysis = frappe.as_json(results)
+		# Clear the error of a previous failed attempt, or the request would stay in Error
+		self.error = None
 
 		self.save()
 		self.delete_remote_file()
@@ -178,7 +186,7 @@ class OCRRequest(Document, InvoiceEntityResolverMixin):
 				status = ppi_status
 		if self.job or self.analysis:
 			status = "Analysis Completed"
-		if self.error:
+		if self.error and not self.analysis:
 			status = "Error"
 
 		self.status = status
@@ -188,6 +196,16 @@ class OCRRequest(Document, InvoiceEntityResolverMixin):
 	def reset_status_and_error(self) -> None:
 		self.db_set("error", "")
 		self.set_status(True)
+
+	def postpone_analysis(self) -> dict[str, str]:
+		"""The OCR service is rate limiting: leave the request Pending for the next check_pending_analysis
+		run instead of failing it. Nothing was written before the OCR call, so there is nothing to roll back."""
+		self.flags.rate_limited = True
+		self.db_set({"status": "Pending", "error": None})
+		return {
+			"status": "Pending",
+			"message": _("The OCR service is rate limiting requests: the analysis will be retried automatically"),
+		}
 
 	def set_and_return_error(self, msg: str, message: str | None = None) -> dict[str, str]:
 		"""Store ``msg`` (an error code or raw exception text) and return a displayable message."""
@@ -349,14 +367,31 @@ class OCRRequest(Document, InvoiceEntityResolverMixin):
 
 
 def check_pending_analysis() -> None:
-	for req in frappe.get_all("OCR Request", filters={"status": ("in", ["Pending", "Error"])}, limit=500):
+	"""Hourly: (re)run the analysis of requests that have none yet, a small batch at a time.
+
+	Least recently touched first, so requests failing for good do not starve the others. Stops at
+	the first rate limit answer: the next calls would be refused too, and only prolong the limit.
+	"""
+	requests = frappe.get_all(
+		"OCR Request",
+		filters={"status": ("in", ["Pending", "Error"]), "analysis": ("is", "not set")},
+		order_by="modified asc",
+		pluck="name",
+		limit=PENDING_ANALYSIS_BATCH_SIZE,
+	)
+	for name in requests:
 		try:
-			doc = frappe.get_doc("OCR Request", req.name)
+			doc = frappe.get_doc("OCR Request", name)
 			doc.run_method("get_analysis")
+			if doc.flags.rate_limited:
+				break
 			doc.run_method("set_status", commit=True)
 		except Exception:
-			doc.log_error()
+			frappe.log_error(_("eTransactions Analysis Error"), reference_doctype="OCR Request", reference_name=name)
 			continue
+
+		# Space out the calls to the OCR service
+		time.sleep(1)
 
 
 @frappe.whitelist()

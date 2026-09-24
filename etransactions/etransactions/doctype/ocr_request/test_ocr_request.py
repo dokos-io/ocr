@@ -118,7 +118,7 @@ class TestMistralOCRAnalysis(FrappeTestCase):
 			"etransactions.etransactions.doctype.ocr_request.mistral_ocr.Mistral",
 			return_value=self.client,
 		)
-		patcher.start()
+		self.mistral = patcher.start()
 		self.addCleanup(patcher.stop)
 
 	def tearDown(self):
@@ -170,17 +170,44 @@ class TestMistralOCRAnalysis(FrappeTestCase):
 
 		self.assertTrue(frappe.db.exists("Supplier Invoice", {"ocr_request": request.name}))
 
-	def test_rate_limit_error_is_stored_on_the_request(self):
+	def _mistral_error(self, status_code):
 		body = '{"object":"error","message":"Rate limit exceeded","type":"rate_limited","code":"1300"}'
-		self.client.ocr.process.side_effect = SDKError(
+		return SDKError(
 			"API error occurred",
 			httpx.Response(
-				429,
+				status_code,
 				text=body,
 				headers={"content-type": "application/json"},
 				request=httpx.Request("POST", "https://api.mistral.ai/v1/ocr"),
 			),
 		)
+
+	def test_client_retries_rate_limits_and_does_not_keep_the_api_key(self):
+		from etransactions.etransactions.doctype.ocr_request.mistral_ocr import MistralOCR, RETRY_CONFIG
+
+		ocr = MistralOCR(self._request())
+
+		self.assertIs(self.mistral.call_args.kwargs["retry_config"], RETRY_CONFIG)
+		self.assertEqual(RETRY_CONFIG.strategy, "backoff")
+		# Tracebacks with variables would otherwise print the key in Error Logs
+		self.assertNotIn("test-key", repr(vars(ocr)))
+
+	def test_rate_limit_postpones_the_analysis(self):
+		self.client.ocr.process.side_effect = self._mistral_error(429)
+		request = self._request()
+
+		with patch("frappe.log_error") as log_error:
+			result = request.get_analysis()
+
+		log_error.assert_not_called()
+		self.assertEqual(result["status"], "Pending")
+		self.assertTrue(request.flags.rate_limited)
+		request.reload()
+		self.assertEqual(request.status, "Pending")
+		self.assertFalse(request.error)
+
+	def test_other_api_errors_are_stored_on_the_request(self):
+		self.client.ocr.process.side_effect = self._mistral_error(500)
 		request = self._request()
 
 		request.make_analysis()
@@ -188,5 +215,66 @@ class TestMistralOCRAnalysis(FrappeTestCase):
 		# set_and_return_error rolls back first (the uncommitted test request with it),
 		# so check the document it updated
 		self.assertEqual(request.status, "Error")
-		self.assertIn("429", request.error)
-		self.assertIn("Rate limit exceeded", request.error)
+		self.assertIn("500", request.error)
+
+	def test_a_successful_retry_clears_the_previous_error(self):
+		self.client.ocr.process.return_value = SimpleNamespace(
+			document_annotation=frappe.as_json({"INVOICE_RECEIPT_ID": "PF-7492031", "children": []})
+		)
+		request = self._request()
+		request.db_set({"status": "Error", "error": "API error occurred: Status 429"})
+
+		request.get_analysis()
+		request.set_status(commit=True)
+
+		request.reload()
+		self.assertFalse(request.error)
+		self.assertEqual(request.status, "Analysis Completed")
+
+	def test_error_with_an_analysis_is_not_reported_as_error(self):
+		request = self._request()
+		request.db_set({"analysis": frappe.as_json({"INVOICE_RECEIPT_ID": "X"}), "error": "stale 429"})
+
+		request.set_status()
+
+		self.assertEqual(request.status, "Analysis Completed")
+
+	def _check_pending_analysis(self, *requests):
+		"""Run check_pending_analysis on `requests` only, and return the names its query selected."""
+		from etransactions.etransactions.doctype.ocr_request.ocr_request import check_pending_analysis
+
+		get_all = frappe.get_all
+		selected = []
+
+		def get_pending(doctype, *args, **kwargs):
+			if doctype != "OCR Request":
+				return get_all(doctype, *args, **kwargs)
+			kwargs["filters"] = {**kwargs["filters"], "name": ("in", [r.name for r in requests])}
+			selected.extend(get_all(doctype, *args, **kwargs))
+			return selected
+
+		with (
+			patch("frappe.get_all", side_effect=get_pending),
+			patch("etransactions.etransactions.doctype.ocr_request.ocr_request.time.sleep"),
+		):
+			check_pending_analysis()
+		return selected
+
+	def test_pending_analysis_stops_at_the_first_rate_limit(self):
+		self.client.ocr.process.side_effect = self._mistral_error(429)
+		first, second = self._request(), self._request()
+		for request in (first, second):
+			request.db_set({"status": "Error", "error": "API error occurred: Status 429"})
+
+		self.assertEqual(len(self._check_pending_analysis(first, second)), 2)
+
+		self.client.ocr.process.assert_called_once()
+		self.assertEqual(frappe.db.get_value("OCR Request", first.name, "status"), "Pending")
+		self.assertEqual(frappe.db.get_value("OCR Request", second.name, "status"), "Error")
+
+	def test_pending_analysis_skips_requests_already_analysed(self):
+		request = self._request()
+		request.db_set({"status": "Error", "analysis": frappe.as_json({"INVOICE_RECEIPT_ID": "X"})})
+
+		self.assertEqual(self._check_pending_analysis(request), [])
+		self.client.ocr.process.assert_not_called()
