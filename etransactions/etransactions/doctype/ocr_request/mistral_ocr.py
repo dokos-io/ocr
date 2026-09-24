@@ -5,6 +5,8 @@ import frappe
 
 from pydantic import BaseModel, Field
 from mistralai.client import Mistral
+from mistralai.client.errors import MistralError
+from mistralai.client.utils import BackoffStrategy, RetryConfig
 from mistralai.extra import response_format_from_pydantic_model
 
 
@@ -75,11 +77,27 @@ DOCUMENT_ANNOTATION_PROMPT = (
 )
 
 
+# Retry 429 and 5xx answers with an exponential backoff (2s, 4s, ... up to 30s, 2 minutes overall).
+# The SDK waits for the Retry-After header instead when Mistral sends one.
+RETRY_CONFIG = RetryConfig(
+	"backoff",
+	BackoffStrategy(initial_interval=2_000, max_interval=30_000, exponent=2.0, max_elapsed_time=120_000),
+	retry_connection_errors=True,
+)
+
+
+class OCRRateLimited(Exception):
+	"""Mistral still answers 429 after the SDK retries: postpone the analysis rather than fail it."""
+
+
 class MistralOCR:
 	def __init__(self, doc: "OCRRequest"):
 		ocr_settings = frappe.get_single("eTransactions Settings")
-		self.api_key = ocr_settings.get_password("mistral_api_key")
-		self.client = Mistral(api_key=self.api_key) # type: ignore
+		# The key is not kept on the instance: tracebacks with variables would print it in Error Logs
+		self.client = Mistral(
+			api_key=ocr_settings.get_password("mistral_api_key"), # type: ignore
+			retry_config=RETRY_CONFIG,
+		)
 		self.doc = doc
 		self.file = frappe.get_doc("File", self.doc.file) if self.doc.file else frappe._dict()
 		self.model = "mistral-ocr-latest"
@@ -97,15 +115,20 @@ class MistralOCR:
 		return f"data:{mime_type};base64,{base64.b64encode(content).decode()}"
 
 	def get_ocr_results(self):
-		self.ocr_response = self.client.ocr.process(
-			model=self.model,
-			document={
-				"type": "document_url",
-				"document_url": self.get_document_url(),
-			},
-			document_annotation_format=response_format_from_pydantic_model(Invoice),
-			document_annotation_prompt=DOCUMENT_ANNOTATION_PROMPT,
-		)
+		try:
+			self.ocr_response = self.client.ocr.process(
+				model=self.model,
+				document={
+					"type": "document_url",
+					"document_url": self.get_document_url(),
+				},
+				document_annotation_format=response_format_from_pydantic_model(Invoice),
+				document_annotation_prompt=DOCUMENT_ANNOTATION_PROMPT,
+			)
+		except MistralError as e:
+			if e.status_code == 429:
+				raise OCRRateLimited(str(e)) from e
+			raise
 
 		return self.process_response()
 
