@@ -1122,6 +1122,7 @@
  "The FacturX PDF could not be generated. Please check the error log.": "Le PDF FacturX n'a pas pu être généré. Veuillez vérifier le journal des erreurs.",
  "The FacturX PDF could not be generated. Submission has been blocked. Please check the error log.": "Le PDF FacturX n'a pas pu être généré. La validation a été bloquée. Veuillez vérifier le journal des erreurs.",
  "The OCR analysis did not complete within 7 days": "L'analyse OCR ne s'est pas terminée dans un délai de 7 jours",
+ "The OCR service is rate limiting requests: the analysis will be retried automatically": "Le service OCR limite les requêtes : l'analyse sera relancée automatiquement",
  "The OCR service returned no result": "Le service OCR n'a renvoyé aucun résultat",
  "The SIREN number of {0} ({1}) is required to report a lifecycle status but is not set.": "Le numéro SIREN de {0} ({1}) est requis pour signaler un statut de cycle de vie mais n'est pas renseigné.",
  "The SIRENE registry could not be reached. Try again later or fill the fields manually.": "Le registre SIRENE est injoignable. Réessayez plus tard ou remplissez les champs manuellement.",
