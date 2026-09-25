@@ -199,12 +199,29 @@ class TestMistralOCRAnalysis(FrappeTestCase):
 		with patch("frappe.log_error") as log_error:
 			result = request.get_analysis()
 
-		log_error.assert_not_called()
+		log_error.assert_called_once()
 		self.assertEqual(result["status"], "Pending")
 		self.assertTrue(request.flags.rate_limited)
 		request.reload()
 		self.assertEqual(request.status, "Pending")
-		self.assertFalse(request.error)
+		# The answer of the service stays visible, or the request looks like it was never sent
+		self.assertTrue(request.is_rate_limited())
+		self.assertIn("Rate limit exceeded", request.error)
+
+	def test_a_rate_limited_request_is_logged_once_and_stays_pending(self):
+		self.client.ocr.process.side_effect = self._mistral_error(429)
+		request = self._request()
+		request.get_analysis()
+
+		with patch("frappe.log_error") as log_error:
+			request.get_analysis()
+		request.set_status(commit=True)
+
+		# A quota exhausted for days must not add an Error Log every hour
+		log_error.assert_not_called()
+		request.reload()
+		self.assertEqual(request.status, "Pending")
+		self.assertTrue(request.is_rate_limited())
 
 	def test_other_api_errors_are_stored_on_the_request(self):
 		self.client.ocr.process.side_effect = self._mistral_error(500)

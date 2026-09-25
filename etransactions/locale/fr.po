@@ -7112,6 +7112,10 @@ msgstr "Surcharge de plateforme agréée eTransactions"
 msgid "eTransactions Analysis Error"
 msgstr "Erreur d'analyse des eTransactions"
 
+#: etransactions/etransactions/doctype/ocr_request/ocr_request.py:214
+msgid "eTransactions Analysis Rate Limited"
+msgstr "Analyse des eTransactions limitée par le service OCR"
+
 #: etransactions/etransactions/doctype/ocr_request/ocr_request.py:174
 msgid "eTransactions File Deletion Error"
 msgstr "Erreur de suppression du fichier eTransactions"

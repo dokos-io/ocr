@@ -37,6 +37,14 @@ frappe.ui.form.on("OCR Request", {
 				errors[frm.doc.error] || frappe.utils.escape_html(frm.doc.error || "")
 			);
 		}
+
+		if (frm.doc.status == "Pending" && (frm.doc.error || "").startsWith("rate limited")) {
+			// Postponed on a rate limit: `error` holds the last answer of the OCR service
+			frm.dashboard.set_headline_alert(
+				__("The OCR service is rate limiting requests: the analysis will be retried automatically"),
+				"orange"
+			);
+		}
 	},
 
 	preview_file(frm) {
