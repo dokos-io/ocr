@@ -1372,6 +1372,7 @@
  "eTransactions Accredited Platform Management": "Gestion des plateformes agréées eTransactions",
  "eTransactions Accredited Platform Override": "Surcharge de plateforme agréée eTransactions",
  "eTransactions Analysis Error": "Erreur d'analyse des eTransactions",
+ "eTransactions Analysis Rate Limited": "Analyse des eTransactions limitée par le service OCR",
  "eTransactions File Deletion Error": "Erreur de suppression du fichier eTransactions",
  "eTransactions Hub": "Hub eTransactions",
  "eTransactions Platform Token": "Jeton de plateforme eTransactions",

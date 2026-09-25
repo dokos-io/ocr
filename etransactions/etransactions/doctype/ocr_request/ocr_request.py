@@ -23,6 +23,10 @@ if TYPE_CHECKING:
 # Requests (re)analysed per hourly run of check_pending_analysis, to stay under the OCR service rate limit
 PENDING_ANALYSIS_BATCH_SIZE = 50
 
+# Prefix of the `error` of a request postponed on a rate limit: the request stays Pending,
+# but the answer of the OCR service stays visible on it
+RATE_LIMITED = "rate limited"
+
 # https://docs.python.org/3/library/re.html#simulating-scanf
 FLOAT_PATTERN = re.compile(r"[-+]?(\d+([.,]\d*)?|[.,]\d+)([eE][-+]?\d+)?")
 
@@ -104,8 +108,8 @@ class OCRRequest(Document, InvoiceEntityResolverMixin):
 
 		try:
 			return self.get_ocr_analysis()
-		except OCRRateLimited:
-			return self.postpone_analysis()
+		except OCRRateLimited as e:
+			return self.postpone_analysis(str(e))
 		except Exception as e:
 			self.log_error(_("eTransactions Analysis Error"))
 			return self.set_and_return_error(str(e))
@@ -186,7 +190,7 @@ class OCRRequest(Document, InvoiceEntityResolverMixin):
 				status = ppi_status
 		if self.job or self.analysis:
 			status = "Analysis Completed"
-		if self.error and not self.analysis:
+		if self.error and not self.analysis and not self.is_rate_limited():
 			status = "Error"
 
 		self.status = status
@@ -197,11 +201,20 @@ class OCRRequest(Document, InvoiceEntityResolverMixin):
 		self.db_set("error", "")
 		self.set_status(True)
 
-	def postpone_analysis(self) -> dict[str, str]:
+	def is_rate_limited(self) -> bool:
+		return (self.error or "").startswith(RATE_LIMITED)
+
+	def postpone_analysis(self, detail: str = "") -> dict[str, str]:
 		"""The OCR service is rate limiting: leave the request Pending for the next check_pending_analysis
-		run instead of failing it. Nothing was written before the OCR call, so there is nothing to roll back."""
+		run instead of failing it. Nothing was written before the OCR call, so there is nothing to roll back.
+
+		The answer of the service is kept in `error`, and logged the first time only, so that a request
+		postponed hour after hour (e.g. an exhausted OCR quota) does not look like it was never sent."""
+		if not self.is_rate_limited():
+			self.log_error(_("eTransactions Analysis Rate Limited"), detail)
+
 		self.flags.rate_limited = True
-		self.db_set({"status": "Pending", "error": None})
+		self.db_set({"status": "Pending", "error": f"{RATE_LIMITED}: {detail}"[:1000]})
 		return {
 			"status": "Pending",
 			"message": _("The OCR service is rate limiting requests: the analysis will be retried automatically"),
