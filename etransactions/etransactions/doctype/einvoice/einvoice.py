@@ -25,6 +25,7 @@ from etransactions.etransactions.doctype.einvoice.generator import (
 from etransactions.schematron import get_validation_errors
 from etransactions.utils import EInvoiceProfile, get_drafthorse_schema
 from etransactions.utils.files import copy_file_to_document, detect_flow_extension
+from etransactions.utils.hooks import merged_hook_values
 from etransactions.etransactions.doctype.einvoice_log.einvoice_log import FetchLogBuffer
 
 
@@ -1348,6 +1349,9 @@ class IncomingInvoiceDataTransformer(InvoiceEntityResolverMixin):
 
 			data["items"].append(row)
 
+		# Other apps may add header values, e.g. a dimension resolved from the buyer's
+		# routing code (hook documented in etransactions.utils.hooks).
+		data.update(merged_hook_values("etransactions_incoming_invoice_values", self.invoice_doc))
 		return data
 
 	def get_seller_address(self):

@@ -251,6 +251,7 @@ class EInvoiceMapper:
 
 	def map_electronic_addresses(self):
 		from etransactions.plateforme_agreee.routing import resolve_routing, identifier_to_electronic_address
+		from etransactions.utils.hooks import first_hook_result
 
 		def resolve_address(scheme_common_code, raw_value):
 			# A stored value may already carry its scheme as a "<scheme>:<value>"
@@ -266,7 +267,15 @@ class EInvoiceMapper:
 			)
 			return scheme, raw_value
 
-		if self.company.etransactions_electronic_address_scheme and self.company.etransactions_electronic_address:
+		# Another app may send this invoice from its own directory identifier, e.g. the
+		# routing code of the business unit that issued it (hook documented in
+		# etransactions.utils.hooks).
+		seller_identifier = first_hook_result("etransactions_seller_electronic_address", self.sales_invoice)
+		if seller_identifier:
+			scheme, value = identifier_to_electronic_address(seller_identifier)
+			self.einvoice.seller_electronic_address_scheme = scheme
+			self.einvoice.seller_electronic_address = value
+		elif self.company.etransactions_electronic_address_scheme and self.company.etransactions_electronic_address:
 			scheme, value = resolve_address(
 				self.company.etransactions_electronic_address_scheme,
 				self.company.etransactions_electronic_address,
