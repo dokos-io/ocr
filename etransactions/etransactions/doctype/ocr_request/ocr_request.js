@@ -14,7 +14,7 @@ frappe.ui.form.on("OCR Request", {
 			}, __("Actions"));
 		}
 
-		if (frm.doc.status != "Error") {
+		if (frm.doc.status != "Closed") {
 			frm.add_custom_button(__('Reset'), function() {
 				frm.call("open_request").then(() => { frm.reload_doc() });
 			}, __("Actions"));
@@ -33,9 +33,12 @@ frappe.ui.form.on("OCR Request", {
 				stale: __("The OCR analysis did not complete within 7 days"),
 				"no result": __("The OCR service returned no result"),
 			};
-			frm.dashboard.set_headline_alert(
-				errors[frm.doc.error] || frappe.utils.escape_html(frm.doc.error || "")
-			);
+			let message = errors[frm.doc.error] || frappe.utils.escape_html(frm.doc.error || "");
+			if (frm.doc.analysis_attempts >= 5) {
+				// Past MAX_ANALYSIS_ATTEMPTS, check_pending_analysis leaves the request alone
+				message += "<br>" + __("The analysis failed {0} times and is no longer retried automatically: use Reset to retry it.", [frm.doc.analysis_attempts]);
+			}
+			frm.dashboard.set_headline_alert(message);
 		}
 
 		if (frm.doc.status == "Pending" && (frm.doc.error || "").startsWith("rate limited")) {

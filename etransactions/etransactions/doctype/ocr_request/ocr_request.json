@@ -18,6 +18,7 @@
   "document_html",
   "section_break_pgfr",
   "error",
+  "analysis_attempts",
   "data_tab",
   "job",
   "analysis"
@@ -85,6 +86,15 @@
    "label": "Error"
   },
   {
+   "default": "0",
+   "fieldname": "analysis_attempts",
+   "fieldtype": "Int",
+   "hidden": 1,
+   "label": "Analysis Attempts",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
    "default": "Purchase Invoice",
    "fieldname": "transaction_type",
    "fieldtype": "Select",
@@ -126,7 +136,7 @@
    "link_fieldname": "ocr_request"
   }
  ],
- "modified": "2026-04-12 09:42:08.444747",
+ "modified": "2026-09-28 21:37:06.951983",
  "modified_by": "Administrator",
  "module": "eTransactions",
  "name": "OCR Request",

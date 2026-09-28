@@ -295,3 +295,39 @@ class TestMistralOCRAnalysis(FrappeTestCase):
 
 		self.assertEqual(self._check_pending_analysis(request), [])
 		self.client.ocr.process.assert_not_called()
+
+	def test_a_failed_analysis_counts_an_attempt_but_a_rate_limit_does_not(self):
+		self.client.ocr.process.side_effect = self._mistral_error(429)
+		request = self._request()
+		request.get_analysis()
+		self.assertEqual(request.analysis_attempts, 0)
+
+		self.client.ocr.process.side_effect = self._mistral_error(500)
+		request.get_analysis()
+
+		# set_and_return_error rolls back first (the uncommitted test request with it),
+		# so check the document it updated
+		self.assertEqual(request.analysis_attempts, 1)
+
+	def test_pending_analysis_stops_retrying_a_request_after_the_max_attempts(self):
+		from etransactions.etransactions.doctype.ocr_request.ocr_request import MAX_ANALYSIS_ATTEMPTS
+
+		request = self._request()
+		request.db_set({"status": "Error", "error": "API error occurred: Status 422", "analysis_attempts": MAX_ANALYSIS_ATTEMPTS})
+
+		self.assertEqual(self._check_pending_analysis(request), [])
+		self.client.ocr.process.assert_not_called()
+
+	def test_reset_makes_a_capped_request_retried_again(self):
+		from etransactions.etransactions.doctype.ocr_request.ocr_request import MAX_ANALYSIS_ATTEMPTS
+
+		request = self._request()
+		request.db_set({"status": "Error", "error": "API error occurred: Status 422", "analysis_attempts": MAX_ANALYSIS_ATTEMPTS})
+
+		request.open_request()
+
+		self.assertEqual(frappe.db.get_value("OCR Request", request.name, "analysis_attempts"), 0)
+		self.client.ocr.process.return_value = SimpleNamespace(
+			document_annotation=frappe.as_json({"INVOICE_RECEIPT_ID": "PF-7492031", "children": []})
+		)
+		self.assertEqual(self._check_pending_analysis(request), [request.name])
