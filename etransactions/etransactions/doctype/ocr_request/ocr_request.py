@@ -23,6 +23,11 @@ if TYPE_CHECKING:
 # Requests (re)analysed per hourly run of check_pending_analysis, to stay under the OCR service rate limit
 PENDING_ANALYSIS_BATCH_SIZE = 50
 
+# Failed analyses retried automatically by check_pending_analysis before the request is left in Error
+# for good: a file the OCR service cannot read would otherwise be sent (and billed) every hour.
+# Rate limits do not count, they say nothing about the file.
+MAX_ANALYSIS_ATTEMPTS = 5
+
 # Prefix of the `error` of a request postponed on a rate limit: the request stays Pending,
 # but the answer of the OCR service stays visible on it
 RATE_LIMITED = "rate limited"
@@ -59,6 +64,7 @@ class OCRRequest(Document, InvoiceEntityResolverMixin):
 		from frappe.types import DF
 
 		analysis: DF.Code | None
+		analysis_attempts: DF.Int
 		error: DF.SmallText | None
 		file: DF.Link | None
 		filename: DF.Data | None
@@ -112,7 +118,10 @@ class OCRRequest(Document, InvoiceEntityResolverMixin):
 			return self.postpone_analysis(str(e))
 		except Exception as e:
 			self.log_error(_("eTransactions Analysis Error"))
-			return self.set_and_return_error(str(e))
+			result = self.set_and_return_error(str(e))
+			# After the rollback of set_and_return_error, so that the attempt is kept
+			self.db_set("analysis_attempts", (self.analysis_attempts or 0) + 1)
+			return result
 
 	def get_ocr_analysis(self) -> dict[str, Any] | None:
 		if self.analysis:
@@ -198,7 +207,7 @@ class OCRRequest(Document, InvoiceEntityResolverMixin):
 			self.db_set("status", status)
 
 	def reset_status_and_error(self) -> None:
-		self.db_set("error", "")
+		self.db_set({"error": "", "analysis_attempts": 0})
 		self.set_status(True)
 
 	def is_rate_limited(self) -> bool:
@@ -267,8 +276,8 @@ class OCRRequest(Document, InvoiceEntityResolverMixin):
 		self.job = None
 		self.error = None
 		self.status = "Pending"
-		self.db_set("job", None)
-		self.db_set("error", None)
+		self.analysis_attempts = 0
+		self.db_set({"job": None, "error": None, "analysis_attempts": 0})
 		self.set_status(True)
 
 	def get_raw_data(self) -> dict[str, Any]:
@@ -382,12 +391,18 @@ class OCRRequest(Document, InvoiceEntityResolverMixin):
 def check_pending_analysis() -> None:
 	"""Hourly: (re)run the analysis of requests that have none yet, a small batch at a time.
 
+	Requests that failed MAX_ANALYSIS_ATTEMPTS times are left in Error until reset from their form.
+
 	Least recently touched first, so requests failing for good do not starve the others. Stops at
 	the first rate limit answer: the next calls would be refused too, and only prolong the limit.
 	"""
 	requests = frappe.get_all(
 		"OCR Request",
-		filters={"status": ("in", ["Pending", "Error"]), "analysis": ("is", "not set")},
+		filters={
+			"status": ("in", ["Pending", "Error"]),
+			"analysis": ("is", "not set"),
+			"analysis_attempts": ("<", MAX_ANALYSIS_ATTEMPTS),
+		},
 		order_by="modified asc",
 		pluck="name",
 		limit=PENDING_ANALYSIS_BATCH_SIZE,
