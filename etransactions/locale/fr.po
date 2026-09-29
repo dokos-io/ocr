@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: eTransactions VERSION\n"
 "Report-Msgid-Bugs-To: hello@dokos.io\n"
-"POT-Creation-Date: 2026-09-25 03:19+0000\n"
+"POT-Creation-Date: 2026-09-29 03:28+0000\n"
 "PO-Revision-Date: 2025-04-02 14:52+0200\n"
 "Last-Translator: hello@dokos.io\n"
 "Language-Team: hello@dokos.io\n"
@@ -23,7 +23,7 @@ msgstr ""
 msgid "'{0}' did not reach the supplier"
 msgstr "'{0}' n'est pas parvenu au fournisseur"
 
-#: etransactions/etransactions/doctype/einvoice/einvoice.py:408
+#: etransactions/etransactions/doctype/einvoice/einvoice.py:409
 #, python-brace-format
 msgid "'{0}' is not a valid reason code for the status '{1}'."
 msgstr "'{0}' n'est pas un code motif valide pour le statut '{1}'."
@@ -61,7 +61,7 @@ msgstr "Une remise au niveau du document n'est actuellement pas prise en charge 
 msgid "A draft purchase invoice exists already for this supplier invoice."
 msgstr "Une facture d'achat en brouillon existe déjà pour cette facture fournisseur."
 
-#: etransactions/etransactions/doctype/einvoice/einvoice.py:406
+#: etransactions/etransactions/doctype/einvoice/einvoice.py:407
 #, python-brace-format
 msgid "A reason code is required to report the status '{0}'."
 msgstr "Un code motif est requis pour signaler le statut '{0}'."
@@ -499,6 +499,11 @@ msgstr "Une quantité facturée diffère de celle commandée ou reçue."
 msgid "Analysis"
 msgstr "Analyse"
 
+#. Label of the analysis_attempts (Int) field in DocType 'OCR Request'
+#: etransactions/etransactions/doctype/ocr_request/ocr_request.json
+msgid "Analysis Attempts"
+msgstr "Tentatives d'analyse"
+
 #. Option for the 'Status' (Select) field in DocType 'OCR Request'
 #: etransactions/etransactions/doctype/ocr_request/ocr_request.json
 msgid "Analysis Completed"
@@ -686,7 +691,7 @@ msgstr "B2C = e-reporting B2C agrégé (10.3/10.4) ; B2Bi = e-reporting B2B inte
 msgid "B2C e-reporting is not supported on this platform."
 msgstr "L'e-reporting B2C n'est pas pris en charge sur cette plateforme."
 
-#: etransactions/etransactions/doctype/einvoice/einvoice.py:244
+#: etransactions/etransactions/doctype/einvoice/einvoice.py:245
 msgid "B2C invoice — cannot be submitted to the platform"
 msgstr "Facture B2C — ne peut pas être soumise à la plateforme"
 
@@ -936,11 +941,11 @@ msgstr "Annulée automatiquement : le client a refusé la facture électronique 
 msgid "Cancelled on the platform"
 msgstr "Annulée sur la plateforme"
 
-#: etransactions/etransactions/doctype/einvoice/einvoice.py:862
+#: etransactions/etransactions/doctype/einvoice/einvoice.py:863
 msgid "Cannot create E Invoice."
 msgstr "Impossible de créer la facture électronique."
 
-#: etransactions/etransactions/doctype/einvoice/einvoice.py:208
+#: etransactions/etransactions/doctype/einvoice/einvoice.py:209
 #, python-brace-format
 msgid "Cannot delete an eInvoice that has been submitted to the accredited platform (Flow ID: {0})."
 msgstr "Impossible de supprimer une eInvoice qui a été soumise à la plateforme agréée (ID de flux : {0})."
@@ -955,7 +960,7 @@ msgstr "Impossible de supprimer la plateforme '{0}' car elle est utilisée dans 
 msgid "Cannot register {0} on Esalink — missing data: {1}"
 msgstr "Impossible d'inscrire {0} sur Esalink — données manquantes : {1}"
 
-#: etransactions/etransactions/doctype/einvoice/einvoice.py:879
+#: etransactions/etransactions/doctype/einvoice/einvoice.py:880
 #, python-brace-format
 msgid "Cannot validate E Invoice schematron: {0}"
 msgstr "Impossible de valider le Schematron de la facture électronique : {0}"
@@ -1338,7 +1343,7 @@ msgstr "Impossible de charger vos permissions, les actions de gestion peuvent ê
 msgid "Could not obtain dokos connector access token: {0}"
 msgstr "Impossible d'obtenir le jeton d'accès du connecteur Dokos : {0}"
 
-#: etransactions/etransactions/doctype/einvoice/einvoice.py:361
+#: etransactions/etransactions/doctype/einvoice/einvoice.py:362
 msgid "Could not retrieve the original file"
 msgstr "Impossible de récupérer le fichier d'origine"
 
@@ -2386,7 +2391,7 @@ msgstr "Type de flux"
 msgid "Force the XML syntax for invoices using this profile. Leave empty to choose automatically (UBL for Peppol-addressed buyers, CII otherwise)."
 msgstr "Force la syntaxe XML des factures utilisant ce profil. Laissez vide pour un choix automatique (UBL pour les acheteurs adressés via Peppol, CII sinon)."
 
-#: etransactions/etransactions/doctype/einvoice/einvoice.py:311
+#: etransactions/etransactions/doctype/einvoice/einvoice.py:312
 msgid "Framework not handled by the platform"
 msgstr "Cadre de facturation non pris en charge par la plateforme"
 
@@ -2574,7 +2579,7 @@ msgstr "Boîte de réception à trier"
 msgid "Incoming"
 msgstr "Entrant"
 
-#: etransactions/etransactions/doctype/einvoice/einvoice.py:126
+#: etransactions/etransactions/doctype/einvoice/einvoice.py:127
 #: etransactions/patches/backfill_einvoice_title.py:26
 #, python-brace-format
 msgid "Incoming flow {0}"
@@ -2989,7 +2994,7 @@ msgstr "Le statut de cycle de vie '{0}' n'a pas été signalé à la plateforme 
 msgid "Lifecycle status '{0}' was not reported: no accredited platform is currently active for {1}."
 msgstr "Le statut de cycle de vie '{0}' n'a pas été signalé : aucune plateforme agréée n'est actuellement active pour {1}."
 
-#: etransactions/etransactions/doctype/einvoice/einvoice.py:419
+#: etransactions/etransactions/doctype/einvoice/einvoice.py:420
 msgid "Lifecycle status not allowed"
 msgstr "Statut de cycle de vie non autorisé"
 
@@ -3238,7 +3243,7 @@ msgstr "Nouvelle facture fournisseur créée à partir d'une facture électroniq
 msgid "New Template"
 msgstr "Nouveau modèle"
 
-#: etransactions/etransactions/doctype/einvoice/einvoice.py:1029
+#: etransactions/etransactions/doctype/einvoice/einvoice.py:1030
 #, python-brace-format
 msgid "New e-invoice received from the accredited platform: {0}"
 msgstr "Nouvelle facture électronique reçue de la plateforme agréée : {0}"
@@ -3362,7 +3367,7 @@ msgid "No encoded file found"
 msgstr "Aucun fichier encodé trouvé"
 
 #: etransactions/etransactions/doctype/ocr_request/ocr_request.js:32
-#: etransactions/etransactions/doctype/ocr_request/ocr_request.py:100
+#: etransactions/etransactions/doctype/ocr_request/ocr_request.py:110
 msgid "No file attached"
 msgstr "Aucun fichier joint"
 
@@ -3586,7 +3591,7 @@ msgstr "Service OCR"
 msgid "Onboarding email resent."
 msgstr "E-mail d'enrôlement renvoyé."
 
-#: etransactions/etransactions/doctype/einvoice/einvoice.py:216
+#: etransactions/etransactions/doctype/einvoice/einvoice.py:217
 msgid "Only Outgoing eInvoices can be submitted to the accredited platform."
 msgstr "Seules les eInvoices sortantes peuvent être soumises à la plateforme agréée."
 
@@ -3598,7 +3603,7 @@ msgstr "Afficher uniquement les clients avec des problèmes"
 msgid "Only Show Items with Issues"
 msgstr "Afficher uniquement les articles avec des problèmes"
 
-#: etransactions/etransactions/doctype/einvoice/einvoice.py:354
+#: etransactions/etransactions/doctype/einvoice/einvoice.py:355
 msgid "Only an invoice received from an accredited platform has a file to fetch."
 msgstr "Seule une facture reçue depuis une plateforme accréditée possède un fichier à récupérer."
 
@@ -4230,6 +4235,7 @@ msgstr "Le SIRET public a changé depuis la synchronisation de l'annuaire — cr
 #: etransactions/etransactions/doctype/ocr_request/ocr_request.json
 #: etransactions/etransactions/doctype/supplier_invoice_credit_note_allocation/supplier_invoice_credit_note_allocation.json
 #: etransactions/public/js/communication.js:13
+#: etransactions/public/js/communication.js:15
 msgid "Purchase Invoice"
 msgstr "Facture d'achat"
 
@@ -4899,7 +4905,7 @@ msgstr "Routage — géré automatiquement"
 msgid "Row"
 msgstr "Ligne"
 
-#: etransactions/etransactions/doctype/einvoice/einvoice.py:1258
+#: etransactions/etransactions/doctype/einvoice/einvoice.py:1259
 #, python-brace-format
 msgid "Row {0}"
 msgstr "Ligne {0}"
@@ -5888,16 +5894,17 @@ msgid "The FacturX PDF could not be generated. Submission has been blocked. Plea
 msgstr "Le PDF FacturX n'a pas pu être généré. La validation a été bloquée. Veuillez vérifier le journal des erreurs."
 
 #: etransactions/etransactions/doctype/ocr_request/ocr_request.js:33
-#: etransactions/etransactions/doctype/ocr_request/ocr_request.py:142
+#: etransactions/etransactions/doctype/ocr_request/ocr_request.py:155
 msgid "The OCR analysis did not complete within 7 days"
 msgstr "L'analyse OCR ne s'est pas terminée dans un délai de 7 jours"
 
-#: etransactions/etransactions/doctype/ocr_request/ocr_request.py:207
+#: etransactions/etransactions/doctype/ocr_request/ocr_request.js:47
+#: etransactions/etransactions/doctype/ocr_request/ocr_request.py:229
 msgid "The OCR service is rate limiting requests: the analysis will be retried automatically"
 msgstr "Le service OCR limite les requêtes : l'analyse sera relancée automatiquement"
 
 #: etransactions/etransactions/doctype/ocr_request/ocr_request.js:34
-#: etransactions/etransactions/doctype/ocr_request/ocr_request.py:145
+#: etransactions/etransactions/doctype/ocr_request/ocr_request.py:158
 msgid "The OCR service returned no result"
 msgstr "Le service OCR n'a renvoyé aucun résultat"
 
@@ -5914,7 +5921,7 @@ msgstr "Le registre SIRENE est injoignable. Réessayez plus tard ou remplissez l
 msgid "The SIRET on the invoice is wrong or does not match the recipient."
 msgstr "Le SIRET figurant sur la facture est erroné ou ne correspond pas au destinataire."
 
-#: etransactions/etransactions/doctype/einvoice/einvoice.py:490
+#: etransactions/etransactions/doctype/einvoice/einvoice.py:491
 msgid "The UBL XML has not been generated for this eInvoice."
 msgstr "Le XML UBL n'a pas été généré pour cette eInvoice."
 
@@ -5939,6 +5946,11 @@ msgstr "La plateforme agréée ne prend pas en charge le statut de cycle de vie 
 #, python-brace-format
 msgid "The accredited-platform directory could not be synced for this customer, which is required before confirmation. Sync the directory on the customer (or set Directory Sync on Submit to 'not blocking'). Error: {0}"
 msgstr "L'annuaire de la plateforme agréée n'a pas pu être synchronisé pour ce client, ce qui est requis avant confirmation. Synchronisez l'annuaire sur le client (ou réglez 'Synchronisation de l'annuaire à la validation' sur 'not_blocking'). Erreur : {0}"
+
+#: etransactions/etransactions/doctype/ocr_request/ocr_request.js:39
+#, python-brace-format
+msgid "The analysis failed {0} times and is no longer retried automatically: use Reset to retry it."
+msgstr "L'analyse a échoué {0} fois et n'est plus relancée automatiquement : utilisez Réinitialiser pour la relancer."
 
 #: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:1158
 #, python-brace-format
@@ -6077,7 +6089,7 @@ msgstr "Le fichier original n'a pas pu être téléchargé ou lu depuis {0}."
 msgid "The original file could not be retrieved after {0} attempts, and the failure was not reported. Check the Error Log for flow {1}."
 msgstr "Le fichier d'origine n'a pas pu être récupéré après {0} tentatives, et l'échec n'a pas été signalé. Consultez le journal des erreurs pour le flux {1}."
 
-#: etransactions/etransactions/doctype/einvoice/einvoice.py:360
+#: etransactions/etransactions/doctype/einvoice/einvoice.py:361
 msgid "The original file could not be retrieved."
 msgstr "Le fichier d'origine n'a pas pu être récupéré."
 
@@ -6089,7 +6101,7 @@ msgstr "Le fichier original n'a pas encore été téléchargé depuis la platefo
 msgid "The payment method differs from the agreed one."
 msgstr "Le moyen de paiement diffère de celui convenu."
 
-#: etransactions/etransactions/doctype/einvoice/einvoice.py:666
+#: etransactions/etransactions/doctype/einvoice/einvoice.py:667
 msgid "The platform returned an empty file."
 msgstr "La plateforme a renvoyé un fichier vide."
 
@@ -6162,7 +6174,7 @@ msgstr "L'adresse postale du vendeur est manquante dans la facture électronique
 msgid "The seller tax identification number is missing from the e-invoice (rules BR-S-02, BR-CO-26). Add a <b>Tax ID</b> (VAT/TVA intracommunautaire) in <a href='/app/company/{0}'>Company settings</a>, or a <b>SIREN number</b> (numéro SIREN) in the same page."
 msgstr "Le numéro d'identification fiscale du vendeur est manquant dans la facture électronique (règles BR-S-02, BR-CO-26). Ajoutez un <b>N° fiscal</b> (TVA intracommunautaire) dans les <a href='/app/company/{0}'>Paramètres de la société</a>, ou un <b>numéro SIREN</b> dans la même page."
 
-#: etransactions/etransactions/doctype/einvoice/einvoice.py:250
+#: etransactions/etransactions/doctype/einvoice/einvoice.py:251
 msgid "The seller's electronic address (BT-34) is missing from this eInvoice. Set an email on the Company record, or configure the Electronic Address fields (etransactions_electronic_address_scheme / etransactions_electronic_address) on the Company, then re-save the Sales Invoice to regenerate the eInvoice."
 msgstr "L'adresse électronique du vendeur (BT-34) est absente de cette eInvoice. Définissez un e-mail sur la fiche Société, ou configurez les champs d'adresse électronique (etransactions_electronic_address_scheme / etransactions_electronic_address) sur la Société, puis réenregistrez la facture de vente pour régénérer l'eInvoice."
 
@@ -6281,17 +6293,17 @@ msgstr "Cette eFacture ne contient pas de PDF intégré, uniquement des données
 msgid "This e-invoice did not come through an accredited platform, so no status can be reported."
 msgstr "Cette eInvoice n'est pas passée par une plateforme agréée, aucun statut ne peut donc être signalé."
 
-#: etransactions/etransactions/doctype/einvoice/einvoice.py:220
+#: etransactions/etransactions/doctype/einvoice/einvoice.py:221
 #, python-brace-format
 msgid "This eInvoice has already been submitted to the accredited platform (Flow ID: {0})."
 msgstr "Cette eInvoice a déjà été soumise à la plateforme agréée (ID de flux : {0})."
 
-#: etransactions/etransactions/doctype/einvoice/einvoice.py:226
+#: etransactions/etransactions/doctype/einvoice/einvoice.py:227
 msgid "This eInvoice has already been submitted to the accredited platform."
 msgstr "Cette eInvoice a déjà été soumise à la plateforme agréée."
 
-#: etransactions/etransactions/doctype/einvoice/einvoice.py:319
-#: etransactions/etransactions/doctype/einvoice/einvoice.py:400
+#: etransactions/etransactions/doctype/einvoice/einvoice.py:320
+#: etransactions/etransactions/doctype/einvoice/einvoice.py:401
 msgid "This eInvoice has not been submitted to the accredited platform yet."
 msgstr "Cette eInvoice n'a pas encore été soumise à la plateforme agréée."
 
@@ -6313,7 +6325,7 @@ msgstr "Cette facture présente des problèmes de facturation électronique qui 
 msgid "This invoice is classified <b>{0}</b> and falls under the French e-invoicing mandate, but no <b>eTransaction Profile</b> is set — so no electronic invoice will be generated or transmitted. Set a profile (e.g. EN16931) on the <a href='/app/customer/{1}'>customer</a> or on this invoice."
 msgstr "Cette facture est classée <b>{0}</b> et relève de l'obligation française de facturation électronique, mais aucun <b>profil eTransaction</b> n'est défini — aucune facture électronique ne sera donc générée ni transmise. Définissez un profil (ex. EN16931) sur le <a href='/app/customer/{1}'>client</a> ou sur cette facture."
 
-#: etransactions/etransactions/doctype/einvoice/einvoice.py:306
+#: etransactions/etransactions/doctype/einvoice/einvoice.py:307
 #, python-brace-format
 msgid "This invoice is classified <b>{0}</b>, a billing framework the accredited platform <b>{1}</b> does not handle. Check the customer's identification (SIREN, country, directory entry) if you expected a different classification."
 msgstr "Cette facture est classée <b>{0}</b>, un cadre de facturation que la plateforme agréée <b>{1}</b> ne prend pas en charge. Vérifiez l'identification du client (SIREN, pays, inscription à l'annuaire) si vous attendiez une autre classification."
@@ -6323,7 +6335,7 @@ msgstr "Cette facture est classée <b>{0}</b>, un cadre de facturation que la pl
 msgid "This invoice is classified <b>{0}</b>, but the accredited platform <b>{1}</b> only handles {2}. It will not be transmitted as a structured invoice. Check the customer's identification (SIREN, country, directory entry) if you expected a different classification."
 msgstr "Cette facture est classée <b>{0}</b>, mais la plateforme agréée <b>{1}</b> ne prend en charge que {2}. Elle ne sera pas transmise comme facture structurée. Vérifiez l'identification du client (SIREN, pays, inscription à l'annuaire) si vous attendiez une autre classification."
 
-#: etransactions/etransactions/doctype/einvoice/einvoice.py:236
+#: etransactions/etransactions/doctype/einvoice/einvoice.py:237
 msgid "This invoice is classified B2C: the customer is not reachable through the e-invoicing directory, so the sale is declared to the tax authority via e-reporting, not submitted as a structured e-invoice.<br><br>To send a structured invoice instead, register the customer in the directory (set a valid SIREN and re-sync the directory) so an active routing line is resolved — the invoice will then be classified B2B."
 msgstr "Cette facture est classée B2C : le client n'est pas joignable via l'annuaire de facturation électronique, la vente est donc déclarée à l'administration fiscale via l'e-reporting et non soumise comme facture électronique structurée.<br><br>Pour envoyer une facture structurée à la place, inscrivez le client dans l'annuaire (renseignez un SIREN valide et resynchronisez l'annuaire) afin qu'une ligne de routage active soit résolue — la facture sera alors classée B2B."
 
@@ -6550,7 +6562,7 @@ msgstr "Prix unitaire"
 msgid "Unknown issuer"
 msgstr "Émetteur inconnu"
 
-#: etransactions/etransactions/doctype/einvoice/einvoice.py:402
+#: etransactions/etransactions/doctype/einvoice/einvoice.py:403
 #: etransactions/plateforme_agreee/lifecycle_status.py:319
 #: etransactions/plateforme_agreee/lifecycle_status.py:440
 #, python-brace-format
@@ -6791,12 +6803,12 @@ msgctxt "Approve confirmation dialog"
 msgid "Yes"
 msgstr "Oui"
 
-#: etransactions/etransactions/doctype/ocr_request/ocr_request.js:77
+#: etransactions/etransactions/doctype/ocr_request/ocr_request.js:88
 #: etransactions/public/js/file_preview.js:81
 msgid "Your browser does not support the audio element."
 msgstr "Votre navigateur ne supporte pas cet élément audio."
 
-#: etransactions/etransactions/doctype/ocr_request/ocr_request.js:59
+#: etransactions/etransactions/doctype/ocr_request/ocr_request.js:70
 #: etransactions/public/js/file_preview.js:65
 msgid "Your browser does not support the video element."
 msgstr "Votre navigateur ne supporte pas cet élément vidéo."
@@ -7107,16 +7119,16 @@ msgstr "Gestion des plateformes agréées eTransactions"
 msgid "eTransactions Accredited Platform Override"
 msgstr "Surcharge de plateforme agréée eTransactions"
 
-#: etransactions/etransactions/doctype/ocr_request/ocr_request.py:110
-#: etransactions/etransactions/doctype/ocr_request/ocr_request.py:390
+#: etransactions/etransactions/doctype/ocr_request/ocr_request.py:120
+#: etransactions/etransactions/doctype/ocr_request/ocr_request.py:418
 msgid "eTransactions Analysis Error"
 msgstr "Erreur d'analyse des eTransactions"
 
-#: etransactions/etransactions/doctype/ocr_request/ocr_request.py:214
+#: etransactions/etransactions/doctype/ocr_request/ocr_request.py:223
 msgid "eTransactions Analysis Rate Limited"
 msgstr "Analyse des eTransactions limitée par le service OCR"
 
-#: etransactions/etransactions/doctype/ocr_request/ocr_request.py:174
+#: etransactions/etransactions/doctype/ocr_request/ocr_request.py:187
 msgid "eTransactions File Deletion Error"
 msgstr "Erreur de suppression du fichier eTransactions"
 
