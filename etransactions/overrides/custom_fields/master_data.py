@@ -313,8 +313,8 @@ supplier_fields = [
 	},
 ]
 
-# An Address represents a single establishment. Its SIRET (the standard
-# `siret_number` field added by erpnext's France regional setup) ties it to a
+# An Address represents a single establishment. Its SIRET (the
+# `siret_number` custom field added by erpnext's France regional setup) ties it to a
 # routing line in the accredited-platform directory; the buyer reference (BT-10
 # service code / "code service exécutant") is establishment-specific for B2G.
 address_fields = [
@@ -322,7 +322,10 @@ address_fields = [
 		"fieldname": "etransactions_tab",
 		"fieldtype": "Tab Break",
 		"label": _("eTransactions"),
-		"insert_after": "siret_number",
+		# Anchor on a DocType field, not a Custom Field like siret_number: Frappe
+		# only pushes a custom Tab Break to the end of the current tab for the
+		# former, and mid-form it hides every field below it while e-invoicing is off.
+		"insert_after": "map_location",
 		"depends_on": einvoicing(),
 	},
 	# Which e-invoicing address this establishment is reached at (address.js).
