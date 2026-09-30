@@ -1,6 +1,5 @@
 from frappe import N_ as _
 
-
 customer_fields = [
 	{
 		"fieldname": "siren_number",
@@ -42,7 +41,9 @@ customer_fields = [
 		"options": "\npeppol\nppf",
 		"default": "ppf",
 		"insert_after": "pa_identity_section",
-		"description": _("The network this customer is reached on: the Peppol network, or the French national directory (PPF)."),
+		"description": _(
+			"The network this customer is reached on: the Peppol network, or the French national directory (PPF)."
+		),
 	},
 	{
 		"fieldname": "etransaction_profile",
@@ -164,7 +165,9 @@ customer_fields = [
 		"fieldtype": "Link",
 		"options": "eInvoicing Directory Line",
 		"insert_after": "pa_advanced_section",
-		"description": _("Default routing line used when no establishment-specific line matches the invoice address."),
+		"description": _(
+			"Default routing line used when no establishment-specific line matches the invoice address."
+		),
 	},
 	{
 		"fieldname": "directory_pinned",
@@ -187,71 +190,71 @@ customer_fields = [
 ]
 
 company_fields = [
-		# NB: Company.siren_number is a standard ERPNext field (company.json),
-		# so it is not (re)declared here — only read by the CDAR/generator code.
-		{
-			"fieldname": "etransactions_tab",
-			"fieldtype": "Tab Break",
-			"label": _("eTransactions"),
-			"insert_after": "connections_tab",
-			"depends_on": "eval:frappe.boot.einvoicing_enabled",
-		},
-		{
-			"fieldname": "etransactions_electronic_address_scheme",
-			"label": _("Electronic Address Scheme"),
-			"insert_after": "etransactions_tab",
-			"fieldtype": "Link",
-			"options": "Common Code",
-		},
-		{
-			"fieldname": "etransactions_electronic_address",
-			"label": _("Electronic Address"),
-			"insert_after": "etransactions_electronic_address_scheme",
-			"fieldtype": "Data",
-			"depends_on": "etransactions_electronic_address_scheme",
-		},
-		{
-			# Drives the PPF e-reporting declaration schedule. Pushed to the
-			# platform via SuperPDPClient.update_vat_regime when it changes.
-			"fieldname": "etransactions_vat_regime",
-			"label": _("VAT Regime (e-reporting)"),
-			"insert_after": "etransactions_electronic_address",
-			"fieldtype": "Select",
-			"options": "\nmonthly\nquarterly\nsimplified\nvat_exemption",
-			"description": _(
-				"VAT regime declared to the accredited platform; it sets the e-reporting "
-				"cadence to the French tax administration (PPF)."
-			),
-		},
-		{
-			"fieldname": "etransactions_mentions_section",
-			"label": _("Mandatory French Invoice Mentions"),
-			"fieldtype": "Section Break",
-			"insert_after": "etransactions_vat_regime",
-			"collapsible": 1,
-			"description": _(
-				"Legal mentions required on French invoices (BR-FR-05). Left blank, "
-				"standard legal default texts are used."
-			),
-		},
-		{
-			"fieldname": "etransactions_mention_late_penalty",
-			"label": _("Late-Payment Penalties (PMD)"),
-			"fieldtype": "Small Text",
-			"insert_after": "etransactions_mentions_section",
-		},
-		{
-			"fieldname": "etransactions_mention_recovery_costs",
-			"label": _("Recovery Costs (PMT)"),
-			"fieldtype": "Small Text",
-			"insert_after": "etransactions_mention_late_penalty",
-		},
-		{
-			"fieldname": "etransactions_mention_discount",
-			"label": _("Early-Payment Discount (AAB)"),
-			"fieldtype": "Small Text",
-			"insert_after": "etransactions_mention_recovery_costs",
-		},
+	# NB: Company.siren_number is a standard ERPNext field (company.json),
+	# so it is not (re)declared here — only read by the CDAR/generator code.
+	{
+		"fieldname": "etransactions_tab",
+		"fieldtype": "Tab Break",
+		"label": _("eTransactions"),
+		"insert_after": "connections_tab",
+		"depends_on": "eval:frappe.boot.einvoicing_enabled",
+	},
+	{
+		"fieldname": "etransactions_electronic_address_scheme",
+		"label": _("Electronic Address Scheme"),
+		"insert_after": "etransactions_tab",
+		"fieldtype": "Link",
+		"options": "Common Code",
+	},
+	{
+		"fieldname": "etransactions_electronic_address",
+		"label": _("Electronic Address"),
+		"insert_after": "etransactions_electronic_address_scheme",
+		"fieldtype": "Data",
+		"depends_on": "etransactions_electronic_address_scheme",
+	},
+	{
+		# Drives the PPF e-reporting declaration schedule. Pushed to the
+		# platform via SuperPDPClient.update_vat_regime when it changes.
+		"fieldname": "etransactions_vat_regime",
+		"label": _("VAT Regime (e-reporting)"),
+		"insert_after": "etransactions_electronic_address",
+		"fieldtype": "Select",
+		"options": "\nmonthly\nquarterly\nsimplified\nvat_exemption",
+		"description": _(
+			"VAT regime declared to the accredited platform; it sets the e-reporting "
+			"cadence to the French tax administration (PPF)."
+		),
+	},
+	{
+		"fieldname": "etransactions_mentions_section",
+		"label": _("Mandatory French Invoice Mentions"),
+		"fieldtype": "Section Break",
+		"insert_after": "etransactions_vat_regime",
+		"collapsible": 1,
+		"description": _(
+			"Legal mentions required on French invoices (BR-FR-05). Left blank, "
+			"standard legal default texts are used."
+		),
+	},
+	{
+		"fieldname": "etransactions_mention_late_penalty",
+		"label": _("Late-Payment Penalties (PMD)"),
+		"fieldtype": "Small Text",
+		"insert_after": "etransactions_mentions_section",
+	},
+	{
+		"fieldname": "etransactions_mention_recovery_costs",
+		"label": _("Recovery Costs (PMT)"),
+		"fieldtype": "Small Text",
+		"insert_after": "etransactions_mention_late_penalty",
+	},
+	{
+		"fieldname": "etransactions_mention_discount",
+		"label": _("Early-Payment Discount (AAB)"),
+		"fieldtype": "Small Text",
+		"insert_after": "etransactions_mention_recovery_costs",
+	},
 ]
 
 customer_group_fields = [
@@ -261,7 +264,9 @@ customer_group_fields = [
 		"fieldtype": "Link",
 		"options": "eTransactions Accredited Platform",
 		"insert_after": "parent_customer_group",
-		"description": _("Override the default eTransactions Accredited Platform for customers in this group"),
+		"description": _(
+			"Override the default eTransactions Accredited Platform for customers in this group"
+		),
 		"depends_on": "eval:frappe.boot.einvoicing_enabled",
 	},
 ]
@@ -311,7 +316,9 @@ address_fields = [
 		"label": _("Buyer Reference"),
 		"fieldtype": "Data",
 		"insert_after": "etransactions_tab",
-		"description": _("Service code (code service exécutant, BT-10) for this establishment. Overrides the customer-level default."),
+		"description": _(
+			"Service code (code service exécutant, BT-10) for this establishment. Overrides the customer-level default."
+		),
 	},
 ]
 

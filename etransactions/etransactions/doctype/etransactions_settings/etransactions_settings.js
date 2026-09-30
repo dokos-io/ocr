@@ -47,9 +47,15 @@ function _render_platform_management(frm) {
 
 	_load_platforms(frm);
 
-	$wrapper.on("click.etplatform", "#btn-add-superpdp", () => _open_platform_dialog(frm, null, "SuperPDP"));
-	$wrapper.on("click.etplatform", "#btn-add-esalink", () => _open_platform_dialog(frm, null, "Esalink"));
-	$wrapper.on("click.etplatform", "#btn-add-custom", () => _open_platform_dialog(frm, null, "Custom"));
+	$wrapper.on("click.etplatform", "#btn-add-superpdp", () =>
+		_open_platform_dialog(frm, null, "SuperPDP")
+	);
+	$wrapper.on("click.etplatform", "#btn-add-esalink", () =>
+		_open_platform_dialog(frm, null, "Esalink")
+	);
+	$wrapper.on("click.etplatform", "#btn-add-custom", () =>
+		_open_platform_dialog(frm, null, "Custom")
+	);
 
 	$wrapper.on("click.etplatform", ".btn-edit-platform", function () {
 		_open_platform_dialog(frm, $(this).data("name"));
@@ -66,7 +72,12 @@ function _render_platform_management(frm) {
 					args: { platform_name: name, is_active },
 					callback: (r) => {
 						if (!r.exc) {
-							frappe.show_alert({ message: is_active ? __("Platform activated") : __("Platform deactivated"), indicator: "green" });
+							frappe.show_alert({
+								message: is_active
+									? __("Platform activated")
+									: __("Platform deactivated"),
+								indicator: "green",
+							});
 							_load_platforms(frm);
 						}
 					},
@@ -125,7 +136,11 @@ function _render_platform_table(frm, platforms) {
 	const $container = frm.fields_dict.platform_html.$wrapper.find("#platform-table-container");
 
 	if (!platforms.length) {
-		$container.html(`<div class="et-platform-empty">${__("No accredited platforms configured. Use the buttons above to add one.")}</div>`);
+		$container.html(
+			`<div class="et-platform-empty">${__(
+				"No accredited platforms configured. Use the buttons above to add one."
+			)}</div>`
+		);
 		return;
 	}
 
@@ -134,7 +149,11 @@ function _render_platform_table(frm, platforms) {
 		Esalink: "et-type-badge--esalink",
 		Custom: "et-type-badge--custom",
 	};
-	const TX_LABEL = { Both: __("Sales + Purchases"), Sales: __("Sales"), Purchases: __("Purchases") };
+	const TX_LABEL = {
+		Both: __("Sales + Purchases"),
+		Sales: __("Sales"),
+		Purchases: __("Purchases"),
+	};
 	const HEALTH = {
 		ok: ["green", __("Connected")],
 		error: ["red", __("Error")],
@@ -152,15 +171,24 @@ function _render_platform_table(frm, platforms) {
 			: p.is_active
 			? `<span class="indicator-pill green">${__("Active")}</span>`
 			: `<span class="indicator-pill gray">${__("Inactive")}</span>`;
-		const [health_color, health_label] = HEALTH[p.last_health_status || "unknown"] || HEALTH.unknown;
+		const [health_color, health_label] =
+			HEALTH[p.last_health_status || "unknown"] || HEALTH.unknown;
 		const health_title = p.last_health_check
-			? __("Last checked: {0}", [frappe.datetime.str_to_user(p.last_health_check)]) + (p.last_health_message ? " — " + frappe.utils.escape_html(p.last_health_message) : "")
+			? __("Last checked: {0}", [frappe.datetime.str_to_user(p.last_health_check)]) +
+			  (p.last_health_message
+					? " — " + frappe.utils.escape_html(p.last_health_message)
+					: "")
 			: __("Connection not tested yet");
 		const health_badge = `<span class="indicator-pill ${health_color}" title="${health_title}">${health_label}</span>`;
-		const type_badge = `<span class="et-type-badge ${TYPE_BADGE_MOD[p.platform_type] || "et-type-badge--custom"}">${frappe.utils.escape_html(p.platform_type)}</span>`;
-		const tx_label = TX_LABEL[p.transaction_type] || frappe.utils.escape_html(p.transaction_type);
+		const type_badge = `<span class="et-type-badge ${
+			TYPE_BADGE_MOD[p.platform_type] || "et-type-badge--custom"
+		}">${frappe.utils.escape_html(p.platform_type)}</span>`;
+		const tx_label =
+			TX_LABEL[p.transaction_type] || frappe.utils.escape_html(p.transaction_type);
 		const toggle_mod = p.is_active ? "et-icon-btn--deactivate" : "et-icon-btn--activate";
-		const toggle_icon = p.is_active ? frappe.utils.icon("solid-error") : frappe.utils.icon("check");
+		const toggle_icon = p.is_active
+			? frappe.utils.icon("solid-error")
+			: frappe.utils.icon("check");
 		const toggle_title = p.is_active ? __("Deactivate") : __("Activate");
 
 		rows += `
@@ -177,17 +205,23 @@ function _render_platform_table(frm, platforms) {
 						${
 							unregistered_esalink
 								? ""
-								: `<button class="et-icon-btn btn-test-platform" data-name="${p.name}" title="${__("Test connection")}">
+								: `<button class="et-icon-btn btn-test-platform" data-name="${
+										p.name
+								  }" title="${__("Test connection")}">
 							${frappe.utils.icon("refresh")}
 						</button>`
 						}
 						<button class="et-icon-btn btn-edit-platform" data-name="${p.name}" title="${__("Edit")}">
 							${frappe.utils.icon("edit")}
 						</button>
-						<button class="et-icon-btn ${toggle_mod} btn-toggle-platform" data-name="${p.name}" data-active="${p.is_active ? 1 : 0}" title="${toggle_title}">
+						<button class="et-icon-btn ${toggle_mod} btn-toggle-platform" data-name="${p.name}" data-active="${
+			p.is_active ? 1 : 0
+		}" title="${toggle_title}">
 							${toggle_icon}
 						</button>
-						<button class="et-icon-btn et-icon-btn--danger btn-delete-platform" data-name="${p.name}" title="${__("Delete")}">
+						<button class="et-icon-btn et-icon-btn--danger btn-delete-platform" data-name="${
+							p.name
+						}" title="${__("Delete")}">
 							${frappe.utils.icon("delete")}
 						</button>
 					</div>
@@ -257,7 +291,9 @@ function _open_platform_dialog(frm, existing_name = null, preset_type = null) {
 				label: __("Platform Code"),
 				reqd: 1,
 				depends_on: "eval:doc.platform_type === 'Custom'",
-				description: __("Technical identifier sent to the API. Auto-set for SuperPDP and Esalink."),
+				description: __(
+					"Technical identifier sent to the API. Auto-set for SuperPDP and Esalink."
+				),
 			},
 			{ fieldtype: "Column Break" },
 			{
@@ -317,7 +353,9 @@ function _open_platform_dialog(frm, existing_name = null, preset_type = null) {
 				label: __("Pre-production (Sandbox)"),
 				default: 0,
 				depends_on: "eval:doc.platform_type === 'SuperPDP'",
-				description: __("Disables SuperPDP pre-validation checks (disable_pre_check) for test/pré-production environments."),
+				description: __(
+					"Disables SuperPDP pre-validation checks (disable_pre_check) for test/pré-production environments."
+				),
 			},
 			{
 				fieldtype: "Int",
@@ -338,7 +376,9 @@ function _open_platform_dialog(frm, existing_name = null, preset_type = null) {
 				options: "test\nprod",
 				default: "prod",
 				depends_on: "eval:doc.platform_type === 'Esalink'",
-				description: __("prod = https://hubtimize.fr, test = https://ppd.hubtimize.fr (pré-production)."),
+				description: __(
+					"prod = https://hubtimize.fr, test = https://ppd.hubtimize.fr (pré-production)."
+				),
 			},
 		],
 		primary_action_label: is_edit ? __("Update") : __("Create"),
@@ -359,7 +399,10 @@ function _open_platform_dialog(frm, existing_name = null, preset_type = null) {
 				callback(r) {
 					if (!r.exc) {
 						dialog.hide();
-						frappe.show_alert({ message: is_edit ? __("Platform updated") : __("Platform created"), indicator: "green" });
+						frappe.show_alert({
+							message: is_edit ? __("Platform updated") : __("Platform created"),
+							indicator: "green",
+						});
 						_load_platforms(frm);
 					}
 				},
@@ -375,7 +418,9 @@ function _open_platform_dialog(frm, existing_name = null, preset_type = null) {
 		const redirect_url = `${window.location.origin}/api/method/etransactions.plateforme_agreee.session.oauth_callback`;
 		dialog.fields_dict.redirect_url_html.$wrapper.html(`
 			<div class="form-group" style="margin-bottom: 8px;">
-				<label class="control-label text-muted small">${__("Redirect URL — copy into the SuperPDP application registration form")}</label>
+				<label class="control-label text-muted small">${__(
+					"Redirect URL — copy into the SuperPDP application registration form"
+				)}</label>
 				<div class="input-group">
 					<input type="text" class="form-control" readonly value="${redirect_url}" style="font-size: 12px;">
 					<span class="input-group-btn">
@@ -383,10 +428,12 @@ function _open_platform_dialog(frm, existing_name = null, preset_type = null) {
 					</span>
 				</div>
 			</div>`);
-		dialog.fields_dict.redirect_url_html.$wrapper.find(".et-copy-redirect-url").on("click", () => {
-			navigator.clipboard.writeText(redirect_url);
-			frappe.show_alert({ message: __("Copied!"), indicator: "green" });
-		});
+		dialog.fields_dict.redirect_url_html.$wrapper
+			.find(".et-copy-redirect-url")
+			.on("click", () => {
+				navigator.clipboard.writeText(redirect_url);
+				frappe.show_alert({ message: __("Copied!"), indicator: "green" });
+			});
 	}
 
 	// Hard-block the dialog when Esalink is selected but the site has no partner
@@ -413,7 +460,9 @@ function _open_platform_dialog(frm, existing_name = null, preset_type = null) {
 				dialog.fields_dict.esalink_status_html.$wrapper.html(`
 					<div class="et-esalink-status">
 						<div><span class="indicator-pill red">${__("Esalink not available")}</span></div>
-						<div class="text-muted small" style="margin-top:6px">${frappe.utils.escape_html(s.message || "")}</div>
+						<div class="text-muted small" style="margin-top:6px">${frappe.utils.escape_html(
+							s.message || ""
+						)}</div>
 					</div>`);
 			});
 	}
@@ -434,32 +483,56 @@ function _open_platform_dialog(frm, existing_name = null, preset_type = null) {
 			return;
 		}
 
-		$html.html(`<div class="text-muted small">${frappe.utils.icon("loading-indicator")} ${__("Checking Esalink registration…")}</div>`);
+		$html.html(
+			`<div class="text-muted small">${frappe.utils.icon("loading-indicator")} ${__(
+				"Checking Esalink registration…"
+			)}</div>`
+		);
 		frappe
-			.xcall("etransactions.plateforme_agreee.esalink_provisioning.esalink_registration_status", { platform_name: existing_name })
+			.xcall(
+				"etransactions.plateforme_agreee.esalink_provisioning.esalink_registration_status",
+				{ platform_name: existing_name }
+			)
 			.then((s) => {
 				if (s.registered) {
 					const status_color = s.customer_status === "ACTIVE" ? "green" : "orange";
-					const routing_address = `<code>${frappe.utils.escape_html(s.routing_address || "—")}</code>`;
+					const routing_address = `<code>${frappe.utils.escape_html(
+						s.routing_address || "—"
+					)}</code>`;
 					$html.html(`
 						<div class="et-esalink-status" style="display:flex;flex-direction:column;gap:6px">
 							<div>
 								<span class="indicator-pill green">${__("Registered on Esalink")}</span>
-								<span class="indicator-pill ${status_color}">${frappe.utils.escape_html(etransactions.status_labels.esalink_customer(s.customer_status))}</span>
+								<span class="indicator-pill ${status_color}">${frappe.utils.escape_html(
+						etransactions.status_labels.esalink_customer(s.customer_status)
+					)}</span>
 							</div>
-							<div class="text-muted small">${__("Customer: {0}", [frappe.utils.escape_html(s.customer_id || "—")])}</div>
+							<div class="text-muted small">${__("Customer: {0}", [
+								frappe.utils.escape_html(s.customer_id || "—"),
+							])}</div>
 							<div class="text-muted small">${__("Routing address: {0}", [routing_address])}</div>
 							<div class="et-btn-group" style="margin-top:4px">
 								<button class="btn btn-default btn-sm et-esalink-refresh">${__("Refresh status")}</button>
 								<button class="btn btn-default btn-sm et-esalink-kyc">${__("Resend KYC email")}</button>
 							</div>
 						</div>`);
-					$html.find(".et-esalink-refresh").on("click", () =>
-						_esalink_manage_action("refresh_customer_status", __("Checking Esalink account status…"), _render_esalink_status)
-					);
-					$html.find(".et-esalink-kyc").on("click", () =>
-						_esalink_manage_action("resend_kyc_email", __("Resending onboarding email…"))
-					);
+					$html
+						.find(".et-esalink-refresh")
+						.on("click", () =>
+							_esalink_manage_action(
+								"refresh_customer_status",
+								__("Checking Esalink account status…"),
+								_render_esalink_status
+							)
+						);
+					$html
+						.find(".et-esalink-kyc")
+						.on("click", () =>
+							_esalink_manage_action(
+								"resend_kyc_email",
+								__("Resending onboarding email…")
+							)
+						);
 				} else {
 					$html.html(`
 						<div class="et-esalink-status" style="display:flex;flex-direction:column;gap:6px">
@@ -467,7 +540,9 @@ function _open_platform_dialog(frm, existing_name = null, preset_type = null) {
 							<div class="text-muted small">${__(
 								"This company has no Esalink account yet. Registering creates one, mints its API credentials and registers the routing address (SIREN)."
 							)}</div>
-							<div><button class="btn btn-primary btn-sm et-esalink-register">${__("Register on Esalink")}</button></div>
+							<div><button class="btn btn-primary btn-sm et-esalink-register">${__(
+								"Register on Esalink"
+							)}</button></div>
 						</div>`);
 					$html.find(".et-esalink-register").on("click", () =>
 						_open_esalink_registration_dialog(frm, {
@@ -496,7 +571,11 @@ function _open_platform_dialog(frm, existing_name = null, preset_type = null) {
 				if (r.exc) return;
 				const res = r.message || {};
 				frappe.show_alert({
-					message: res.status ? __("Esalink status: {0}", [etransactions.status_labels.esalink_customer(res.status)]) : __("Done."),
+					message: res.status
+						? __("Esalink status: {0}", [
+								etransactions.status_labels.esalink_customer(res.status),
+						  ])
+						: __("Done."),
 					indicator: res.status === "ACTIVE" ? "green" : "blue",
 				});
 				if (on_done) on_done();
@@ -537,15 +616,25 @@ function _open_platform_dialog(frm, existing_name = null, preset_type = null) {
 	dialog.add_custom_action(__("Test connection"), () => {
 		const v = dialog.get_values(true) || {};
 		if (v.platform_type === "Esalink") {
-			frappe.show_alert({ message: __("Esalink connectivity is tested automatically when you register."), indicator: "blue" });
+			frappe.show_alert({
+				message: __("Esalink connectivity is tested automatically when you register."),
+				indicator: "blue",
+			});
 			return;
 		}
 		if (!v.client_id || !v.client_secret) {
-			frappe.show_alert({ message: __("Enter Client ID and Client Secret first."), indicator: "orange" });
+			frappe.show_alert({
+				message: __("Enter Client ID and Client Secret first."),
+				indicator: "orange",
+			});
 			return;
 		}
 		const $result = dialog.fields_dict.test_result_html.$wrapper;
-		$result.html(`<div class="text-muted small">${frappe.utils.icon("loading-indicator")} ${__("Testing…")}</div>`);
+		$result.html(
+			`<div class="text-muted small">${frappe.utils.icon("loading-indicator")} ${__(
+				"Testing…"
+			)}</div>`
+		);
 		frappe.call({
 			method: "etransactions.plateforme_agreee.session.test_platform_credentials",
 			args: {
@@ -562,7 +651,9 @@ function _open_platform_dialog(frm, existing_name = null, preset_type = null) {
 				const res = r.message || {};
 				const color = res.status === "ok" ? "green" : "red";
 				$result.html(
-					`<div class="indicator-pill ${color}" style="margin-top:4px">${frappe.utils.escape_html(res.message || etransactions.status_labels.health(res.status))}</div>`
+					`<div class="indicator-pill ${color}" style="margin-top:4px">${frappe.utils.escape_html(
+						res.message || etransactions.status_labels.health(res.status)
+					)}</div>`
 				);
 			},
 		});
@@ -596,7 +687,10 @@ function _open_platform_dialog(frm, existing_name = null, preset_type = null) {
 // Dedicated "Register on Esalink" flow: prefill the company data, ask clearly for the
 // routing address (the company SIREN by default), then create/reuse the Esalink customer,
 // mint its credentials and persist them on the given platform row.
-function _open_esalink_registration_dialog(frm, { platform_name, company, transaction_type, on_done }) {
+function _open_esalink_registration_dialog(
+	frm,
+	{ platform_name, company, transaction_type, on_done }
+) {
 	let partner_ready = true;
 	// Keep the routing address mirroring the legal identifier until the user edits it directly.
 	let routing_touched = false;
@@ -629,7 +723,12 @@ function _open_esalink_registration_dialog(frm, { platform_name, company, transa
 				reqd: 1,
 				description: __("The identifier the company is registered under on Esalink."),
 			},
-			{ fieldtype: "Data", fieldname: "customerLegalId", label: __("Legal identifier"), reqd: 1 },
+			{
+				fieldtype: "Data",
+				fieldname: "customerLegalId",
+				label: __("Legal identifier"),
+				reqd: 1,
+			},
 			{ fieldtype: "Section Break", label: __("Company") },
 			{ fieldtype: "Data", fieldname: "customerName", label: __("Company Name"), reqd: 1 },
 			{ fieldtype: "Data", fieldname: "customerVat", label: __("VAT Number") },
@@ -647,7 +746,12 @@ function _open_esalink_registration_dialog(frm, { platform_name, company, transa
 			{ fieldtype: "Column Break" },
 			{ fieldtype: "Data", fieldname: "postalCode", label: __("Postal Code"), reqd: 1 },
 			{ fieldtype: "Data", fieldname: "city", label: __("City"), reqd: 1 },
-			{ fieldtype: "Data", fieldname: "country", label: __("Country (ISO 2-letter)"), reqd: 1 },
+			{
+				fieldtype: "Data",
+				fieldname: "country",
+				label: __("Country (ISO 2-letter)"),
+				reqd: 1,
+			},
 		],
 		primary_action_label: __("Register"),
 		primary_action(values) {
@@ -709,16 +813,31 @@ function _open_esalink_registration_dialog(frm, { platform_name, company, transa
 
 	// Prefill from the company + surface the partner-credentials gate and missing-data hints.
 	const $notice = d.fields_dict.notice.$wrapper;
-	$notice.html(`<div class="text-muted small">${frappe.utils.icon("loading-indicator")} ${__("Loading company data…")}</div>`);
+	$notice.html(
+		`<div class="text-muted small">${frappe.utils.icon("loading-indicator")} ${__(
+			"Loading company data…"
+		)}</div>`
+	);
 	frappe
-		.xcall("etransactions.plateforme_agreee.esalink_provisioning.esalink_registration_prefill", {
-			company,
-			platform_name: platform_name || null,
-		})
+		.xcall(
+			"etransactions.plateforme_agreee.esalink_provisioning.esalink_registration_prefill",
+			{
+				company,
+				platform_name: platform_name || null,
+			}
+		)
 		.then((cfg) => {
 			prefill.siren = cfg.siren || "";
 			prefill.siret = cfg.siret || "";
-			["customerName", "customerVat", "customerEmail", "addressLine1", "addressLine2", "postalCode", "city"].forEach((f) => {
+			[
+				"customerName",
+				"customerVat",
+				"customerEmail",
+				"addressLine1",
+				"addressLine2",
+				"postalCode",
+				"city",
+			].forEach((f) => {
 				d.set_value(f, cfg[f] || "");
 			});
 			d.set_value("country", cfg.country || "FR");
@@ -743,9 +862,9 @@ function _open_esalink_registration_dialog(frm, { platform_name, company, transa
 			}
 			const issues = cfg.issues || [];
 			if (issues.length) {
-				html += `<div class="text-muted small">${__("Complete the fields below (missing on the company):")}<br>${issues
-					.map((i) => frappe.utils.escape_html(i))
-					.join("<br>")}</div>`;
+				html += `<div class="text-muted small">${__(
+					"Complete the fields below (missing on the company):"
+				)}<br>${issues.map((i) => frappe.utils.escape_html(i)).join("<br>")}</div>`;
 			}
 			$notice.html(html);
 		})
@@ -766,16 +885,26 @@ function _show_esalink_result(res) {
 			? __("Integration test passed.")
 			: __("Integration test: {0}", [
 					frappe.utils.escape_html(
-						res.health_message || (res.health_status ? etransactions.status_labels.health(res.health_status) : "—")
+						res.health_message ||
+							(res.health_status
+								? etransactions.status_labels.health(res.health_status)
+								: "—")
 					),
-				]);
+			  ]);
 	frappe.msgprint({
 		title: __("Esalink registration"),
 		indicator: "green",
 		message:
-			`<p>${STATE[res.state] || frappe.utils.escape_html(res.state || "")}${res.customer_id ? ` · ${__("Customer: {0}", [frappe.utils.escape_html(res.customer_id)])}` : ""}.</p>` +
-			`<p class="text-muted small">${__("Status: {0}", [frappe.utils.escape_html(etransactions.status_labels.esalink_customer(res.status))])} — ${health}</p>` +
-			`<p class="text-muted small">${__("The account activates automatically once Esalink validates the KYC onboarding.")}</p>`,
+			`<p>${STATE[res.state] || frappe.utils.escape_html(res.state || "")}${
+				res.customer_id
+					? ` · ${__("Customer: {0}", [frappe.utils.escape_html(res.customer_id)])}`
+					: ""
+			}.</p>` +
+			`<p class="text-muted small">${__("Status: {0}", [
+				frappe.utils.escape_html(etransactions.status_labels.esalink_customer(res.status)),
+			])} — ${health}</p>` +
+			`<p class="text-muted small">${__(
+				"The account activates automatically once Esalink validates the KYC onboarding."
+			)}</p>`,
 	});
 }
-

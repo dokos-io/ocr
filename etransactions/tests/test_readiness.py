@@ -5,13 +5,13 @@ import frappe
 from erpnext import get_default_company
 from frappe.tests import UnitTestCase
 
-from etransactions.tests.utils import eTransactionsTestSuite
 from etransactions.plateforme_agreee.readiness import (
 	_platform_finding,
 	_split_reasons,
 	evaluate_einvoice_readiness,
 	evaluate_party_readiness,
 )
+from etransactions.tests.utils import eTransactionsTestSuite
 from etransactions.utils import EInvoiceProfile
 
 
@@ -23,12 +23,14 @@ class TestPartyReadiness(eTransactionsTestSuite):
 		name = f"_Test Readiness {suffix}"
 		if frappe.db.exists("Customer", name):
 			frappe.delete_doc("Customer", name, ignore_permissions=True, force=True)
-		frappe.get_doc({
-			"doctype": "Customer",
-			"customer_name": name,
-			"customer_group": self._customer_group(),
-			"territory": "All Territories",
-		}).insert(ignore_permissions=True)
+		frappe.get_doc(
+			{
+				"doctype": "Customer",
+				"customer_name": name,
+				"customer_group": self._customer_group(),
+				"territory": "All Territories",
+			}
+		).insert(ignore_permissions=True)
 		if updates:
 			frappe.db.set_value("Customer", name, updates)
 		self.addCleanup(self._delete_customer, name)
@@ -39,14 +41,16 @@ class TestPartyReadiness(eTransactionsTestSuite):
 			frappe.delete_doc("Customer", name, ignore_permissions=True, force=True)
 
 	def _make_address(self, customer, suffix, **fields):
-		addr = frappe.get_doc({
-			"doctype": "Address",
-			"address_title": f"_Test Readiness Addr {suffix}",
-			"address_type": "Billing",
-			"is_primary_address": 1,
-			"links": [{"link_doctype": "Customer", "link_name": customer}],
-			**fields,
-		}).insert(ignore_permissions=True)
+		addr = frappe.get_doc(
+			{
+				"doctype": "Address",
+				"address_title": f"_Test Readiness Addr {suffix}",
+				"address_type": "Billing",
+				"is_primary_address": 1,
+				"links": [{"link_doctype": "Customer", "link_name": customer}],
+				**fields,
+			}
+		).insert(ignore_permissions=True)
 		self.addCleanup(self._delete_address, addr.name)
 		return addr.name
 
@@ -67,8 +71,12 @@ class TestPartyReadiness(eTransactionsTestSuite):
 	def test_siret_finding_points_at_resolved_address(self):
 		customer = self._make_customer("with-addr", siren_number="853322915", tax_id="FR12853322915")
 		address = self._make_address(
-			customer, "with-addr",
-			address_line1="1 rue de Test", city="Paris", pincode="75001", country="France",
+			customer,
+			"with-addr",
+			address_line1="1 rue de Test",
+			city="Paris",
+			pincode="75001",
+			country="France",
 		)  # no siret_number
 
 		findings = evaluate_party_readiness("Customer", customer)
@@ -93,9 +101,7 @@ class TestPartyReadiness(eTransactionsTestSuite):
 
 	def test_mismatched_vat_warns_non_blocking(self):
 		# Valid SIREN, but the VAT embeds a different SIREN.
-		customer = self._make_customer(
-			"vat-mismatch", siren_number="853322915", tax_id="FR00111111111"
-		)
+		customer = self._make_customer("vat-mismatch", siren_number="853322915", tax_id="FR00111111111")
 		by_key = {f["key"]: f for f in evaluate_party_readiness("Customer", customer)}
 
 		self.assertNotIn("siren_valid", by_key)  # SIREN itself is valid
@@ -104,9 +110,7 @@ class TestPartyReadiness(eTransactionsTestSuite):
 
 	def test_peppol_display_number_does_not_warn(self):
 		# Sandbox convention: a Peppol customer stores a non-SIREN display number.
-		customer = self._make_customer(
-			"peppol", siren_number="000000001", directory_type="peppol"
-		)
+		customer = self._make_customer("peppol", siren_number="000000001", directory_type="peppol")
 		by_key = {f["key"]: f for f in evaluate_party_readiness("Customer", customer)}
 
 		self.assertNotIn("siren_valid", by_key)
@@ -115,22 +119,34 @@ class TestPartyReadiness(eTransactionsTestSuite):
 	def test_complete_customer_has_no_blocking_findings(self):
 		customer = self._make_customer("ready", siren_number="853322915", tax_id="FR12853322915")
 		self._make_address(
-			customer, "ready",
+			customer,
+			"ready",
 			siret_number="85332291500012",
-			address_line1="1 rue de Test", city="Paris", pincode="75001", country="France",
+			address_line1="1 rue de Test",
+			city="Paris",
+			pincode="75001",
+			country="France",
 		)
 		# A primary contact is required (blocking) — create and link one.
-		contact = frappe.get_doc({
-			"doctype": "Contact",
-			"first_name": "_Test Readiness Contact",
-			"email_ids": [{"email_id": "ready@example.com", "is_primary": 1}],
-			"links": [{"link_doctype": "Customer", "link_name": customer}],
-		}).insert(ignore_permissions=True)
-		self.addCleanup(lambda: frappe.delete_doc("Contact", contact.name, force=True, ignore_permissions=True))
-		frappe.db.set_value("Customer", customer, {
-			"customer_primary_contact": contact.name,
-			"email_id": "ready@example.com",
-		})
+		contact = frappe.get_doc(
+			{
+				"doctype": "Contact",
+				"first_name": "_Test Readiness Contact",
+				"email_ids": [{"email_id": "ready@example.com", "is_primary": 1}],
+				"links": [{"link_doctype": "Customer", "link_name": customer}],
+			}
+		).insert(ignore_permissions=True)
+		self.addCleanup(
+			lambda: frappe.delete_doc("Contact", contact.name, force=True, ignore_permissions=True)
+		)
+		frappe.db.set_value(
+			"Customer",
+			customer,
+			{
+				"customer_primary_contact": contact.name,
+				"email_id": "ready@example.com",
+			},
+		)
 
 		findings = evaluate_party_readiness("Customer", customer)
 		blocking = [f for f in findings if f["severity"] == "error"]

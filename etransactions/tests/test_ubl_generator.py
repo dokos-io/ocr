@@ -121,9 +121,7 @@ class TestUBLGeneration(UnitTestCase):
 		self.assertIn("#ADN#B2G", _generate(_fixture_einvoice(pa_processing_rule="B2G")))
 
 	def test_credit_note_root_and_billing_reference(self):
-		xml = _generate(
-			_fixture_einvoice(is_return=1, return_against="SINV-0042", due_date=None)
-		)
+		xml = _generate(_fixture_einvoice(is_return=1, return_against="SINV-0042", due_date=None))
 		self.assertIn("<CreditNote", xml)
 		self.assertIn("<cbc:CreditNoteTypeCode>381</cbc:CreditNoteTypeCode>", xml)
 		self.assertIn("<cbc:ID>SINV-0042</cbc:ID>", xml)  # BillingReference
@@ -176,8 +174,14 @@ class TestResolveSyntax(UnitTestCase):
 	"""Syntax resolution: profile override → Peppol signals → CII default; only
 	EN16931/XRechnung profiles may go UBL."""
 
-	def _resolve(self, profile="EN16931", default_syntax=None, directory_type=None,
-			identifier=None, routing_line="LINE-1"):
+	def _resolve(
+		self,
+		profile="EN16931",
+		default_syntax=None,
+		directory_type=None,
+		identifier=None,
+		routing_line="LINE-1",
+	):
 		sales_invoice = frappe._dict(
 			{"etransaction_profile": profile, "customer": "CUST-1", "customer_address": None}
 		)

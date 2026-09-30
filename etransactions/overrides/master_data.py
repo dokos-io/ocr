@@ -91,9 +91,7 @@ def apply_default_etransaction_profile(doc, method=None):
 	if doc.get("etransaction_profile") or not doc.get("siren_number"):
 		return
 
-	default_profile = frappe.db.get_single_value(
-		"eTransactions Settings", "default_etransaction_profile"
-	)
+	default_profile = frappe.db.get_single_value("eTransactions Settings", "default_etransaction_profile")
 	if not default_profile:
 		return
 

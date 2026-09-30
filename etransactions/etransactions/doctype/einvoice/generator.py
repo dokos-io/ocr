@@ -2,6 +2,7 @@ import mimetypes
 import os
 from typing import TYPE_CHECKING
 
+import frappe
 from drafthorse.models.accounting import ApplicableTradeTax, AppliedTradeTax
 from drafthorse.models.document import Document, IncludedNote
 from drafthorse.models.party import LegalOrganization, TaxRegistration
@@ -9,17 +10,14 @@ from drafthorse.models.payment import PaymentTerms
 from drafthorse.models.references import AdditionalReferencedDocument
 from drafthorse.models.trade import LogisticsServiceCharge
 from drafthorse.models.tradelines import LineItem
-
-import frappe
 from frappe import _
 from frappe.core.doctype.file.utils import find_file_by_url
 from frappe.core.utils import html2text
 from frappe.utils.data import date_diff, flt, getdate, to_markdown
 
 from etransactions.common_codes import CommonCodeRetriever
-from etransactions.utils import EInvoiceProfile, get_guideline, as_base_64
+from etransactions.utils import EInvoiceProfile, as_base_64, get_guideline
 from etransactions.utils.vat import validate_vat_id
-
 
 if TYPE_CHECKING:
 	from erpnext.accounts.doctype.sales_invoice.sales_invoice import SalesInvoice
@@ -27,6 +25,7 @@ if TYPE_CHECKING:
 	from erpnext.setup.doctype.company.company import Company
 	from frappe.contacts.doctype.address.address import Address
 	from frappe.contacts.doctype.contact.contact import Contact
+
 	from etransactions.etransactions.doctype.einvoice.einvoice import eInvoice
 	from etransactions.etransactions.doctype.einvoice_item.einvoice_item import eInvoiceItem
 
@@ -250,7 +249,7 @@ class EInvoiceMapper:
 			self.buyer_contact = frappe.get_doc("Contact", self.sales_invoice.contact_person)
 
 	def map_electronic_addresses(self):
-		from etransactions.plateforme_agreee.routing import resolve_routing, identifier_to_electronic_address
+		from etransactions.plateforme_agreee.routing import identifier_to_electronic_address, resolve_routing
 		from etransactions.utils.hooks import first_hook_result
 
 		def resolve_address(scheme_common_code, raw_value):
@@ -275,7 +274,10 @@ class EInvoiceMapper:
 			scheme, value = identifier_to_electronic_address(seller_identifier)
 			self.einvoice.seller_electronic_address_scheme = scheme
 			self.einvoice.seller_electronic_address = value
-		elif self.company.etransactions_electronic_address_scheme and self.company.etransactions_electronic_address:
+		elif (
+			self.company.etransactions_electronic_address_scheme
+			and self.company.etransactions_electronic_address
+		):
 			scheme, value = resolve_address(
 				self.company.etransactions_electronic_address_scheme,
 				self.company.etransactions_electronic_address,
@@ -296,15 +298,16 @@ class EInvoiceMapper:
 			"Customer", self.sales_invoice.customer, self.sales_invoice.get("customer_address")
 		)
 		buyer_identifier = (
-			frappe.db.get_value("eInvoicing Directory Line", line_name, "identifier")
-			if line_name
-			else None
+			frappe.db.get_value("eInvoicing Directory Line", line_name, "identifier") if line_name else None
 		)
 		if buyer_identifier:
 			scheme, value = identifier_to_electronic_address(buyer_identifier)
 			self.einvoice.buyer_electronic_address_scheme = scheme
 			self.einvoice.buyer_electronic_address = value
-		elif self.customer.etransactions_electronic_address_scheme and self.customer.etransactions_electronic_address:
+		elif (
+			self.customer.etransactions_electronic_address_scheme
+			and self.customer.etransactions_electronic_address
+		):
 			scheme, value = resolve_address(
 				self.customer.etransactions_electronic_address_scheme,
 				self.customer.etransactions_electronic_address,
@@ -385,7 +388,9 @@ class EInvoiceMapper:
 			)
 
 	def map_payment_means(self):
-		modes_of_payment = {ps.mode_of_payment for ps in self.sales_invoice.payment_schedule if ps.mode_of_payment}
+		modes_of_payment = {
+			ps.mode_of_payment for ps in self.sales_invoice.payment_schedule if ps.mode_of_payment
+		}
 		for mode_of_payment in modes_of_payment:
 			iban, bic = get_bank_details(mode_of_payment, self.sales_invoice.company)
 			if not iban:
@@ -670,9 +675,7 @@ class EInvoiceGenerator:
 				)
 				is_vat_added = True
 			except ValueError:
-				self.doc.trade.agreement.seller.tax_registrations.add(
-					TaxRegistration(id=("FC", raw))
-				)
+				self.doc.trade.agreement.seller.tax_registrations.add(TaxRegistration(id=("FC", raw)))
 
 		# Add SIREN as BT-32 (FC) when: the primary ID is a VAT number (so SIREN is separate),
 		# or when there is no Tax ID at all but a SIREN is known (satisfies BR-CO-26).
@@ -777,9 +780,7 @@ class EInvoiceGenerator:
 		if not self.shipping_address:
 			return
 
-		self.doc.trade.delivery.ship_to.name = (
-			self.shipping_address.address_title or self.einvoice.buyer_name
-		)
+		self.doc.trade.delivery.ship_to.name = self.shipping_address.address_title or self.einvoice.buyer_name
 		self.doc.trade.delivery.ship_to.address.line_one = self.shipping_address.address_line1
 		self.doc.trade.delivery.ship_to.address.line_two = self.shipping_address.address_line2
 		self.doc.trade.delivery.ship_to.address.postcode = self.shipping_address.pincode
@@ -988,7 +989,9 @@ class EInvoiceGenerator:
 			self.doc.trade.settlement.payment_means.payee_account.iban = self.einvoice.payee_iban
 
 			if self.profile >= EInvoiceProfile.EN16931:
-				self.doc.trade.settlement.payment_means.payee_account.account_name = self.einvoice.payee_account_name
+				self.doc.trade.settlement.payment_means.payee_account.account_name = (
+					self.einvoice.payee_account_name
+				)
 				self.doc.trade.settlement.payment_means.payee_institution.bic = self.einvoice.payee_bic
 
 	def _set_totals(self):
@@ -1000,9 +1003,7 @@ class EInvoiceGenerator:
 			self.doc.trade.settlement.monetary_summation.charge_total = flt(self.einvoice.charge_total, 2)
 
 		# [BR-DEC-12]-The allowed maximum number of decimals for the Invoice total amount without VAT (BT-109) is 2.
-		self.doc.trade.settlement.monetary_summation.tax_basis_total = flt(
-			self.einvoice.tax_basis_total, 2
-		)
+		self.doc.trade.settlement.monetary_summation.tax_basis_total = flt(self.einvoice.tax_basis_total, 2)
 
 		# [BR-DEC-13]-The allowed maximum number of decimals for the Invoice total VAT amount (BT-110) is 2.
 		self.doc.trade.settlement.monetary_summation.tax_total_other_currency.add(

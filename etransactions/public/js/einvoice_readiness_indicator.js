@@ -68,7 +68,9 @@ etransactions.EinvoiceReadinessIndicator = class EinvoiceReadinessIndicator {
 	render_pill() {
 		if (!this.$root) return;
 		const [color, label] = this.readiness_state();
-		this.$root.find(".et-readiness-pill").html(`<span class="indicator-pill ${color}">${label}</span>`);
+		this.$root
+			.find(".et-readiness-pill")
+			.html(`<span class="indicator-pill ${color}">${label}</span>`);
 	}
 
 	render_body() {
@@ -76,19 +78,28 @@ etransactions.EinvoiceReadinessIndicator = class EinvoiceReadinessIndicator {
 		const $body = this.$root.find(".et-readiness-body").empty();
 
 		if (this.frm.is_new()) {
-			$body.html(`<div class="text-muted small">${__("Save first to evaluate e-invoicing readiness.")}</div>`);
+			$body.html(
+				`<div class="text-muted small">${__(
+					"Save first to evaluate e-invoicing readiness."
+				)}</div>`
+			);
 			return;
 		}
 
 		const findings = this.findings || [];
 		if (!findings.length) {
-			$body.html(`<div class="et-wiz-ready">${frappe.utils.icon("tick-circle", "lg")} <span>${__("This party is ready for electronic invoicing.")}</span></div>`);
+			$body.html(
+				`<div class="et-wiz-ready">${frappe.utils.icon("tick-circle", "lg")} <span>${__(
+					"This party is ready for electronic invoicing."
+				)}</span></div>`
+			);
 			return;
 		}
 
 		const $ul = $('<div class="et-wiz-checklist"></div>').appendTo($body);
 		findings.forEach((f) => {
-			const color = f.severity === "error" ? "red" : f.severity === "warning" ? "orange" : "blue";
+			const color =
+				f.severity === "error" ? "red" : f.severity === "warning" ? "orange" : "blue";
 			const $row = $(`
 				<div class="et-wiz-check">
 					<span class="et-wiz-dot ${color}"></span>
@@ -144,14 +155,18 @@ etransactions.EinvoiceReadinessIndicator = class EinvoiceReadinessIndicator {
 		}
 
 		const $row = $('<div class="et-readiness-routing-row"></div>');
-		$('<span class="et-readiness-routing-summary text-muted small"></span>').text(summary).appendTo($row);
+		$('<span class="et-readiness-routing-summary text-muted small"></span>')
+			.text(summary)
+			.appendTo($row);
 
 		if (this.sync_action && !d.directory_pinned) {
 			const synced = !!d.directory_update_date;
 			const $btn = $(
-				`<button type="button" class="btn btn-xs ${synced ? "btn-default" : "btn-primary"} et-readiness-sync">${
+				`<button type="button" class="btn btn-xs ${
+					synced ? "btn-default" : "btn-primary"
+				} et-readiness-sync">${
 					synced ? __("Re-sync directory") : __("Sync directory")
-				}</button>`,
+				}</button>`
 			);
 			$btn.on("click", () => this.sync_action());
 			$row.append($btn);

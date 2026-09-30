@@ -7,8 +7,12 @@ frappe.ui.form.on("Customer", {
 		// feature is activated in eTransactions Settings.
 		if (!frappe.boot.einvoicing_enabled) return;
 
-		if (frm.fields_dict.etransactions_wizard_html && etransactions.EinvoiceReadinessIndicator) {
-			frm._et_readiness = frm._et_readiness || new etransactions.EinvoiceReadinessIndicator(frm);
+		if (
+			frm.fields_dict.etransactions_wizard_html &&
+			etransactions.EinvoiceReadinessIndicator
+		) {
+			frm._et_readiness =
+				frm._et_readiness || new etransactions.EinvoiceReadinessIndicator(frm);
 			// The widget surfaces the single "Sync directory" action; we own the
 			// company-picker. Sync is meaningless until the customer is saved.
 			frm._et_readiness.sync_action = frm.is_new() ? null : () => _sync_with_picker(frm);
@@ -26,7 +30,11 @@ frappe.ui.form.on("Customer", {
 		// Pappers (ERPNext France) does the same French company lookup; only offer SIRENE
 		// when Pappers is not enabled, to avoid two redundant autofill entry points.
 		if (etransactions.sirene && !frappe.boot.pappers_enabled) {
-			frm.add_custom_button(__("Fill from SIRENE"), () => etransactions.sirene.open(frm), __("eInvoicing"));
+			frm.add_custom_button(
+				__("Fill from SIRENE"),
+				() => etransactions.sirene.open(frm),
+				__("eInvoicing")
+			);
 		}
 
 		_render_establishments(frm);
@@ -58,7 +66,7 @@ function _sync_with_picker(frm) {
 					},
 					({ company }) => _do_sync(frm, company),
 					__("Select Company"),
-					__("Sync"),
+					__("Sync")
 				);
 			}
 		});
@@ -85,11 +93,19 @@ function _render_establishments(frm) {
 	const $wrap = $(field.wrapper).empty();
 
 	if (frm.is_new()) {
-		$wrap.html(`<div class="text-muted small">${__("Save the customer first to see its establishments and routing.")}</div>`);
+		$wrap.html(
+			`<div class="text-muted small">${__(
+				"Save the customer first to see its establishments and routing."
+			)}</div>`
+		);
 		return;
 	}
 
-	$wrap.html(`<div class="text-muted small">${frappe.utils.icon("loading-indicator")} ${__("Loading establishments…")}</div>`);
+	$wrap.html(
+		`<div class="text-muted small">${frappe.utils.icon("loading-indicator")} ${__(
+			"Loading establishments…"
+		)}</div>`
+	);
 
 	frappe.call({
 		method: "etransactions.plateforme_agreee.directory.get_party_establishments",
@@ -101,7 +117,11 @@ function _render_establishments(frm) {
 function _draw_establishments($wrap, rows) {
 	$wrap.empty();
 	if (!rows.length) {
-		$wrap.html(`<div class="text-muted small">${__("No addresses linked to this customer yet.")}</div>`);
+		$wrap.html(
+			`<div class="text-muted small">${__(
+				"No addresses linked to this customer yet."
+			)}</div>`
+		);
 		return;
 	}
 
@@ -134,7 +154,9 @@ function _draw_establishments($wrap, rows) {
 			</tr>
 		`);
 		const $open = $(
-			`<button type="button" class="et-icon-btn" aria-label="${__("Open address {0}", [esc(row.title || row.address)])}" title="${__("Open address")}">${frappe.utils.icon("edit", "sm")}</button>`,
+			`<button type="button" class="et-icon-btn" aria-label="${__("Open address {0}", [
+				esc(row.title || row.address),
+			])}" title="${__("Open address")}">${frappe.utils.icon("edit", "sm")}</button>`
 		);
 		$open.on("click", () => frappe.set_route("Form", "Address", row.address));
 		$row.find(".et-estab-actions").append($open);
@@ -152,7 +174,11 @@ function _routing_cell(row) {
 	}
 	if (line) {
 		const color =
-			line.line_status === "active" ? "green" : line.line_status === "upcoming" ? "blue" : "gray";
+			line.line_status === "active"
+				? "green"
+				: line.line_status === "upcoming"
+				? "blue"
+				: "gray";
 		const status_labels = {
 			upcoming: __("Upcoming"),
 			active: __("Active"),
@@ -160,10 +186,14 @@ function _routing_cell(row) {
 			inactive: __("Inactive"),
 		};
 		const label =
-			line.routing_code_name || status_labels[line.line_status] || __(line.line_status || "");
+			line.routing_code_name ||
+			status_labels[line.line_status] ||
+			__(line.line_status || "");
 		let html = `<span class="indicator-pill ${color}">${esc(label)}</span>`;
 		if (line.commitment_required) {
-			html += ` <span class="et-estab-commit" title="${__("Every invoice to this route needs a purchase-order / commitment number.")}">${__("commitment required")}</span>`;
+			html += ` <span class="et-estab-commit" title="${__(
+				"Every invoice to this route needs a purchase-order / commitment number."
+			)}">${__("commitment required")}</span>`;
 		}
 		return html;
 	}

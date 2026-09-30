@@ -225,20 +225,23 @@ def _company_has_platform(r: dict) -> bool:
 
 
 def _company_row(company: str) -> dict:
-	row = frappe.db.get_value(
-		"Company",
-		company,
-		[
-			"name",
-			"siren_number",
-			"tax_id",
-			"email",
-			"etransactions_electronic_address_scheme",
-			"etransactions_electronic_address",
-			"etransactions_vat_regime",
-		],
-		as_dict=True,
-	) or {}
+	row = (
+		frappe.db.get_value(
+			"Company",
+			company,
+			[
+				"name",
+				"siren_number",
+				"tax_id",
+				"email",
+				"etransactions_electronic_address_scheme",
+				"etransactions_electronic_address",
+				"etransactions_vat_regime",
+			],
+			as_dict=True,
+		)
+		or {}
+	)
 	_attach_address(row, "Company", company, None)
 	return row
 
@@ -365,23 +368,26 @@ def party_findings_from_row(row: dict, party_type: str = "Customer") -> list[str
 
 
 def _customer_row(party: str) -> dict:
-	row = frappe.db.get_value(
-		"Customer",
-		party,
-		[
-			"siren_number",
-			"tax_id",
-			"directory_type",
-			"directory_entity_type",
-			"directory_query_siren",
-			"directory_query_siret",
-			"customer_primary_contact",
-			"email_id",
-			"customer_primary_address",
-			"etransaction_profile",
-		],
-		as_dict=True,
-	) or {}
+	row = (
+		frappe.db.get_value(
+			"Customer",
+			party,
+			[
+				"siren_number",
+				"tax_id",
+				"directory_type",
+				"directory_entity_type",
+				"directory_query_siren",
+				"directory_query_siret",
+				"customer_primary_contact",
+				"email_id",
+				"customer_primary_address",
+				"etransaction_profile",
+			],
+			as_dict=True,
+		)
+		or {}
+	)
 	_attach_address(row, "Customer", party, row.get("customer_primary_address"))
 	return row
 
@@ -476,6 +482,7 @@ def _ereporting_findings(doc) -> list[Finding]:
 	try:
 		from etransactions.plateforme_agreee.classification import TransactionClass, classify_transaction
 		from etransactions.plateforme_agreee.ereporting import should_ereport_sale
+
 		if not should_ereport_sale(doc):
 			return out
 		cls = classify_transaction(doc.company, "Customer", doc.customer, doc.get("customer_address"))
@@ -701,7 +708,10 @@ def _seller_has_electronic_address(doc) -> bool:
 		as_dict=True,
 	)
 	if company_doc:
-		if company_doc.etransactions_electronic_address_scheme and company_doc.etransactions_electronic_address:
+		if (
+			company_doc.etransactions_electronic_address_scheme
+			and company_doc.etransactions_electronic_address
+		):
 			return True
 		if company_doc.email:
 			return True
@@ -719,7 +729,11 @@ def _routing_findings(doc) -> list[Finding]:
 	if not doc.get("company") or not get_platform_settings(doc.company):
 		return out
 
-	entity_type = frappe.db.get_value("Customer", doc.customer, "directory_entity_type") if doc.get("customer") else None
+	entity_type = (
+		frappe.db.get_value("Customer", doc.customer, "directory_entity_type")
+		if doc.get("customer")
+		else None
+	)
 	if entity_type not in ("private", "public"):
 		return out
 
@@ -738,13 +752,17 @@ def _routing_findings(doc) -> list[Finding]:
 				),
 			)
 		)
-	elif frappe.db.get_value("eInvoicing Directory Line", line, "commitment_required") and not doc.get("po_no"):
+	elif frappe.db.get_value("eInvoicing Directory Line", line, "commitment_required") and not doc.get(
+		"po_no"
+	):
 		out.append(
 			Finding(
 				"commitment_reference",
 				"warning",
 				_("Routing requires a commitment reference"),
-				detail=_("The selected directory line requires a commitment reference (Customer's Purchase Order No)."),
+				detail=_(
+					"The selected directory line requires a commitment reference (Customer's Purchase Order No)."
+				),
 				fix_field="po_no",
 			)
 		)
@@ -779,7 +797,10 @@ def _tax_findings(doc) -> list[Finding]:
 					),
 				)
 			)
-		if tax_row.charge_type == "Actual" and EInvoiceProfile(doc.etransaction_profile) < EInvoiceProfile.EXTENDED:
+		if (
+			tax_row.charge_type == "Actual"
+			and EInvoiceProfile(doc.etransaction_profile) < EInvoiceProfile.EXTENDED
+		):
 			out.append(
 				Finding(
 					f"tax_actual_{tax_row.idx}",
@@ -797,7 +818,9 @@ def _payment_schedule_findings(doc) -> list[Finding]:
 	from frappe.utils.data import date_diff
 
 	out: list[Finding] = []
-	ps_label = _(doc.meta.get_label("payment_schedule")) if getattr(doc, "meta", None) else _("Payment Schedule")
+	ps_label = (
+		_(doc.meta.get_label("payment_schedule")) if getattr(doc, "meta", None) else _("Payment Schedule")
+	)
 	modes_of_payment = set()
 	for ps in doc.get("payment_schedule") or []:
 		if ps.discount_date and date_diff(ps.discount_date, doc.posting_date) < 0:
@@ -858,7 +881,9 @@ def _split_reasons(text: str | None) -> list[str]:
 	return parts
 
 
-def _platform_finding(key: str, message: str, severity: str, company: str | None, customer: str | None) -> Finding:
+def _platform_finding(
+	key: str, message: str, severity: str, company: str | None, customer: str | None
+) -> Finding:
 	"""Map one platform/schematron message to a Finding with a fix target."""
 	low = message.lower()
 	target = None
@@ -894,9 +919,7 @@ def findings_from_platform_errors(einvoice: str) -> list[dict]:
 		return []
 
 	customer = (
-		frappe.db.get_value("Sales Invoice", row.sales_invoice, "customer")
-		if row.sales_invoice
-		else None
+		frappe.db.get_value("Sales Invoice", row.sales_invoice, "customer") if row.sales_invoice else None
 	)
 
 	out: list[Finding] = []
