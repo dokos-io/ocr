@@ -22,6 +22,7 @@ from etransactions.tests.fixtures import (
 from etransactions.tests.ui_test_fixtures import (
 	SUPPLIER,
 	SUPPLIER_TAX_ID,
+	allow_repeated_items,
 	receive_incoming_flow,
 	record_lifecycle_event,
 )
@@ -130,6 +131,7 @@ class TestUIFixtureEndpoints(eTransactionsTestSuite):
 		# grid; here it is set directly.
 		for item in supplier_invoice.items:
 			item.item_code = "_Test Item 1"
+		allow_repeated_items()
 		# The fixture invoice is denominated in EUR, while the shared test company keeps
 		# whatever currency erpnext's fixtures gave it. A Purchase Invoice in a foreign
 		# currency needs a payable account and an exchange rate in that currency, neither

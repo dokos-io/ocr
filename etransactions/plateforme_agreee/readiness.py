@@ -623,16 +623,17 @@ def _profile_findings(doc) -> list[Finding]:
 	customer = frappe.utils.sanitize_html(doc.get("customer"))
 	if not is_feature_enabled("profile_choice"):
 		# The profile is applied automatically: missing here means no default is set.
+		detail = _(
+			"This invoice is classified <b>{0}</b> and falls under the French e-invoicing"
+			" mandate, but no default <b>eTransaction Profile</b> could be applied. Check"
+			" that the EN16931 profile exists, or enable profile choice in eTransactions Settings."
+		).format(cls.value)
 		return [
 			Finding(
 				"missing_profile",
 				"warning",
 				_("No e-invoice will be generated: no default e-invoicing profile is available"),
-				detail=_(
-					"This invoice is classified <b>{0}</b> and falls under the French e-invoicing"
-					" mandate, but no default <b>eTransaction Profile</b> could be applied. Check"
-					" that the EN16931 profile exists, or enable profile choice in eTransactions Settings."
-				).format(cls.value),
+				detail=detail,
 				**_SETTINGS_FIX,
 			)
 		]

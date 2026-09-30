@@ -69,6 +69,7 @@ def make_fixtures():
 		)
 
 	enable_einvoicing()
+	allow_repeated_items()
 	seed_company(COMPANY)
 	ensure_default_expense_account(COMPANY)
 	seed_item()
@@ -99,6 +100,16 @@ def enable_einvoicing():
 	settings.auto_send_payment = 0
 	settings.flags.ignore_permissions = True
 	settings.save()
+
+
+def allow_repeated_items():
+	"""Let a Purchase Invoice carry the same item on several lines.
+
+	The received lines carry the seller's product ids, which match no Dokos Item, so the
+	specs pick the same test item for every line — and a Purchase Invoice refuses a
+	repeated item unless Buying Settings allows it.
+	"""
+	frappe.db.set_single_value("Buying Settings", "allow_multiple_items", 1)
 
 
 def make_supplier() -> str:
