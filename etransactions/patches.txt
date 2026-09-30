@@ -26,3 +26,4 @@ etransactions.patches.backfill_einvoice_title # 20260907
 etransactions.patches.backfill_enable_einvoicing_for_receiving_sites # 20260907
 etransactions.patches.reset_einvoice_event_status_label # 20260916
 etransactions.patches.clear_stale_ocr_request_errors # 20260924
+etransactions.patches.enable_einvoicing_features_if_used # 20260930

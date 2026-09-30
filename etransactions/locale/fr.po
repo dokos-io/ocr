@@ -7628,3 +7628,110 @@ msgstr "{0} : Un seul mode de paiement sera pris en compte dans la facture élec
 #, python-brace-format
 msgid "{0}: {1}"
 msgstr "{0} : {1}"
+
+msgid "E-invoicing options"
+msgstr "Options de facturation électronique"
+
+msgid "By default, invoices are sent in Factur-X to French B2B customers, routed through the French directory. Enable the options below only if you need them."
+msgstr "Par défaut, les factures sont envoyées au format Factur-X aux clients professionnels français, en passant par l'annuaire national. N'activez les options ci-dessous que si vous en avez besoin."
+
+msgid "Peppol / UBL network"
+msgstr "Réseau Peppol / UBL"
+
+msgid "Reach customers on the Peppol network and send UBL invoices. Off: invoices are always sent in Factur-X through the French directory."
+msgstr "Atteindre des clients sur le réseau Peppol et envoyer des factures UBL. Désactivé : les factures sont toujours envoyées en Factur-X via l'annuaire national."
+
+msgid "Public sector (B2G / Chorus Pro)"
+msgstr "Secteur public (B2G / Chorus Pro)"
+
+msgid "Show the service code and contract reference required by public-sector customers (B2G / Chorus Pro)."
+msgstr "Afficher le code service et la référence de marché exigés par les clients du secteur public (B2G / Chorus Pro)."
+
+msgid "Choose Factur-X profile per customer"
+msgstr "Choisir le profil Factur-X par client"
+
+msgid "Choose the Factur-X profile per customer and invoice. Off: the default profile (EN16931) is applied automatically."
+msgstr "Choisir le profil Factur-X par client et par facture. Désactivé : le profil par défaut (EN16931) est appliqué automatiquement."
+
+msgid "Advanced routing & platform overrides"
+msgstr "Routage avancé et plateformes spécifiques"
+
+msgid "Show the routing line on orders and invoices, directory pinning and accredited platform overrides per customer or customer group."
+msgstr "Afficher la ligne de routage sur les commandes et factures, le verrouillage de l'annuaire et le choix d'une plateforme agréée par client ou groupe de clients."
+
+msgid "E-invoicing Address"
+msgstr "Adresse de facturation électronique"
+
+msgid "Default E-invoicing Address"
+msgstr "Adresse de facturation électronique par défaut"
+
+msgid "Used when the invoice address has no e-invoicing address of its own."
+msgstr "Utilisée lorsque l'adresse de la facture n'a pas sa propre adresse de facturation électronique."
+
+msgid "Invoices are sent to"
+msgstr "Les factures sont envoyées à"
+
+msgid "Several e-invoicing addresses"
+msgstr "Plusieurs adresses de facturation électronique"
+
+msgid "Choose the default one below."
+msgstr "Choisissez celle par défaut ci-dessous."
+
+msgid "Not found in the directory"
+msgstr "Introuvable dans l'annuaire"
+
+msgid "This customer cannot receive e-invoices yet."
+msgstr "Ce client ne peut pas encore recevoir de factures électroniques."
+
+msgid "Not synced yet"
+msgstr "Pas encore synchronisé"
+
+msgid "Sync the directory to find this customer's e-invoicing address."
+msgstr "Synchronisez l'annuaire pour trouver l'adresse de facturation électronique de ce client."
+
+msgid "Loading e-invoicing address…"
+msgstr "Chargement de l'adresse de facturation électronique…"
+
+msgid "Save the customer first to see its e-invoicing address."
+msgstr "Enregistrez d'abord le client pour voir son adresse de facturation électronique."
+
+msgid "Uses the customer's e-invoicing address"
+msgstr "Utilise l'adresse de facturation électronique du client"
+
+msgid "E-invoices for this address are sent to"
+msgstr "Les factures électroniques pour cette adresse sont envoyées à"
+
+msgid "This establishment"
+msgstr "Cet établissement"
+
+msgid "Customer's e-invoicing address"
+msgstr "Adresse de facturation électronique du client"
+
+msgid "No e-invoicing address"
+msgstr "Aucune adresse de facturation électronique"
+
+msgid "Sync the directory from the customer."
+msgstr "Synchronisez l'annuaire depuis le client."
+
+msgid "Open customer"
+msgstr "Ouvrir le client"
+
+#, python-brace-format
+msgid "Directory: {0} · synced {1}"
+msgstr "Annuaire : {0} · synchronisé {1}"
+
+msgid "No e-invoice will be generated: no default e-invoicing profile is available"
+msgstr "Aucune facture électronique ne sera générée : aucun profil de facturation électronique par défaut n'est disponible"
+
+#, python-brace-format
+msgid "This invoice is classified <b>{0}</b> and falls under the French e-invoicing mandate, but no default <b>eTransaction Profile</b> could be applied. Check that the EN16931 profile exists, or enable profile choice in eTransactions Settings."
+msgstr "Cette facture est classée <b>{0}</b> et relève de l'obligation française de facturation électronique, mais aucun <b>profil eTransaction</b> par défaut n'a pu être appliqué. Vérifiez que le profil EN16931 existe, ou activez le choix du profil dans les paramètres eTransactions."
+
+msgid "No accredited platform directory line could be resolved for this customer's establishment. Sync the directory on the customer, or choose its default e-invoicing address."
+msgstr "Aucune ligne d'annuaire de plateforme agréée n'a pu être déterminée pour l'établissement de ce client. Synchronisez l'annuaire depuis le client, ou choisissez son adresse de facturation électronique par défaut."
+
+msgid "Public-sector customer: enable the public sector option to fill the service code"
+msgstr "Client du secteur public : activez l'option secteur public pour renseigner le code service"
+
+msgid "This is a B2G invoice (public entity). The <b>service code</b> (BT-10) is usually required by Chorus Pro. Enable <b>Public sector (B2G / Chorus Pro)</b> in eTransactions Settings to fill it on the invoice or on the customer's billing address."
+msgstr "Il s'agit d'une facture B2G (entité publique). Le <b>code service</b> (BT-10) est généralement exigé par Chorus Pro. Activez <b>Secteur public (B2G / Chorus Pro)</b> dans les paramètres eTransactions pour le renseigner sur la facture ou sur l'adresse de facturation du client."

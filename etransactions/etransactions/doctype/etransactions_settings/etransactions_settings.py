@@ -1,8 +1,8 @@
 # Copyright (c) 2023, Dokos SAS and contributors
 # For license information, please see license.txt
 
-from erpnext.buying.doctype.buying_settings.buying_settings import BuyingSettings
 import frappe
+from erpnext.buying.doctype.buying_settings.buying_settings import BuyingSettings
 from frappe import _
 from frappe.model.document import Document
 
@@ -25,6 +25,11 @@ class eTransactionsSettings(Document):
 		block_submission_on_facturx_failure: DF.Check
 		default_business_process_code: DF.Data | None
 		default_etransaction_profile: DF.Link | None
+		enable_advanced_routing: DF.Check
+		enable_einvoicing: DF.Check
+		enable_peppol_network: DF.Check
+		enable_profile_choice: DF.Check
+		enable_public_sector: DF.Check
 		enable_receiving_einvoices: DF.Check
 		enable_sending_einvoices: DF.Check
 		generate_facturx_on_submit: DF.Check
@@ -38,13 +43,19 @@ class eTransactionsSettings(Document):
 	# end: auto-generated types
 
 	def validate(self):
-		if self.reconcile_with_purchase_receipts and (self.max_difference_amount or self.max_difference_percentage_on_net_total):
-			buying_settings: BuyingSettings = frappe.get_single("Buying Settings") # type: ignore
+		if self.reconcile_with_purchase_receipts and (
+			self.max_difference_amount or self.max_difference_percentage_on_net_total
+		):
+			buying_settings: BuyingSettings = frappe.get_single("Buying Settings")  # type: ignore
 			buying_settings.maintain_same_rate_action = "Warn"
 			buying_settings.save()
 
 			if self.max_difference_percentage_on_net_total:
-				frappe.db.set_single_value("Accounts Settings", "over_billing_allowance", self.max_difference_percentage_on_net_total + 0.01) # Hack to avoid rounding errors
+				frappe.db.set_single_value(
+					"Accounts Settings",
+					"over_billing_allowance",
+					self.max_difference_percentage_on_net_total + 0.01,
+				)  # Hack to avoid rounding errors
 
 	@frappe.whitelist()
 	def test_connection(self, company: str):
@@ -56,7 +67,9 @@ class eTransactionsSettings(Document):
 
 		platform_name = get_platform_for_context(company)
 		if not platform_name:
-			frappe.throw(_("No eTransactions Accredited Platform configured for company {0}.").format(company))
+			frappe.throw(
+				_("No eTransactions Accredited Platform configured for company {0}.").format(company)
+			)
 
 		result = check_platform_health(platform_name)
 		if result["status"] == "ok":

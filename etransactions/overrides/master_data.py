@@ -18,6 +18,7 @@ keeps the non-EAS schemes out of the picker in the first place.
 import frappe
 from frappe import _
 
+from etransactions.features import is_feature_enabled
 from etransactions.plateforme_agreee.routing import EAS_CODES, is_valid_eas_scheme
 
 
@@ -83,17 +84,16 @@ def apply_default_etransaction_profile(doc, method=None):
 	"""Default the e-invoicing profile on French B2B customers (Customer.validate).
 
 	The eTransaction Profile is the master switch for the whole pipeline — a
-	missing profile silently disables e-invoicing. When eTransactions Settings
-	carries a ``default_etransaction_profile``, apply it to customers that look
-	like French businesses (SIREN present, primary address French or unset),
-	with a message so the change is never silent.
+	missing profile silently disables e-invoicing. Apply the default profile (see
+	get_default_etransaction_profile) to customers that look like French
+	businesses (SIREN present, primary address French or unset) — with a message
+	when profiles are user-chosen, silently otherwise since the field is hidden.
 	"""
 	if doc.get("etransaction_profile") or not doc.get("siren_number"):
 		return
 
-	default_profile = frappe.db.get_single_value(
-		"eTransactions Settings", "default_etransaction_profile"
-	)
+	profile_choice = is_feature_enabled("profile_choice")
+	default_profile = get_default_etransaction_profile()
 	if not default_profile:
 		return
 
@@ -102,6 +102,9 @@ def apply_default_etransaction_profile(doc, method=None):
 		return
 
 	doc.etransaction_profile = default_profile
+	# Without profile choice, the profile is an invisible implementation detail.
+	if not profile_choice:
+		return
 	frappe.msgprint(
 		_(
 			"The default e-invoicing profile <b>{0}</b> was applied to this customer"
@@ -110,3 +113,19 @@ def apply_default_etransaction_profile(doc, method=None):
 		alert=True,
 		indicator="blue",
 	)
+
+
+DEFAULT_PROFILE = "EN16931"
+
+
+def get_default_etransaction_profile() -> str | None:
+	"""The profile applied to French B2B customers.
+
+	The eTransactions Settings default, or EN16931 when profile choice is off — the
+	profile every accredited platform accepts for French B2B Factur-X invoices.
+	"""
+	default_profile = frappe.db.get_single_value("eTransactions Settings", "default_etransaction_profile")
+	if not default_profile and not is_feature_enabled("profile_choice"):
+		if frappe.db.exists("eTransaction Profile", DEFAULT_PROFILE):
+			default_profile = DEFAULT_PROFILE
+	return default_profile

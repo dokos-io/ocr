@@ -25,6 +25,7 @@ from typing import Callable
 import frappe
 from frappe import _
 
+from etransactions.features import is_feature_enabled
 from etransactions.utils import EInvoiceProfile
 from etransactions.utils.siren import is_valid_siren, vat_matches_siren
 
@@ -90,7 +91,21 @@ class CheckSpec:
 
 
 def customer_check_specs() -> list[CheckSpec]:
-	"""Ordered customer readiness checks. Built per request so ``_()`` resolves."""
+	"""Ordered customer readiness checks. Built per request so ``_()`` resolves.
+
+	Checks on a field of a disabled optional feature are left out: the profile is
+	applied automatically without profile choice, and every customer is on the
+	French directory without the Peppol network.
+	"""
+	hidden = set()
+	if not is_feature_enabled("profile_choice"):
+		hidden.add("profile")
+	if not is_feature_enabled("peppol"):
+		hidden.add("peppol_directory_supported")
+	return [spec for spec in _customer_check_specs() if spec.key not in hidden]
+
+
+def _customer_check_specs() -> list[CheckSpec]:
 	return [
 		CheckSpec("siren", _("SIREN number"), True, lambda r: bool(r.get("siren_number")), "siren_number"),
 		CheckSpec("siren_valid", _("Valid SIREN number"), False, _siren_valid, "siren_number"),
@@ -225,20 +240,23 @@ def _company_has_platform(r: dict) -> bool:
 
 
 def _company_row(company: str) -> dict:
-	row = frappe.db.get_value(
-		"Company",
-		company,
-		[
-			"name",
-			"siren_number",
-			"tax_id",
-			"email",
-			"etransactions_electronic_address_scheme",
-			"etransactions_electronic_address",
-			"etransactions_vat_regime",
-		],
-		as_dict=True,
-	) or {}
+	row = (
+		frappe.db.get_value(
+			"Company",
+			company,
+			[
+				"name",
+				"siren_number",
+				"tax_id",
+				"email",
+				"etransactions_electronic_address_scheme",
+				"etransactions_electronic_address",
+				"etransactions_vat_regime",
+			],
+			as_dict=True,
+		)
+		or {}
+	)
 	_attach_address(row, "Company", company, None)
 	return row
 
@@ -365,23 +383,26 @@ def party_findings_from_row(row: dict, party_type: str = "Customer") -> list[str
 
 
 def _customer_row(party: str) -> dict:
-	row = frappe.db.get_value(
-		"Customer",
-		party,
-		[
-			"siren_number",
-			"tax_id",
-			"directory_type",
-			"directory_entity_type",
-			"directory_query_siren",
-			"directory_query_siret",
-			"customer_primary_contact",
-			"email_id",
-			"customer_primary_address",
-			"etransaction_profile",
-		],
-		as_dict=True,
-	) or {}
+	row = (
+		frappe.db.get_value(
+			"Customer",
+			party,
+			[
+				"siren_number",
+				"tax_id",
+				"directory_type",
+				"directory_entity_type",
+				"directory_query_siren",
+				"directory_query_siret",
+				"customer_primary_contact",
+				"email_id",
+				"customer_primary_address",
+				"etransaction_profile",
+			],
+			as_dict=True,
+		)
+		or {}
+	)
 	_attach_address(row, "Customer", party, row.get("customer_primary_address"))
 	return row
 
@@ -476,6 +497,7 @@ def _ereporting_findings(doc) -> list[Finding]:
 	try:
 		from etransactions.plateforme_agreee.classification import TransactionClass, classify_transaction
 		from etransactions.plateforme_agreee.ereporting import should_ereport_sale
+
 		if not should_ereport_sale(doc):
 			return out
 		cls = classify_transaction(doc.company, "Customer", doc.customer, doc.get("customer_address"))
@@ -503,6 +525,10 @@ def _ereporting_findings(doc) -> list[Finding]:
 			)
 		)
 	return out
+
+
+# Fix target for a finding whose field belongs to a disabled optional feature.
+_SETTINGS_FIX = {"fix_doctype": "eTransactions Settings", "fix_name": "eTransactions Settings"}
 
 
 def evaluate_einvoice_readiness(doc) -> list[Finding]:
@@ -595,6 +621,22 @@ def _profile_findings(doc) -> list[Finding]:
 		return []
 
 	customer = frappe.utils.sanitize_html(doc.get("customer"))
+	if not is_feature_enabled("profile_choice"):
+		# The profile is applied automatically: missing here means no default is set.
+		detail = _(
+			"This invoice is classified <b>{0}</b> and falls under the French e-invoicing"
+			" mandate, but no default <b>eTransaction Profile</b> could be applied. Check"
+			" that the EN16931 profile exists, or enable profile choice in eTransactions Settings."
+		).format(cls.value)
+		return [
+			Finding(
+				"missing_profile",
+				"warning",
+				_("No e-invoice will be generated: no default e-invoicing profile is available"),
+				detail=detail,
+				**_SETTINGS_FIX,
+			)
+		]
 	return [
 		Finding(
 			"missing_profile",
@@ -701,7 +743,10 @@ def _seller_has_electronic_address(doc) -> bool:
 		as_dict=True,
 	)
 	if company_doc:
-		if company_doc.etransactions_electronic_address_scheme and company_doc.etransactions_electronic_address:
+		if (
+			company_doc.etransactions_electronic_address_scheme
+			and company_doc.etransactions_electronic_address
+		):
 			return True
 		if company_doc.email:
 			return True
@@ -719,7 +764,11 @@ def _routing_findings(doc) -> list[Finding]:
 	if not doc.get("company") or not get_platform_settings(doc.company):
 		return out
 
-	entity_type = frappe.db.get_value("Customer", doc.customer, "directory_entity_type") if doc.get("customer") else None
+	entity_type = (
+		frappe.db.get_value("Customer", doc.customer, "directory_entity_type")
+		if doc.get("customer")
+		else None
+	)
 	if entity_type not in ("private", "public"):
 		return out
 
@@ -734,22 +783,43 @@ def _routing_findings(doc) -> list[Finding]:
 				_("No accredited-platform routing line for this establishment"),
 				detail=_(
 					"No accredited platform directory line could be resolved for this customer's "
-					"establishment. Set a default routing line on the customer, or sync the directory."
+					"establishment. Sync the directory on the customer, or choose its default e-invoicing address."
 				),
+				fix_doctype="Customer",
+				fix_name=doc.customer,
 			)
 		)
-	elif frappe.db.get_value("eInvoicing Directory Line", line, "commitment_required") and not doc.get("po_no"):
+	elif frappe.db.get_value("eInvoicing Directory Line", line, "commitment_required") and not doc.get(
+		"po_no"
+	):
 		out.append(
 			Finding(
 				"commitment_reference",
 				"warning",
 				_("Routing requires a commitment reference"),
-				detail=_("The selected directory line requires a commitment reference (Customer's Purchase Order No)."),
+				detail=_(
+					"The selected directory line requires a commitment reference (Customer's Purchase Order No)."
+				),
 				fix_field="po_no",
 			)
 		)
 
 	if entity_type == "public" and not doc.get("etransactions_buyer_reference"):
+		if not is_feature_enabled("public_sector"):
+			out.append(
+				Finding(
+					"b2g_service_code",
+					"warning",
+					_("Public-sector customer: enable the public sector option to fill the service code"),
+					detail=_(
+						"This is a B2G invoice (public entity). The <b>service code</b> (BT-10) is usually"
+						" required by Chorus Pro. Enable <b>Public sector (B2G / Chorus Pro)</b> in"
+						" eTransactions Settings to fill it on the invoice or on the customer's billing address."
+					),
+					**_SETTINGS_FIX,
+				)
+			)
+			return out
 		out.append(
 			Finding(
 				"b2g_service_code",
@@ -779,7 +849,10 @@ def _tax_findings(doc) -> list[Finding]:
 					),
 				)
 			)
-		if tax_row.charge_type == "Actual" and EInvoiceProfile(doc.etransaction_profile) < EInvoiceProfile.EXTENDED:
+		if (
+			tax_row.charge_type == "Actual"
+			and EInvoiceProfile(doc.etransaction_profile) < EInvoiceProfile.EXTENDED
+		):
 			out.append(
 				Finding(
 					f"tax_actual_{tax_row.idx}",
@@ -797,7 +870,9 @@ def _payment_schedule_findings(doc) -> list[Finding]:
 	from frappe.utils.data import date_diff
 
 	out: list[Finding] = []
-	ps_label = _(doc.meta.get_label("payment_schedule")) if getattr(doc, "meta", None) else _("Payment Schedule")
+	ps_label = (
+		_(doc.meta.get_label("payment_schedule")) if getattr(doc, "meta", None) else _("Payment Schedule")
+	)
 	modes_of_payment = set()
 	for ps in doc.get("payment_schedule") or []:
 		if ps.discount_date and date_diff(ps.discount_date, doc.posting_date) < 0:
@@ -858,7 +933,9 @@ def _split_reasons(text: str | None) -> list[str]:
 	return parts
 
 
-def _platform_finding(key: str, message: str, severity: str, company: str | None, customer: str | None) -> Finding:
+def _platform_finding(
+	key: str, message: str, severity: str, company: str | None, customer: str | None
+) -> Finding:
 	"""Map one platform/schematron message to a Finding with a fix target."""
 	low = message.lower()
 	target = None
@@ -894,9 +971,7 @@ def findings_from_platform_errors(einvoice: str) -> list[dict]:
 		return []
 
 	customer = (
-		frappe.db.get_value("Sales Invoice", row.sales_invoice, "customer")
-		if row.sales_invoice
-		else None
+		frappe.db.get_value("Sales Invoice", row.sales_invoice, "customer") if row.sales_invoice else None
 	)
 
 	out: list[Finding] = []

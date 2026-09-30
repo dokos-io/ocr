@@ -40,8 +40,9 @@ app_include_css = "etransactions.bundle.css"
 
 # include js in doctype views
 doctype_js = {
-	"Communication" : "public/js/communication.js",
+	"Communication": "public/js/communication.js",
 	"Customer": "public/js/customer.js",
+	"Address": "public/js/address.js",
 	"Supplier": "public/js/supplier.js",
 	"Company": "public/js/company.js",
 	"Purchase Invoice": "public/js/purchase_invoice.js",
@@ -75,7 +76,7 @@ boot_session = "etransactions.boot.boot_session"
 
 # website user home page (by Role)
 # role_home_page = {
-#	"Role": "home_page"
+# "Role": "home_page"
 # }
 
 # Generators
@@ -97,8 +98,8 @@ website_route_rules = [
 
 # add methods and filters to jinja environment
 # jinja = {
-#	"methods": "etransactions.utils.jinja_methods",
-#	"filters": "etransactions.utils.jinja_filters"
+# "methods": "etransactions.utils.jinja_methods",
+# "filters": "etransactions.utils.jinja_filters"
 # }
 
 # Installation
@@ -144,11 +145,11 @@ importable_doctypes = ["eTransaction Profile"]
 # Permissions evaluated in scripted ways
 
 # permission_query_conditions = {
-#	"Event": "frappe.desk.doctype.event.event.get_permission_query_conditions",
+# "Event": "frappe.desk.doctype.event.event.get_permission_query_conditions",
 # }
 #
 # has_permission = {
-#	"Event": "frappe.desk.doctype.event.event.has_permission",
+# "Event": "frappe.desk.doctype.event.event.has_permission",
 # }
 
 # DocType Class
@@ -156,7 +157,7 @@ importable_doctypes = ["eTransaction Profile"]
 # Override standard doctype classes
 
 # override_doctype_class = {
-#	"ToDo": "custom_app.overrides.CustomToDo"
+# "ToDo": "custom_app.overrides.CustomToDo"
 # }
 
 # Document Events
@@ -167,18 +168,18 @@ doc_events = {
 	"Purchase Order": {
 		"on_update": [
 			"etransactions.etransactions.doctype.supplier_invoice.supplier_invoice.register_purchase_order_items",
-			"etransactions.etransactions.doctype.supplier_invoice.supplier_invoice.set_pending_purchase_order_status"
+			"etransactions.etransactions.doctype.supplier_invoice.supplier_invoice.set_pending_purchase_order_status",
 		],
 		"on_submit": [
 			"etransactions.etransactions.doctype.supplier_invoice.supplier_invoice.set_pending_purchase_order_status"
 		],
 		"on_cancel": [
 			"etransactions.etransactions.doctype.ocr_request.ocr_request.update_ocr_request_status",
-			"etransactions.etransactions.doctype.supplier_invoice.supplier_invoice.set_pending_purchase_order_status"
+			"etransactions.etransactions.doctype.supplier_invoice.supplier_invoice.set_pending_purchase_order_status",
 		],
 		"on_trash": [
 			"etransactions.overrides.purchase_order.on_trash",
-		]
+		],
 	},
 	"Purchase Invoice": {
 		"validate": [
@@ -196,11 +197,11 @@ doc_events = {
 		],
 		"on_cancel": [
 			"etransactions.etransactions.doctype.ocr_request.ocr_request.update_ocr_request_status",
-			"etransactions.etransactions.doctype.supplier_invoice.supplier_invoice.set_pending_purchase_order_status"
+			"etransactions.etransactions.doctype.supplier_invoice.supplier_invoice.set_pending_purchase_order_status",
 		],
 		"after_mapping": [
 			"etransactions.overrides.purchase_invoice.after_mapping",
-		]
+		],
 	},
 	"Payment Entry": {
 		"on_submit": "etransactions.plateforme_agreee.auto_status.on_payment_entry_submit",
@@ -208,7 +209,7 @@ doc_events = {
 	"Purchase Receipt": {
 		"on_submit": "etransactions.etransactions.doctype.supplier_invoice.supplier_invoice.auto_match_with_purchase_receipt",
 		"on_cancel": "etransactions.etransactions.doctype.supplier_invoice.supplier_invoice.remove_link_with_supplier_invoices",
-		"on_change": "etransactions.etransactions.doctype.supplier_invoice.supplier_invoice.remove_link_with_supplier_invoices"
+		"on_change": "etransactions.etransactions.doctype.supplier_invoice.supplier_invoice.remove_link_with_supplier_invoices",
 	},
 	"Supplier Invoice": {
 		"on_close": "etransactions.etransactions.doctype.ocr_request.ocr_request.update_ocr_request_status",
@@ -281,7 +282,6 @@ default_log_clearing_doctypes = {
 # -------
 
 
-
 # Overriding Methods
 # ------------------------------
 #
@@ -329,31 +329,31 @@ override_doctype_dashboards = {
 # --------------------
 
 # user_data_fields = [
-#	{
-#		"doctype": "{doctype_1}",
-#		"filter_by": "{filter_by}",
-#		"redact_fields": ["{field_1}", "{field_2}"],
-#		"partial": 1,
-#	},
-#	{
-#		"doctype": "{doctype_2}",
-#		"filter_by": "{filter_by}",
-#		"partial": 1,
-#	},
-#	{
-#		"doctype": "{doctype_3}",
-#		"strict": False,
-#	},
-#	{
-#		"doctype": "{doctype_4}"
-#	}
+# {
+# "doctype": "{doctype_1}",
+# "filter_by": "{filter_by}",
+# "redact_fields": ["{field_1}", "{field_2}"],
+# "partial": 1,
+# },
+# {
+# "doctype": "{doctype_2}",
+# "filter_by": "{filter_by}",
+# "partial": 1,
+# },
+# {
+# "doctype": "{doctype_3}",
+# "strict": False,
+# },
+# {
+# "doctype": "{doctype_4}"
+# }
 # ]
 
 # Authentication and authorization
 # --------------------------------
 
 # auth_hooks = [
-#	"etransactions.auth.validate"
+# "etransactions.auth.validate"
 # ]
 
 export_python_type_annotations = True

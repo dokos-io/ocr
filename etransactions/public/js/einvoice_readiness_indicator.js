@@ -68,7 +68,9 @@ etransactions.EinvoiceReadinessIndicator = class EinvoiceReadinessIndicator {
 	render_pill() {
 		if (!this.$root) return;
 		const [color, label] = this.readiness_state();
-		this.$root.find(".et-readiness-pill").html(`<span class="indicator-pill ${color}">${label}</span>`);
+		this.$root
+			.find(".et-readiness-pill")
+			.html(`<span class="indicator-pill ${color}">${label}</span>`);
 	}
 
 	render_body() {
@@ -76,19 +78,28 @@ etransactions.EinvoiceReadinessIndicator = class EinvoiceReadinessIndicator {
 		const $body = this.$root.find(".et-readiness-body").empty();
 
 		if (this.frm.is_new()) {
-			$body.html(`<div class="text-muted small">${__("Save first to evaluate e-invoicing readiness.")}</div>`);
+			$body.html(
+				`<div class="text-muted small">${__(
+					"Save first to evaluate e-invoicing readiness."
+				)}</div>`
+			);
 			return;
 		}
 
 		const findings = this.findings || [];
 		if (!findings.length) {
-			$body.html(`<div class="et-wiz-ready">${frappe.utils.icon("tick-circle", "lg")} <span>${__("This party is ready for electronic invoicing.")}</span></div>`);
+			$body.html(
+				`<div class="et-wiz-ready">${frappe.utils.icon("tick-circle", "lg")} <span>${__(
+					"This party is ready for electronic invoicing."
+				)}</span></div>`
+			);
 			return;
 		}
 
 		const $ul = $('<div class="et-wiz-checklist"></div>').appendTo($body);
 		findings.forEach((f) => {
-			const color = f.severity === "error" ? "red" : f.severity === "warning" ? "orange" : "blue";
+			const color =
+				f.severity === "error" ? "red" : f.severity === "warning" ? "orange" : "blue";
 			const $row = $(`
 				<div class="et-wiz-check">
 					<span class="et-wiz-dot ${color}"></span>
@@ -134,24 +145,28 @@ etransactions.EinvoiceReadinessIndicator = class EinvoiceReadinessIndicator {
 			const entity = d.directory_entity_type
 				? entity_labels[d.directory_entity_type] || __(d.directory_entity_type)
 				: __("not found");
-			summary = __("Directory: {0} · {1} · synced {2}", [
-				dir,
-				entity,
-				frappe.datetime.str_to_user(d.directory_update_date),
-			]);
+			const synced_on = frappe.datetime.str_to_user(d.directory_update_date);
+			// The network only matters once customers can be on Peppol.
+			summary = (frappe.boot.einvoicing_features || {}).peppol
+				? __("Directory: {0} · {1} · synced {2}", [dir, entity, synced_on])
+				: __("Directory: {0} · synced {1}", [entity, synced_on]);
 		} else {
 			summary = __("Directory not synced yet.");
 		}
 
 		const $row = $('<div class="et-readiness-routing-row"></div>');
-		$('<span class="et-readiness-routing-summary text-muted small"></span>').text(summary).appendTo($row);
+		$('<span class="et-readiness-routing-summary text-muted small"></span>')
+			.text(summary)
+			.appendTo($row);
 
 		if (this.sync_action && !d.directory_pinned) {
 			const synced = !!d.directory_update_date;
 			const $btn = $(
-				`<button type="button" class="btn btn-xs ${synced ? "btn-default" : "btn-primary"} et-readiness-sync">${
+				`<button type="button" class="btn btn-xs ${
+					synced ? "btn-default" : "btn-primary"
+				} et-readiness-sync">${
 					synced ? __("Re-sync directory") : __("Sync directory")
-				}</button>`,
+				}</button>`
 			);
 			$btn.on("click", () => this.sync_action());
 			$row.append($btn);

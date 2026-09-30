@@ -1,18 +1,21 @@
 from typing import TYPE_CHECKING
-import frappe
 
+import frappe
 from frappe import _
 
 from etransactions.utils import EInvoiceProfile
 
-
 if TYPE_CHECKING:
-	from etransactions.etransactions.doctype.einvoice.einvoice import eInvoice
-	from etransactions.etransactions.doctype.etransactions_settings.etransactions_settings import eTransactionsSettings
 	from erpnext.accounts.doctype.sales_invoice.sales_invoice import SalesInvoice
+
+	from etransactions.etransactions.doctype.einvoice.einvoice import eInvoice
+	from etransactions.etransactions.doctype.etransactions_settings.etransactions_settings import (
+		eTransactionsSettings,
+	)
 
 
 def on_validate(doc, method):
+	_apply_default_profile(doc)
 	if doc.etransaction_profile:
 		# Mutations first so the readiness evaluation sees the final values.
 		_apply_address_buyer_reference(doc)
@@ -27,6 +30,7 @@ def on_validate(doc, method):
 			doc.etransactions_flow_class = cls.value
 
 			from etransactions.plateforme_agreee.session import get_platform_settings
+
 			if get_platform_settings(doc.company) and cls == TransactionClass.B2G:
 				_apply_b2g(doc)
 
@@ -34,13 +38,43 @@ def on_validate(doc, method):
 	# in-form panel via check_invoice_readiness). Runs even without a profile:
 	# a missing profile on a B2B/B2G invoice is itself a finding — otherwise
 	# the whole pipeline is silently disabled.
-	from etransactions.plateforme_agreee.readiness import evaluate_einvoice_readiness, INDICATOR
+	from etransactions.plateforme_agreee.readiness import INDICATOR, evaluate_einvoice_readiness
+
 	for finding in evaluate_einvoice_readiness(doc):
 		frappe.msgprint(
 			finding.detail or finding.label,
 			indicator=INDICATOR.get(finding.severity, "orange"),
 			alert=True,
 		)
+
+
+def _apply_default_profile(doc):
+	"""Default the profile on invoices to French B2B customers when profiles aren't user-chosen.
+
+	The profile is the master switch of the pipeline and is hidden without the
+	profile-choice feature, so a customer created before e-invoicing was enabled
+	(hence without a profile) must not silently opt its invoices out.
+	"""
+	if doc.etransaction_profile or not doc.customer:
+		return
+
+	from etransactions.features import is_feature_enabled
+
+	if is_feature_enabled("profile_choice") or not frappe.db.get_single_value(
+		"eTransactions Settings", "enable_einvoicing"
+	):
+		return
+	if not frappe.db.get_value("Customer", doc.customer, "siren_number"):
+		return
+	if doc.customer_address and frappe.db.get_value("Address", doc.customer_address, "country") not in (
+		None,
+		"France",
+	):
+		return
+
+	from etransactions.overrides.master_data import get_default_etransaction_profile
+
+	doc.etransaction_profile = get_default_etransaction_profile()
 
 
 def on_update(doc, method):
@@ -79,7 +113,10 @@ def _block_on_blocking_findings(doc):
 	if not frappe.db.get_single_value("eTransactions Settings", "block_submission_on_blocking_findings"):
 		return
 
-	from etransactions.plateforme_agreee.readiness import evaluate_einvoice_readiness, evaluate_party_readiness
+	from etransactions.plateforme_agreee.readiness import (
+		evaluate_einvoice_readiness,
+		evaluate_party_readiness,
+	)
 
 	errors = [f.detail or f.label for f in evaluate_einvoice_readiness(doc) if f.severity == "error"]
 	if doc.get("customer"):
@@ -118,13 +155,16 @@ def on_submit(doc, method):
 		# guarantees _get_file_for_pa takes the raw-XML branch).
 		if not (einvoice and einvoice.get("syntax") == "UBL"):
 			from etransactions.utils.facturx_pdf import FacturXPDFGenerator
+
 			try:
 				FacturXPDFGenerator(doc.name).attach_to_invoice()
 			except Exception:
 				frappe.log_error(frappe.get_traceback(), _("FacturX PDF Generation Failed"))
 				if settings.block_submission_on_facturx_failure:
 					frappe.throw(
-						_("The FacturX PDF could not be generated. Submission has been blocked. Please check the error log.")
+						_(
+							"The FacturX PDF could not be generated. Submission has been blocked. Please check the error log."
+						)
 					)
 				frappe.msgprint(
 					_("The FacturX PDF could not be generated. Please check the error log."),
@@ -134,6 +174,7 @@ def on_submit(doc, method):
 
 	# accredited platform submission
 	from etransactions.plateforme_agreee.session import get_platform_settings, is_sending_enabled
+
 	platform_settings = get_platform_settings(doc.company)
 	if platform_settings and platform_settings.auto_send_on_submit and is_sending_enabled():
 		from etransactions.plateforme_agreee.classification import EINVOICED, classify_transaction
@@ -273,6 +314,7 @@ def get_facturx_pdf(sales_invoice: str) -> str:
 	frappe.get_doc("Sales Invoice", sales_invoice).check_permission("read")
 
 	from etransactions.utils.facturx_pdf import FacturXPDFGenerator
+
 	generator = FacturXPDFGenerator(sales_invoice)
 
 	url = generator.get_attachment_url()
@@ -288,6 +330,7 @@ def send_to_plateform(sales_invoice: str):
 	frappe.get_doc("Sales Invoice", sales_invoice).check_permission("submit")
 
 	from etransactions.plateforme_agreee.session import is_sending_enabled
+
 	if not is_sending_enabled():
 		frappe.throw(_("Sending invoices to accredited platforms is currently disabled."))
 
@@ -311,6 +354,7 @@ def _capture_ereporting(doc):
 	"""Best-effort: queue a B2C/foreign sale for PPF e-reporting. Never blocks submit."""
 	try:
 		from etransactions.plateforme_agreee.ereporting import capture_sale_transaction
+
 		capture_sale_transaction(doc)
 	except Exception:
 		frappe.log_error(frappe.get_traceback(), _("e-reporting capture failed"))
@@ -328,8 +372,10 @@ def _apply_b2g(doc):
 	if current in (EInvoiceProfile.EN16931.value, EInvoiceProfile.EXTENDED.value):
 		doc.etransaction_profile = EInvoiceProfile.CTC_FR.value
 		frappe.msgprint(
-			_("This customer is a public entity (B2G): the e-invoice profile has been set to "
-			  "<b>EXTENDED CTC-FR</b> to comply with Chorus Pro / PPF requirements."),
+			_(
+				"This customer is a public entity (B2G): the e-invoice profile has been set to "
+				"<b>EXTENDED CTC-FR</b> to comply with Chorus Pro / PPF requirements."
+			),
 			alert=True,
 			indicator="blue",
 		)
@@ -402,6 +448,7 @@ def _create_update_einvoice(doc):
 		line = doc.get("etransactions_routing_line")
 		if not line:
 			from etransactions.plateforme_agreee.routing import resolve_routing
+
 			line = resolve_routing("Customer", doc.customer, doc.customer_address)
 		if line:
 			einvoice.pa_directory_line = line

@@ -1,6 +1,6 @@
-
 from frappe import N_ as _
 
+from .visibility import einvoicing, feature
 
 purchasing_fields = [
 	{
@@ -8,7 +8,7 @@ purchasing_fields = [
 		"fieldtype": "Tab Break",
 		"label": _("Original Invoice"),
 		"depends_on": "eval:doc.ocr_original_file",
-		"insert_after": "connections_tab"
+		"insert_after": "connections_tab",
 	},
 	{
 		"fieldname": "ocr_html",
@@ -23,7 +23,7 @@ purchasing_fields = [
 		"label": _("OCR Request"),
 		"insert_after": "ocr_html",
 		"read_only": 1,
-		"no_copy": 1
+		"no_copy": 1,
 	},
 	{
 		"fieldname": "ocr_original_file",
@@ -33,7 +33,7 @@ purchasing_fields = [
 		"insert_after": "ocr_request",
 		"read_only": 1,
 		"fetch_from": "supplier_invoice.file",
-		"no_copy": 1
+		"no_copy": 1,
 	},
 	{
 		"fieldname": "supplier_invoice",
@@ -42,7 +42,7 @@ purchasing_fields = [
 		"label": _("Supplier Invoice"),
 		"insert_after": "ocr_original_file",
 		"read_only": 1,
-		"no_copy": 1
+		"no_copy": 1,
 	},
 ]
 
@@ -56,18 +56,22 @@ buyer_reference_field = {
 	# billing Address; overrides/sales_invoice.py re-applies this server-side.
 	"fetch_from": "customer_address.etransactions_buyer_reference",
 	"fetch_if_empty": 1,
+	"depends_on": feature("public_sector", "doc.etransactions_buyer_reference"),
 }
 
 contract_reference_field = {
 	"fieldname": "etransactions_contract_reference",
 	"label": _("Contract Reference"),
-	"description": _("Public-procurement contract number (numéro de marché, BT-12). Used for B2G / Chorus Pro."),
+	"description": _(
+		"Public-procurement contract number (numéro de marché, BT-12). Used for B2G / Chorus Pro."
+	),
 	"fieldtype": "Data",
 	# Explicitly cleared: create_custom_fields(update=True) only overrides keys
 	# present in the definition, so an empty string is needed to reset the stale
 	# fetch_from that pointed at the removed Customer default on existing sites.
 	"fetch_from": "",
 	"fetch_if_empty": 0,
+	"depends_on": feature("public_sector", "doc.etransactions_contract_reference"),
 }
 
 # The accredited-platform routing line (establishment) the e-invoice is sent to.
@@ -79,7 +83,10 @@ routing_line_field = {
 	"label": _("Accredited-Platform Routing Line"),
 	"fieldtype": "Link",
 	"options": "eInvoicing Directory Line",
-	"description": _("Directory line used to route the e-invoice. Resolved automatically; override to force a specific establishment."),
+	"description": _(
+		"Directory line used to route the e-invoice. Resolved automatically; override to force a specific establishment."
+	),
+	"depends_on": feature("advanced_routing"),
 }
 
 # Orders: references stay in the Details area after tax_id.
@@ -95,7 +102,7 @@ sales_invoicing_fields = [
 		"fieldtype": "Tab Break",
 		"label": _("eInvoice"),
 		"insert_after": "terms",
-		"depends_on": "eval:frappe.boot.einvoicing_enabled",
+		"depends_on": einvoicing(),
 	},
 	{
 		"fieldname": "etransaction_profile",
@@ -105,6 +112,7 @@ sales_invoicing_fields = [
 		"insert_after": "etransactions_tab",
 		"fetch_from": "customer.etransaction_profile",
 		"fetch_if_empty": 1,
+		"depends_on": feature("profile_choice"),
 	},
 	{**buyer_reference_field, "insert_after": "etransaction_profile"},
 	{**contract_reference_field, "insert_after": "etransactions_buyer_reference"},
@@ -118,7 +126,10 @@ sales_invoicing_fields = [
 		"insert_after": "etransactions_contract_reference",
 		"read_only": 1,
 		"no_copy": 1,
-		"description": _("How this invoice is handled under the French CTC reform: B2B/B2G are e-invoiced, B2C/B2Bi are e-reported."),
+		"depends_on": feature("advanced_routing"),
+		"description": _(
+			"How this invoice is handled under the French CTC reform: B2B/B2G are e-invoiced, B2C/B2Bi are e-reported."
+		),
 	},
 	{**routing_line_field, "insert_after": "etransactions_flow_class"},
 	{
@@ -135,7 +146,7 @@ purchase_invoicing_fields = [
 		"fieldtype": "Tab Break",
 		"label": _("eInvoice"),
 		"insert_after": "terms",
-		"depends_on": "eval:frappe.boot.einvoicing_enabled",
+		"depends_on": einvoicing(),
 	},
 	# The received e-invoice this purchase came from. Fetched through the Supplier
 	# Invoice so the link survives without a second lookup, and so the eInvoice can
@@ -189,7 +200,7 @@ TRANSACTION_FIELDS: dict = {
 			"label": _("OCR Request Line Item"),
 			"insert_after": "supplier_quotation_item",
 			"read_only": 1,
-			"no_copy": 1
+			"no_copy": 1,
 		},
 		{
 			"fieldname": "supplier_invoice_item",
@@ -198,7 +209,7 @@ TRANSACTION_FIELDS: dict = {
 			"label": _("Supplier Invoice Item"),
 			"insert_after": "ocr_request_line_item",
 			"read_only": 1,
-			"no_copy": 1
+			"no_copy": 1,
 		},
 	],
 	"Sales Order": selling_fields,

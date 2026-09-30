@@ -121,9 +121,7 @@ class TestUBLGeneration(UnitTestCase):
 		self.assertIn("#ADN#B2G", _generate(_fixture_einvoice(pa_processing_rule="B2G")))
 
 	def test_credit_note_root_and_billing_reference(self):
-		xml = _generate(
-			_fixture_einvoice(is_return=1, return_against="SINV-0042", due_date=None)
-		)
+		xml = _generate(_fixture_einvoice(is_return=1, return_against="SINV-0042", due_date=None))
 		self.assertIn("<CreditNote", xml)
 		self.assertIn("<cbc:CreditNoteTypeCode>381</cbc:CreditNoteTypeCode>", xml)
 		self.assertIn("<cbc:ID>SINV-0042</cbc:ID>", xml)  # BillingReference
@@ -176,8 +174,15 @@ class TestResolveSyntax(UnitTestCase):
 	"""Syntax resolution: profile override → Peppol signals → CII default; only
 	EN16931/XRechnung profiles may go UBL."""
 
-	def _resolve(self, profile="EN16931", default_syntax=None, directory_type=None,
-			identifier=None, routing_line="LINE-1"):
+	def _resolve(
+		self,
+		profile="EN16931",
+		default_syntax=None,
+		directory_type=None,
+		identifier=None,
+		routing_line="LINE-1",
+		peppol_enabled=True,
+	):
 		sales_invoice = frappe._dict(
 			{"etransaction_profile": profile, "customer": "CUST-1", "customer_address": None}
 		)
@@ -201,8 +206,18 @@ class TestResolveSyntax(UnitTestCase):
 				"etransactions.plateforme_agreee.routing.resolve_routing",
 				return_value=routing_line,
 			),
+			patch(
+				"etransactions.etransactions.doctype.einvoice.generator.is_feature_enabled",
+				side_effect=lambda feature: peppol_enabled and feature == "peppol",
+			),
 		):
 			return resolve_syntax(einvoice, sales_invoice)
+
+	def test_factur_x_only_without_peppol_feature(self):
+		"""Without the Peppol network feature, no signal can switch an invoice to UBL."""
+		self.assertEqual(self._resolve(directory_type="peppol", peppol_enabled=False), "CII")
+		self.assertEqual(self._resolve(default_syntax="UBL", peppol_enabled=False), "CII")
+		self.assertEqual(self._resolve(identifier="0088:1234567890123", peppol_enabled=False), "CII")
 
 	def test_non_en16931_profiles_stay_cii(self):
 		for profile in ("MINIMUM", "BASIC WL", "BASIC", "EXTENDED", "EXTENDED CTC-FR"):

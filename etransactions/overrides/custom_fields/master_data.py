@@ -1,5 +1,6 @@
 from frappe import N_ as _
 
+from .visibility import einvoicing, feature
 
 customer_fields = [
 	{
@@ -14,7 +15,7 @@ customer_fields = [
 		"fieldtype": "Tab Break",
 		"label": _("eTransactions"),
 		"insert_after": "selling_party_html",
-		"depends_on": "eval:frappe.boot.einvoicing_enabled",
+		"depends_on": einvoicing(),
 	},
 	# Readiness indicator (hero): a status pill + fixable checklist, a one-line
 	# routing summary and the single primary action (Sync directory), rendered by
@@ -24,14 +25,17 @@ customer_fields = [
 		"fieldtype": "HTML",
 		"insert_after": "etransactions_tab",
 	},
-	# --- Identity: the few fields a user actually sets ---
-	# The E-invoicing Network switch drives the whole tab: the French routing
+	# --- Identity: network and profile, both optional features ---
+	# By default every customer is reached through the French directory (PPF) with
+	# the default profile, so this section only shows once one of them is enabled.
+	# The E-invoicing Network switch then drives the tab: the French routing
 	# section shows for "ppf", the Peppol Endpoint section for "peppol".
 	{
 		"fieldname": "pa_identity_section",
 		"label": _("Identity"),
 		"fieldtype": "Section Break",
 		"insert_after": "etransactions_wizard_html",
+		"depends_on": feature("peppol", "(frappe.boot.einvoicing_features || {}).profile_choice"),
 	},
 	{
 		"fieldname": "directory_type",
@@ -42,7 +46,10 @@ customer_fields = [
 		"options": "\npeppol\nppf",
 		"default": "ppf",
 		"insert_after": "pa_identity_section",
-		"description": _("The network this customer is reached on: the Peppol network, or the French national directory (PPF)."),
+		"description": _(
+			"The network this customer is reached on: the Peppol network, or the French national directory (PPF)."
+		),
+		"depends_on": feature("peppol"),
 	},
 	{
 		"fieldname": "etransaction_profile",
@@ -50,14 +57,17 @@ customer_fields = [
 		"fieldtype": "Link",
 		"options": "eTransaction Profile",
 		"insert_after": "directory_type",
+		"depends_on": feature("profile_choice"),
 	},
 	# --- French routing: discovered and maintained automatically by directory sync ---
+	# The customer's e-invoicing address, plus one per establishment (SIRET on an
+	# Address) when the directory lists several.
 	{
 		"fieldname": "pa_directory_section",
-		"label": _("Routing — managed automatically"),
+		"label": _("E-invoicing Address"),
 		"fieldtype": "Section Break",
 		"insert_after": "etransaction_profile",
-		"collapsible": 1,
+		"collapsible": 0,
 		"depends_on": 'eval:doc.directory_type!="peppol"',
 	},
 	# Read-only establishments + routing-line table (customer.js via
@@ -67,6 +77,16 @@ customer_fields = [
 		"fieldtype": "HTML",
 		"insert_after": "pa_directory_section",
 	},
+	# Only needed when the directory lists several addresses and none matches the
+	# invoice's address: customer.js shows it in that case (or with advanced routing).
+	{
+		"fieldname": "default_directory_line",
+		"label": _("Default E-invoicing Address"),
+		"fieldtype": "Link",
+		"options": "eInvoicing Directory Line",
+		"insert_after": "pa_establishments_html",
+		"description": _("Used when the invoice address has no e-invoicing address of its own."),
+	},
 	{
 		"fieldname": "directory_entity_type",
 		"label": _("Directory Entity Type"),
@@ -75,7 +95,8 @@ customer_fields = [
 		# longer active: it has no reachable routing line, so it is e-reported (B2C)
 		# rather than e-invoiced, and re-synced on a shorter cadence.
 		"options": "\nprivate\nprivate_inactive\npublic\nno",
-		"insert_after": "pa_establishments_html",
+		"insert_after": "default_directory_line",
+		"depends_on": feature("advanced_routing"),
 		"read_only": 1,
 		"in_list_view": 0,
 	},
@@ -92,6 +113,7 @@ customer_fields = [
 		"fieldtype": "Check",
 		"insert_after": "directory_name",
 		"read_only": 1,
+		"depends_on": "eval:doc.directory_closed",
 	},
 	{
 		"fieldname": "pa_directory_col_break",
@@ -104,6 +126,7 @@ customer_fields = [
 		"fieldtype": "Date",
 		"insert_after": "pa_directory_col_break",
 		"read_only": 1,
+		"depends_on": feature("advanced_routing"),
 	},
 	# The SIREN/SIRET actually used to query the directory, recorded at sync time.
 	# A later change to the party's SIREN/SIRET means the routing lines belong to a
@@ -134,7 +157,8 @@ customer_fields = [
 		"label": _("Peppol Endpoint"),
 		"fieldtype": "Section Break",
 		"insert_after": "directory_query_siret",
-		"depends_on": 'eval:doc.directory_type=="peppol"',
+		"depends_on": feature("peppol", "doc.etransactions_electronic_address")
+		+ ' && doc.directory_type=="peppol"',
 	},
 	{
 		"fieldname": "etransactions_electronic_address_scheme",
@@ -150,27 +174,20 @@ customer_fields = [
 		"fieldtype": "Data",
 		"depends_on": "etransactions_electronic_address_scheme",
 	},
-	# --- Advanced: network-neutral routing overrides, rarely touched ---
+	# --- Advanced: routing overrides, an optional feature ---
 	{
 		"fieldname": "pa_advanced_section",
 		"label": _("Advanced"),
 		"fieldtype": "Section Break",
 		"insert_after": "etransactions_electronic_address",
 		"collapsible": 1,
-	},
-	{
-		"fieldname": "default_directory_line",
-		"label": _("Default Directory Line"),
-		"fieldtype": "Link",
-		"options": "eInvoicing Directory Line",
-		"insert_after": "pa_advanced_section",
-		"description": _("Default routing line used when no establishment-specific line matches the invoice address."),
+		"depends_on": feature("advanced_routing", "doc.directory_pinned", "doc.accredited_platform_override"),
 	},
 	{
 		"fieldname": "directory_pinned",
 		"label": _("Directory Pinned"),
 		"fieldtype": "Check",
-		"insert_after": "default_directory_line",
+		"insert_after": "pa_advanced_section",
 		"description": _(
 			"Skip automatic directory sync; routing is maintained manually "
 			"(e.g. the SuperPDP sandbox recipient). Unpin to let sync update the lines."
@@ -187,71 +204,71 @@ customer_fields = [
 ]
 
 company_fields = [
-		# NB: Company.siren_number is a standard ERPNext field (company.json),
-		# so it is not (re)declared here — only read by the CDAR/generator code.
-		{
-			"fieldname": "etransactions_tab",
-			"fieldtype": "Tab Break",
-			"label": _("eTransactions"),
-			"insert_after": "connections_tab",
-			"depends_on": "eval:frappe.boot.einvoicing_enabled",
-		},
-		{
-			"fieldname": "etransactions_electronic_address_scheme",
-			"label": _("Electronic Address Scheme"),
-			"insert_after": "etransactions_tab",
-			"fieldtype": "Link",
-			"options": "Common Code",
-		},
-		{
-			"fieldname": "etransactions_electronic_address",
-			"label": _("Electronic Address"),
-			"insert_after": "etransactions_electronic_address_scheme",
-			"fieldtype": "Data",
-			"depends_on": "etransactions_electronic_address_scheme",
-		},
-		{
-			# Drives the PPF e-reporting declaration schedule. Pushed to the
-			# platform via SuperPDPClient.update_vat_regime when it changes.
-			"fieldname": "etransactions_vat_regime",
-			"label": _("VAT Regime (e-reporting)"),
-			"insert_after": "etransactions_electronic_address",
-			"fieldtype": "Select",
-			"options": "\nmonthly\nquarterly\nsimplified\nvat_exemption",
-			"description": _(
-				"VAT regime declared to the accredited platform; it sets the e-reporting "
-				"cadence to the French tax administration (PPF)."
-			),
-		},
-		{
-			"fieldname": "etransactions_mentions_section",
-			"label": _("Mandatory French Invoice Mentions"),
-			"fieldtype": "Section Break",
-			"insert_after": "etransactions_vat_regime",
-			"collapsible": 1,
-			"description": _(
-				"Legal mentions required on French invoices (BR-FR-05). Left blank, "
-				"standard legal default texts are used."
-			),
-		},
-		{
-			"fieldname": "etransactions_mention_late_penalty",
-			"label": _("Late-Payment Penalties (PMD)"),
-			"fieldtype": "Small Text",
-			"insert_after": "etransactions_mentions_section",
-		},
-		{
-			"fieldname": "etransactions_mention_recovery_costs",
-			"label": _("Recovery Costs (PMT)"),
-			"fieldtype": "Small Text",
-			"insert_after": "etransactions_mention_late_penalty",
-		},
-		{
-			"fieldname": "etransactions_mention_discount",
-			"label": _("Early-Payment Discount (AAB)"),
-			"fieldtype": "Small Text",
-			"insert_after": "etransactions_mention_recovery_costs",
-		},
+	# NB: Company.siren_number is a standard ERPNext field (company.json),
+	# so it is not (re)declared here — only read by the CDAR/generator code.
+	{
+		"fieldname": "etransactions_tab",
+		"fieldtype": "Tab Break",
+		"label": _("eTransactions"),
+		"insert_after": "connections_tab",
+		"depends_on": einvoicing(),
+	},
+	{
+		"fieldname": "etransactions_electronic_address_scheme",
+		"label": _("Electronic Address Scheme"),
+		"insert_after": "etransactions_tab",
+		"fieldtype": "Link",
+		"options": "Common Code",
+	},
+	{
+		"fieldname": "etransactions_electronic_address",
+		"label": _("Electronic Address"),
+		"insert_after": "etransactions_electronic_address_scheme",
+		"fieldtype": "Data",
+		"depends_on": "etransactions_electronic_address_scheme",
+	},
+	{
+		# Drives the PPF e-reporting declaration schedule. Pushed to the
+		# platform via SuperPDPClient.update_vat_regime when it changes.
+		"fieldname": "etransactions_vat_regime",
+		"label": _("VAT Regime (e-reporting)"),
+		"insert_after": "etransactions_electronic_address",
+		"fieldtype": "Select",
+		"options": "\nmonthly\nquarterly\nsimplified\nvat_exemption",
+		"description": _(
+			"VAT regime declared to the accredited platform; it sets the e-reporting "
+			"cadence to the French tax administration (PPF)."
+		),
+	},
+	{
+		"fieldname": "etransactions_mentions_section",
+		"label": _("Mandatory French Invoice Mentions"),
+		"fieldtype": "Section Break",
+		"insert_after": "etransactions_vat_regime",
+		"collapsible": 1,
+		"description": _(
+			"Legal mentions required on French invoices (BR-FR-05). Left blank, "
+			"standard legal default texts are used."
+		),
+	},
+	{
+		"fieldname": "etransactions_mention_late_penalty",
+		"label": _("Late-Payment Penalties (PMD)"),
+		"fieldtype": "Small Text",
+		"insert_after": "etransactions_mentions_section",
+	},
+	{
+		"fieldname": "etransactions_mention_recovery_costs",
+		"label": _("Recovery Costs (PMT)"),
+		"fieldtype": "Small Text",
+		"insert_after": "etransactions_mention_late_penalty",
+	},
+	{
+		"fieldname": "etransactions_mention_discount",
+		"label": _("Early-Payment Discount (AAB)"),
+		"fieldtype": "Small Text",
+		"insert_after": "etransactions_mention_recovery_costs",
+	},
 ]
 
 customer_group_fields = [
@@ -261,8 +278,10 @@ customer_group_fields = [
 		"fieldtype": "Link",
 		"options": "eTransactions Accredited Platform",
 		"insert_after": "parent_customer_group",
-		"description": _("Override the default eTransactions Accredited Platform for customers in this group"),
-		"depends_on": "eval:frappe.boot.einvoicing_enabled",
+		"description": _(
+			"Override the default eTransactions Accredited Platform for customers in this group"
+		),
+		"depends_on": feature("advanced_routing", "doc.accredited_platform_override"),
 	},
 ]
 
@@ -285,7 +304,7 @@ supplier_fields = [
 		"fieldtype": "Tab Break",
 		"label": _("eTransactions"),
 		"insert_after": "default_price_list",
-		"depends_on": "eval:frappe.boot.einvoicing_enabled",
+		"depends_on": einvoicing(),
 	},
 	{
 		"fieldname": "etransactions_wizard_html",
@@ -304,14 +323,23 @@ address_fields = [
 		"fieldtype": "Tab Break",
 		"label": _("eTransactions"),
 		"insert_after": "siret_number",
-		"depends_on": "eval:frappe.boot.einvoicing_enabled",
+		"depends_on": einvoicing(),
+	},
+	# Which e-invoicing address this establishment is reached at (address.js).
+	{
+		"fieldname": "etransactions_routing_html",
+		"fieldtype": "HTML",
+		"insert_after": "etransactions_tab",
 	},
 	{
 		"fieldname": "etransactions_buyer_reference",
 		"label": _("Buyer Reference"),
 		"fieldtype": "Data",
-		"insert_after": "etransactions_tab",
-		"description": _("Service code (code service exécutant, BT-10) for this establishment. Overrides the customer-level default."),
+		"insert_after": "etransactions_routing_html",
+		"depends_on": feature("public_sector", "doc.etransactions_buyer_reference"),
+		"description": _(
+			"Service code (code service exécutant, BT-10) for this establishment. Overrides the customer-level default."
+		),
 	},
 ]
 

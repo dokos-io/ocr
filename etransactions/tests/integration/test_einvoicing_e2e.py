@@ -8,6 +8,9 @@ by switching the active platform and driving the real send/status/directory path
 over HTTP to the Microcks mock. See :mod:`.base` for the harness and skip contract.
 """
 
+from unittest.mock import patch
+
+from etransactions.features import FEATURES
 from etransactions.plateforme_agreee.session import get_client
 from etransactions.tests.integration.base import (
 	BUYER_SIREN,
@@ -89,8 +92,13 @@ class TestEInvoicingE2E(MicrocksTestCase):
 
 	def test_ubl_peppol_send_raw_xml(self):
 		"""A Peppol customer routes the eInvoice through UBL; the raw XML is sent."""
+		# Peppol is opt-in: without the feature every invoice is Factur-X.
+		features = {key: int(key == "peppol") for key in FEATURES}
 		for ptype in PLATFORM_TYPES:
-			with self.subTest(platform=ptype):
+			with (
+				self.subTest(platform=ptype),
+				patch("etransactions.features.get_enabled_features", return_value=features),
+			):
 				self.use_platform(ptype)
 				customer = self.make_customer(
 					f"_Test Peppol {ptype}",

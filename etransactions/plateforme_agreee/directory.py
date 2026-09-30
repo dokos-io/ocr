@@ -1,9 +1,9 @@
 import frappe
 from frappe import _
 
-from etransactions.plateforme_agreee.session import get_directory_client
-from etransactions.plateforme_agreee.routing import address_for_siret, parse_directory_identifier
 from etransactions.etransactions.doctype.einvoicing_log.einvoicing_log import eInvoicingLog
+from etransactions.plateforme_agreee.routing import address_for_siret, parse_directory_identifier
+from etransactions.plateforme_agreee.session import get_directory_client
 
 
 def _note_fallback_platform(result: dict, company: str, used_platform: str, customer: str = None):
@@ -17,11 +17,13 @@ def _note_fallback_platform(result: dict, company: str, used_platform: str, cust
 
 	primary = get_platform_for_context(company, customer=customer)
 	if used_platform and used_platform != primary:
-		result["logs"].append((
-			"info",
-			f"Company {company}'s own platform was unavailable — directory read served by "
-			f"fallback platform {used_platform}.",
-		))
+		result["logs"].append(
+			(
+				"info",
+				f"Company {company}'s own platform was unavailable — directory read served by "
+				f"fallback platform {used_platform}.",
+			)
+		)
 
 
 @frappe.whitelist()
@@ -50,8 +52,12 @@ def sync_customer_directory(customer: str, company: str = None):
 	}
 	_note_fallback_platform(result, company, used_platform, customer=customer)
 
-	if frappe.db.get_value("Customer", customer, "directory_type") == "peppol" and not getattr(
-		client, "supports_peppol_directory", False
+	from etransactions.features import is_feature_enabled
+
+	if (
+		is_feature_enabled("peppol")
+		and frappe.db.get_value("Customer", customer, "directory_type") == "peppol"
+		and not getattr(client, "supports_peppol_directory", False)
 	):
 		frappe.msgprint(
 			_(
@@ -113,12 +119,15 @@ def maybe_sync_on_confirm(company: str, customer: str, origin: str = "Confirmati
 	if mode == "no":
 		return
 
-	row = frappe.db.get_value(
-		"Customer",
-		customer,
-		["siren_number", "directory_pinned", "directory_entity_type", "directory_update_date"],
-		as_dict=True,
-	) or {}
+	row = (
+		frappe.db.get_value(
+			"Customer",
+			customer,
+			["siren_number", "directory_pinned", "directory_entity_type", "directory_update_date"],
+			as_dict=True,
+		)
+		or {}
+	)
 	if not row.get("siren_number") or row.get("directory_pinned"):
 		return
 
@@ -184,8 +193,12 @@ def get_party_establishments(party_type: str, party: str) -> list[dict]:
 		"Address",
 		filters={"name": ["in", address_names], "disabled": 0},
 		fields=[
-			"name", "address_title", "address_type", "siret_number",
-			"etransactions_buyer_reference", "is_primary_address",
+			"name",
+			"address_title",
+			"address_type",
+			"siret_number",
+			"etransactions_buyer_reference",
+			"is_primary_address",
 		],
 		order_by="is_primary_address desc, address_title",
 	)
@@ -197,19 +210,65 @@ def get_party_establishments(party_type: str, party: str) -> list[dict]:
 			line = frappe.db.get_value(
 				"eInvoicing Directory Line",
 				{party_field: party, "address": a.name},
-				["name", "line_status", "routing_code_name", "commitment_required"],
+				["name", "identifier", "line_status", "routing_code_name", "commitment_required"],
 				as_dict=True,
 			)
-		out.append({
-			"address": a.name,
-			"title": a.address_title,
-			"address_type": a.address_type,
-			"siret_number": a.siret_number,
-			"buyer_reference": a.etransactions_buyer_reference,
-			"is_primary": a.is_primary_address,
-			"line": line,
-		})
+		out.append(
+			{
+				"address": a.name,
+				"title": a.address_title,
+				"address_type": a.address_type,
+				"siret_number": a.siret_number,
+				"buyer_reference": a.etransactions_buyer_reference,
+				"is_primary": a.is_primary_address,
+				"line": line,
+			}
+		)
 	return out
+
+
+@frappe.whitelist()
+def get_customer_routing(customer: str, address: str | None = None) -> dict:
+	"""Summarise where a customer's e-invoices go, for the Customer and Address forms.
+
+	Returns the directory line an invoice to ``address`` would be routed to (see
+	resolve_routing), whether that line belongs to the address itself (its SIRET)
+	rather than to the customer as a whole, the number of active lines, and whether
+	the user must choose a default e-invoicing address — i.e. the directory lists
+	several and nothing else picks one.
+	"""
+	frappe.has_permission("Customer", "read", doc=customer, throw=True)
+	from etransactions.plateforme_agreee.routing import resolve_routing
+
+	active = frappe.get_all(
+		"eInvoicing Directory Line",
+		filters={"customer": customer, "line_status": "active"},
+		fields=["name", "identifier", "address", "routing_code_name", "commitment_required"],
+	)
+	resolved = resolve_routing("Customer", customer, address)
+	line = next((row for row in active if row.name == resolved), None)
+	return {
+		"line": line,
+		"own": bool(address and line and line.address == address),
+		"active_count": len(active),
+		"needs_default": len(active) > 1 and not resolve_routing("Customer", customer),
+	}
+
+
+@frappe.whitelist()
+def get_address_routing(address: str) -> list[dict]:
+	"""The e-invoicing routing of each customer linked to an Address (establishment)."""
+	frappe.has_permission("Address", "read", doc=address, throw=True)
+	customers = frappe.get_all(
+		"Dynamic Link",
+		filters={"parenttype": "Address", "parent": address, "link_doctype": "Customer"},
+		pluck="link_name",
+	)
+	return [
+		{"customer": customer, **get_customer_routing(customer, address)}
+		for customer in customers
+		if frappe.has_permission("Customer", "read", doc=customer)
+	]
 
 
 def sync_all_customers():
@@ -218,7 +277,7 @@ def sync_all_customers():
 		"eTransactions Accredited Platform",
 		fields=["company", "directory_refresh_days", "directory_refresh_days_inactive"],
 		filters={"is_active": 1},
-		group_by="company"
+		group_by="company",
 	)
 
 	for platform_row in companies:
@@ -307,14 +366,22 @@ def _sync_customer_directory(customer_name: str, client, result: dict):
 		result["logs"].append(("warning", f"Customer {customer_name} has no SIREN number. Skipping."))
 		return
 
+	from etransactions.features import is_feature_enabled
+
+	# Without the Peppol network feature, every customer is on the French directory.
+	if not is_feature_enabled("peppol"):
+		directory_type = "ppf"
+
 	if directory_type == "peppol" and not getattr(client, "supports_peppol_directory", False):
 		# AFNOR/Esalink expose only the French national directory: honouring the
 		# request silently would return PPF data labelled as Peppol.
-		result["logs"].append((
-			"warning",
-			f"Customer {customer_name} requests the Peppol directory but the platform only serves "
-			"the French (PPF) directory — synced against the PPF directory instead.",
-		))
+		result["logs"].append(
+			(
+				"warning",
+				f"Customer {customer_name} requests the Peppol directory but the platform only serves "
+				"the French (PPF) directory — synced against the PPF directory instead.",
+			)
+		)
 
 	directory_data = client.get_directory_for_siren(siren, directory_type)
 
@@ -338,24 +405,42 @@ def _sync_customer_directory(customer_name: str, client, result: dict):
 			"line_status",
 			"disabled",
 		)
-		result["logs"].append((
-			"info",
-			f"Customer {customer_name} is not in directory or closed. Lines disabled.",
-		))
+		result["logs"].append(
+			(
+				"info",
+				f"Customer {customer_name} is not in directory or closed. Lines disabled.",
+			)
+		)
 		return
 
 	existing = frappe.get_all(
 		"eInvoicing Directory Line",
 		filters={"customer": customer_name},
-		fields=["name", "identifier", "line_status", "routing_code_name", "commitment_required",
-			"siren", "siret", "routing_code", "line_type", "address"],
+		fields=[
+			"name",
+			"identifier",
+			"line_status",
+			"routing_code_name",
+			"commitment_required",
+			"siren",
+			"siret",
+			"routing_code",
+			"line_type",
+			"address",
+		],
 	)
 	existing_by_id = {row.identifier: row for row in existing}
 	seen_identifiers: set = set()
 
 	tracked_fields = (
-		"line_status", "routing_code_name", "commitment_required",
-		"siren", "siret", "routing_code", "line_type", "address",
+		"line_status",
+		"routing_code_name",
+		"commitment_required",
+		"siren",
+		"siret",
+		"routing_code",
+		"line_type",
+		"address",
 	)
 
 	for identifier, line_data in directory_data.lines.items():
@@ -383,12 +468,14 @@ def _sync_customer_directory(customer_name: str, client, result: dict):
 				frappe.db.set_value("eInvoicing Directory Line", existing_row.name, update)
 				result["updated_count"] += 1
 		else:
-			frappe.get_doc({
-				"doctype": "eInvoicing Directory Line",
-				"customer": customer_name,
-				"identifier": identifier,
-				**line_vals,
-			}).insert(ignore_permissions=True)
+			frappe.get_doc(
+				{
+					"doctype": "eInvoicing Directory Line",
+					"customer": customer_name,
+					"identifier": identifier,
+					**line_vals,
+				}
+			).insert(ignore_permissions=True)
 			result["new_count"] += 1
 
 	for identifier, existing_row in existing_by_id.items():
@@ -396,7 +483,9 @@ def _sync_customer_directory(customer_name: str, client, result: dict):
 			frappe.db.set_value("eInvoicing Directory Line", existing_row.name, "line_status", "disabled")
 			result["updated_count"] += 1
 
-	result["logs"].append((
-		"info",
-		f"Customer {customer_name}: {result['new_count']} new, {result['updated_count']} updated directory lines",
-	))
+	result["logs"].append(
+		(
+			"info",
+			f"Customer {customer_name}: {result['new_count']} new, {result['updated_count']} updated directory lines",
+		)
+	)
