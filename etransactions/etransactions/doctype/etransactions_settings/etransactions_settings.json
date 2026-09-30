@@ -15,6 +15,12 @@
   "aws_textract_key",
   "aws_textract_secret",
   "mistral_api_key",
+  "einvoicing_options_section",
+  "enable_peppol_network",
+  "enable_public_sector",
+  "column_break_einv_options",
+  "enable_profile_choice",
+  "enable_advanced_routing",
   "sales_invoices_tab",
   "facturx_section",
   "generate_facturx_on_submit",
@@ -78,6 +84,46 @@
    "label": "Send invoices to accredited platforms"
   },
   {
+   "collapsible": 0,
+   "depends_on": "eval:doc.enable_einvoicing",
+   "description": "By default, invoices are sent in Factur-X to French B2B customers, routed through the French directory. Enable the options below only if you need them.",
+   "fieldname": "einvoicing_options_section",
+   "fieldtype": "Section Break",
+   "label": "E-invoicing options"
+  },
+  {
+   "default": "0",
+   "description": "Reach customers on the Peppol network and send UBL invoices. Off: invoices are always sent in Factur-X through the French directory.",
+   "fieldname": "enable_peppol_network",
+   "fieldtype": "Check",
+   "label": "Peppol / UBL network"
+  },
+  {
+   "default": "0",
+   "description": "Show the service code and contract reference required by public-sector customers (B2G / Chorus Pro).",
+   "fieldname": "enable_public_sector",
+   "fieldtype": "Check",
+   "label": "Public sector (B2G / Chorus Pro)"
+  },
+  {
+   "fieldname": "column_break_einv_options",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "description": "Choose the Factur-X profile per customer and invoice. Off: the default profile (EN16931) is applied automatically.",
+   "fieldname": "enable_profile_choice",
+   "fieldtype": "Check",
+   "label": "Choose Factur-X profile per customer"
+  },
+  {
+   "default": "0",
+   "description": "Show the routing line on orders and invoices, directory pinning and accredited platform overrides per customer or customer group.",
+   "fieldname": "enable_advanced_routing",
+   "fieldtype": "Check",
+   "label": "Advanced routing & platform overrides"
+  },
+  {
    "fieldname": "sales_invoices_tab",
    "fieldtype": "Tab Break",
    "label": "Sales"
@@ -88,7 +134,7 @@
    "label": "FacturX PDF"
   },
   {
-   "default": "0",
+   "default": "1",
    "fieldname": "generate_facturx_on_submit",
    "fieldtype": "Check",
    "label": "Generate FacturX PDF automatically when a Sales Invoice is submitted"
@@ -112,12 +158,14 @@
    "fieldname": "default_etransaction_profile",
    "fieldtype": "Link",
    "label": "Default eTransaction Profile for French B2B customers",
-   "options": "eTransaction Profile"
+   "options": "eTransaction Profile",
+   "depends_on": "eval:doc.enable_profile_choice"
   },
   {
    "fieldname": "french_ctc_section",
    "fieldtype": "Section Break",
-   "label": "French CTC (PPF)"
+   "label": "French CTC (PPF)",
+   "depends_on": "eval:doc.enable_profile_choice"
   },
   {
    "default": "B2",
@@ -278,7 +326,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-05-08 15:49:12.623054",
+ "modified": "2026-09-30 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "eTransactions",
  "name": "eTransactions Settings",

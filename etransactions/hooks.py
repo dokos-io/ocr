@@ -42,6 +42,7 @@ app_include_css = "etransactions.bundle.css"
 doctype_js = {
 	"Communication": "public/js/communication.js",
 	"Customer": "public/js/customer.js",
+	"Address": "public/js/address.js",
 	"Supplier": "public/js/supplier.js",
 	"Company": "public/js/company.js",
 	"Purchase Invoice": "public/js/purchase_invoice.js",

@@ -1,5 +1,7 @@
 import frappe
 
+from etransactions.features import get_enabled_features
+
 
 def boot_session(bootinfo):
 	"""Expose the e-invoicing activation flag to the client.
@@ -11,6 +13,9 @@ def boot_session(bootinfo):
 	bootinfo.einvoicing_enabled = int(
 		frappe.db.get_single_value("eTransactions Settings", "enable_einvoicing") or 0
 	)
+	# Optional features (Peppol, public sector, profile choice, advanced routing):
+	# each reveals its own fields (depends_on: frappe.boot.einvoicing_features.<key>).
+	bootinfo.einvoicing_features = get_enabled_features()
 
 	# SIRENE autofill (see customer.js / supplier.js) is redundant with ERPNext's Pappers
 	# integration; expose whether Pappers is enabled so those scripts can hide the SIRENE

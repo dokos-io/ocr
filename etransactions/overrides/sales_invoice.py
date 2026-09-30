@@ -15,6 +15,7 @@ if TYPE_CHECKING:
 
 
 def on_validate(doc, method):
+	_apply_default_profile(doc)
 	if doc.etransaction_profile:
 		# Mutations first so the readiness evaluation sees the final values.
 		_apply_address_buyer_reference(doc)
@@ -45,6 +46,35 @@ def on_validate(doc, method):
 			indicator=INDICATOR.get(finding.severity, "orange"),
 			alert=True,
 		)
+
+
+def _apply_default_profile(doc):
+	"""Default the profile on invoices to French B2B customers when profiles aren't user-chosen.
+
+	The profile is the master switch of the pipeline and is hidden without the
+	profile-choice feature, so a customer created before e-invoicing was enabled
+	(hence without a profile) must not silently opt its invoices out.
+	"""
+	if doc.etransaction_profile or not doc.customer:
+		return
+
+	from etransactions.features import is_feature_enabled
+
+	if is_feature_enabled("profile_choice") or not frappe.db.get_single_value(
+		"eTransactions Settings", "enable_einvoicing"
+	):
+		return
+	if not frappe.db.get_value("Customer", doc.customer, "siren_number"):
+		return
+	if doc.customer_address and frappe.db.get_value("Address", doc.customer_address, "country") not in (
+		None,
+		"France",
+	):
+		return
+
+	from etransactions.overrides.master_data import get_default_etransaction_profile
+
+	doc.etransaction_profile = get_default_etransaction_profile()
 
 
 def on_update(doc, method):

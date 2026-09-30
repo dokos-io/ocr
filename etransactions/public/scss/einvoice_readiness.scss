@@ -615,3 +615,22 @@ $et-ov-tones: "green", "blue", "orange", "red", "purple", "gray";
 		cursor: pointer;
 	}
 }
+
+// Customer / Address "E-invoicing address" summary (customer.js, address.js).
+.et-routing {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+	margin-bottom: 12px;
+	font-size: 13px;
+}
+
+.et-routing-id {
+	font-size: 12px;
+	color: var(--text-color);
+	background: var(--subtle-fg);
+	padding: 2px 6px;
+	border-radius: var(--border-radius-sm);
+	word-break: break-all;
+}

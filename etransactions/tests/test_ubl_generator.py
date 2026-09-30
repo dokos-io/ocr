@@ -181,6 +181,7 @@ class TestResolveSyntax(UnitTestCase):
 		directory_type=None,
 		identifier=None,
 		routing_line="LINE-1",
+		peppol_enabled=True,
 	):
 		sales_invoice = frappe._dict(
 			{"etransaction_profile": profile, "customer": "CUST-1", "customer_address": None}
@@ -205,8 +206,18 @@ class TestResolveSyntax(UnitTestCase):
 				"etransactions.plateforme_agreee.routing.resolve_routing",
 				return_value=routing_line,
 			),
+			patch(
+				"etransactions.etransactions.doctype.einvoice.generator.is_feature_enabled",
+				side_effect=lambda feature: peppol_enabled and feature == "peppol",
+			),
 		):
 			return resolve_syntax(einvoice, sales_invoice)
+
+	def test_factur_x_only_without_peppol_feature(self):
+		"""Without the Peppol network feature, no signal can switch an invoice to UBL."""
+		self.assertEqual(self._resolve(directory_type="peppol", peppol_enabled=False), "CII")
+		self.assertEqual(self._resolve(default_syntax="UBL", peppol_enabled=False), "CII")
+		self.assertEqual(self._resolve(identifier="0088:1234567890123", peppol_enabled=False), "CII")
 
 	def test_non_en16931_profiles_stay_cii(self):
 		for profile in ("MINIMUM", "BASIC WL", "BASIC", "EXTENDED", "EXTENDED CTC-FR"):

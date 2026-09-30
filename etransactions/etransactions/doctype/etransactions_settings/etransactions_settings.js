@@ -6,15 +6,21 @@ frappe.ui.form.on("eTransactions Settings", {
 		_render_platform_management(frm);
 	},
 
-	enable_einvoicing(frm) {
-		// The flag is read into frappe.boot at page load, so open forms only
-		// reflect the change after a reload.
-		frappe.show_alert({
-			message: __("Reload your open forms for this change to take effect."),
-			indicator: "blue",
-		});
-	},
+	// These flags are read into frappe.boot at page load, so open forms only
+	// reflect a change after a reload.
+	enable_einvoicing: _alert_reload,
+	enable_peppol_network: _alert_reload,
+	enable_public_sector: _alert_reload,
+	enable_profile_choice: _alert_reload,
+	enable_advanced_routing: _alert_reload,
 });
+
+function _alert_reload() {
+	frappe.show_alert({
+		message: __("Reload your open forms for this change to take effect."),
+		indicator: "blue",
+	});
+}
 
 function _render_platform_management(frm) {
 	const $wrapper = frm.fields_dict.platform_html.$wrapper;

@@ -16,6 +16,7 @@ from frappe.core.utils import html2text
 from frappe.utils.data import date_diff, flt, getdate, to_markdown
 
 from etransactions.common_codes import CommonCodeRetriever
+from etransactions.features import is_feature_enabled
 from etransactions.utils import EInvoiceProfile, as_base_64, get_guideline
 from etransactions.utils.vat import validate_vat_id
 
@@ -92,7 +93,7 @@ vat_exemption_reason_codes = CommonCodeRetriever(["urn:xoev-de:kosit:codeliste:v
 def resolve_syntax(einvoice, sales_invoice) -> str:
 	"""Choose the outbound XML syntax (CII or UBL) for an Outgoing eInvoice.
 
-	Resolution order:
+	Always CII while the Peppol network feature is off. Otherwise:
 	1. The eTransaction Profile's ``default_syntax`` (explicit override).
 	2. UBL when the buyer is addressed through the Peppol network — the
 	   Customer's ``directory_type`` is ``peppol`` or the resolved directory-line
@@ -108,6 +109,11 @@ def resolve_syntax(einvoice, sales_invoice) -> str:
 	except ValueError:
 		return "CII"
 	if profile not in (EInvoiceProfile.EN16931, EInvoiceProfile.XRECHNUNG):
+		return "CII"
+
+	# UBL is only emitted for the Peppol network, an opt-in feature: without it,
+	# every invoice goes out as Factur-X.
+	if not is_feature_enabled("peppol"):
 		return "CII"
 
 	default_syntax = frappe.db.get_value("eTransaction Profile", profile_name, "default_syntax")

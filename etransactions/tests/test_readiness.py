@@ -216,7 +216,7 @@ class TestProfileKillSwitch(UnitTestCase):
 	"""A missing eTransaction Profile on a B2B/B2G invoice must surface as a
 	finding instead of silently disabling the whole pipeline."""
 
-	def _findings(self, cls_name):
+	def _findings(self, cls_name, profile_choice=True):
 		from types import SimpleNamespace
 		from unittest.mock import patch
 
@@ -232,11 +232,24 @@ class TestProfileKillSwitch(UnitTestCase):
 				"customer_address": None,
 			}.get(k, d),
 		)
-		with patch(
-			"etransactions.plateforme_agreee.classification.classify_transaction",
-			return_value=TransactionClass(cls_name),
+		with (
+			patch(
+				"etransactions.plateforme_agreee.classification.classify_transaction",
+				return_value=TransactionClass(cls_name),
+			),
+			patch(
+				"etransactions.plateforme_agreee.readiness.is_feature_enabled",
+				side_effect=lambda feature: profile_choice and feature == "profile_choice",
+			),
 		):
 			return evaluate_einvoice_readiness(doc)
+
+	def test_without_profile_choice_points_to_settings(self):
+		"""The profile field is hidden without profile choice: fix the default in Settings."""
+		findings = self._findings("B2B", profile_choice=False)
+		self.assertEqual([f.key for f in findings], ["missing_profile"])
+		self.assertIsNone(findings[0].fix_field)
+		self.assertEqual(findings[0].fix_doctype, "eTransactions Settings")
 
 	def test_b2b_without_profile_warns(self):
 		findings = self._findings("B2B")

@@ -145,11 +145,11 @@ etransactions.EinvoiceReadinessIndicator = class EinvoiceReadinessIndicator {
 			const entity = d.directory_entity_type
 				? entity_labels[d.directory_entity_type] || __(d.directory_entity_type)
 				: __("not found");
-			summary = __("Directory: {0} · {1} · synced {2}", [
-				dir,
-				entity,
-				frappe.datetime.str_to_user(d.directory_update_date),
-			]);
+			const synced_on = frappe.datetime.str_to_user(d.directory_update_date);
+			// The network only matters once customers can be on Peppol.
+			summary = (frappe.boot.einvoicing_features || {}).peppol
+				? __("Directory: {0} · {1} · synced {2}", [dir, entity, synced_on])
+				: __("Directory: {0} · synced {1}", [entity, synced_on]);
 		} else {
 			summary = __("Directory not synced yet.");
 		}

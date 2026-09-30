@@ -19,8 +19,10 @@ frappe.ui.form.on("Customer", {
 			frm._et_readiness.refresh();
 		}
 
-		// Scope the default routing line to this customer's own directory lines.
-		frm.set_query("default_directory_line", () => ({ filters: { customer: frm.doc.name } }));
+		// Scope the default e-invoicing address to this customer's own active lines.
+		frm.set_query("default_directory_line", () => ({
+			filters: { customer: frm.doc.name, line_status: "active" },
+		}));
 
 		// Offer only CEF EAS schemes — anything else fails EN16931 (BR-CL-25).
 		frm.set_query("etransactions_electronic_address_scheme", () => ({
@@ -84,18 +86,19 @@ function _do_sync(frm, company) {
 	});
 }
 
-// Read-only "Establishments & Routing" table: each address (establishment) of the
-// customer with its SIRET and the directory line bound to it. Re-adds the view that
-// was dropped with the e-invoicing wizard, reusing the get_party_establishments API.
+// "E-invoicing address" section: the address the customer's invoices are routed to,
+// then — only when the customer has several establishments — each address with its
+// SIRET and the e-invoicing address bound to it.
 function _render_establishments(frm) {
 	const field = frm.fields_dict.pa_establishments_html;
 	if (!field) return;
 	const $wrap = $(field.wrapper).empty();
+	_toggle_default_line(frm, false);
 
 	if (frm.is_new()) {
 		$wrap.html(
 			`<div class="text-muted small">${__(
-				"Save the customer first to see its establishments and routing."
+				"Save the customer first to see its e-invoicing address."
 			)}</div>`
 		);
 		return;
@@ -103,21 +106,64 @@ function _render_establishments(frm) {
 
 	$wrap.html(
 		`<div class="text-muted small">${frappe.utils.icon("loading-indicator")} ${__(
-			"Loading establishments…"
+			"Loading e-invoicing address…"
 		)}</div>`
 	);
 
-	frappe.call({
-		method: "etransactions.plateforme_agreee.directory.get_party_establishments",
-		args: { party_type: "Customer", party: frm.doc.name },
-		callback: (r) => _draw_establishments($wrap, r.message || []),
+	Promise.all([
+		frappe.xcall("etransactions.plateforme_agreee.directory.get_customer_routing", {
+			customer: frm.doc.name,
+		}),
+		frappe.xcall("etransactions.plateforme_agreee.directory.get_party_establishments", {
+			party_type: "Customer",
+			party: frm.doc.name,
+		}),
+	]).then(([routing, rows]) => {
+		$wrap.empty();
+		_draw_routing_summary($wrap, frm, routing);
+		_toggle_default_line(frm, routing.needs_default);
+		// A single establishment is fully described by the summary above.
+		if ((rows || []).length > 1 || routing.active_count > 1) {
+			_draw_establishments($wrap, rows || []);
+		}
 	});
 }
 
+// The default e-invoicing address is only a choice when the directory lists several
+// addresses and none is picked automatically (or with advanced routing).
+function _toggle_default_line(frm, needs_default) {
+	const advanced = (frappe.boot.einvoicing_features || {}).advanced_routing;
+	frm.toggle_display(
+		"default_directory_line",
+		!!(needs_default || advanced || frm.doc.default_directory_line)
+	);
+}
+
+function _draw_routing_summary($wrap, frm, routing) {
+	const esc = frappe.utils.escape_html;
+	let html;
+	if (routing.line) {
+		html = `<span class="et-routing-label">${__("Invoices are sent to")}</span>
+			<code class="et-routing-id">${esc(routing.line.identifier)}</code>
+			<span class="indicator-pill green">${__("Active")}</span>`;
+	} else if (routing.needs_default) {
+		html = `<span class="indicator-pill orange">${__("Several e-invoicing addresses")}</span>
+			<span class="text-muted small">${__("Choose the default one below.")}</span>`;
+	} else if (frm.doc.directory_update_date) {
+		html = `<span class="indicator-pill gray">${__("Not found in the directory")}</span>
+			<span class="text-muted small">${__("This customer cannot receive e-invoices yet.")}</span>`;
+	} else {
+		html = `<span class="indicator-pill gray">${__("Not synced yet")}</span>
+			<span class="text-muted small">${__(
+				"Sync the directory to find this customer's e-invoicing address."
+			)}</span>`;
+	}
+	$(`<div class="et-routing">${html}</div>`).appendTo($wrap);
+}
+
 function _draw_establishments($wrap, rows) {
-	$wrap.empty();
 	if (!rows.length) {
-		$wrap.html(
+		$wrap.append(
 			`<div class="text-muted small">${__(
 				"No addresses linked to this customer yet."
 			)}</div>`
@@ -132,7 +178,7 @@ function _draw_establishments($wrap, rows) {
 				<tr>
 					<th scope="col">${__("Establishment")}</th>
 					<th scope="col">${__("SIRET")}</th>
-					<th scope="col">${__("Routing")}</th>
+					<th scope="col">${__("E-invoicing Address")}</th>
 					<th scope="col"><span class="sr-only">${__("Actions")}</span></th>
 				</tr>
 			</thead>
@@ -189,7 +235,9 @@ function _routing_cell(row) {
 			line.routing_code_name ||
 			status_labels[line.line_status] ||
 			__(line.line_status || "");
-		let html = `<span class="indicator-pill ${color}">${esc(label)}</span>`;
+		let html = `<code class="et-routing-id">${esc(
+			line.identifier || ""
+		)}</code> <span class="indicator-pill ${color}">${esc(label)}</span>`;
 		if (line.commitment_required) {
 			html += ` <span class="et-estab-commit" title="${__(
 				"Every invoice to this route needs a purchase-order / commitment number."
@@ -197,5 +245,7 @@ function _routing_cell(row) {
 		}
 		return html;
 	}
-	return `<span class="indicator-pill gray">${__("No routing line — sync directory")}</span>`;
+	return `<span class="text-muted small">${__(
+		"Uses the customer's e-invoicing address"
+	)}</span>`;
 }

@@ -25,6 +25,7 @@ from typing import Callable
 import frappe
 from frappe import _
 
+from etransactions.features import is_feature_enabled
 from etransactions.utils import EInvoiceProfile
 from etransactions.utils.siren import is_valid_siren, vat_matches_siren
 
@@ -90,7 +91,21 @@ class CheckSpec:
 
 
 def customer_check_specs() -> list[CheckSpec]:
-	"""Ordered customer readiness checks. Built per request so ``_()`` resolves."""
+	"""Ordered customer readiness checks. Built per request so ``_()`` resolves.
+
+	Checks on a field of a disabled optional feature are left out: the profile is
+	applied automatically without profile choice, and every customer is on the
+	French directory without the Peppol network.
+	"""
+	hidden = set()
+	if not is_feature_enabled("profile_choice"):
+		hidden.add("profile")
+	if not is_feature_enabled("peppol"):
+		hidden.add("peppol_directory_supported")
+	return [spec for spec in _customer_check_specs() if spec.key not in hidden]
+
+
+def _customer_check_specs() -> list[CheckSpec]:
 	return [
 		CheckSpec("siren", _("SIREN number"), True, lambda r: bool(r.get("siren_number")), "siren_number"),
 		CheckSpec("siren_valid", _("Valid SIREN number"), False, _siren_valid, "siren_number"),
@@ -512,6 +527,10 @@ def _ereporting_findings(doc) -> list[Finding]:
 	return out
 
 
+# Fix target for a finding whose field belongs to a disabled optional feature.
+_SETTINGS_FIX = {"fix_doctype": "eTransactions Settings", "fix_name": "eTransactions Settings"}
+
+
 def evaluate_einvoice_readiness(doc) -> list[Finding]:
 	"""Findings for a Sales Invoice (extensible to Purchase Invoice).
 
@@ -602,6 +621,21 @@ def _profile_findings(doc) -> list[Finding]:
 		return []
 
 	customer = frappe.utils.sanitize_html(doc.get("customer"))
+	if not is_feature_enabled("profile_choice"):
+		# The profile is applied automatically: missing here means no default is set.
+		return [
+			Finding(
+				"missing_profile",
+				"warning",
+				_("No e-invoice will be generated: no default e-invoicing profile is available"),
+				detail=_(
+					"This invoice is classified <b>{0}</b> and falls under the French e-invoicing"
+					" mandate, but no default <b>eTransaction Profile</b> could be applied. Check"
+					" that the EN16931 profile exists, or enable profile choice in eTransactions Settings."
+				).format(cls.value),
+				**_SETTINGS_FIX,
+			)
+		]
 	return [
 		Finding(
 			"missing_profile",
@@ -748,8 +782,10 @@ def _routing_findings(doc) -> list[Finding]:
 				_("No accredited-platform routing line for this establishment"),
 				detail=_(
 					"No accredited platform directory line could be resolved for this customer's "
-					"establishment. Set a default routing line on the customer, or sync the directory."
+					"establishment. Sync the directory on the customer, or choose its default e-invoicing address."
 				),
+				fix_doctype="Customer",
+				fix_name=doc.customer,
 			)
 		)
 	elif frappe.db.get_value("eInvoicing Directory Line", line, "commitment_required") and not doc.get(
@@ -768,6 +804,21 @@ def _routing_findings(doc) -> list[Finding]:
 		)
 
 	if entity_type == "public" and not doc.get("etransactions_buyer_reference"):
+		if not is_feature_enabled("public_sector"):
+			out.append(
+				Finding(
+					"b2g_service_code",
+					"warning",
+					_("Public-sector customer: enable the public sector option to fill the service code"),
+					detail=_(
+						"This is a B2G invoice (public entity). The <b>service code</b> (BT-10) is usually"
+						" required by Chorus Pro. Enable <b>Public sector (B2G / Chorus Pro)</b> in"
+						" eTransactions Settings to fill it on the invoice or on the customer's billing address."
+					),
+					**_SETTINGS_FIX,
+				)
+			)
+			return out
 		out.append(
 			Finding(
 				"b2g_service_code",

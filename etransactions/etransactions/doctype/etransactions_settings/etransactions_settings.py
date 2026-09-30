@@ -25,6 +25,11 @@ class eTransactionsSettings(Document):
 		block_submission_on_facturx_failure: DF.Check
 		default_business_process_code: DF.Data | None
 		default_etransaction_profile: DF.Link | None
+		enable_advanced_routing: DF.Check
+		enable_einvoicing: DF.Check
+		enable_peppol_network: DF.Check
+		enable_profile_choice: DF.Check
+		enable_public_sector: DF.Check
 		enable_receiving_einvoices: DF.Check
 		enable_sending_einvoices: DF.Check
 		generate_facturx_on_submit: DF.Check
