@@ -801,6 +801,9 @@ def retry_missing_pdf_attachments():
 		pluck="einvoice",
 	)
 	for einvoice_name in missing:
-		if (frappe.db.get_value("eInvoice", einvoice_name, "attachment_retry_count") or 0) >= 5:
+		einvoice = frappe.db.get_value(
+			"eInvoice", einvoice_name, ["einvoice_type", "attachment_retry_count"], as_dict=True
+		)
+		if not einvoice or einvoice.einvoice_type != "Incoming" or (einvoice.attachment_retry_count or 0) >= 5:
 			continue
 		_enqueue_missing_pdf_retry(einvoice_name)
