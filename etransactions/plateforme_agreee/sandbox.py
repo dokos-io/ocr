@@ -239,7 +239,12 @@ def _resolve_tax_template(company: str) -> str | None:
 
 def _create_and_send_test_invoice(company: str, customer: str):
 	"""Create, submit, generate Factur-X for and send a test Sales Invoice."""
-	from erpnext.controllers.accounts_controller import get_taxes_and_charges
+	# The whitelisted get_taxes_and_charges checks "select" on the template, which a System
+	# Manager may not have. Use the unchecked helper when ERPNext has it.
+	try:
+		from erpnext.accounts.services.taxes import _get_taxes_and_charges as get_taxes_and_charges
+	except ImportError:
+		from erpnext.controllers.accounts_controller import get_taxes_and_charges
 
 	item = _ensure_test_item()
 	profile = _resolve_profile()
