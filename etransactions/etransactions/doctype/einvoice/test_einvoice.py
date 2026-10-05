@@ -415,6 +415,31 @@ class TesteInvoice(eTransactionsTestSuite):
 		self.assertEqual(len(copies()), 1, "a second run must not create another copy")
 		self.assertEqual(frappe.db.get_value("Supplier Invoice", supplier_invoice.name, "file"), filled)
 
+	def test_delete_supplier_invoices_from_outgoing_einvoices_patch(self):
+		"""The patch deletes the Supplier Invoice mirroring an outgoing eInvoice and keeps
+		the one of a received eInvoice."""
+		from etransactions.patches.delete_supplier_invoices_from_outgoing_einvoices import execute
+
+		def incoming(invoice_id):
+			return frappe.get_doc({
+				"doctype": "eInvoice",
+				"einvoice_type": "Incoming",
+				"seller_name": "Test Supplier",
+				"id": invoice_id,
+				"currency": "EUR",
+				"grand_total": 120.0,
+			}).insert()
+
+		received = incoming("INV-KEEP")
+		mirrored = incoming("INV-MIRROR")
+		# A mirror created before on_update checked the direction.
+		frappe.db.set_value("eInvoice", mirrored.name, "einvoice_type", "Outgoing")
+
+		execute()
+
+		self.assertTrue(frappe.db.exists("Supplier Invoice", {"einvoice": received.name}))
+		self.assertFalse(frappe.db.exists("Supplier Invoice", {"einvoice": mirrored.name}))
+
 	def test_backfill_pa_platform_patch(self):
 		"""The patch stamps pa_platform/pa_platform_name on legacy PA-received eInvoices
 		(and their generated Supplier Invoice) that predate create_from_plateforme_flow()
@@ -525,6 +550,10 @@ class TesteInvoice(eTransactionsTestSuite):
 		self.assertEqual(einvoice.einvoice_type, "Outgoing")
 		self.assertEqual(einvoice.sales_invoice, si.name)
 		self.assertEqual(einvoice.company, company)
+		self.assertFalse(
+			frappe.db.exists("Supplier Invoice", {"einvoice": einvoice_name}),
+			"an outgoing eInvoice must not create a Supplier Invoice",
+		)
 
 		# Check totals
 		self.assertEqual(einvoice.grand_total, si.grand_total)

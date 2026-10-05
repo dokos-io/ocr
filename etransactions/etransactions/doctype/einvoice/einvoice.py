@@ -138,6 +138,9 @@ class eInvoice(Document):
 			adopt_orphan_events(self.name, self.pa_flow_id)
 
 	def on_update(self):
+		# Only a received invoice becomes a Supplier Invoice: an outgoing one is our own sale.
+		if self.einvoice_type != "Incoming":
+			return
 		# A flow whose original file has not been downloaded yet carries only the
 		# platform's metadata; building a Supplier Invoice from it would produce an
 		# empty draft. Wait until fetch_content_from_platform() has parsed the file.
@@ -946,6 +949,9 @@ class eInvoice(Document):
 		one shouldn't retry forever.
 		"""
 		from etransactions.plateforme_agreee.session import get_client
+
+		if self.einvoice_type != "Incoming":
+			return
 
 		supplier_invoice_name = frappe.db.get_value("Supplier Invoice", {"einvoice": self.name})
 		if not supplier_invoice_name:
