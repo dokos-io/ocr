@@ -210,6 +210,9 @@ doc_events = {
 		],
 		"on_cancel": "etransactions.etransactions.doctype.supplier_invoice.supplier_invoice.update_guide_status_from_payment",
 	},
+	"Custom Field": {
+		"before_insert": "etransactions.etransactions.doctype.supplier_invoice.custom_fields.place_in_review_tab",
+	},
 	"eInvoice Event": {
 		"after_insert": "etransactions.etransactions.doctype.supplier_invoice.supplier_invoice.update_guide_status_from_lifecycle_event",
 		"on_update": "etransactions.etransactions.doctype.supplier_invoice.supplier_invoice.update_guide_status_from_lifecycle_event",

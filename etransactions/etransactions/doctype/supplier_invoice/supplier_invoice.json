@@ -13,6 +13,8 @@
   "invoice_preview",
   "review_lines_section",
   "review_lines_html",
+  "custom_fields_section",
+  "custom_fields_end",
   "invoice_tab",
   "invoice_section",
   "extracted_data",
@@ -447,6 +449,18 @@
    "no_copy": 1,
    "options": "\nFile Missing\nTo Review\nTo Match\nReady to Book\nTo Pay\nPaid\nCompleted\nDisputed\nRefused\nClosed",
    "read_only": 1
+  },
+  {
+   "description": "Custom fields added to supplier invoices are shown here.",
+   "fieldname": "custom_fields_section",
+   "fieldtype": "Section Break",
+   "label": "Additional Information"
+  },
+  {
+   "description": "Ends the Additional Information section, so a custom section break added to it stays on the Review tab.",
+   "fieldname": "custom_fields_end",
+   "fieldtype": "Section Break",
+   "hidden": 1
   }
  ],
  "grid_page_length": 50,
@@ -463,7 +477,7 @@
    "link_fieldname": "supplier_invoice"
   }
  ],
- "modified": "2026-10-07 12:00:00.000000",
+ "modified": "2026-10-08 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "eTransactions",
  "name": "Supplier Invoice",

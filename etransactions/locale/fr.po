@@ -8496,3 +8496,6 @@ msgstr "Lier"
 msgctxt "Item match column"
 msgid "Match"
 msgstr "Rapprochement"
+
+msgid "Custom fields added to supplier invoices are shown here."
+msgstr "Les champs personnalisés ajoutés aux factures fournisseur s'affichent ici."
