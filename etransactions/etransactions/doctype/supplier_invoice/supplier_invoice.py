@@ -33,6 +33,11 @@ from etransactions.etransactions.doctype.etransactions_supplier_item_alias.etran
 	get_supplier_item_alias,
 	normalize_supplier_item_code,
 )
+from etransactions.etransactions.doctype.supplier_invoice.processing_guide import (
+	ProcessingGuide,
+	get_guide_status,
+	update_guide_status,
+)
 
 if TYPE_CHECKING:
 	from erpnext.accounts.doctype.purchase_invoice.purchase_invoice import PurchaseInvoice
@@ -84,6 +89,19 @@ class SupplierInvoice(Document):
 		file: DF.Link | None
 		file_url: DF.SmallText | None
 		grand_total: DF.Currency
+		guide_status: DF.Literal[
+			"",
+			"File Missing",
+			"To Review",
+			"To Match",
+			"Ready to Book",
+			"To Pay",
+			"Paid",
+			"Completed",
+			"Disputed",
+			"Refused",
+			"Closed",
+		]
 		is_return: DF.Check
 		items: DF.Table[SupplierInvoiceItem]
 		match_confidence: DF.Literal["", "high", "medium", "low"] | None
@@ -114,6 +132,7 @@ class SupplierInvoice(Document):
 		self.set_tax_category()
 		self.set_tax_template()
 		self.set_missing_values_in_items()
+		self.set_item_match()
 
 		if self.supplier:
 			self.title = (
@@ -145,6 +164,102 @@ class SupplierInvoice(Document):
 		if getattr(self, "_supplier_manually_set", False):
 			self._learn_from_manual_match()
 			self._maybe_update_supplier_tax_id()
+		self.update_guide_status()
+
+	def update_guide_status(self):
+		value = get_guide_status(self)
+		if self.guide_status != value:
+			self.db_set("guide_status", value, update_modified=False)
+
+	@frappe.whitelist()
+	def get_processing_guide(self):
+		"""What the Review tab shows: status, steps, checks, next step and options."""
+		return ProcessingGuide(self).as_dict()
+
+	def set_item_match(self):
+		"""Record how each line got its item, so the form can say which ones to check.
+
+		The intake paths set it when they fill a line. Here only a user's change is
+		detected: an item chosen or replaced by hand is "Manual", a cleared one is reset.
+		"""
+		previous = {}
+		if not self.is_new():
+			previous = dict(
+				frappe.get_all(
+					"Supplier Invoice Item",
+					filters={"parent": self.name, "parenttype": self.doctype},
+					fields=["name", "item_code"],
+					as_list=True,
+				)
+			)
+		for item in self.items:
+			if not item.item_code:
+				item.item_match = None
+			elif item.name in previous and previous[item.name] != item.item_code:
+				item.item_match = "Manual"
+			elif not item.item_match:
+				item.item_match = "From Order" if item.reference_doctype else "Manual"
+
+	@frappe.whitelist()
+	def link_purchase_document(self, doctype: str, name: str) -> dict:
+		"""Link the invoice lines to the lines of one order or receipt.
+
+		A line is linked to the first open line of the order with the same item. An invoice
+		with no lines yet takes the order's open lines instead, as the matching on save does.
+		"""
+		if doctype not in REFERENCE_FIELDS:
+			frappe.throw(_("Only purchase orders and purchase receipts can be linked."))
+		self.check_permission("write")
+		order = frappe.get_doc(doctype, name)
+		order.check_permission("read")
+		if order.docstatus == 2:
+			frappe.throw(_("{0} {1} is cancelled.").format(_(doctype), name))
+		if self.supplier and order.supplier != self.supplier:
+			frappe.throw(_("{0} {1} was placed with another supplier.").format(_(doctype), name))
+
+		open_lines = [line for line in order.items if flt(line.billed_amt) < flt(line.net_amount)]
+		taken = {item.row for item in self.items if item.reference_doctype == doctype and item.row}
+		open_lines = [line for line in open_lines if line.name not in taken]
+
+		linked = 0
+		if not self.items:
+			for line in open_lines:
+				self.append(
+					"items",
+					{
+						"item_code": line.item_code,
+						"item_match": "From Order",
+						"description": line.description,
+						"qty": line.qty,
+						"rate": line.rate,
+						"amount": line.amount,
+						"expense_account": line.expense_account,
+						"cost_center": line.cost_center,
+						"project": line.project,
+						"item_tax_template": line.item_tax_template,
+						"reference_doctype": doctype,
+						"reference_docname": name,
+						"row": line.name,
+					},
+				)
+				linked += 1
+		else:
+			for item in self.items:
+				if item.reference_docname:
+					continue
+				line = next(
+					(line for line in open_lines if line.item_code and line.item_code == item.item_code), None
+				)
+				if not line:
+					continue
+				open_lines.remove(line)
+				item.update({"reference_doctype": doctype, "reference_docname": name, "row": line.name})
+				linked += 1
+
+		self.supplier = self.supplier or order.supplier
+		self.save()
+		unlinked = [item.idx for item in self.items if not item.reference_docname]
+		return {"linked": linked, "unlinked": unlinked}
 
 	def _detect_manual_supplier_change(self):
 		"""Flag a supplier the *user* chose, so the match can be learned and trusted.
@@ -329,7 +444,7 @@ class SupplierInvoice(Document):
 		)
 		if purchase_orders:
 			status = "In Progress"
-		if self.items and all([po for po in purchase_orders if po == 1]):
+		if self.items and all(docstatus == 1 for docstatus in purchase_orders):
 			status = "Ready"
 		if frappe.db.exists("Purchase Invoice", dict(supplier_invoice=self.name, docstatus=("=", 1))):
 			status = "Completed"
@@ -339,6 +454,7 @@ class SupplierInvoice(Document):
 		if commit:
 			self.db_set("status", status, notify=True, commit=True)
 			self.save_version()
+			self.update_guide_status()
 
 	@frappe.whitelist()
 	def calculate_totals(self):
@@ -548,6 +664,7 @@ class SupplierInvoice(Document):
 					row["reference_doctype"] = doc.doctype
 					row["reference_docname"] = doc.name
 					row["row"] = item.name
+					row["item_match"] = "From Order"
 					if row["qty"] == 1:
 						rate = row["net_amount"] - row["billed_amt"]
 						row["rate"] = min(rate, self.supplier_net_amount)
@@ -642,6 +759,7 @@ class SupplierInvoice(Document):
 					row["reference_doctype"] = doc.doctype
 					row["reference_docname"] = doc.name
 					row["row"] = item.name
+					row["item_match"] = "From Order"
 
 					if row["qty"] == 1:
 						rate = row["net_amount"] - row["billed_amt"]
@@ -755,6 +873,7 @@ class SupplierInvoice(Document):
 		self.db_set("status", "Closed", notify=True)
 		self.save_version()
 		self.run_method("on_close")
+		self.update_guide_status()
 
 	@frappe.whitelist()
 	def open_request(self):
@@ -848,6 +967,7 @@ class SupplierInvoice(Document):
 			rows.append(
 				{
 					"item_code": alias.item_code,
+					"item_match": "Learned",
 					"expense_account": alias.expense_account,
 					"cost_center": alias.cost_center,
 					"item_tax_template": alias.item_tax_template,
@@ -888,7 +1008,7 @@ class SupplierInvoice(Document):
 			return []
 
 		# The amount OCR read, not the previous invoice's: only the booking is being reused.
-		return [{**lines[0], "qty": 1, "rate": flt(self.supplier_net_amount)}]
+		return [{**lines[0], "item_match": "Suggested", "qty": 1, "rate": flt(self.supplier_net_amount)}]
 
 	def _learn_supplier_item_aliases(self):
 		"""Remember how the user mapped each captured line to an Item.
@@ -1516,6 +1636,25 @@ def set_pending_purchase_order_status(doc, method=None):
 	ppi: SupplierInvoice = frappe.get_doc("Supplier Invoice", doc.supplier_invoice)  # type: ignore
 	ppi.run_method("set_status", commit=True)
 	ppi.notify_update()
+
+
+def update_guide_status_from_payment(doc, method=None):
+	"""A payment changes a booked invoice into a paid one."""
+	for ref in doc.get("references", []):
+		if ref.reference_doctype != "Purchase Invoice":
+			continue
+		if supplier_invoice := frappe.db.get_value(
+			"Purchase Invoice", ref.reference_name, "supplier_invoice"
+		):
+			update_guide_status(supplier_invoice)
+
+
+def update_guide_status_from_lifecycle_event(doc, method=None):
+	"""A status reported on the platform (by us or the supplier) can dispute or refuse the invoice."""
+	if not doc.einvoice:
+		return
+	for name in frappe.get_all("Supplier Invoice", filters={"einvoice": doc.einvoice}, pluck="name"):
+		update_guide_status(name)
 
 
 def deduplicate_items(items):

@@ -6,3 +6,4 @@ import "./invoice_readiness";
 import "./lifecycle";
 import "./sirene_dialog";
 import "./status_labels";
+import "./supplier_invoice_guide";

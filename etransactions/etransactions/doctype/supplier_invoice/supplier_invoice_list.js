@@ -1,9 +1,27 @@
 frappe.listview_settings["Supplier Invoice"] = {
 	hide_name_column: true,
-	add_fields: ["pa_platform_name"],
+	add_fields: ["pa_platform_name", "guide_status"],
+	// One status in task words, the same as on the form's Review tab. The platform an
+	// invoice came from is a filter card above the list.
 	get_indicator: function (doc) {
-		if (doc.pa_platform_name) {
-			return [doc.pa_platform_name, "purple", "pa_platform_name,=," + doc.pa_platform_name];
+		const colors = {
+			"File Missing": "orange",
+			"To Review": "orange",
+			"To Match": "blue",
+			"Ready to Book": "blue",
+			"To Pay": "blue",
+			Paid: "green",
+			Completed: "green",
+			Disputed: "orange",
+			Refused: "red",
+			Closed: "gray",
+		};
+		if (doc.guide_status) {
+			return [
+				__(doc.guide_status),
+				colors[doc.guide_status] || "gray",
+				"guide_status,=," + doc.guide_status,
+			];
 		}
 	},
 	onload: function (listview) {

@@ -1398,6 +1398,7 @@ class IncomingInvoiceDataTransformer(InvoiceEntityResolverMixin):
 				"description": item.product_description,
 				"supplier_item_code": item.seller_product_id,
 				"item_code": item.item,
+				"item_match": "Learned" if item.item else None,
 				"qty": item.billed_quantity,
 				"rate": item.net_rate,
 				"amount": item.total_amount,
@@ -1408,14 +1409,16 @@ class IncomingInvoiceDataTransformer(InvoiceEntityResolverMixin):
 				alias = get_supplier_item_alias(data["supplier"], item.seller_product_id or item.product_name)
 				if alias:
 					row.update(alias)
+					row["item_match"] = "Learned"
 
 			# First invoice from this supplier: no alias exists yet either. Fall back to a
 			# plain word-overlap guess against the Item catalog rather than leave this blank.
+			# The line says it is a guess, so the user is asked to confirm that line only.
 			if not row["item_code"]:
 				guess = match_item_from_catalog(item.seller_product_id or item.product_name, item_catalog)
 				if guess:
 					row["item_code"] = guess
-					data["match_confidence"] = "low"
+					row["item_match"] = "Suggested"
 
 			data["items"].append(row)
 

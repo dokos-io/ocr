@@ -7980,3 +7980,519 @@ msgstr "{0} : Un seul mode de paiement sera pris en compte dans la facture élec
 #, python-brace-format
 msgid "{0}: {1}"
 msgstr "{0} : {1}"
+
+msgid "Review"
+msgstr "Vérification"
+
+msgid "Guide"
+msgstr "Guide"
+
+msgid "Invoice Summary"
+msgstr "Résumé de la facture"
+
+msgid "Invoice Lines"
+msgstr "Lignes de la facture"
+
+msgid "Processing Status"
+msgstr "Statut de traitement"
+
+msgid "Where the invoice stands in its review, from reception to payment."
+msgstr "Où en est la facture, de la réception au paiement."
+
+msgid "Item Match"
+msgstr "Rapprochement de l'article"
+
+msgid "How the item was chosen for this line: learned from a previous invoice, suggested from the item catalog, confirmed or chosen by a user, or copied from an order."
+msgstr "Comment l'article de cette ligne a été choisi : appris d'une facture précédente, suggéré depuis le catalogue d'articles, confirmé ou choisi par un utilisateur, ou copié d'une commande."
+
+msgid "File Missing"
+msgstr "Fichier manquant"
+
+msgid "To Review"
+msgstr "À vérifier"
+
+msgid "To Match"
+msgstr "À rapprocher"
+
+msgid "Ready to Book"
+msgstr "Prête à comptabiliser"
+
+msgid "From Order"
+msgstr "Depuis la commande"
+
+msgid "Learned"
+msgstr "Appris"
+
+msgid "Uploaded"
+msgstr "Importée"
+
+msgid "Choose"
+msgstr "Choisir"
+
+msgid "Create the supplier"
+msgstr "Créer le fournisseur"
+
+msgid "Choose the supplier"
+msgstr "Choisir le fournisseur"
+
+msgid "Supplier not identified"
+msgstr "Fournisseur non identifié"
+
+msgid "Read on the invoice: {0}"
+msgstr "Lu sur la facture : {0}"
+
+msgid "No supplier name or tax ID could be read."
+msgstr "Aucun nom ni numéro de TVA de fournisseur n'a pu être lu."
+
+msgid "matched from the data read on the PDF"
+msgstr "rapproché à partir des données lues sur le PDF"
+
+msgid "chosen on this invoice"
+msgstr "choisi sur cette facture"
+
+msgid "matched from the e-invoice"
+msgstr "rapproché à partir de la facture électronique"
+
+msgid "Supplier guessed: check it"
+msgstr "Fournisseur deviné : vérifiez-le"
+
+msgid "{0}, {1}. The match is not certain."
+msgstr "{0}, {1}. Le rapprochement n'est pas certain."
+
+msgid "Supplier identified"
+msgstr "Fournisseur identifié"
+
+msgid "{0}, {1}"
+msgstr "{0}, {1}"
+
+msgid "No invoice lines"
+msgstr "Aucune ligne de facture"
+
+msgid "Add at least one line, or link an order to copy its lines."
+msgstr "Ajoutez au moins une ligne, ou liez une commande pour copier ses lignes."
+
+msgid "Add a line"
+msgstr "Ajouter une ligne"
+
+msgid "{0} line(s) without an item"
+msgstr "{0} ligne(s) sans article"
+
+msgid "Line(s) {0}: choose the item to book them to."
+msgstr "Ligne(s) {0} : choisissez l'article sur lequel les comptabiliser."
+
+msgid "{0} line(s) with a suggested item"
+msgstr "{0} ligne(s) avec un article suggéré"
+
+msgid "Line(s) {0} were matched by a guess on the description. Confirm or change them."
+msgstr "Ligne(s) {0} rapprochée(s) en devinant à partir de la description. Confirmez-les ou modifiez-les."
+
+msgid "All {0} line(s) have an item"
+msgstr "Les {0} ligne(s) ont un article"
+
+msgid "learned"
+msgstr "appris"
+
+msgid "suggested"
+msgstr "suggéré"
+
+msgid "confirmed"
+msgstr "confirmé"
+
+msgid "chosen by hand"
+msgstr "choisi à la main"
+
+msgid "from the order"
+msgstr "depuis la commande"
+
+msgid "{0} line(s) not linked to a purchase receipt"
+msgstr "{0} ligne(s) non liée(s) à une réception"
+
+msgid "{0} line(s) not linked to a purchase order"
+msgstr "{0} ligne(s) non liée(s) à une commande fournisseur"
+
+msgid "Required by your purchase settings."
+msgstr "Exigé par vos paramètres d'achat."
+
+msgid "{0} {1} is not submitted"
+msgstr "{0} {1} n'est pas validé(e)"
+
+msgid "Submit it before booking this invoice."
+msgstr "Validez-le avant de comptabiliser cette facture."
+
+msgid "All lines linked to {0}"
+msgstr "Toutes les lignes sont liées à {0}"
+
+msgid "Submitted, so the order will show as billed."
+msgstr "Validé : la commande apparaîtra comme facturée."
+
+msgid "Credit note allocated to {0} invoice(s)"
+msgstr "Avoir affecté à {0} facture(s)"
+
+msgid "Credit note not allocated"
+msgstr "Avoir non affecté"
+
+msgid "Choose the invoices this credit note reduces."
+msgstr "Choisissez les factures que cet avoir réduit."
+
+msgid "Totals match the supplier's figures"
+msgstr "Les totaux correspondent à ceux du fournisseur"
+
+msgid "{0} excl. VAT"
+msgstr "{0} HT"
+
+msgid "Totals differ from the supplier's figures"
+msgstr "Les totaux diffèrent de ceux du fournisseur"
+
+msgid "The lines add up to {0} excl. VAT, the invoice says {1}."
+msgstr "Les lignes totalisent {0} HT, la facture indique {1}."
+
+msgid "Check the lines"
+msgstr "Vérifier les lignes"
+
+msgid "Already booked in {0}"
+msgstr "Déjà comptabilisée dans {0}"
+
+msgid "A purchase invoice with the same supplier and number {0} is submitted."
+msgstr "Une facture d'achat du même fournisseur avec le numéro {0} est déjà validée."
+
+msgid "Not booked yet"
+msgstr "Pas encore comptabilisée"
+
+msgid "No other purchase invoice {0} from this supplier."
+msgstr "Aucune autre facture d'achat {0} de ce fournisseur."
+
+msgid "Order {0} not found"
+msgstr "Commande {0} introuvable"
+
+msgid "The invoice mentions this order number, but no purchase order has it."
+msgstr "La facture mentionne ce numéro de commande, mais aucune commande fournisseur ne le porte."
+
+msgid "Order {0} is for another supplier"
+msgstr "La commande {0} concerne un autre fournisseur"
+
+msgid "The order was placed with {0}."
+msgstr "La commande a été passée auprès de {0}."
+
+msgid "All good"
+msgstr "Tout est bon"
+
+msgid "{0} to fix"
+msgstr "{0} à corriger"
+
+msgid "Match order"
+msgstr "Rapprocher la commande"
+
+msgid "Not required"
+msgstr "Non exigé"
+
+msgid "Draft {0}"
+msgstr "Brouillon {0}"
+
+msgid "On hold"
+msgstr "En attente"
+
+msgid "the supplier"
+msgstr "le fournisseur"
+
+msgid "The platform announced this invoice, but its file could not be downloaded yet."
+msgstr "La plateforme a annoncé cette facture, mais son fichier n'a pas encore pu être téléchargé."
+
+msgid "Debit note {0} is booked"
+msgstr "La note de débit {0} est comptabilisée"
+
+msgid "Nothing left to do on this credit note."
+msgstr "Plus rien à faire sur cet avoir."
+
+msgid "Open {0}"
+msgstr "Ouvrir {0}"
+
+msgid "Purchase invoice {0} is submitted."
+msgstr "La facture d'achat {0} est validée."
+
+msgid "When you record the payment, the supplier is told automatically."
+msgstr "Quand vous enregistrez le paiement, le fournisseur en est informé automatiquement."
+
+msgid "Pay {0} by {1}"
+msgstr "Payer {0} avant le {1}"
+
+msgid "Pay {0}"
+msgstr "Payer {0}"
+
+msgid "Record payment"
+msgstr "Enregistrer le paiement"
+
+msgid "Paid: nothing left to do"
+msgstr "Payée : plus rien à faire"
+
+msgid "The purchase invoice is booked and paid."
+msgstr "La facture d'achat est comptabilisée et payée."
+
+msgid "Waiting for {0} to answer"
+msgstr "En attente de la réponse de {0}"
+
+msgid "You reported this invoice as {0}. The supplier should send a corrected invoice or a credit note. If they confirm this one instead, you can still book it."
+msgstr "Vous avez signalé cette facture comme « {0} ». Le fournisseur doit envoyer une facture rectificative ou un avoir. S'il confirme plutôt celle-ci, vous pouvez encore la comptabiliser."
+
+msgid "Refused: this invoice will not be paid"
+msgstr "Refusée : cette facture ne sera pas payée"
+
+msgid "Refusal is final. The supplier must send a new invoice if an amount is still due."
+msgstr "Le refus est définitif. Le fournisseur doit envoyer une nouvelle facture si un montant reste dû."
+
+msgid "This invoice left your list without being booked. Reopen it to work on it again."
+msgstr "Cette facture a quitté votre liste sans être comptabilisée. Rouvrez-la pour la traiter à nouveau."
+
+msgid "Tell Dokos who sent this invoice"
+msgstr "Indiquez à Dokos qui a envoyé cette facture"
+
+msgid "Add the invoice lines"
+msgstr "Ajoutez les lignes de la facture"
+
+msgid "Choose the item for each line"
+msgstr "Choisissez l'article de chaque ligne"
+
+msgid "This invoice seems to be booked already"
+msgstr "Cette facture semble déjà comptabilisée"
+
+msgid "Allocate the credit note"
+msgstr "Affecter l'avoir"
+
+msgid "Link the lines to the goods you received"
+msgstr "Liez les lignes aux marchandises reçues"
+
+msgid "Your settings require each invoice line to come from a purchase receipt. You then pay only for what was delivered, and the receipt shows as billed."
+msgstr "Vos paramètres exigent que chaque ligne de facture provienne d'une réception. Vous ne payez ainsi que ce qui a été livré, et la réception apparaît comme facturée."
+
+msgid "Choose a receipt…"
+msgstr "Choisir une réception…"
+
+msgid "Link the lines to the purchase order you placed"
+msgstr "Liez les lignes à la commande que vous avez passée"
+
+msgid "Your settings require each invoice line to come from a purchase order. You then pay only for what you ordered, and the order shows as billed."
+msgstr "Vos paramètres exigent que chaque ligne de facture provienne d'une commande fournisseur. Vous ne payez ainsi que ce que vous avez commandé, et la commande apparaît comme facturée."
+
+msgid "Choose an order…"
+msgstr "Choisir une commande…"
+
+msgid "Open {0} for {1}: {2}."
+msgstr "{0} ouverte pour {1} : {2}."
+
+msgid "Link {0}"
+msgstr "Lier {0}"
+
+msgid "No order? Create one from this invoice"
+msgstr "Pas de commande ? En créer une depuis cette facture"
+
+msgid "{0} ({1} excl. VAT, {2})"
+msgstr "{0} ({1} HT, {2})"
+
+msgid "with the same amount"
+msgstr "avec le même montant"
+
+msgid "Finish purchase invoice {0}"
+msgstr "Terminer la facture d'achat {0}"
+
+msgid "A draft purchase invoice already exists for this invoice. Check and submit it."
+msgstr "Une facture d'achat brouillon existe déjà pour cette facture. Vérifiez-la et validez-la."
+
+msgid "Book the debit note"
+msgstr "Comptabiliser la note de débit"
+
+msgid "Creating the debit note books it and reconciles it with the allocated invoices."
+msgstr "Créer la note de débit la comptabilise et la rapproche des factures affectées."
+
+msgid "Everything checks out. Creating the purchase invoice books it in your accounts."
+msgstr "Tout est en ordre. Créer la facture d'achat la comptabilise."
+
+msgid "{0} will show as billed."
+msgstr "{0} apparaîtra comme facturée."
+
+msgid "This also tells {0} that the invoice is approved."
+msgstr "Cela indique aussi à {0} que la facture est approuvée."
+
+msgid "Have a look at the warnings below first."
+msgstr "Consultez d'abord les avertissements ci-dessous."
+
+msgid "Book this invoice"
+msgstr "Comptabiliser cette facture"
+
+msgid "Create and submit purchase invoice"
+msgstr "Créer et valider la facture d'achat"
+
+msgid "Create as draft"
+msgstr "Créer en brouillon"
+
+msgid "Something is wrong: price, quantity, missing goods. The supplier should send a correction. You can still approve or refuse later."
+msgstr "Quelque chose ne va pas : prix, quantité, marchandises manquantes. Le fournisseur doit envoyer une correction. Vous pourrez encore approuver ou refuser plus tard."
+
+msgid "Notifies the supplier"
+msgstr "Informe le fournisseur"
+
+msgid "You will never pay this invoice. The supplier must send a new one if anything is still due."
+msgstr "Vous ne paierez jamais cette facture. Le fournisseur doit en envoyer une nouvelle si un montant reste dû."
+
+msgid "Final · notifies the supplier"
+msgstr "Définitif · informe le fournisseur"
+
+msgid "Tell the supplier now that the invoice is accepted, and book it later."
+msgstr "Indiquer dès maintenant au fournisseur que la facture est acceptée, et la comptabiliser plus tard."
+
+msgid "Approve without booking"
+msgstr "Approuver sans comptabiliser"
+
+msgid "Dispute or refuse"
+msgstr "Contester ou refuser"
+
+msgid "Only for invoices received through an accredited platform. For this one, contact the supplier directly."
+msgstr "Seulement pour les factures reçues via une plateforme agréée. Pour celle-ci, contactez directement le fournisseur."
+
+msgid "Use when the payment was made outside Dokos."
+msgstr "À utiliser quand le paiement a été fait en dehors de Dokos."
+
+msgid "Close without booking"
+msgstr "Clôturer sans comptabiliser"
+
+msgid "Not for you, or a duplicate. It leaves your list. The supplier is not told."
+msgstr "Ne vous concerne pas, ou doublon. Elle quitte votre liste. Le fournisseur n'est pas informé."
+
+msgid "You will not book this invoice: wrong recipient, duplicate or refused. It leaves your list. Tell the supplier yourself."
+msgstr "Vous ne comptabiliserez pas cette facture : mauvais destinataire, doublon ou refus. Elle quitte votre liste. Informez vous-même le fournisseur."
+
+msgid "Internal only"
+msgstr "Interne uniquement"
+
+msgid "Imported e-invoice: nothing done here is sent to the supplier."
+msgstr "Facture électronique importée : rien de ce qui est fait ici n'est envoyé au fournisseur."
+
+msgid "Uploaded and read by OCR: nothing done here is sent to the supplier."
+msgstr "Importée et lue par OCR : rien de ce qui est fait ici n'est envoyé au fournisseur."
+
+msgid "Entered by hand: nothing done here is sent to the supplier."
+msgstr "Saisie à la main : rien de ce qui est fait ici n'est envoyé au fournisseur."
+
+msgid "Only purchase orders and purchase receipts can be linked."
+msgstr "Seules les commandes fournisseur et les réceptions peuvent être liées."
+
+msgid "{0} {1} is cancelled."
+msgstr "{0} {1} est annulé(e)."
+
+msgid "{0} {1} was placed with another supplier."
+msgstr "{0} {1} a été passé(e) auprès d'un autre fournisseur."
+
+msgid "What the supplier sees"
+msgstr "Ce que voit le fournisseur"
+
+msgid "{0} check(s) open"
+msgstr "{0} vérification(s) en cours"
+
+msgid "All checks pass"
+msgstr "Toutes les vérifications sont bonnes"
+
+msgid "Show guide"
+msgstr "Afficher le guide"
+
+msgid "Next step"
+msgstr "Prochaine étape"
+
+msgid "Checks"
+msgstr "Vérifications"
+
+msgid "Other options"
+msgstr "Autres options"
+
+msgid "To do"
+msgstr "À faire"
+
+msgid "To fix"
+msgstr "À corriger"
+
+msgid "No other option."
+msgstr "Aucune autre option."
+
+msgid "Read from the e-invoice"
+msgstr "Lu dans la facture électronique"
+
+msgid "Read by OCR from the document"
+msgstr "Lu par OCR dans le document"
+
+msgid "Invoice data"
+msgstr "Données de la facture"
+
+msgid "Edit in Details"
+msgstr "Modifier dans Détails"
+
+msgid "Invoice Date"
+msgstr "Date de facture"
+
+msgid "Order reference on the invoice"
+msgstr "Référence de commande sur la facture"
+
+msgid "supplier's figures and your lines"
+msgstr "chiffres du fournisseur et vos lignes"
+
+msgid "From the order"
+msgstr "Depuis la commande"
+
+msgid "To match"
+msgstr "À rapprocher"
+
+msgid "Choose item"
+msgstr "Choisir l'article"
+
+msgid "Not linked"
+msgstr "Non liée"
+
+msgid "Ref. {0}"
+msgstr "Réf. {0}"
+
+msgid "<b>Order</b> links the line to the goods you received. You then pay only for what was delivered, and the receipt shows as billed. Your settings require it for every line."
+msgstr "<b>Commande</b> lie la ligne aux marchandises reçues. Vous ne payez ainsi que ce qui a été livré, et la réception apparaît comme facturée. Vos paramètres l'exigent pour chaque ligne."
+
+msgid "<b>Order</b> links the line to what you ordered. You then pay only for what you ordered, and the order shows as billed. Your settings require it for every line."
+msgstr "<b>Commande</b> lie la ligne à ce que vous avez commandé. Vous ne payez ainsi que ce que vous avez commandé, et la commande apparaît comme facturée. Vos paramètres l'exigent pour chaque ligne."
+
+msgid "<b>Order</b> is optional with your settings. Link one to see it as billed."
+msgstr "<b>Commande</b> est facultative avec vos paramètres. Liez-en une pour la voir comme facturée."
+
+msgid "Link to a receipt…"
+msgstr "Lier à une réception…"
+
+msgid "Link to an order…"
+msgstr "Lier à une commande…"
+
+msgid "Invoice lines ({0})"
+msgstr "Lignes de la facture ({0})"
+
+msgid "<b>Your item</b> tells Dokos which product and expense account to book each supplier line to. What you confirm is remembered for this supplier's next invoices."
+msgstr "<b>Votre article</b> indique à Dokos sur quel produit et quel compte de charge comptabiliser chaque ligne du fournisseur. Ce que vous confirmez est retenu pour les prochaines factures de ce fournisseur."
+
+msgid "Supplier line"
+msgstr "Ligne du fournisseur"
+
+msgid "Your item"
+msgstr "Votre article"
+
+msgid "No lines yet."
+msgstr "Pas encore de lignes."
+
+msgid "Choose the item for line {0}"
+msgstr "Choisir l'article de la ligne {0}"
+
+msgid "{0} line(s) linked to {1}. Line(s) {2} have no matching item on it: link them by hand."
+msgstr "{0} ligne(s) liée(s) à {1}. Ligne(s) {2} : aucun article correspondant, liez-les à la main."
+
+msgid "All lines linked to {0}."
+msgstr "Toutes les lignes sont liées à {0}."
+
+msgctxt "Supplier Invoice step"
+msgid "Book"
+msgstr "Comptabiliser"
+
+msgctxt "Supplier Invoice action"
+msgid "Link"
+msgstr "Lier"
+
+msgctxt "Item match column"
+msgid "Match"
+msgstr "Rapprochement"

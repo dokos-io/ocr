@@ -2,6 +2,7 @@
 // For license information, please see license.txt
 
 frappe.provide("etransactions.pending_invoice");
+frappe.provide("etransactions.supplier_invoice");
 frappe.provide("etransactions.ui");
 
 frappe.ui.form.on("Supplier Invoice", {
@@ -73,27 +74,13 @@ frappe.ui.form.on("Supplier Invoice", {
 		frm.trigger("set_bottom_button_label");
 		frm.trigger("compare_totals");
 
-		// With e-invoicing on, the platform status card says where the invoice came from.
-		if (frm.doc.pa_platform_name && !(frappe.boot.einvoicing_enabled && frm.doc.einvoice)) {
-			frm.dashboard.add_indicator(
-				__("Received via {0}", [frm.doc.pa_platform_name]),
-				"purple"
-			);
-		}
-
 		try {
-			$('[data-fieldname="data_column"]').removeClass("col-sm-6").addClass("col-sm-4");
-			$('[data-fieldname="preview_column"]').removeClass("col-sm-6").addClass("col-sm-8");
 			frm.get_field("create_purchase_invoice").$wrapper.addClass("text-right");
-			frm.get_field("create_purchase_invoice")
-				.$wrapper.parent()
-				.parent()
-				.addClass("mt-auto");
 			$('[data-fieldname="create_purchase_invoice"] button')
 				.removeClass("btn-secondary")
 				.addClass("btn-primary");
 		} catch (err) {
-			console.warn(e);
+			console.warn(err);
 		}
 
 		if (frm.doc.status != "Closed" && frappe.perm.has_perm(frm.doctype, 1, "write")) {
@@ -119,47 +106,34 @@ frappe.ui.form.on("Supplier Invoice", {
 		}
 
 		frm.trigger("check_tax_id");
-		frm.trigger("check_supplier_id");
-		frm.trigger("check_po_exists");
-		frm.trigger("check_duplicate_bill_no");
-		frm.trigger("show_match_confidence");
 		frm.trigger("check_unbilled_purchase_orders");
 		frm.trigger("add_credit_note_allocation_button");
 		frm.trigger("add_create_debit_note_button");
 		frm.trigger("render_credit_note_allocation_recap");
-		frm.trigger("attach_lifecycle");
+		frm.trigger("render_guide");
 	},
 
-	// The e-invoicing lifecycle, driven from the document a buyer actually looks at when
-	// an invoice arrives. This is where a refusal belongs: it happens before any Purchase
-	// Invoice exists, so the panel on the Purchase Invoice is always too late.
-	attach_lifecycle(frm) {
-		// The einvoice check is a cheap local skip — most supplier invoices are typed in
-		// or OCR'd and never went through an accredited platform, and asking the server
-		// about every one of them would be a round-trip per form load for nothing.
-		if (frm.is_new() || !frappe.boot.einvoicing_enabled || !frm.doc.einvoice) return;
+	// The Review tab: status, next step, checks and options, for every supplier invoice.
+	// The platform part (what the supplier sees, dispute and refusal) only shows for an
+	// invoice received through an accredited platform.
+	render_guide(frm) {
+		frm._si_on_sent = (def) => {
+			if (def.status !== "refused") return;
+			// "Completed" means a Purchase Invoice was already created from this one:
+			// closing it would misrepresent what happened, and "Closed" is already there.
+			if (["Completed", "Closed"].includes(frm.doc.status)) return;
 
-		etransactions.lifecycle.attach_overview(frm, {
-			einvoice: frm.doc.einvoice,
-			status_field: "einvoicing_status",
-			history_field: "einvoicing_history",
-			on_sent: (def) => {
-				if (def.status !== "refused") return;
-				// "Completed" means a Purchase Invoice was already created from this one:
-				// closing it would misrepresent what happened, and "Closed" is already there.
-				if (["Completed", "Closed"].includes(frm.doc.status)) return;
-
-				// A refused invoice will never be booked, so leaving it in the worklist is
-				// noise. Asked rather than done: it is the user's call, and Reopen undoes it.
-				frappe.confirm(
-					__("This invoice was refused. Close it so it leaves your pending list?"),
-					() => frm.call("close_request").then(() => frm.reload_doc()),
-					() => frm.refresh()
-				);
-				// The confirm owns the form from here: both branches refresh it themselves.
-				return false;
-			},
-		});
+			// A refused invoice will never be booked, so leaving it in the worklist is
+			// noise. Asked rather than done: it is the user's call, and Reopen undoes it.
+			frappe.confirm(
+				__("This invoice was refused. Close it so it leaves your pending list?"),
+				() => frm.call("close_request").then(() => frm.reload_doc()),
+				() => frm.refresh()
+			);
+			// The confirm owns the form from here: both branches refresh it themselves.
+			return false;
+		};
+		etransactions.supplierInvoiceGuide.render(frm);
 	},
 
 	add_credit_note_allocation_button(frm) {
@@ -235,22 +209,6 @@ frappe.ui.form.on("Supplier Invoice", {
 				`<span class="text-muted" style="font-size:var(--text-xs);">${message}</span>`
 			);
 		}
-	},
-
-	show_match_confidence(frm) {
-		const field = frm.get_field("supplier");
-		if (!field) return;
-		const config = {
-			medium: { color: "orange", label: __("Medium confidence") },
-			low: { color: "red", label: __("Low confidence") },
-			high: { color: "green", label: __("High confidence") },
-		};
-		const cfg = config[frm.doc.match_confidence];
-		field.set_description(
-			cfg
-				? `<span class="indicator-pill ${cfg.color} no-indicator-dot" style="font-size:var(--text-xs);">${cfg.label}</span>`
-				: ""
-		);
 	},
 
 	async show_preview(frm) {
@@ -356,27 +314,12 @@ frappe.ui.form.on("Supplier Invoice", {
 						)}</span>`
 					);
 				}
-
-				if (frm.doc.items.length && diff && field[0] == "net_total") {
-					frm.dashboard.set_headline(
-						__(
-							"The net amount of the invoice and the selected purchase receipts don't match.<br>Please select another purchase receipt or adjust the unit rate to match the amount of this invoice."
-						),
-						"blue"
-					);
-				}
 			}
 		});
 	},
 
 	supplier(frm) {
 		erpnext.utils.get_party_details(frm);
-		frm.get_field("supplier")?.set_description("");
-		frm.trigger("check_duplicate_bill_no");
-	},
-
-	bill_no(frm) {
-		frm.trigger("check_duplicate_bill_no");
 	},
 
 	tax_category(frm) {
@@ -444,62 +387,6 @@ frappe.ui.form.on("Supplier Invoice", {
 				});
 		}
 	},
-	check_supplier_id(frm) {
-		if (frm.doc.purchase_order_number && frm.doc.supplier) {
-			frappe.db.get_value(
-				"Purchase Order",
-				frm.doc.purchase_order_number,
-				"supplier",
-				(r) => {
-					if (r.supplier && r.supplier != frm.doc.supplier) {
-						frm.dashboard.clear_headline();
-						const msg = __(
-							"The selected supplier ({0}) is different from the purchase order supplier ({1})",
-							[frm.doc.supplier, r.supplier]
-						);
-						frm.dashboard.set_headline(msg, "red");
-					}
-				}
-			);
-		}
-	},
-	check_po_exists(frm) {
-		if (frm.doc.purchase_order_number) {
-			frappe.db.get_value("Purchase Order", frm.doc.purchase_order_number, "name", (r) => {
-				if (!r.name) {
-					frm.dashboard.clear_headline();
-					const msg = __("We are not able to find any purchase order with number {0}.", [
-						frm.doc.purchase_order_number,
-					]);
-					frm.dashboard.set_headline(msg, "red");
-				}
-			});
-		}
-	},
-	check_duplicate_bill_no(frm) {
-		if (!frm.doc.bill_no || !frm.doc.supplier) return;
-		frappe.db
-			.get_list("Purchase Invoice", {
-				filters: {
-					bill_no: frm.doc.bill_no,
-					supplier: frm.doc.supplier,
-					docstatus: 1, // submitted only
-					supplier_invoice: ["!=", frm.doc.name || ""], // exclude this invoice's own PI
-				},
-				fields: ["name"],
-				limit: 1,
-			})
-			.then((r) => {
-				if (r && r.length) {
-					const link = frappe.utils.get_form_link("Purchase Invoice", r[0].name, true);
-					const msg = __(
-						"Supplier Invoice No {0} already exists in submitted Purchase Invoice {1}",
-						[frm.doc.bill_no, link]
-					);
-					frm.dashboard.set_headline(msg, "orange");
-				}
-			});
-	},
 });
 
 const set_query_for_item_tax_template = (doc, cdt, cdn) => {
@@ -524,6 +411,37 @@ const set_query_for_item_tax_template = (doc, cdt, cdn) => {
 			filters: filters,
 		};
 	}
+};
+
+const fetch_item_details = (frm, cdt, cdn) => {
+	const row = locals[cdt][cdn];
+	return frappe
+		.call({
+			method: "etransactions.etransactions.doctype.supplier_invoice.supplier_invoice.get_item_details",
+			args: {
+				row: row,
+				company: frm.doc.company,
+				tax_category: frm.doc.tax_category,
+			},
+		})
+		.then((r) =>
+			Promise.all([
+				frappe.model.set_value(cdt, cdn, "cost_center", r.message?.cost_center || ""),
+				frappe.model.set_value(
+					cdt,
+					cdn,
+					"expense_account",
+					r.message?.expense_account || ""
+				),
+				frappe.model.set_value(cdt, cdn, "description", r.message?.description || ""),
+				frappe.model.set_value(
+					cdt,
+					cdn,
+					"item_tax_template",
+					r.message?.item_tax_template || ""
+				),
+			])
+		);
 };
 
 const create_po_pi = async (frm) => {
@@ -569,7 +487,7 @@ const items_are_not_linked_to_purchase_document = async (frm) => {
 		return false;
 	}
 
-	no_purchase_order = await frappe.db.get_single_value(
+	const no_purchase_order = await frappe.db.get_single_value(
 		"eTransactions Settings",
 		"no_purchase_order"
 	);
@@ -953,32 +871,7 @@ frappe.ui.form.on("Supplier Invoice Item", {
 		}
 	},
 	item_code(frm, cdt, cdn) {
-		const row = locals[cdt][cdn];
-		frappe
-			.call({
-				method: "etransactions.etransactions.doctype.supplier_invoice.supplier_invoice.get_item_details",
-				args: {
-					row: row,
-					company: frm.doc.company,
-					tax_category: frm.doc.tax_category,
-				},
-			})
-			.then((r) => {
-				frappe.model.set_value(cdt, cdn, "cost_center", r.message?.cost_center || "");
-				frappe.model.set_value(
-					cdt,
-					cdn,
-					"expense_account",
-					r.message?.expense_account || ""
-				);
-				frappe.model.set_value(cdt, cdn, "description", r.message?.description || "");
-				frappe.model.set_value(
-					cdt,
-					cdn,
-					"item_tax_template",
-					r.message?.item_tax_template || ""
-				);
-			});
+		fetch_item_details(frm, cdt, cdn);
 	},
 	qty(frm, cdt, cdn) {
 		const row = locals[cdt][cdn];
@@ -1215,3 +1108,12 @@ etransactions.ui.SuccessAction = class SuccessAction {
 		};
 	}
 };
+
+// Used by the Review tab (public/js/supplier_invoice_guide.js) to run the same actions.
+etransactions.PurchaseDocumentSelector = PurchaseDocumentSelector;
+Object.assign(etransactions.supplier_invoice, {
+	create_po_pi,
+	create_purchase_invoice,
+	fetch_item_details,
+	open_credit_note_allocation_dialog,
+});

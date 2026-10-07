@@ -204,7 +204,15 @@ doc_events = {
 		],
 	},
 	"Payment Entry": {
-		"on_submit": "etransactions.plateforme_agreee.auto_status.on_payment_entry_submit",
+		"on_submit": [
+			"etransactions.plateforme_agreee.auto_status.on_payment_entry_submit",
+			"etransactions.etransactions.doctype.supplier_invoice.supplier_invoice.update_guide_status_from_payment",
+		],
+		"on_cancel": "etransactions.etransactions.doctype.supplier_invoice.supplier_invoice.update_guide_status_from_payment",
+	},
+	"eInvoice Event": {
+		"after_insert": "etransactions.etransactions.doctype.supplier_invoice.supplier_invoice.update_guide_status_from_lifecycle_event",
+		"on_update": "etransactions.etransactions.doctype.supplier_invoice.supplier_invoice.update_guide_status_from_lifecycle_event",
 	},
 	"Purchase Receipt": {
 		"on_submit": "etransactions.etransactions.doctype.supplier_invoice.supplier_invoice.auto_match_with_purchase_receipt",
