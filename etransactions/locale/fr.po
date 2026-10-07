@@ -2728,6 +2728,11 @@ msgstr "Montant de la facture"
 msgid "Invoice ID"
 msgstr "Identifiant de facture"
 
+#. Label of the 'invoice_reference' (Data) field in DocType 'eInvoice Event'
+#: etransactions/etransactions/doctype/einvoice_event/einvoice_event.json
+msgid "Invoice Reference"
+msgstr "Référence de la facture"
+
 #. Label of the invoice_preview (HTML) field in DocType 'Supplier Invoice'
 #: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json
 msgid "Invoice Preview"
@@ -2939,8 +2944,8 @@ msgstr "Laisser vide pour la détermination des taxes par lignes"
 
 #. Description of the 'eInvoice' (Link) field in DocType 'eInvoice Event'
 #: etransactions/etransactions/doctype/einvoice_event/einvoice_event.json
-msgid "Left empty when the event arrives before its invoice; it is linked by Flow ID as soon as the eInvoice is created."
-msgstr "Laissé vide lorsque l'événement arrive avant la facture ; il est lié par l'ID de flux dès que la e-facture est créée."
+msgid "Left empty when the event arrives before its invoice; it is linked by Flow ID or by invoice reference as soon as the eInvoice exists."
+msgstr "Laissé vide lorsque l'événement arrive avant la facture ; il est lié par l'ID de flux ou par la référence de facture dès que la e-facture existe."
 
 #: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:632
 #: etransactions/plateforme_agreee/esalink_provisioning.py:290
@@ -7735,3 +7740,8 @@ msgstr "Client du secteur public : activez l'option secteur public pour renseign
 
 msgid "This is a B2G invoice (public entity). The <b>service code</b> (BT-10) is usually required by Chorus Pro. Enable <b>Public sector (B2G / Chorus Pro)</b> in eTransactions Settings to fill it on the invoice or on the customer's billing address."
 msgstr "Il s'agit d'une facture B2G (entité publique). Le <b>code service</b> (BT-10) est généralement exigé par Chorus Pro. Activez <b>Secteur public (B2G / Chorus Pro)</b> dans les paramètres eTransactions pour le renseigner sur la facture ou sur l'adresse de facturation du client."
+
+#. Description of the 'invoice_reference' (Data) field in DocType 'eInvoice Event'
+#: etransactions/etransactions/doctype/einvoice_event/einvoice_event.json
+msgid "Number of the invoice the platform reported this status for. Used to link the event once its eInvoice exists."
+msgstr "Numéro de la facture à laquelle se rapporte ce statut transmis par la plateforme. Sert à lier l'événement dès que sa e-facture existe."

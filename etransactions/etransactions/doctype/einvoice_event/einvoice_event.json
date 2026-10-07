@@ -14,6 +14,9 @@
   "state",
   "pa_event_id",
   "pa_flow_id",
+  "invoice_reference",
+  "einvoice_type",
+  "company",
   "error_details",
   "details_section",
   "reason_code",
@@ -37,7 +40,7 @@
    "label": "eInvoice",
    "options": "eInvoice",
    "search_index": 1,
-   "description": "Left empty when the event arrives before its invoice; it is linked by Flow ID as soon as the eInvoice is created."
+   "description": "Left empty when the event arrives before its invoice; it is linked by Flow ID or by invoice reference as soon as the eInvoice exists."
   },
   {
    "fieldname": "direction",
@@ -91,6 +94,28 @@
    "fieldname": "pa_flow_id",
    "fieldtype": "Data",
    "label": "PA Flow ID",
+   "read_only": 1
+  },
+  {
+   "fieldname": "invoice_reference",
+   "fieldtype": "Data",
+   "label": "Invoice Reference",
+   "read_only": 1,
+   "search_index": 1,
+   "description": "Number of the invoice the platform reported this status for. Used to link the event once its eInvoice exists."
+  },
+  {
+   "fieldname": "einvoice_type",
+   "fieldtype": "Select",
+   "label": "eInvoice Type",
+   "options": "\nIncoming\nOutgoing",
+   "read_only": 1
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
    "read_only": 1
   },
   {
@@ -163,7 +188,7 @@
   }
  ],
  "links": [],
- "modified": "2026-06-02 00:00:00.000000",
+ "modified": "2026-10-07 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "eTransactions",
  "name": "eInvoice Event",
