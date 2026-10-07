@@ -51,7 +51,25 @@ class TestLifecycleStatus(UnitTestCase):
 	def test_warning_statuses(self):
 		self.assertTrue(ls.is_warning("refused"))
 		self.assertTrue(ls.is_warning("dispute"))
+		self.assertTrue(ls.is_warning("rejected"))
 		self.assertFalse(ls.is_warning("approved"))
+		self.assertFalse(ls.is_warning("ap_sent"))
+
+	def test_platform_statuses_are_read_from_their_cdar_codes(self):
+		for code, status in (
+			("200", "submitted"),
+			("201", "ap_sent"),
+			("202", "ap_received"),
+			("203", "ap_available"),
+			("213", "rejected"),
+			("501", "inadmissible"),
+		):
+			self.assertEqual(ls.from_cdar_code(code), status)
+
+	def test_platform_statuses_are_never_offered_to_report(self):
+		manual = set(ls.manual_statuses("purchase")) | set(ls.manual_statuses("sale"))
+		for status in ("submitted", "ap_sent", "ap_received", "ap_available", "rejected", "inadmissible"):
+			self.assertNotIn(status, manual)
 
 
 class TestLifecycleTransitions(UnitTestCase):
@@ -60,13 +78,16 @@ class TestLifecycleTransitions(UnitTestCase):
 	Pure logic: the state dict is handed in, so no database is involved.
 	"""
 
-	def _state(self, purchase=None, sale=None, refused=False, cancelled=False):
+	def _state(self, purchase=None, sale=None, refused=False, cancelled=False, rejected=False):
 		return {
 			"purchase": purchase,
 			"sale": sale,
+			"transmission": None,
 			"purchase_at": None,
 			"sale_at": None,
+			"transmission_at": None,
 			"refused": refused,
+			"rejected": rejected,
 			"cancelled": cancelled,
 			"latest": purchase or sale,
 			"latest_at": None,
@@ -114,7 +135,7 @@ class TestLifecycleTransitions(UnitTestCase):
 	def test_side_of_covers_every_status(self):
 		for status in ls.STATUSES:
 			side = ls.side_of(status)
-			self.assertIn(side, ("purchase", "sale", None))
+			self.assertIn(side, ("purchase", "sale", "transmission", None))
 		self.assertIsNone(ls.side_of("cancelled"), "cancellation belongs to no axis")
 
 	# ------------------------------------------------------------------
@@ -129,6 +150,15 @@ class TestLifecycleTransitions(UnitTestCase):
 	def test_a_refused_invoice_can_still_be_cancelled(self):
 		# Otherwise the guided cancellation flow would leave the invoice stuck.
 		self._allowed("cancelled", purchase="refused", refused=True)
+
+	def test_a_platform_status_cannot_be_reported(self):
+		error = self._blocked("rejected")
+		self.assertIn("platform", error.lower())
+
+	def test_nothing_can_be_reported_after_a_rejection_not_even_a_cancellation(self):
+		# The invoice never reached the buyer: there is nothing to cancel on the platform.
+		for status in ("in_hand", "approved", "payment_received", "cancelled"):
+			self._blocked(status, rejected=True)
 
 	def test_nothing_can_be_reported_after_a_cancellation(self):
 		for status in ("approved", "dispute", "payment_sent", "cancelled"):
@@ -299,7 +329,8 @@ class TestReasonCodes(UnitTestCase):
 	"""
 
 	def _all_codes(self) -> set[str]:
-		return {code for codes in ls.REASON_CODES.values() for code in codes}
+		lists = [*ls.REASON_CODES.values(), *ls.RECEIVED_REASON_CODES.values()]
+		return {code for codes in lists for code in codes}
 
 	def test_every_reason_code_has_a_label(self):
 		missing = self._all_codes() - set(ls.REASON_LABELS)

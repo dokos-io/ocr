@@ -24,12 +24,38 @@ from frappe import _, _lt
 #   mdt105            : AFNOR lifecycle status code (CDAR MDT-105)
 #   mdt88             : UN/CEFACT ProcessConditionCode (CDAR MDT-88)
 #   superpdp          : SuperPDP native event status code, or None if unsupported
-#   side              : "purchase" (buyer emits), "sale" (seller emits) or None (both/auto)
+#   side              : "purchase" (buyer emits), "sale" (seller emits), "transmission"
+#                       (the platforms emit, never reportable by us) or None (both/auto)
 #   detail_required   : a reason/detail must accompany the status
 #   confirm_required  : the UI should confirm before sending (irreversible)
 #   repeatable        : the same status may legitimately be reported more than once
 #   warning           : an incoming event with this status should raise a ToDo
 STATUSES: dict[str, dict] = {
+    # transmission: set by the platforms as the invoice travels, received only
+    "submitted": {
+        "mdt105": "200", "mdt88": None, "superpdp": None,
+        "side": "transmission", "decoration": "muted",
+    },
+    "ap_sent": {
+        "mdt105": "201", "mdt88": None, "superpdp": None,
+        "side": "transmission", "decoration": "muted",
+    },
+    "ap_received": {
+        "mdt105": "202", "mdt88": None, "superpdp": None,
+        "side": "transmission", "decoration": "muted",
+    },
+    "ap_available": {
+        "mdt105": "203", "mdt88": None, "superpdp": None,
+        "side": "transmission", "decoration": "muted",
+    },
+    "rejected": {
+        "mdt105": "213", "mdt88": None, "superpdp": None,
+        "side": "transmission", "warning": True, "decoration": "danger",
+    },
+    "inadmissible": {
+        "mdt105": "501", "mdt88": None, "superpdp": None,
+        "side": "transmission", "warning": True, "decoration": "danger",
+    },
     "in_hand": {
         "mdt105": "204", "mdt88": "45", "superpdp": "fr:204",
         "side": "purchase", "decoration": "info",
@@ -86,6 +112,12 @@ STATUSES: dict[str, dict] = {
 # ``_LazyTranslate`` must never escape into a whitelisted return value, since it
 # raises on ``__eq__`` and has no ``__json__``.
 LABELS: dict[str, str] = {
+    "submitted": _lt("Submitted"),
+    "ap_sent": _lt("Issued by the Platform"),
+    "ap_received": _lt("Received by the Platform"),
+    "ap_available": _lt("Made Available"),
+    "rejected": _lt("Rejected"),
+    "inadmissible": _lt("Inadmissible"),
     "in_hand": _lt("In Hand"),
     "approved": _lt("Approved"),
     "partially_approved": _lt("Partially Approved"),
@@ -135,6 +167,20 @@ REASON_CODES: dict[str, list[str]] = {
 	],
 }
 
+# The reason codes the platforms give with the statuses they set, from the same
+# schematron. Received only: kept apart from REASON_CODES, which drives what we send.
+RECEIVED_REASON_CODES: dict[str, list[str]] = {
+	"ap_sent": ["NON_TRANSMISE"],  # 201
+	"rejected": [  # 213
+		"MONTANTTOTAL_ERR", "CALCUL_ERR", "DOUBLON", "DEST_INC", "ADR_ERR", "REJ_SEMAN",
+		"REJ_UNI", "REJ_COH", "REJ_ADR", "REJ_CONT_B2G", "REJ_REF_PJ", "REJ_ASS_PJ",
+	],
+	"inadmissible": [  # 501
+		"IRR_VIDE_F", "IRR_TYPE_F", "IRR_SYNTAX", "IRR_TAILLE_PJ", "IRR_NOM_PJ",
+		"IRR_VID_PJ", "IRR_EXT_DOC", "IRR_TAILLE_F", "IRR_ANTIVIRUS", "IRR_NOM_F",
+	],
+}
+
 # Human-readable wording for the MDT-113 codes, keyed by *code* rather than by
 # status: the four lists above hold 59 entries but only 27 distinct codes (every
 # refusal code is also a dispute code), so keying by status would duplicate most
@@ -156,16 +202,34 @@ REASON_LABELS: dict[str, str] = {
 	"DOUBLE_FACT": _lt("Double invoicing"),
 	"DOUBLON": _lt("Duplicate"),
 	"EMMET_INC": _lt("Unknown issuer"),
+	"IRR_ANTIVIRUS": _lt("Virus detected"),
+	"IRR_EXT_DOC": _lt("Invalid document extension"),
+	"IRR_NOM_F": _lt("Invalid file name"),
+	"IRR_NOM_PJ": _lt("Invalid attachment name"),
+	"IRR_SYNTAX": _lt("Syntax error"),
+	"IRR_TAILLE_F": _lt("File too large"),
+	"IRR_TAILLE_PJ": _lt("Attachment too large"),
+	"IRR_TYPE_F": _lt("Invalid file type"),
+	"IRR_VID_PJ": _lt("Empty attachment"),
+	"IRR_VIDE_F": _lt("Empty file"),
 	"JUSTIF_ABS": _lt("Missing supporting document"),
 	"LIVR_INCOMP": _lt("Incomplete delivery"),
 	"MODPAI_ERR": _lt("Incorrect payment method"),
 	"MONTANTTOTAL_ERR": _lt("Incorrect total amount"),
 	"NON_CONFORME": _lt("Non-compliant invoice"),
+	"NON_TRANSMISE": _lt("Not transmitted"),
 	"PU_ERR": _lt("Incorrect unit price"),
 	"QTE_ERR": _lt("Incorrect quantity"),
 	"QUALITE_ERR": _lt("Quality not as agreed"),
 	"REF_CT_ABSENT": _lt("Missing contract reference"),
 	"REF_ERR": _lt("Incorrect reference"),
+	"REJ_ADR": _lt("Addressing error"),
+	"REJ_ASS_PJ": _lt("Attachment association error"),
+	"REJ_COH": _lt("Inconsistent data"),
+	"REJ_CONT_B2G": _lt("Public sector check failed"),
+	"REJ_REF_PJ": _lt("Invalid attachment reference"),
+	"REJ_SEMAN": _lt("Semantic error"),
+	"REJ_UNI": _lt("Duplicate submission"),
 	"REM_ERR": _lt("Incorrect discount"),
 	"SIRET_ERR": _lt("Incorrect SIRET"),
 	"TRANSAC_INC": _lt("Unknown transaction"),
@@ -188,16 +252,34 @@ REASON_DESCRIPTIONS: dict[str, str] = {
 	"DOUBLE_FACT": _lt("The same goods or services have already been invoiced separately."),
 	"DOUBLON": _lt("This exact invoice has already been received."),
 	"EMMET_INC": _lt("The issuer is not a known supplier."),
+	"IRR_ANTIVIRUS": _lt("The antivirus check of the platform flagged the file."),
+	"IRR_EXT_DOC": _lt("A document has an extension the platform does not accept."),
+	"IRR_NOM_F": _lt("The file name does not follow the platform's naming rules."),
+	"IRR_NOM_PJ": _lt("An attachment name does not follow the platform's naming rules."),
+	"IRR_SYNTAX": _lt("The file is not valid XML or does not match its schema."),
+	"IRR_TAILLE_F": _lt("The file exceeds the size the platform accepts."),
+	"IRR_TAILLE_PJ": _lt("An attachment exceeds the size the platform accepts."),
+	"IRR_TYPE_F": _lt("The file is not of a type the platform accepts."),
+	"IRR_VID_PJ": _lt("An attachment is empty."),
+	"IRR_VIDE_F": _lt("The file is empty."),
 	"JUSTIF_ABS": _lt("A required supporting document is missing from the invoice."),
 	"LIVR_INCOMP": _lt("Part of the invoiced delivery has not been received."),
 	"MODPAI_ERR": _lt("The payment method differs from the agreed one."),
 	"MONTANTTOTAL_ERR": _lt("The total amount does not match what was agreed."),
 	"NON_CONFORME": _lt("The invoice does not meet the legal or contractual requirements."),
+	"NON_TRANSMISE": _lt("The recipient has no active receiving address: the invoice was issued but not delivered."),
 	"PU_ERR": _lt("A unit price differs from the order or the price list."),
 	"QTE_ERR": _lt("An invoiced quantity differs from the one ordered or received."),
 	"QUALITE_ERR": _lt("The goods or services delivered are not of the agreed quality."),
 	"REF_CT_ABSENT": _lt("The contract reference required for payment is missing."),
 	"REF_ERR": _lt("A reference carried by the invoice is wrong."),
+	"REJ_ADR": _lt("The invoice cannot be routed to the recipient's address."),
+	"REJ_ASS_PJ": _lt("An attachment cannot be associated with the invoice."),
+	"REJ_COH": _lt("Data on the invoice contradict each other."),
+	"REJ_CONT_B2G": _lt("The checks required for a public-sector invoice failed."),
+	"REJ_REF_PJ": _lt("An attachment referenced by the invoice is missing or wrong."),
+	"REJ_SEMAN": _lt("The invoice does not comply with the semantic rules of its format."),
+	"REJ_UNI": _lt("An invoice with the same number, date and issuer was already submitted."),
 	"REM_ERR": _lt("An agreed discount is missing or miscalculated."),
 	"SIRET_ERR": _lt("The SIRET on the invoice is wrong or does not match the recipient."),
 	"TRANSAC_INC": _lt("No order or contract matching this invoice can be found."),
@@ -326,7 +408,7 @@ def from_cdar_code(mdt105: str) -> str | None:
 
 
 def side_of(status: str) -> str | None:
-	"""The axis a status belongs to: "purchase", "sale", or ``None`` for ``cancelled``.
+	"""The axis a status belongs to: "purchase", "sale", "transmission", or ``None`` for ``cancelled``.
 
 	The axis is a property of the *status*, never of the invoice direction or of who
 	sent the event: on an outgoing invoice the buyer's ``refused`` is still a
@@ -361,8 +443,14 @@ def confirm_message(status: str) -> str | None:
 # Allowed transitions
 # -----------------------------------------------------------------------------
 # Regulatory end states. A refusal (MDT-105 210) is definitive and a cancellation
-# (220) retires the invoice, so neither can be followed by another status.
-TERMINAL: frozenset[str] = frozenset({"refused", "cancelled"})
+# (220) retires the invoice, so neither can be followed by another status. A
+# rejection (213) or an inadmissible file (501) stops the invoice on a platform
+# before the buyer ever handles it.
+TERMINAL: frozenset[str] = frozenset({"refused", "cancelled", "rejected", "inadmissible"})
+
+# Statuses that stop an invoice on the platform, before any business status can
+# apply to it. :func:`current_lifecycle_state` flags them as ``rejected``.
+REJECTIONS: frozenset[str] = frozenset({"rejected", "inadmissible"})
 
 # Allowed successors of a status, within its own axis. Self-edges are implied by
 # ``repeatable`` rather than listed here (see :func:`allowed_next`).
@@ -380,6 +468,14 @@ TERMINAL: frozenset[str] = frozenset({"refused", "cancelled"})
 #   payment_sent -> refused   you cannot refuse an invoice you have paid; ``dispute``
 #                             remains available as the real remedy
 TRANSITIONS: dict[str, frozenset[str]] = {
+	# transmission axis: the invoice's path between the platforms. Descriptive only:
+	# these statuses are received, never reported, so no send is ever gated on them.
+	"submitted": frozenset({"ap_sent", "ap_received", "rejected", "inadmissible"}),
+	"ap_sent": frozenset({"ap_received", "rejected"}),
+	"ap_received": frozenset({"ap_available", "rejected"}),
+	"ap_available": frozenset({"rejected"}),
+	"rejected": frozenset(),
+	"inadmissible": frozenset(),
 	# purchase axis: the buyer's handling of an invoice it received
 	"in_hand": frozenset(
 		{"approved", "partially_approved", "dispute", "suspended", "refused", "payment_sent"}
@@ -438,6 +534,19 @@ def transition_error(state: dict, status: str) -> str | None:
 	"""
 	if status not in STATUSES:
 		return _("Unknown lifecycle status '{0}'.").format(status)
+
+	if side_of(status) == "transmission":
+		return _("The status '{0}' is set by the accredited platforms and cannot be reported.").format(
+			label(status)
+		)
+
+	# Unlike a refusal, not even 'Cancelled' may follow: the invoice never reached the
+	# buyer, so there is nothing to cancel on the platform.
+	if state.get("rejected"):
+		return _(
+			"This invoice was rejected by the accredited platform:"
+			" no lifecycle status can be reported for it."
+		)
 
 	if state.get("cancelled"):
 		return _(

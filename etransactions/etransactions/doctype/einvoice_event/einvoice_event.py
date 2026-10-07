@@ -132,11 +132,15 @@ class eInvoiceEvent(Document):
 def current_lifecycle_state(einvoice: str) -> dict:
 	"""The lifecycle state of an eInvoice, derived from the events recorded for it.
 
-	Returns the current status of each axis, the ``refused`` / ``cancelled`` flags and
-	the latest status overall::
+	Returns the current status of each axis, the ``refused`` / ``rejected`` /
+	``cancelled`` flags and the latest status overall::
 
-		{"purchase": "approved", "sale": None, "purchase_at": ..., "sale_at": None,
-		 "refused": False, "cancelled": False, "latest": "approved", "latest_at": ...}
+		{"purchase": "approved", "sale": None, "transmission": "ap_available",
+		 "purchase_at": ..., "sale_at": None, "transmission_at": ...,
+		 "refused": False, "rejected": False, "cancelled": False,
+		 "latest": "approved", "latest_at": ...}
+
+	``rejected`` covers both platform stops: 213 (rejected) and 501 (inadmissible).
 
 	This is the single source of truth for
 	:func:`~etransactions.plateforme_agreee.lifecycle_status.transition_error`. It is
@@ -160,9 +164,12 @@ def current_lifecycle_state(einvoice: str) -> dict:
 	state = {
 		"purchase": None,
 		"sale": None,
+		"transmission": None,
 		"purchase_at": None,
 		"sale_at": None,
+		"transmission_at": None,
 		"refused": False,
+		"rejected": False,
 		"cancelled": False,
 		"latest": None,
 		"latest_at": None,
@@ -181,6 +188,8 @@ def current_lifecycle_state(einvoice: str) -> dict:
 		# Membership, not recency: a later sale-axis event must not un-refuse an invoice.
 		if event.status == "refused":
 			state["refused"] = True
+		elif event.status in lifecycle_status.REJECTIONS:
+			state["rejected"] = True
 		elif event.status == "cancelled":
 			state["cancelled"] = True
 
