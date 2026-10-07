@@ -222,8 +222,12 @@ def _transmitted_einvoice(sales_invoice: str):
 	"""The Outgoing eInvoice live on the platform for this invoice, if any.
 
 	Errored/rejected flows never entered the buyer's circuit, so they don't
-	need a lifecycle status before cancellation.
+	need a lifecycle status before cancellation. Neither does an invoice a
+	platform stopped afterwards (213 Rejected, 501 Inadmissible): no status
+	can be reported for it any more.
 	"""
+	from etransactions.etransactions.doctype.einvoice_event.einvoice_event import current_lifecycle_state
+
 	row = frappe.db.get_value(
 		"eInvoice",
 		{"sales_invoice": sales_invoice, "einvoice_type": "Outgoing"},
@@ -231,6 +235,8 @@ def _transmitted_einvoice(sales_invoice: str):
 		as_dict=True,
 	)
 	if not row or not row.pa_flow_id or (row.pa_status or "") in ("error", "rejected"):
+		return None
+	if current_lifecycle_state(row.name)["rejected"]:
 		return None
 	return row
 

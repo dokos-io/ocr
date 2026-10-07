@@ -12,7 +12,7 @@ from unittest.mock import patch
 
 import frappe
 
-from etransactions.components.superpdp.models import IncomingFlow
+from etransactions.components.superpdp.models import IncomingFlow, StatusResult
 from etransactions.etransactions.doctype.einvoice.einvoice import eInvoice
 from etransactions.etransactions.doctype.einvoice_event.einvoice_event import record_event
 from etransactions.plateforme_agreee import flow as flow_module
@@ -24,9 +24,11 @@ GET_CLIENT_IN_FLOW = "etransactions.plateforme_agreee.flow.get_client"
 class _FakeLifecycleClient:
 	"""Serves CDAR flows whose content is their own id, so parse_cdar can be faked per flow."""
 
-	def __init__(self, flows: list[IncomingFlow]):
-		self.flows = flows
+	def __init__(self, flows: list[IncomingFlow] | None = None, acks: dict[str, StatusResult] | None = None):
+		self.flows = flows or []
+		self.acks = acks or {}
 		self.downloads: list[str] = []
+		self.ack_reads: list[str] = []
 
 	def list_incoming_lifecycle_flows(self):
 		return self.flows
@@ -34,6 +36,10 @@ class _FakeLifecycleClient:
 	def download_flow(self, flow_id):
 		self.downloads.append(flow_id)
 		return flow_id.encode()
+
+	def get_invoice_status(self, flow_id):
+		self.ack_reads.append(flow_id)
+		return self.acks[flow_id]
 
 
 class TestLifecycleFlowPolling(eTransactionsTestSuite):
@@ -91,14 +97,16 @@ class TestLifecycleFlowPolling(eTransactionsTestSuite):
 		)
 		return einvoice
 
-	def _cdar(self, name, flow_type, invoice_number, status_code="205", issuer=None) -> IncomingFlow:
+	def _cdar(
+		self, name, flow_type, invoice_number, status_code="205", issuer=None, reason_code=None
+	) -> IncomingFlow:
 		flow_id = f"CDAR-{self.run_id}-{name}"
 		self.cdars[flow_id] = {
 			"status_code": status_code,
 			"invoice_number": invoice_number,
 			"invoice_issuer": issuer,
 			"lc_datetime": "2026-06-02 10:00:00",
-			"doc_status": [],
+			"doc_status": [{"reason_code": reason_code}] if reason_code else [],
 		}
 		return IncomingFlow(
 			flow_id=flow_id, submitted_at="2026-06-02 10:00:00", updated_at=None, flow_type=flow_type, syntax="CDAR"
@@ -206,3 +214,103 @@ class TestLifecycleFlowPolling(eTransactionsTestSuite):
 			flow_module.poll_pending_outgoing_flows()
 
 		self.assertEqual(frappe.db.count("eInvoicing Log", failures), before + 1)
+
+	# ------------------------------------------------------------------
+	# Statuses set by the platforms (200-203, 213, 501)
+	# ------------------------------------------------------------------
+	def test_a_rejection_is_recorded_with_its_reason_and_raises_a_todo(self):
+		number = f"F-REJ-{self.run_id}"
+		einvoice = self._einvoice(einvoice_type="Outgoing", id=number)
+		cdar = self._cdar("rej", "CustomerInvoiceLC", number, status_code="213", reason_code="REJ_SEMAN")
+
+		self._poll(cdar)
+
+		event = frappe.db.get_value(
+			"eInvoice Event", {"pa_event_id": cdar.flow_id}, ["einvoice", "status", "reason_code"], as_dict=True
+		)
+		self.assertEqual((event.einvoice, event.status, event.reason_code), (einvoice.name, "rejected", "REJ_SEMAN"))
+		self.assertEqual(frappe.db.get_value("eInvoice", einvoice.name, "lifecycle_status"), "rejected")
+		self.assertTrue(frappe.db.exists("ToDo", {"reference_type": "eInvoice", "reference_name": einvoice.name}))
+
+	def test_a_rejected_invoice_is_cancelled_without_reporting_a_status(self):
+		from etransactions.overrides.sales_invoice import _transmitted_einvoice
+
+		number = f"F-REJCANCEL-{self.run_id}"
+		sales_invoice = f"SINV-{self.run_id}"
+		einvoice = self._einvoice(einvoice_type="Outgoing", id=number)
+		einvoice.db_set({"sales_invoice": sales_invoice, "pa_status": "done"}, update_modified=False)
+		self.assertTrue(_transmitted_einvoice(sales_invoice), "an accepted invoice is live on the platform")
+
+		self._poll(self._cdar("rejcancel", "CustomerInvoiceLC", number, status_code="213"))
+
+		self.assertIsNone(
+			_transmitted_einvoice(sales_invoice),
+			"a 'Cancelled' status would be refused for an invoice the platform rejected",
+		)
+
+	def test_transmission_statuses_do_not_block_business_statuses(self):
+		number = f"F-PATH-{self.run_id}"
+		einvoice = self._einvoice(id=number)
+		self._poll(
+			self._cdar("p202", "SupplierInvoiceLC", number, status_code="202"),
+			self._cdar("p203", "SupplierInvoiceLC", number, status_code="203"),
+		)
+
+		self.assertIsNone(einvoice.lifecycle_transition_error("approved"))
+
+	# ------------------------------------------------------------------
+	# Acknowledgement of the statuses we send as CDAR flows
+	# ------------------------------------------------------------------
+	def _sent_status(self, einvoice, status, cdar_flow_id, **kwargs):
+		return record_event(
+			einvoice.name, direction="out", status=status, state="sent", pa_flow_id=cdar_flow_id, **kwargs
+		)
+
+	def _poll_acks(self, acks: dict) -> _FakeLifecycleClient:
+		client = _FakeLifecycleClient(acks=acks)
+		with patch(GET_CLIENT_IN_FLOW, return_value=client):
+			flow_module.poll_outgoing_lifecycle_acknowledgements()
+		return client
+
+	def test_an_accepted_status_is_marked_delivered(self):
+		einvoice = self._einvoice(einvoice_type="Outgoing", id=f"F-ACK-{self.run_id}")
+		cdar_flow = f"OUT-{self.run_id}-ok"
+		event = self._sent_status(einvoice, "payment_received", cdar_flow)
+
+		self._poll_acks({cdar_flow: StatusResult(status="done")})
+
+		self.assertEqual(frappe.db.get_value("eInvoice Event", event.name, "state"), "done")
+
+	def test_a_status_the_platform_turned_down_is_marked_undelivered_and_can_be_sent_again(self):
+		einvoice = self._einvoice(id=f"F-NACK-{self.run_id}")
+		cdar_flow = f"OUT-{self.run_id}-ko"
+		event = self._sent_status(einvoice, "refused", cdar_flow, reason_code="DOUBLON")
+		self.assertTrue(einvoice.lifecycle_transition_error("approved"), "a refusal blocks everything after it")
+
+		self._poll_acks({cdar_flow: StatusResult(status="error", error_details="Schematron BR-FR-CDV-01")})
+
+		state, details = frappe.db.get_value("eInvoice Event", event.name, ["state", "error_details"])
+		self.assertEqual(state, "error")
+		self.assertIn("BR-FR-CDV-01", details)
+		self.assertIsNone(
+			einvoice.lifecycle_transition_error("refused"),
+			"an undelivered refusal never reached the supplier, so it must be possible to send it again",
+		)
+
+	def test_a_pending_acknowledgement_leaves_the_status_as_sent(self):
+		einvoice = self._einvoice(einvoice_type="Outgoing", id=f"F-WAIT-{self.run_id}")
+		cdar_flow = f"OUT-{self.run_id}-wait"
+		event = self._sent_status(einvoice, "completed", cdar_flow)
+
+		self._poll_acks({cdar_flow: StatusResult(status="pending")})
+
+		self.assertEqual(frappe.db.get_value("eInvoice Event", event.name, "state"), "sent")
+
+	def test_native_platform_events_are_not_polled(self):
+		# SuperPDP: an event id, and the invoice's own flow id.
+		einvoice = self._einvoice(einvoice_type="Outgoing", id=f"F-NATIVE-{self.run_id}")
+		self._sent_status(einvoice, "completed", einvoice.pa_flow_id, pa_event_id=f"EV-{self.run_id}")
+
+		client = self._poll_acks({})
+
+		self.assertNotIn(einvoice.pa_flow_id, client.ack_reads)

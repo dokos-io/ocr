@@ -7745,3 +7745,175 @@ msgstr "Il s'agit d'une facture B2G (entité publique). Le <b>code service</b> (
 #: etransactions/etransactions/doctype/einvoice_event/einvoice_event.json
 msgid "Number of the invoice the platform reported this status for. Used to link the event once its eInvoice exists."
 msgstr "Numéro de la facture à laquelle se rapporte ce statut transmis par la plateforme. Sert à lier l'événement dès que sa e-facture existe."
+
+#: etransactions/plateforme_agreee/lifecycle_status.py
+msgid "Submitted"
+msgstr "Déposée"
+
+#: etransactions/plateforme_agreee/lifecycle_status.py
+msgid "Issued by the Platform"
+msgstr "Émise par la plateforme"
+
+#: etransactions/plateforme_agreee/lifecycle_status.py
+msgid "Received by the Platform"
+msgstr "Reçue par la plateforme"
+
+#: etransactions/plateforme_agreee/lifecycle_status.py
+msgid "Made Available"
+msgstr "Mise à disposition"
+
+#: etransactions/plateforme_agreee/lifecycle_status.py
+msgid "Inadmissible"
+msgstr "Irrecevable"
+
+#: etransactions/plateforme_agreee/lifecycle_status.py
+msgid "Not transmitted"
+msgstr "Non transmise"
+
+#: etransactions/plateforme_agreee/lifecycle_status.py
+msgid "Virus detected"
+msgstr "Virus détecté"
+
+#: etransactions/plateforme_agreee/lifecycle_status.py
+msgid "Invalid document extension"
+msgstr "Extension de document invalide"
+
+#: etransactions/plateforme_agreee/lifecycle_status.py
+msgid "Invalid file name"
+msgstr "Nom de fichier invalide"
+
+#: etransactions/plateforme_agreee/lifecycle_status.py
+msgid "Invalid attachment name"
+msgstr "Nom de pièce jointe invalide"
+
+#: etransactions/plateforme_agreee/lifecycle_status.py
+msgid "Syntax error"
+msgstr "Erreur de syntaxe"
+
+#: etransactions/plateforme_agreee/lifecycle_status.py
+msgid "File too large"
+msgstr "Fichier trop volumineux"
+
+#: etransactions/plateforme_agreee/lifecycle_status.py
+msgid "Attachment too large"
+msgstr "Pièce jointe trop volumineuse"
+
+#: etransactions/plateforme_agreee/lifecycle_status.py
+msgid "Invalid file type"
+msgstr "Type de fichier invalide"
+
+#: etransactions/plateforme_agreee/lifecycle_status.py
+msgid "Empty attachment"
+msgstr "Pièce jointe vide"
+
+#: etransactions/plateforme_agreee/lifecycle_status.py
+msgid "Empty file"
+msgstr "Fichier vide"
+
+#: etransactions/plateforme_agreee/lifecycle_status.py
+msgid "Addressing error"
+msgstr "Erreur d'adressage"
+
+#: etransactions/plateforme_agreee/lifecycle_status.py
+msgid "Attachment association error"
+msgstr "Erreur d'association de pièce jointe"
+
+#: etransactions/plateforme_agreee/lifecycle_status.py
+msgid "Inconsistent data"
+msgstr "Données incohérentes"
+
+#: etransactions/plateforme_agreee/lifecycle_status.py
+msgid "Public sector check failed"
+msgstr "Échec des contrôles secteur public"
+
+#: etransactions/plateforme_agreee/lifecycle_status.py
+msgid "Invalid attachment reference"
+msgstr "Référence de pièce jointe invalide"
+
+#: etransactions/plateforme_agreee/lifecycle_status.py
+msgid "Semantic error"
+msgstr "Erreur sémantique"
+
+#: etransactions/plateforme_agreee/lifecycle_status.py
+msgid "Duplicate submission"
+msgstr "Dépôt en doublon"
+
+#: etransactions/plateforme_agreee/lifecycle_status.py
+msgid "The antivirus check of the platform flagged the file."
+msgstr "Le contrôle antivirus de la plateforme a signalé le fichier."
+
+#: etransactions/plateforme_agreee/lifecycle_status.py
+msgid "A document has an extension the platform does not accept."
+msgstr "Un document porte une extension que la plateforme n'accepte pas."
+
+#: etransactions/plateforme_agreee/lifecycle_status.py
+msgid "The file name does not follow the platform's naming rules."
+msgstr "Le nom du fichier ne respecte pas les règles de nommage de la plateforme."
+
+#: etransactions/plateforme_agreee/lifecycle_status.py
+msgid "An attachment name does not follow the platform's naming rules."
+msgstr "Le nom d'une pièce jointe ne respecte pas les règles de nommage de la plateforme."
+
+#: etransactions/plateforme_agreee/lifecycle_status.py
+msgid "The file is not valid XML or does not match its schema."
+msgstr "Le fichier n'est pas un XML valide ou ne respecte pas son schéma."
+
+#: etransactions/plateforme_agreee/lifecycle_status.py
+msgid "The file exceeds the size the platform accepts."
+msgstr "Le fichier dépasse la taille acceptée par la plateforme."
+
+#: etransactions/plateforme_agreee/lifecycle_status.py
+msgid "An attachment exceeds the size the platform accepts."
+msgstr "Une pièce jointe dépasse la taille acceptée par la plateforme."
+
+#: etransactions/plateforme_agreee/lifecycle_status.py
+msgid "The file is not of a type the platform accepts."
+msgstr "Le fichier n'est pas d'un type accepté par la plateforme."
+
+#: etransactions/plateforme_agreee/lifecycle_status.py
+msgid "An attachment is empty."
+msgstr "Une pièce jointe est vide."
+
+#: etransactions/plateforme_agreee/lifecycle_status.py
+msgid "The file is empty."
+msgstr "Le fichier est vide."
+
+#: etransactions/plateforme_agreee/lifecycle_status.py
+msgid "The recipient has no active receiving address: the invoice was issued but not delivered."
+msgstr "Le destinataire n'a pas d'adresse de réception active : la facture a été émise mais pas remise."
+
+#: etransactions/plateforme_agreee/lifecycle_status.py
+msgid "The invoice cannot be routed to the recipient's address."
+msgstr "La facture ne peut pas être acheminée vers l'adresse du destinataire."
+
+#: etransactions/plateforme_agreee/lifecycle_status.py
+msgid "An attachment cannot be associated with the invoice."
+msgstr "Une pièce jointe ne peut pas être associée à la facture."
+
+#: etransactions/plateforme_agreee/lifecycle_status.py
+msgid "Data on the invoice contradict each other."
+msgstr "Des données de la facture se contredisent."
+
+#: etransactions/plateforme_agreee/lifecycle_status.py
+msgid "The checks required for a public-sector invoice failed."
+msgstr "Les contrôles exigés pour une facture du secteur public ont échoué."
+
+#: etransactions/plateforme_agreee/lifecycle_status.py
+msgid "An attachment referenced by the invoice is missing or wrong."
+msgstr "Une pièce jointe référencée par la facture est absente ou erronée."
+
+#: etransactions/plateforme_agreee/lifecycle_status.py
+msgid "The invoice does not comply with the semantic rules of its format."
+msgstr "La facture ne respecte pas les règles sémantiques de son format."
+
+#: etransactions/plateforme_agreee/lifecycle_status.py
+msgid "An invoice with the same number, date and issuer was already submitted."
+msgstr "Une facture portant le même numéro, la même date et le même émetteur a déjà été déposée."
+
+#: etransactions/plateforme_agreee/lifecycle_status.py
+msgid "The status '{0}' is set by the accredited platforms and cannot be reported."
+msgstr "Le statut '{0}' est attribué par les plateformes agréées et ne peut pas être signalé."
+
+#: etransactions/plateforme_agreee/lifecycle_status.py
+msgid "This invoice was rejected by the accredited platform: no lifecycle status can be reported for it."
+msgstr "Cette facture a été rejetée par la plateforme agréée : aucun statut de cycle de vie ne peut être signalé pour elle."

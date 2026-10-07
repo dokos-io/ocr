@@ -14,6 +14,7 @@ from etransactions.etransactions.doctype.einvoice_log.einvoice_log import log_fe
 from etransactions.etransactions.doctype.einvoice_event.einvoice_event import (
 	adopt_orphan_events_by_reference,
 	record_event,
+	refresh_einvoice_lifecycle_status,
 )
 
 
@@ -38,6 +39,10 @@ EINVOICE_TYPE_BY_LIFECYCLE_FLOW = {"CustomerInvoiceLC": "Outgoing", "SupplierInv
 #: How long a CDAR flow whose status code has no mapping is remembered as reported. The
 #: lifecycle poll looks back 30 days, so the flow leaves the poll before the mark expires.
 UNSUPPORTED_LIFECYCLE_FLOW_TTL = 31 * 24 * 3600
+
+#: How long a status we sent as a CDAR flow is polled for its acknowledgement. The
+#: platforms acknowledge within minutes; a longer silence will not end on its own.
+LIFECYCLE_ACK_POLL_DAYS = 30
 
 
 def send_einvoice_to_plateforme(einvoice_name: str):
@@ -337,6 +342,97 @@ def _log_client_failure(company: str, operation_type: str, error: Exception) -> 
 		"company": company,
 		"logs": [("error", f"Could not connect to the accredited platform: {error}")],
 	})
+
+def poll_outgoing_lifecycle_acknowledgements():
+	"""Cron: read whether the platform accepted the lifecycle statuses we sent as CDAR flows.
+
+	On Esalink/AFNOR a status is a flow of its own, recorded as "sent" until the
+	platform acknowledges it. Without reading that acknowledgement, a 212 Encaissée or
+	a 210 Refusée the platform turned down would look delivered forever. SuperPDP
+	statuses are native events with an event id, and carry the invoice's flow id: both
+	keep them out of this poll.
+	"""
+	event = frappe.qb.DocType("eInvoice Event")
+	einvoice = frappe.qb.DocType("eInvoice")
+	rows = (
+		frappe.qb.from_(event)
+		.join(einvoice)
+		.on(event.einvoice == einvoice.name)
+		.select(
+			event.name,
+			event.pa_flow_id,
+			event.status,
+			einvoice.name.as_("einvoice"),
+			einvoice.company,
+			einvoice.einvoice_type,
+			einvoice.sales_invoice,
+		)
+		.where(event.direction == "out")
+		.where(event.state == "sent")
+		.where(event.pa_event_id.isnull() | (event.pa_event_id == ""))
+		.where(event.pa_flow_id.isnotnull())
+		.where(event.pa_flow_id != einvoice.pa_flow_id)
+		.where(event.creation >= frappe.utils.add_days(frappe.utils.now_datetime(), -LIFECYCLE_ACK_POLL_DAYS))
+		.run(as_dict=True)
+	)
+
+	by_company: dict[str, list] = {}
+	for row in rows:
+		by_company.setdefault(row.company, []).append(row)
+
+	for company, company_rows in by_company.items():
+		result = {
+			"operation_type": "lifecycle_send",
+			"origin": "Cron",
+			"company": company,
+			"new_count": 0,
+			"updated_count": 0,
+			"logs": [],
+		}
+		clients: dict = {}
+		for row in company_rows:
+			try:
+				client = _lifecycle_client(clients, row)
+				_apply_lifecycle_acknowledgement(row, client.get_invoice_status(row.pa_flow_id), result)
+			except Exception as e:
+				result["logs"].append(
+					("warning", f"Could not read the acknowledgement of status '{row.status}' for eInvoice {row.einvoice}: {e}")
+				)
+		if result["updated_count"] or result["logs"]:
+			eInvoicingLog.create_log(result)
+
+
+def _lifecycle_client(clients: dict, row):
+	"""The client the status was sent with, built once per customer and side."""
+	customer = (
+		frappe.db.get_value("Sales Invoice", row.sales_invoice, "customer") if row.sales_invoice else None
+	)
+	transaction_type = "sales" if row.einvoice_type == "Outgoing" else "purchases"
+	key = (customer, transaction_type)
+	if key not in clients:
+		clients[key] = get_client(row.company, customer=customer, transaction_type=transaction_type)
+	return clients[key]
+
+
+def _apply_lifecycle_acknowledgement(row, ack, result: dict) -> None:
+	if ack.status == "done":
+		frappe.db.set_value("eInvoice Event", row.name, "state", "done", update_modified=False)
+	elif ack.status in ("error", "rejected"):
+		frappe.db.set_value(
+			"eInvoice Event",
+			row.name,
+			{"state": "error", "error_details": ack.error_details},
+			update_modified=False,
+		)
+		result["logs"].append(
+			("error", f"Status '{row.status}' for eInvoice {row.einvoice} was not accepted: {escape_html(ack.error_details or '')}")
+		)
+	else:
+		return
+	result["updated_count"] += 1
+	# An errored event no longer counts in the lifecycle state: the status can be sent again.
+	refresh_einvoice_lifecycle_status(row.einvoice)
+
 
 def submit_pending_ereporting_entries():
 	"""Cron: batch pending B2C e-reporting entries and submit them to the platform.

@@ -255,6 +255,7 @@ scheduler_events = {
 		"etransactions.plateforme_agreee.flow.retry_missing_pdf_attachments",
 		"etransactions.plateforme_agreee.flow.poll_outgoing_lifecycle_events",
 		"etransactions.plateforme_agreee.flow.poll_incoming_lifecycle_flows",
+		"etransactions.plateforme_agreee.flow.poll_outgoing_lifecycle_acknowledgements",
 		"etransactions.plateforme_agreee.flow.submit_pending_ereporting_entries",
 		"etransactions.plateforme_agreee.flow.poll_ereporting_status",
 		"etransactions.plateforme_agreee.esalink_provisioning.poll_esalink_customer_statuses",
