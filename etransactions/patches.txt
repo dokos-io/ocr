@@ -28,3 +28,4 @@ etransactions.patches.reset_einvoice_event_status_label # 20260916
 etransactions.patches.clear_stale_ocr_request_errors # 20260924
 etransactions.patches.enable_einvoicing_features_if_used # 20260930
 etransactions.patches.delete_supplier_invoices_from_outgoing_einvoices # 20261005
+etransactions.patches.fix_einvoice_company_spelling # 20261007

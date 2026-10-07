@@ -4,6 +4,7 @@
 import os
 import datetime
 import unittest
+import unittest.mock
 import frappe
 from drafthorse.models.document import Document
 from etransactions.tests.utils import eTransactionsTestSuite
@@ -754,3 +755,79 @@ class TestGeneratorSirenLogic(unittest.TestCase):
 		gen = self._make()
 		gen._set_buyer_legal_organization()
 		self.assertIsNone(_legal_org_id(gen.doc.trade.agreement.buyer))
+
+
+class TestBuyerCompanyResolution(eTransactionsTestSuite):
+	"""An incoming eInvoice must name a Company exactly as it is stored.
+
+	MariaDB matches "VITRERIE STEPHANOISE" to "Vitrerie Stéphanoise", so storing the buyer
+	name as printed used to pass link checks while breaking user permissions.
+	"""
+
+	COMPANY = "Vitrerie Stéphanoise"
+	OTHER_COMPANY = "Miroiterie Avignonnaise"
+	SIREN = "552100554"
+
+	def setUp(self):
+		super().setUp()
+		self._company(self.COMPANY, "VSTE", siren=self.SIREN, tax_id="FR40552100554")
+		self._company(self.OTHER_COMPANY, "MAVI")
+
+	def _company(self, name, abbr, siren=None, tax_id=None):
+		# Only the row is needed: a full insert would also build a chart of accounts.
+		if not frappe.db.exists("Company", name):
+			frappe.get_doc({
+				"doctype": "Company",
+				"name": name,
+				"company_name": name,
+				"abbr": abbr,
+				"country": "France",
+				"default_currency": "EUR",
+			}).db_insert()
+		frappe.db.set_value("Company", name, {"siren_number": siren, "tax_id": tax_id})
+
+	def _incoming(self, **buyer):
+		return frappe.get_doc({"doctype": "eInvoice", "einvoice_type": "Incoming", **buyer}).insert()
+
+	def test_buyer_name_in_capitals_without_accents_stores_the_company_name(self):
+		einvoice = self._incoming(buyer_name="VITRERIE STEPHANOISE")
+		self.assertEqual(einvoice.company, self.COMPANY)
+		self.assertEqual(frappe.db.get_value("eInvoice", einvoice.name, "company"), self.COMPANY)
+
+	def test_buyer_siren_wins_over_a_differently_printed_name(self):
+		einvoice = self._incoming(
+			buyer_name="VSTE SARL",
+			buyer_electronic_address=f"{self.SIREN}00012",
+			buyer_electronic_address_scheme="0009",
+		)
+		self.assertEqual(einvoice.company, self.COMPANY)
+
+	def test_buyer_vat_number_identifies_the_company(self):
+		einvoice = self._incoming(buyer_name="Unknown buyer", buyer_tax_id="FR 40 552 100 554")
+		self.assertEqual(einvoice.company, self.COMPANY)
+
+	def test_unknown_buyer_without_default_company_stays_empty(self):
+		# Mocked rather than cleared: the defaults cache outlives the test's rollback.
+		with unittest.mock.patch("erpnext.get_default_company", return_value=None):
+			einvoice = self._incoming(buyer_name="SERRURERIE DU LUBERON")
+		self.assertFalse(einvoice.company)
+
+	def test_supplier_invoice_gets_the_stored_company_name(self):
+		einvoice = self._incoming(buyer_name=self.COMPANY)
+		einvoice.company = "VITRERIE STEPHANOISE"  # as written by older versions
+		supplier_invoice = einvoice.generate_supplier_invoice()
+		self.assertEqual(supplier_invoice.company, self.COMPANY)
+
+	def test_patch_repairs_the_company_spelling(self):
+		from etransactions.patches import fix_einvoice_company_spelling
+
+		misspelled = self._incoming(buyer_name=self.COMPANY)
+		frappe.db.set_value("eInvoice", misspelled.name, "company", "VITRERIE STEPHANOISE")
+		empty = self._incoming(buyer_name="Unknown buyer")
+		frappe.db.set_value("eInvoice", empty.name, {"company": None, "buyer_tax_id": "FR40552100554"})
+
+		fix_einvoice_company_spelling.execute()
+
+		# Compare in Python: the database would call the two spellings equal.
+		self.assertEqual(frappe.db.get_value("eInvoice", misspelled.name, "company"), self.COMPANY)
+		self.assertEqual(frappe.db.get_value("eInvoice", empty.name, "company"), self.COMPANY)

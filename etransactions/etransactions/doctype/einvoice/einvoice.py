@@ -11,7 +11,11 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import flt, now_datetime
 
-from etransactions.controllers.entity_resolver import InvoiceEntityResolverMixin
+from etransactions.controllers.entity_resolver import (
+	InvoiceEntityResolverMixin,
+	canonical_company,
+	resolve_buyer_company,
+)
 from etransactions.controllers.item_catalog_matcher import get_item_catalog, match_item_from_catalog
 from etransactions.etransactions.doctype.etransactions_supplier_item_alias.etransactions_supplier_item_alias import (
 	get_supplier_item_alias,
@@ -782,13 +786,31 @@ class eInvoice(Document):
 		eInvoiceParser(self).parse_einvoice()
 
 	def guess_company(self):
-		if self.company:
+		if self.company_is_decided():
 			return
 
-		if frappe.db.exists("Company", self.buyer_name):
-			self.company = self.buyer_name
-		else:
-			self.company = get_default_company()
+		# Link validation ran before validate() and will not correct what is assigned
+		# here, so the resolver returns the Company's stored name.
+		self.company = resolve_buyer_company(
+			self.buyer_name,
+			siren=self.flags.buyer_siren,
+			tax_id=self.buyer_tax_id,
+			electronic_address=self.buyer_electronic_address,
+			electronic_address_scheme=self.buyer_electronic_address_scheme,
+		)
+
+	def company_is_decided(self) -> bool:
+		"""Whether the company was chosen, rather than defaulted, before parsing.
+
+		A platform flow belongs to the company whose platform received it. But insert()
+		fills an empty Link with the user's default company, which says nothing about
+		who the invoice is addressed to: the buyer on the invoice says that.
+		"""
+		if not self.company:
+			return False
+		if self.pa_flow_id or not self.is_new():
+			return True
+		return self.company != get_default_company()
 
 	def guess_uom(self):
 		for row in self.items:
@@ -1388,9 +1410,11 @@ class IncomingInvoiceDataTransformer(InvoiceEntityResolverMixin):
 		)
 
 	def get_company(self):
-		if self.invoice_doc.company:
-			return self.invoice_doc.company
-			
+		# The Supplier Invoice is inserted with ignore_links, so nothing else would catch
+		# a company that is not spelled as stored.
+		if company := canonical_company(self.invoice_doc.company):
+			return company
+
 		return self.resolve_company(
 			receiver_name=self.invoice_doc.buyer_name,
 			receiver_address=self.get_buyer_address()
