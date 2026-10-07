@@ -189,6 +189,8 @@ def _parse_buyer(root, doc: "eInvoice") -> None:
 		or _text(party, ".//cac:PartyName/cbc:Name")
 	)
 	doc.buyer_tax_id = _text(party, ".//cac:PartyTaxScheme/cbc:CompanyID")
+	# Not stored: only used to find which of our companies the invoice is for.
+	doc.flags.buyer_siren = _text(party, ".//cac:PartyLegalEntity/cbc:CompanyID")
 
 	endpoint = party.find(".//cbc:EndpointID", UBL_NAMESPACES)
 	if endpoint is not None:

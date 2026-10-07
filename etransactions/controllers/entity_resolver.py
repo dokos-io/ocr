@@ -1,6 +1,7 @@
 import re
 import frappe
 import difflib
+import unicodedata
 
 from frappe import _
 
@@ -24,6 +25,10 @@ def normalize_vendor_name(name: str | None) -> str:
 	raw string would treat those as two different vendors.
 	"""
 	return re.sub(r"\s+", " ", name or "").strip()
+
+
+def normalize_tax_id(tax_id: str | None) -> str:
+	return re.sub(r"[\s\-\.]", "", tax_id).upper() if tax_id else ""
 
 
 def is_own_company_name(name: str | None) -> bool:
@@ -82,7 +87,7 @@ class InvoiceEntityResolverMixin:
 	"""Shared logic for resolving Supplier and Company records from raw text."""
 
 	def _normalize_tax_id(self, tax_id: str) -> str:
-		return re.sub(r"[\s\-\.]", "", tax_id).upper() if tax_id else ""
+		return normalize_tax_id(tax_id)
 
 	def _company_tax_ids(self) -> set:
 		"""Normalized VAT/tax ids of our own companies (the buyer side).
@@ -228,3 +233,104 @@ class InvoiceEntityResolverMixin:
 			company = companies_list[0]
 
 		return company or ""
+
+def canonical_company(value: str | None) -> str | None:
+	"""The Company's stored name for ``value``, or None if no Company matches.
+
+	MariaDB compares names case- and accent-insensitively, so "VITRERIE STEPHANOISE"
+	finds "Vitrerie Stéphanoise". A Link field must still hold the stored spelling:
+	user permissions and every later lookup compare it byte for byte.
+	"""
+	if not value:
+		return None
+	return frappe.db.get_value("Company", value, "name")
+
+
+def party_siren_candidates(
+	siren: str | None = None,
+	tax_id: str | None = None,
+	electronic_address: str | None = None,
+	electronic_address_scheme: str | None = None,
+) -> set[str]:
+	"""Every SIREN an invoice party can be identified by."""
+	candidates = set()
+
+	def add(digits: str) -> None:
+		if len(digits) in (9, 14):  # SIREN, or SIRET whose first 9 digits are the SIREN
+			candidates.add(digits[:9])
+
+	add(_digits(siren))
+
+	if (electronic_address_scheme or "").strip() in ("0009", "0225"):
+		add(_digits(electronic_address))
+
+	tax_id = normalize_tax_id(tax_id)
+	if tax_id.startswith("FR") and len(_digits(tax_id)) == 11:
+		# French VAT: FR + 2-character key + SIREN
+		candidates.add(_digits(tax_id)[2:])
+	else:
+		add(_digits(tax_id))
+
+	return candidates
+
+
+def resolve_buyer_company(
+	buyer_name: str | None,
+	siren: str | None = None,
+	tax_id: str | None = None,
+	electronic_address: str | None = None,
+	electronic_address_scheme: str | None = None,
+	address: str | None = None,
+	use_default: bool = True,
+) -> str | None:
+	"""Find which of our companies an incoming invoice is addressed to.
+
+	Identifiers come first: the buyer name is printed however the supplier typed it
+	("MIROITERIE AVIGNONNAISE"), while the SIREN and VAT number are exact. Each step
+	only accepts a single match. Returns the stored Company name, or None.
+
+	With ``use_default`` off, the site's default company is not used as a last resort.
+	"""
+	companies = frappe.get_all("Company", fields=["name", "company_name", "siren_number", "tax_id"])
+
+	sirens = party_siren_candidates(siren, tax_id, electronic_address, electronic_address_scheme)
+	if sirens and (company := _single(c for c in companies if _digits(c.siren_number)[:9] in sirens)):
+		return company
+
+	normalized_tax_id = normalize_tax_id(tax_id)
+	if normalized_tax_id and (
+		company := _single(c for c in companies if normalize_tax_id(c.tax_id) == normalized_tax_id)
+	):
+		return company
+
+	folded = _fold(buyer_name)
+	if folded and (
+		company := _single(c for c in companies if folded in (_fold(c.name), _fold(c.company_name)))
+	):
+		return company
+
+	if buyer_name and (company := InvoiceEntityResolverMixin().resolve_company(buyer_name, address or "")):
+		return company
+
+	if not use_default:
+		return None
+
+	from erpnext import get_default_company
+
+	return canonical_company(get_default_company())
+
+
+def _digits(value: str | None) -> str:
+	return "".join(c for c in str(value or "") if c.isdigit())
+
+
+def _fold(value: str | None) -> str:
+	"""Compare names the way people read them: no case, no accents, single spaces."""
+	decomposed = unicodedata.normalize("NFKD", value or "")
+	without_accents = "".join(c for c in decomposed if not unicodedata.combining(c))
+	return re.sub(r"\s+", " ", without_accents).strip().casefold()
+
+
+def _single(companies) -> str | None:
+	names = {c.name for c in companies}
+	return names.pop() if len(names) == 1 else None
