@@ -1,5 +1,6 @@
 import frappe
 from frappe import _
+from frappe.utils import escape_html
 
 from etransactions.components.common import to_db_datetime
 from etransactions.plateforme_agreee.session import (
@@ -10,7 +11,10 @@ from etransactions.plateforme_agreee.session import (
 from etransactions.plateforme_agreee import lifecycle_status
 from etransactions.etransactions.doctype.einvoicing_log.einvoicing_log import eInvoicingLog
 from etransactions.etransactions.doctype.einvoice_log.einvoice_log import log_fetch
-from etransactions.etransactions.doctype.einvoice_event.einvoice_event import record_event
+from etransactions.etransactions.doctype.einvoice_event.einvoice_event import (
+	adopt_orphan_events_by_reference,
+	record_event,
+)
 
 
 #: How many stuck flows one hourly sweep re-attempts inline. Each makes one or two HTTP
@@ -25,6 +29,15 @@ STALLED_CONTENT_ATTEMPTS = 3
 #: warning. The condition persists until someone acts on it, so it is stated once a day
 #: rather than on all 24 polls.
 RECEIVING_DISABLED_LOG_INTERVAL_HOURS = 24
+
+#: The side of the exchange a CDAR lifecycle flow's invoice is on. The flow types name
+#: it from our point of view, like the invoice flows themselves: we send our invoices as
+#: CustomerInvoice and receive our suppliers' as SupplierInvoice.
+EINVOICE_TYPE_BY_LIFECYCLE_FLOW = {"CustomerInvoiceLC": "Outgoing", "SupplierInvoiceLC": "Incoming"}
+
+#: How long a CDAR flow whose status code has no mapping is remembered as reported. The
+#: lifecycle poll looks back 30 days, so the flow leaves the poll before the mark expires.
+UNSUPPORTED_LIFECYCLE_FLOW_TTL = 31 * 24 * 3600
 
 
 def send_einvoice_to_plateforme(einvoice_name: str):
@@ -75,8 +88,9 @@ def poll_pending_outgoing_flows():
 		if company not in clients:
 			try:
 				clients[company] = get_client(company)
-			except Exception:
+			except Exception as e:
 				clients[company] = None
+				_log_client_failure(company, "flow_status", e)
 
 		client = clients.get(company)
 		if not client:
@@ -126,8 +140,9 @@ def poll_outgoing_lifecycle_events():
 		if company not in clients:
 			try:
 				clients[company] = get_client(company)
-			except Exception:
+			except Exception as e:
 				clients[company] = None
+				_log_client_failure(company, "lifecycle_receive", e)
 		client = clients.get(company)
 		if not client:
 			continue
@@ -207,57 +222,121 @@ def poll_incoming_lifecycle_flows():
 			continue
 
 		for flow in lc_flows:
-			if not flow.flow_id:
-				continue
-			if frappe.db.exists("eInvoice Event", {"pa_event_id": flow.flow_id}):
-				continue
-			try:
-				content = client.download_flow(flow.flow_id)
-				parsed = parse_cdar(content)
-			except Exception as e:
-				result["logs"].append(("warning", f"Could not parse CDAR flow {flow.flow_id}: {str(e)}"))
-				continue
-
-			canonical = lifecycle_status.from_cdar_code(parsed.get("status_code"))
-			if not canonical:
-				continue
-
-			# The event may arrive before the invoice it refers to. Record it
-			# unlinked rather than dropping it: eInvoice.after_insert claims it by
-			# pa_flow_id, and the flow is not downloaded and parsed again on every
-			# run in the meantime.
-			einvoice = frappe.db.get_value(
-				"eInvoice", {"id": parsed.get("invoice_number"), "company": company}, "name"
-			)
-			if not einvoice:
-				result["logs"].append(
-					("info", f"CDAR flow {flow.flow_id} recorded ahead of invoice {parsed.get('invoice_number')}")
-				)
-
-			detail = (parsed.get("doc_status") or [{}])[0]
-			created = record_event(
-				einvoice,
-				direction="in",
-				status=canonical,
-				state="done",
-				status_datetime=parsed.get("lc_datetime"),
-				pa_event_id=flow.flow_id,
-				pa_flow_id=flow.flow_id,
-				reason_code=detail.get("reason_code"),
-				reason_text=detail.get("reason_txt"),
-				action_code=detail.get("action_code"),
-				action_text=detail.get("action_txt"),
-				comment=detail.get("comment"),
-			)
-			if created:
-				result["new_count"] += 1
-				result["logs"].append(
-					("info", f"Recorded incoming status '{canonical}' for eInvoice {einvoice or '(pending)'}")
-				)
+			if flow.flow_id:
+				_process_lifecycle_flow(client, flow, company, parse_cdar, result)
 
 		if result["new_count"] or result["logs"]:
 			eInvoicingLog.create_log(result)
 
+
+def _process_lifecycle_flow(client, flow, company: str, parse_cdar, result: dict) -> None:
+	"""Record the status an incoming CDAR flow carries, linked to its eInvoice when known."""
+	known = frappe.db.get_value(
+		"eInvoice Event",
+		{"pa_event_id": flow.flow_id},
+		["name", "einvoice", "invoice_reference"],
+		as_dict=True,
+	)
+	# An unlinked event recorded before events carried their invoice reference could
+	# never be adopted: it is parsed once more to fill it in.
+	if known and (known.einvoice or known.invoice_reference):
+		return
+	if not known and frappe.cache.get_value(_unsupported_lifecycle_flow_key(flow.flow_id)):
+		return
+
+	try:
+		parsed = parse_cdar(client.download_flow(flow.flow_id))
+	except Exception as e:
+		result["logs"].append(("warning", f"Could not parse CDAR flow {flow.flow_id}: {str(e)}"))
+		return
+
+	status_code = parsed.get("status_code")
+	canonical = lifecycle_status.from_cdar_code(status_code)
+	if not canonical:
+		# Reported once rather than dropped: without the mark, the flow would be
+		# downloaded and parsed again on every run for as long as it is polled.
+		frappe.cache.set_value(
+			_unsupported_lifecycle_flow_key(flow.flow_id), 1, expires_in_sec=UNSUPPORTED_LIFECYCLE_FLOW_TTL
+		)
+		result["logs"].append((
+			"warning",
+			f"CDAR flow {flow.flow_id} carries status code {escape_html(str(status_code))}, "
+			"which is not supported: it was not recorded.",
+		))
+		return
+
+	invoice_number = parsed.get("invoice_number")
+	einvoice_type = EINVOICE_TYPE_BY_LIFECYCLE_FLOW.get(flow.flow_type)
+	einvoice = _find_lifecycle_einvoice(invoice_number, company, einvoice_type, parsed.get("invoice_issuer"))
+	reference = {"invoice_reference": invoice_number, "einvoice_type": einvoice_type, "company": company}
+
+	if known:
+		frappe.db.set_value("eInvoice Event", known.name, reference, update_modified=False)
+		if einvoice and adopt_orphan_events_by_reference(einvoice, invoice_number, einvoice_type, company):
+			result["updated_count"] += 1
+			result["logs"].append(("info", f"Linked CDAR flow {flow.flow_id} to eInvoice {einvoice}"))
+		return
+
+	# The event may arrive before the invoice it refers to. Record it unlinked rather
+	# than dropping it: the eInvoice claims it by invoice reference once it has its
+	# number, and the flow is not downloaded and parsed again on every run meanwhile.
+	if not einvoice:
+		result["logs"].append(("info", f"CDAR flow {flow.flow_id} recorded ahead of invoice {invoice_number}"))
+
+	detail = (parsed.get("doc_status") or [{}])[0]
+	created = record_event(
+		einvoice,
+		direction="in",
+		status=canonical,
+		state="done",
+		status_datetime=parsed.get("lc_datetime"),
+		pa_event_id=flow.flow_id,
+		pa_flow_id=flow.flow_id,
+		**reference,
+		reason_code=detail.get("reason_code"),
+		reason_text=detail.get("reason_txt"),
+		action_code=detail.get("action_code"),
+		action_text=detail.get("action_txt"),
+		comment=detail.get("comment"),
+	)
+	if created:
+		result["new_count"] += 1
+		result["logs"].append(("info", f"Recorded incoming status '{canonical}' for eInvoice {einvoice or '(pending)'}"))
+
+def _find_lifecycle_einvoice(
+	invoice_number: str | None, company: str, einvoice_type: str | None, issuer: str | None
+) -> str | None:
+	"""The eInvoice a CDAR lifecycle flow reports on, or ``None`` if it is not known yet.
+
+	An invoice number is unique only per seller and per side: one of our invoices and
+	one of a supplier's, or two suppliers' invoices, can share it. The side comes from
+	the flow type and, for a received invoice, the seller from the CDAR's issuer.
+	"""
+	if not invoice_number:
+		return None
+	filters = {"id": invoice_number, "company": company}
+	if einvoice_type:
+		filters["einvoice_type"] = einvoice_type
+	candidates = frappe.get_all(
+		"eInvoice", filters=filters, fields=["name", "supplier_siren"], order_by="creation desc"
+	)
+	if len(candidates) > 1 and issuer:
+		candidates = [c for c in candidates if c.supplier_siren == issuer] or candidates
+	return candidates[0].name if candidates else None
+
+
+def _unsupported_lifecycle_flow_key(flow_id: str) -> str:
+	return f"etransactions:unsupported_lifecycle_flow:{flow_id}"
+
+
+def _log_client_failure(company: str, operation_type: str, error: Exception) -> None:
+	"""Report a company skipped because its platform client could not be built."""
+	eInvoicingLog.create_log({
+		"operation_type": operation_type,
+		"origin": "Cron",
+		"company": company,
+		"logs": [("error", f"Could not connect to the accredited platform: {error}")],
+	})
 
 def submit_pending_ereporting_entries():
 	"""Cron: batch pending B2C e-reporting entries and submit them to the platform.

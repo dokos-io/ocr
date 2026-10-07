@@ -21,10 +21,13 @@ class eInvoiceEvent(Document):
 		action_text: DF.Data | None
 		amount: DF.Currency
 		comment: DF.SmallText | None
+		company: DF.Link | None
 		currency: DF.Link | None
 		direction: DF.Literal["out", "in"]
 		einvoice: DF.Link | None
+		einvoice_type: DF.Literal["", "Incoming", "Outgoing"]
 		error_details: DF.SmallText | None
+		invoice_reference: DF.Data | None
 		pa_event_id: DF.Data | None
 		pa_flow_id: DF.Data | None
 		payment_date: DF.Date | None
@@ -42,10 +45,14 @@ class eInvoiceEvent(Document):
 
 	def after_insert(self):
 		# An event can land before its invoice exists (a CDAR flow polled ahead of
-		# the invoice it refers to). It is linked by Flow ID later, by
-		# adopt_orphan_events; until then there is nothing to react to.
+		# the invoice it refers to). It is linked later, by adopt_orphan_events or
+		# adopt_orphan_events_by_reference, which react to it then.
 		if not self.einvoice:
 			return
+		self.react()
+
+	def react(self):
+		"""Act on a counterparty status once the event is linked to its eInvoice."""
 		# Raise a ToDo when the counterparty sends a status that needs attention
 		# (dispute / refusal / suspension). Mirrors the Odoo mail-activity behaviour.
 		if self.direction == "in" and lifecycle_status.is_warning(self.status):
@@ -215,14 +222,33 @@ def adopt_orphan_events(einvoice: str, pa_flow_id: str) -> int:
 	An event can be polled before the invoice it belongs to — a CDAR lifecycle flow
 	arriving ahead of the invoice, or an event recorded from a listing. Rather than
 	dropping it (and re-downloading it on every run), it is stored unlinked with its
-	``pa_flow_id``, and claimed here in a single UPDATE. Returns the number adopted.
+	``pa_flow_id``, and claimed here. Returns the number adopted.
 	"""
 	if not pa_flow_id:
 		return 0
+	return _adopt(einvoice, {"pa_flow_id": pa_flow_id})
 
+
+def adopt_orphan_events_by_reference(einvoice: str, invoice_reference: str, einvoice_type: str, company: str) -> int:
+	"""Link the CDAR events recorded for an invoice number to the eInvoice that now has it.
+
+	A CDAR lifecycle flow is a flow of its own: its ``pa_flow_id`` is never the
+	invoice's, so :func:`adopt_orphan_events` cannot claim it. What the CDAR does
+	carry is the invoice number, which an incoming eInvoice only learns once its
+	file is parsed. Returns the number adopted.
+	"""
+	if not invoice_reference:
+		return 0
+	return _adopt(
+		einvoice,
+		{"invoice_reference": invoice_reference, "einvoice_type": einvoice_type, "company": company},
+	)
+
+
+def _adopt(einvoice: str, filters: dict) -> int:
 	orphans = frappe.get_all(
 		"eInvoice Event",
-		filters={"pa_flow_id": pa_flow_id, "einvoice": ["is", "not set"]},
+		filters={**filters, "einvoice": ["is", "not set"]},
 		pluck="name",
 	)
 	if not orphans:
@@ -231,8 +257,11 @@ def adopt_orphan_events(einvoice: str, pa_flow_id: str) -> int:
 	event = frappe.qb.DocType("eInvoice Event")
 	frappe.qb.update(event).set(event.einvoice, einvoice).where(event.name.isin(orphans)).run()
 	# This UPDATE bypasses the document layer, so the projection has to be refreshed
-	# here too — the adopted events would otherwise never reach the eInvoice.
+	# and the reactions run here too — the adopted events would otherwise never
+	# reach the eInvoice, nor raise the ToDo a refusal calls for.
 	refresh_einvoice_lifecycle_status(einvoice)
+	for name in orphans:
+		frappe.get_doc("eInvoice Event", name).react()
 	return len(orphans)
 
 
@@ -245,6 +274,9 @@ def record_event(
 	status_datetime: str | None = None,
 	pa_event_id: str | None = None,
 	pa_flow_id: str | None = None,
+	invoice_reference: str | None = None,
+	einvoice_type: str | None = None,
+	company: str | None = None,
 	error_details: str | None = None,
 	reason_code: str | None = None,
 	reason_text: str | None = None,
@@ -258,7 +290,8 @@ def record_event(
 	"""Create an eInvoice Event, skipping duplicates.
 
 	``einvoice`` may be ``None`` for an event polled before its invoice exists; it
-	is then claimed by :func:`adopt_orphan_events` via ``pa_flow_id``.
+	is then claimed by :func:`adopt_orphan_events` via ``pa_flow_id``, or by
+	:func:`adopt_orphan_events_by_reference` via ``invoice_reference``.
 
 	Duplicates are detected by ``pa_event_id`` when available, otherwise by the
 	``(direction, status, status_datetime)`` tuple — scoped to the flow, so an event
@@ -284,6 +317,9 @@ def record_event(
 		"status_datetime": status_datetime or frappe.utils.now_datetime(),
 		"pa_event_id": pa_event_id,
 		"pa_flow_id": pa_flow_id,
+		"invoice_reference": invoice_reference,
+		"einvoice_type": einvoice_type,
+		"company": company,
 		"error_details": error_details,
 		"reason_code": reason_code,
 		"reason_text": reason_text,

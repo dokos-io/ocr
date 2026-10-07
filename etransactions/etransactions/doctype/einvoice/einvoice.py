@@ -142,6 +142,16 @@ class eInvoice(Document):
 			adopt_orphan_events(self.name, self.pa_flow_id)
 
 	def on_update(self):
+		# Claim the CDAR events polled before this invoice had its number. An incoming
+		# eInvoice only learns it once its file is parsed, so this runs on every
+		# change of number, not just at insert.
+		if self.id and self.has_value_changed("id"):
+			from etransactions.etransactions.doctype.einvoice_event.einvoice_event import (
+				adopt_orphan_events_by_reference,
+			)
+
+			adopt_orphan_events_by_reference(self.name, self.id, self.einvoice_type, self.company)
+
 		# Only a received invoice becomes a Supplier Invoice: an outgoing one is our own sale.
 		if self.einvoice_type != "Incoming":
 			return
