@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING
 import frappe
 from erpnext import get_default_company
 from erpnext.edi.doctype.code_list.code_list import get_docnames_for
-
 from frappe import _
 from frappe.model.document import Document
 from frappe.utils import flt, now_datetime
@@ -17,25 +16,24 @@ from etransactions.controllers.entity_resolver import (
 	resolve_buyer_company,
 )
 from etransactions.controllers.item_catalog_matcher import get_item_catalog, match_item_from_catalog
-from etransactions.etransactions.doctype.etransactions_supplier_item_alias.etransactions_supplier_item_alias import (
-	get_supplier_item_alias,
-)
-from etransactions.etransactions.doctype.einvoice.parser import eInvoiceParser
 from etransactions.etransactions.doctype.einvoice.generator import (
 	EInvoiceGenerator,
 	EInvoiceMapper,
 	resolve_syntax,
 )
+from etransactions.etransactions.doctype.einvoice.parser import eInvoiceParser
+from etransactions.etransactions.doctype.einvoice_log.einvoice_log import FetchLogBuffer
+from etransactions.etransactions.doctype.etransactions_supplier_item_alias.etransactions_supplier_item_alias import (
+	get_supplier_item_alias,
+)
 from etransactions.schematron import get_validation_errors
 from etransactions.utils import EInvoiceProfile, get_drafthorse_schema
 from etransactions.utils.files import copy_file_to_document, detect_flow_extension
 from etransactions.utils.hooks import merged_hook_values
-from etransactions.etransactions.doctype.einvoice_log.einvoice_log import FetchLogBuffer
-
 
 if TYPE_CHECKING:
-	from erpnext.stock.doctype.item.item import Item
 	from erpnext.accounts.doctype.sales_invoice.sales_invoice import SalesInvoice
+	from erpnext.stock.doctype.item.item import Item
 	from frappe.core.doctype.file.file import File
 
 
@@ -46,10 +44,13 @@ class eInvoice(Document):
 	from typing import TYPE_CHECKING
 
 	if TYPE_CHECKING:
-		from etransactions.etransactions.doctype.einvoice_item.einvoice_item import eInvoiceItem
-		from etransactions.etransactions.doctype.einvoice_payment_term.einvoice_payment_term import eInvoicePaymentTerm
-		from etransactions.etransactions.doctype.einvoice_trade_tax.einvoice_trade_tax import eInvoiceTradeTax
 		from frappe.types import DF
+
+		from etransactions.etransactions.doctype.einvoice_item.einvoice_item import eInvoiceItem
+		from etransactions.etransactions.doctype.einvoice_payment_term.einvoice_payment_term import (
+			eInvoicePaymentTerm,
+		)
+		from etransactions.etransactions.doctype.einvoice_trade_tax.einvoice_trade_tax import eInvoiceTradeTax
 
 		allowance_total: DF.Currency
 		amended_from: DF.Link | None
@@ -223,7 +224,9 @@ class eInvoice(Document):
 	def on_trash(self):
 		if self.pa_flow_id:
 			frappe.throw(
-				_("Cannot delete an eInvoice that has been submitted to the accredited platform (Flow ID: {0}).").format(self.pa_flow_id)
+				_(
+					"Cannot delete an eInvoice that has been submitted to the accredited platform (Flow ID: {0})."
+				).format(self.pa_flow_id)
 			)
 
 	@frappe.whitelist()
@@ -235,11 +238,17 @@ class eInvoice(Document):
 		# A healthy flow can't be re-sent. An errored or rejected flow may be
 		# resubmitted to retry after fixing the cause.
 		if self.pa_flow_id and self.pa_status not in ("error", "rejected"):
-			frappe.throw(_("This eInvoice has already been submitted to the accredited platform (Flow ID: {0}).").format(self.pa_flow_id))
+			frappe.throw(
+				_(
+					"This eInvoice has already been submitted to the accredited platform (Flow ID: {0})."
+				).format(self.pa_flow_id)
+			)
 
 		# Guard against concurrent sends (enqueued auto-send racing a manual click):
 		# take a row lock and re-read, so only one submission can pass this point.
-		locked = frappe.db.get_value("eInvoice", self.name, ["pa_flow_id", "pa_status"], for_update=True, as_dict=True)
+		locked = frappe.db.get_value(
+			"eInvoice", self.name, ["pa_flow_id", "pa_status"], for_update=True, as_dict=True
+		)
 		if locked and locked.pa_flow_id and locked.pa_status not in ("error", "rejected"):
 			frappe.throw(_("This eInvoice has already been submitted to the accredited platform."))
 
@@ -292,16 +301,18 @@ class eInvoice(Document):
 		)
 
 		# Use db_set to avoid re-triggering validate() which regenerates the XML
-		self.db_set({
-			"pa_flow_id": result.flow_id,
-			"pa_submitted_at": result.submitted_at,
-			"pa_updated_at": result.submitted_at,
-			"pa_status": "sent",
-			"pa_syntax": result.syntax,
-			"pa_flow_type": result.flow_type,
-			# Clear any error text from a previous (rejected) send on a successful resend.
-			"pa_error_details": None,
-		})
+		self.db_set(
+			{
+				"pa_flow_id": result.flow_id,
+				"pa_submitted_at": result.submitted_at,
+				"pa_updated_at": result.submitted_at,
+				"pa_status": "sent",
+				"pa_syntax": result.syntax,
+				"pa_flow_type": result.flow_type,
+				# Clear any error text from a previous (rejected) send on a successful resend.
+				"pa_error_details": None,
+			}
+		)
 
 	def _check_platform_handles(self, processing_rule: str):
 		"""Block a framework the platform does not serve, before it fails opaquely.
@@ -385,10 +396,10 @@ class eInvoice(Document):
 		Non-throwing, so the automatic senders can consult the same rules the manual
 		path enforces and skip quietly instead of failing.
 		"""
-		from etransactions.plateforme_agreee import lifecycle_status
 		from etransactions.etransactions.doctype.einvoice_event.einvoice_event import (
 			current_lifecycle_state,
 		)
+		from etransactions.plateforme_agreee import lifecycle_status
 
 		return lifecycle_status.transition_error(current_lifecycle_state(self.name), status)
 
@@ -408,10 +419,10 @@ class eInvoice(Document):
 
 		``status`` is a canonical status (etransactions.plateforme_agreee.lifecycle_status).
 		"""
-		from etransactions.plateforme_agreee import lifecycle_status
-		from etransactions.plateforme_agreee.session import get_client
 		from etransactions.etransactions.doctype.einvoice_event.einvoice_event import record_event
 		from etransactions.etransactions.doctype.einvoicing_log.einvoicing_log import eInvoicingLog
+		from etransactions.plateforme_agreee import lifecycle_status
+		from etransactions.plateforme_agreee.session import get_client
 
 		self.check_permission("write")
 		if not self.pa_flow_id:
@@ -421,9 +432,17 @@ class eInvoice(Document):
 
 		if lifecycle_status.reason_required(status):
 			if not reason_code:
-				frappe.throw(_("A reason code is required to report the status '{0}'.").format(lifecycle_status.label(status)))
+				frappe.throw(
+					_("A reason code is required to report the status '{0}'.").format(
+						lifecycle_status.label(status)
+					)
+				)
 			if reason_code not in lifecycle_status.reason_codes(status):
-				frappe.throw(_("'{0}' is not a valid reason code for the status '{1}'.").format(reason_code, lifecycle_status.label(status)))
+				frappe.throw(
+					_("'{0}' is not a valid reason code for the status '{1}'.").format(
+						reason_code, lifecycle_status.label(status)
+					)
+				)
 			reason_text = reason_text or reason_code
 
 		# The lifecycle is a state machine: a status that contradicts or merely repeats
@@ -438,14 +457,16 @@ class eInvoice(Document):
 
 		details = None
 		if reason_code or reason_text or comment or amount is not None:
-			details = [{
-				"reason_code": reason_code,
-				"reason_text": reason_text,
-				"comment": comment,
-				"amount": amount,
-				"currency": currency,
-				"payment_date": payment_date,
-			}]
+			details = [
+				{
+					"reason_code": reason_code,
+					"reason_text": reason_text,
+					"comment": comment,
+					"amount": amount,
+					"currency": currency,
+					"payment_date": payment_date,
+				}
+			]
 
 		customer = None
 		if self.sales_invoice:
@@ -470,7 +491,9 @@ class eInvoice(Document):
 				details=details,
 			)
 		except Exception as e:
-			result["logs"].append(("error", f"Failed to send status '{status}' for eInvoice {self.name}: {str(e)}"))
+			result["logs"].append(
+				("error", f"Failed to send status '{status}' for eInvoice {self.name}: {str(e)}")
+			)
 			eInvoicingLog.create_log(result)
 			raise
 
@@ -517,10 +540,13 @@ class eInvoice(Document):
 
 		# Generate FacturX PDF on the fly
 		from etransactions.utils.facturx_pdf import FacturXPDFGenerator
+
 		generator = FacturXPDFGenerator(self.sales_invoice)
 		url = generator.attach_to_invoice()
 		# Re-read the file that was just attached
-		file_doc = frappe.get_last_doc("File", filters={"attached_to_doctype": "Sales Invoice", "attached_to_name": self.sales_invoice})
+		file_doc = frappe.get_last_doc(
+			"File", filters={"attached_to_doctype": "Sales Invoice", "attached_to_name": self.sales_invoice}
+		)
 		file_path = file_doc.get_full_path()
 		with open(file_path, "rb") as f:
 			file_content = f.read()
@@ -583,23 +609,27 @@ class eInvoice(Document):
 	@staticmethod
 	def _store_flow_file(flow_id: str, file_content: bytes) -> "File":
 		"""Save a downloaded flow, naming it after what the bytes actually are."""
-		file_doc = frappe.get_doc({
-			"doctype": "File",
-			"file_name": f"{flow_id}.{detect_flow_extension(file_content)}",
-			"content": file_content,
-			"is_private": 1,
-		})
+		file_doc = frappe.get_doc(
+			{
+				"doctype": "File",
+				"file_name": f"{flow_id}.{detect_flow_extension(file_content)}",
+				"content": file_content,
+				"is_private": 1,
+			}
+		)
 		file_doc.flags.ignore_permissions = True
 		file_doc.insert()
 		return file_doc
 
 	@staticmethod
 	def _attach_flow_file(file_doc, einvoice: str) -> None:
-		file_doc.db_set({
-			"attached_to_doctype": "eInvoice",
-			"attached_to_name": einvoice,
-			"attached_to_field": "einvoice_embedded_document",
-		})
+		file_doc.db_set(
+			{
+				"attached_to_doctype": "eInvoice",
+				"attached_to_name": einvoice,
+				"attached_to_field": "einvoice_embedded_document",
+			}
+		)
 
 	def apply_flow_metadata(self, flow) -> None:
 		"""Fill the identifying fields from the platform's own view of the invoice.
@@ -772,15 +802,17 @@ class eInvoice(Document):
 			response=f"{len(pdf_content)} byte(s)",
 		)
 
-		pdf_doc = frappe.get_doc({
-			"doctype": "File",
-			"file_name": f"{self.pa_flow_id}-readable.pdf",
-			"content": pdf_content,
-			"is_private": 1,
-			"attached_to_doctype": "eInvoice",
-			"attached_to_name": self.name,
-			"attached_to_field": "einvoice_readable_pdf",
-		})
+		pdf_doc = frappe.get_doc(
+			{
+				"doctype": "File",
+				"file_name": f"{self.pa_flow_id}-readable.pdf",
+				"content": pdf_content,
+				"is_private": 1,
+				"attached_to_doctype": "eInvoice",
+				"attached_to_name": self.name,
+				"attached_to_field": "einvoice_readable_pdf",
+			}
+		)
 		pdf_doc.flags.ignore_permissions = True
 		pdf_doc.insert()
 		self.einvoice_readable_pdf = pdf_doc.file_url
@@ -838,7 +870,6 @@ class eInvoice(Document):
 			elif row.item:
 				stock_uom, purchase_uom = frappe.db.get_value("Item", row.item, ["stock_uom", "purchase_uom"])
 				row.uom = purchase_uom or stock_uom
-
 
 	def guess_po_details(self):
 		if not self.purchase_order:
@@ -1052,8 +1083,7 @@ def _notify_incoming_einvoice(doc):
 		users = [
 			u
 			for u in set(users)
-			if u not in ("Administrator", "Guest")
-			and frappe.db.get_value("User", u, "enabled")
+			if u not in ("Administrator", "Guest") and frappe.db.get_value("User", u, "enabled")
 		]
 		if not users:
 			return
@@ -1087,6 +1117,7 @@ def get_lifecycle_reason_codes(status: str) -> list[dict]:
 	list, so a client that sends something else is rejected before any network call.
 	"""
 	from etransactions.plateforme_agreee import lifecycle_status
+
 	return lifecycle_status.reason_code_options(status)
 
 
@@ -1106,11 +1137,11 @@ def get_supported_lifecycle_statuses(einvoice: str) -> dict:
 	doc = frappe.get_doc("eInvoice", einvoice)
 	doc.check_permission("read")
 
-	from etransactions.plateforme_agreee import lifecycle_status
-	from etransactions.plateforme_agreee.session import get_platform_for_company
 	from etransactions.etransactions.doctype.einvoice_event.einvoice_event import (
 		current_lifecycle_state,
 	)
+	from etransactions.plateforme_agreee import lifecycle_status
+	from etransactions.plateforme_agreee.session import get_platform_for_company
 
 	transaction_type = "sales" if doc.einvoice_type == "Outgoing" else "purchases"
 	platform = get_platform_for_company(doc.company, transaction_type=transaction_type)
@@ -1201,9 +1232,7 @@ def einvoice_for_transaction(doctype: str, name: str) -> str | None:
 	the two cannot disagree about which e-invoice a transaction belongs to.
 	"""
 	if doctype == "Sales Invoice":
-		return frappe.db.get_value(
-			"eInvoice", {"sales_invoice": name, "einvoice_type": "Outgoing"}, "name"
-		)
+		return frappe.db.get_value("eInvoice", {"sales_invoice": name, "einvoice_type": "Outgoing"}, "name")
 	if doctype == "Purchase Invoice":
 		from etransactions.plateforme_agreee.auto_status import einvoice_for_purchase_invoice
 
@@ -1281,7 +1310,15 @@ def report_lifecycle_status(
 
 @frappe.whitelist()
 @frappe.validate_and_sanitize_search_inputs
-def po_item_query(doctype: str, txt: str, searchfield: str, start: int, page_len: int, filters: dict, as_dict: bool | None = False):
+def po_item_query(
+	doctype: str,
+	txt: str,
+	searchfield: str,
+	start: int,
+	page_len: int,
+	filters: dict,
+	as_dict: bool | None = False,
+):
 	item_code = filters.pop("item_code", None)
 	purchase_order = filters.pop("parent", None)
 
@@ -1324,7 +1361,6 @@ def get_po_item_details(po_detail: str):
 	}
 
 
-
 class IncomingInvoiceDataTransformer(InvoiceEntityResolverMixin):
 	def __init__(self, invoice_doc):
 		self.invoice_doc = invoice_doc
@@ -1352,7 +1388,7 @@ class IncomingInvoiceDataTransformer(InvoiceEntityResolverMixin):
 			"einvoice": self.invoice_doc.name,
 			"pa_platform_name": self.invoice_doc.pa_platform_name,
 			"ocr_basket": self.invoice_doc.supplier_invoices_basket,
-			"items": []
+			"items": [],
 		}
 
 		item_catalog = get_item_catalog()
@@ -1369,18 +1405,14 @@ class IncomingInvoiceDataTransformer(InvoiceEntityResolverMixin):
 			# A received e-invoice names the seller's own product, which only maps to one of
 			# our Items once someone has said so. Reuse that answer instead of asking again.
 			if not row["item_code"] and data["supplier"]:
-				alias = get_supplier_item_alias(
-					data["supplier"], item.seller_product_id or item.product_name
-				)
+				alias = get_supplier_item_alias(data["supplier"], item.seller_product_id or item.product_name)
 				if alias:
 					row.update(alias)
 
 			# First invoice from this supplier: no alias exists yet either. Fall back to a
 			# plain word-overlap guess against the Item catalog rather than leave this blank.
 			if not row["item_code"]:
-				guess = match_item_from_catalog(
-					item.seller_product_id or item.product_name, item_catalog
-				)
+				guess = match_item_from_catalog(item.seller_product_id or item.product_name, item_catalog)
 				if guess:
 					row["item_code"] = guess
 					data["match_confidence"] = "low"
@@ -1398,7 +1430,7 @@ class IncomingInvoiceDataTransformer(InvoiceEntityResolverMixin):
 			self.invoice_doc.seller_address_line_2,
 			self.invoice_doc.seller_postcode,
 			self.invoice_doc.seller_city,
-			self.invoice_doc.seller_country
+			self.invoice_doc.seller_country,
 		]
 		return ", ".join([p for p in address_parts if p])
 
@@ -1408,7 +1440,7 @@ class IncomingInvoiceDataTransformer(InvoiceEntityResolverMixin):
 			self.invoice_doc.buyer_address_line_2,
 			self.invoice_doc.buyer_postcode,
 			self.invoice_doc.buyer_city,
-			self.invoice_doc.buyer_country
+			self.invoice_doc.buyer_country,
 		]
 		return ", ".join([p for p in address_parts if p])
 
@@ -1426,6 +1458,5 @@ class IncomingInvoiceDataTransformer(InvoiceEntityResolverMixin):
 			return company
 
 		return self.resolve_company(
-			receiver_name=self.invoice_doc.buyer_name,
-			receiver_address=self.get_buyer_address()
+			receiver_name=self.invoice_doc.buyer_name, receiver_address=self.get_buyer_address()
 		)
