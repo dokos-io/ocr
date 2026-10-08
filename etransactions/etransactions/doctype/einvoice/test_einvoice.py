@@ -831,3 +831,31 @@ class TestBuyerCompanyResolution(eTransactionsTestSuite):
 		# Compare in Python: the database would call the two spellings equal.
 		self.assertEqual(frappe.db.get_value("eInvoice", misspelled.name, "company"), self.COMPANY)
 		self.assertEqual(frappe.db.get_value("eInvoice", empty.name, "company"), self.COMPANY)
+
+	def test_facturx_buyer_without_country_or_address_stores_none(self):
+		from etransactions.etransactions.doctype.einvoice.parser import eInvoiceParser
+
+		facturx = Document()
+		facturx.trade.agreement.buyer.name = self.COMPANY
+		einvoice = frappe.get_doc({"doctype": "eInvoice", "einvoice_type": "Incoming"})
+
+		eInvoiceParser(einvoice).parse_buyer(facturx.trade.agreement.buyer)
+
+		self.assertIsNone(einvoice.buyer_country)
+		self.assertIsNone(einvoice.buyer_electronic_address)
+		self.assertIsNone(einvoice.buyer_electronic_address_scheme)
+
+	def test_patch_clears_none_strings(self):
+		from etransactions.patches import clear_none_strings_on_einvoice
+
+		einvoice = self._incoming(buyer_name=self.COMPANY)
+		frappe.db.set_value(
+			"eInvoice", einvoice.name, {"buyer_country": "None", "buyer_electronic_address": "None"}
+		)
+
+		clear_none_strings_on_einvoice.execute()
+
+		einvoice.reload()
+		self.assertIsNone(einvoice.buyer_country)
+		self.assertIsNone(einvoice.buyer_electronic_address)
+		einvoice.save()  # failed with "Could not find Buyer Country: None"
