@@ -29,3 +29,5 @@ etransactions.patches.clear_stale_ocr_request_errors # 20260924
 etransactions.patches.enable_einvoicing_features_if_used # 20260930
 etransactions.patches.delete_supplier_invoices_from_outgoing_einvoices # 20261005
 etransactions.patches.fix_einvoice_company_spelling # 20261007
+etransactions.patches.set_supplier_invoice_guide_status # 20261007
+etransactions.patches.move_supplier_invoice_custom_fields # 20261008

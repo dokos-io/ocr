@@ -1,55 +1,85 @@
 frappe.listview_settings["Supplier Invoice"] = {
 	hide_name_column: true,
-	add_fields: ["pa_platform_name"],
+	add_fields: ["pa_platform_name", "guide_status"],
+	// One status in task words, the same as on the form's Review tab. The platform an
+	// invoice came from is a filter card above the list.
 	get_indicator: function (doc) {
-		if (doc.pa_platform_name) {
-			return [doc.pa_platform_name, "purple", "pa_platform_name,=," + doc.pa_platform_name];
+		const colors = {
+			"File Missing": "orange",
+			"To Review": "orange",
+			"To Match": "blue",
+			"Ready to Book": "blue",
+			"To Pay": "blue",
+			Paid: "green",
+			Completed: "green",
+			Disputed: "orange",
+			Refused: "red",
+			Closed: "gray",
+		};
+		if (doc.guide_status) {
+			return [
+				__(doc.guide_status),
+				colors[doc.guide_status] || "gray",
+				"guide_status,=," + doc.guide_status,
+			];
 		}
 	},
 	onload: function (listview) {
-		listview.page.add_inner_button(__("Upload Invoices"), function () {
-			new frappe.ui.FileUploader({
-				make_attachments_public: false,
-				on_success: (file_doc) => {
-					frappe.call({
-						method: "etransactions.etransactions.doctype.supplier_invoices_basket.supplier_invoices_basket.create_basket_from_files",
-						args: {
-							file_names: [file_doc.name],
-						}
-					}).then(r => {
-						if (r.message) {
-							frappe.show_alert(
-								__("Basket created"),
-								5
-							);
-						}
-					})
-				},
-			});
-		}, null, "primary");
+		listview.page.add_inner_button(
+			__("Upload Invoices"),
+			function () {
+				new frappe.ui.FileUploader({
+					make_attachments_public: false,
+					on_success: (file_doc) => {
+						frappe
+							.call({
+								method: "etransactions.etransactions.doctype.supplier_invoices_basket.supplier_invoices_basket.create_basket_from_files",
+								args: {
+									file_names: [file_doc.name],
+								},
+							})
+							.then((r) => {
+								if (r.message) {
+									frappe.show_alert(__("Basket created"), 5);
+								}
+							});
+					},
+				});
+			},
+			null,
+			"primary"
+		);
 
 		listview.page.add_menu_item(__("Retry Supplier Match"), () => {
 			const pending = listview.get_checked_items();
 
 			if (!pending.length) {
-				frappe.show_alert({ message: __("No unmatched invoices selected"), indicator: "orange" }, 4);
+				frappe.show_alert(
+					{ message: __("No unmatched invoices selected"), indicator: "orange" },
+					4
+				);
 				return;
 			}
-			frappe.call({
-				method: "etransactions.etransactions.doctype.supplier_invoice.supplier_invoice.retry_supplier_match",
-				args: { invoices: pending.map(d => d.name) },
-				freeze: true,
-				freeze_message: __("Retrying supplier match…"),
-			}).then(r => {
-				const count = r.message || 0;
-				frappe.show_alert({
-					message: count
-						? __("{0} of {1} invoice(s) matched", [count, pending.length])
-						: __("No new matches found"),
-					indicator: count > 0 ? "green" : "orange",
-				}, 5);
-				listview.refresh();
-			});
+			frappe
+				.call({
+					method: "etransactions.etransactions.doctype.supplier_invoice.supplier_invoice.retry_supplier_match",
+					args: { invoices: pending.map((d) => d.name) },
+					freeze: true,
+					freeze_message: __("Retrying supplier match…"),
+				})
+				.then((r) => {
+					const count = r.message || 0;
+					frappe.show_alert(
+						{
+							message: count
+								? __("{0} of {1} invoice(s) matched", [count, pending.length])
+								: __("No new matches found"),
+							indicator: count > 0 ? "green" : "orange",
+						},
+						5
+					);
+					listview.refresh();
+				});
 		});
 
 		listview.etransactions_dashboard = new SupplierInvoiceDashboard(listview);
@@ -87,9 +117,10 @@ class SupplierInvoiceDashboard {
 				icon: "inbox",
 				color: this.basket_count > 0 ? "var(--yellow-500)" : "var(--gray-500)",
 				bg: this.basket_count > 0 ? "var(--yellow-100)" : "var(--bg-light-gray)",
-				action: () => frappe.set_route("List", "Supplier Invoices Basket", {
-					status: ["in", ["Not Started", "In Progress"]],
-				}),
+				action: () =>
+					frappe.set_route("List", "Supplier Invoices Basket", {
+						status: ["in", ["Not Started", "In Progress"]],
+					}),
 			},
 			{
 				label: __("OCR In Progress", null, "Supplier Invoice List"),
@@ -97,9 +128,10 @@ class SupplierInvoiceDashboard {
 				icon: "setting",
 				color: this.ocr_count > 0 ? "var(--blue-500)" : "var(--gray-500)",
 				bg: this.ocr_count > 0 ? "var(--blue-100)" : "var(--bg-light-gray)",
-				action: () => frappe.set_route("List", "OCR Request", {
-					status: ["in", ["Analysis Completed", "Error"]],
-				}),
+				action: () =>
+					frappe.set_route("List", "OCR Request", {
+						status: ["in", ["Analysis Completed", "Error"]],
+					}),
 			},
 			{
 				label: __("Received via e-invoicing platform", null, "Supplier Invoice List"),

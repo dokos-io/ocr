@@ -11,6 +11,7 @@
   "supplier_item_code",
   "section_break_drta",
   "item_code",
+  "item_match",
   "qty",
   "column_break_tifj",
   "rate",
@@ -167,13 +168,22 @@
    "in_list_view": 1,
    "label": "Item Tax Template",
    "options": "Item Tax Template"
+  },
+  {
+   "description": "How the item was chosen for this line: learned from a previous invoice, suggested from the item catalog, confirmed or chosen by a user, or copied from an order.",
+   "fieldname": "item_match",
+   "fieldtype": "Select",
+   "label": "Item Match",
+   "no_copy": 1,
+   "options": "\nLearned\nSuggested\nConfirmed\nManual\nFrom Order",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-07-29 17:26:09.088908",
+ "modified": "2026-10-07 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "eTransactions",
  "name": "Supplier Invoice Item",

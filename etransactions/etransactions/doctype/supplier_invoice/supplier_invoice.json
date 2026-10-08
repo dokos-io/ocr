@@ -5,14 +5,21 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
+  "review_tab",
+  "guide_html",
+  "review_data_section",
+  "review_summary_html",
+  "review_preview_column",
+  "invoice_preview",
+  "review_lines_section",
+  "review_lines_html",
+  "custom_fields_section",
+  "custom_fields_end",
   "invoice_tab",
-  "einvoicing_section",
-  "einvoicing_status",
   "invoice_section",
-  "data_column",
-  "einvoicing_history",
   "extracted_data",
   "status",
+  "guide_status",
   "company",
   "supplier",
   "match_confidence",
@@ -35,8 +42,6 @@
   "is_return",
   "credit_note_allocations",
   "credit_note_allocation_summary",
-  "preview_column",
-  "invoice_preview",
   "section_break_cesy",
   "select_purchase_orders",
   "select_purchase_receipts",
@@ -56,7 +61,7 @@
   "grand_total",
   "column_break_ltet",
   "create_purchase_invoice",
-  "references_tab",
+  "references_section",
   "file",
   "file_url",
   "ocr_request",
@@ -128,10 +133,6 @@
    "fieldtype": "Small Text",
    "hidden": 1,
    "label": "File URL"
-  },
-  {
-   "fieldname": "preview_column",
-   "fieldtype": "Column Break"
   },
   {
    "fieldname": "section_break_cesy",
@@ -295,18 +296,15 @@
    "search_index": 1
   },
   {
-   "fieldname": "references_tab",
-   "fieldtype": "Tab Break",
+   "collapsible": 1,
+   "fieldname": "references_section",
+   "fieldtype": "Section Break",
    "label": "References"
   },
   {
    "fieldname": "invoice_tab",
    "fieldtype": "Tab Break",
-   "label": "Invoice"
-  },
-  {
-   "fieldname": "data_column",
-   "fieldtype": "Column Break"
+   "label": "Details"
   },
   {
    "fieldname": "vendor_address",
@@ -406,24 +404,63 @@
    "read_only": 1
   },
   {
-   "depends_on": "eval:doc.einvoice",
-   "fieldname": "einvoicing_section",
-   "fieldtype": "Section Break"
-  },
-  {
-   "fieldname": "einvoicing_status",
-   "fieldtype": "HTML",
-   "label": "Platform Status"
-  },
-  {
    "fieldname": "invoice_section",
    "fieldtype": "Section Break"
   },
   {
-   "depends_on": "eval:doc.einvoice",
-   "fieldname": "einvoicing_history",
+   "fieldname": "review_tab",
+   "fieldtype": "Tab Break",
+   "label": "Review"
+  },
+  {
+   "fieldname": "guide_html",
    "fieldtype": "HTML",
-   "label": "Platform History"
+   "label": "Guide"
+  },
+  {
+   "fieldname": "review_data_section",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "review_summary_html",
+   "fieldtype": "HTML",
+   "label": "Invoice Summary"
+  },
+  {
+   "fieldname": "review_preview_column",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "review_lines_section",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "review_lines_html",
+   "fieldtype": "HTML",
+   "label": "Invoice Lines"
+  },
+  {
+   "description": "Where the invoice stands in its review, from reception to payment.",
+   "fieldname": "guide_status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Processing Status",
+   "no_copy": 1,
+   "options": "\nFile Missing\nTo Review\nTo Match\nReady to Book\nTo Pay\nPaid\nCompleted\nDisputed\nRefused\nClosed",
+   "read_only": 1
+  },
+  {
+   "description": "Custom fields added to supplier invoices are shown here.",
+   "fieldname": "custom_fields_section",
+   "fieldtype": "Section Break",
+   "label": "Additional Information"
+  },
+  {
+   "description": "Ends the Additional Information section, so a custom section break added to it stays on the Review tab.",
+   "fieldname": "custom_fields_end",
+   "fieldtype": "Section Break",
+   "hidden": 1
   }
  ],
  "grid_page_length": 50,
@@ -440,7 +477,7 @@
    "link_fieldname": "supplier_invoice"
   }
  ],
- "modified": "2026-09-17 12:00:00.000000",
+ "modified": "2026-10-08 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "eTransactions",
  "name": "Supplier Invoice",
