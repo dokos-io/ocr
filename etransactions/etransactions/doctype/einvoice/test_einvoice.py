@@ -859,3 +859,18 @@ class TestBuyerCompanyResolution(eTransactionsTestSuite):
 		self.assertIsNone(einvoice.buyer_country)
 		self.assertIsNone(einvoice.buyer_electronic_address)
 		einvoice.save()  # failed with "Could not find Buyer Country: None"
+
+	def test_patch_repairs_variants_next_to_the_stored_spelling(self):
+		"""A Company already stored correctly on some rows must not hide its variants."""
+		from etransactions.patches import fix_einvoice_company_spelling
+
+		names = {}
+		for spelling in (self.COMPANY, "vitrerie stéphanoise", "VITRERIE STEPHANOISE"):
+			einvoice = self._incoming(buyer_name=self.COMPANY)
+			frappe.db.set_value("eInvoice", einvoice.name, "company", spelling)
+			names[spelling] = einvoice.name
+
+		fix_einvoice_company_spelling.execute()
+
+		for name in names.values():
+			self.assertEqual(frappe.db.get_value("eInvoice", name, "company"), self.COMPANY)
