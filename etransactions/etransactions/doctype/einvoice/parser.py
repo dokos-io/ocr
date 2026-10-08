@@ -144,8 +144,10 @@ class eInvoiceParser:
 		self.einvoice_document.seller_tax_id = (
 			seller.tax_registrations.children[0].id._text if seller.tax_registrations.children else None
 		)
-		self.einvoice_document.seller_electronic_address = str(seller.electronic_address.uri_ID._text)
-		self.einvoice_document.seller_electronic_address_scheme = str(seller.electronic_address.uri_ID._scheme_id)
+		self.einvoice_document.seller_electronic_address = _text_or_none(seller.electronic_address.uri_ID._text)
+		self.einvoice_document.seller_electronic_address_scheme = _text_or_none(
+			seller.electronic_address.uri_ID._scheme_id
+		)
 		self.einvoice_document.supplier_siren = _seller_siren(seller, self.einvoice_document)
 		self.parse_address(seller.address, "seller")
 
@@ -156,8 +158,10 @@ class eInvoiceParser:
 		)
 		# Not stored: only used to find which of our companies the invoice is for.
 		self.einvoice_document.flags.buyer_siren = _legal_organization_siren(buyer)
-		self.einvoice_document.buyer_electronic_address = str(buyer.electronic_address.uri_ID._text)
-		self.einvoice_document.buyer_electronic_address_scheme = str(buyer.electronic_address.uri_ID._scheme_id)
+		self.einvoice_document.buyer_electronic_address = _text_or_none(buyer.electronic_address.uri_ID._text)
+		self.einvoice_document.buyer_electronic_address_scheme = _text_or_none(
+			buyer.electronic_address.uri_ID._scheme_id
+		)
 		self.parse_address(buyer.address, "buyer")
 
 	def parse_address(self, address: PostalTradeAddress, prefix: str) -> _dict:
@@ -167,7 +171,7 @@ class eInvoiceParser:
 		self.einvoice_document.set(f"{prefix}_address_line_1", str(address.line_one))
 		self.einvoice_document.set(f"{prefix}_address_line_2", str(address.line_two))
 		self.einvoice_document.set(f"{prefix}_postcode", str(address.postcode))
-		self.einvoice_document.set(f"{prefix}_country", str(country))
+		self.einvoice_document.set(f"{prefix}_country", country)
 
 	def parse_line_item(self, li: LineItem):
 		item = self.einvoice_document.append("items")
@@ -258,6 +262,11 @@ class eInvoiceParser:
 
 def flt_or_none(value) -> float | None:
 	return float(value) if value is not None else None
+
+
+def _text_or_none(value) -> str | None:
+	"""``value`` as text, or None when the invoice leaves it empty (never the string "None")."""
+	return str(value) if value not in (None, "") else None
 
 
 def _seller_siren(seller, einvoice_document) -> str | None:
