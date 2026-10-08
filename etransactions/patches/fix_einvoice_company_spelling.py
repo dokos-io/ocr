@@ -22,9 +22,10 @@ def execute():
 	for doctype in DOCTYPES:
 		if not frappe.db.table_exists(doctype):
 			continue
-		for value in frappe.get_all(
-			doctype, filters={"company": ("is", "set")}, pluck="company", distinct=True
-		):
+		# Deduplicate in Python: a database DISTINCT folds "miroiterie avignonnaise" into
+		# "Miroiterie Avignonnaise" and returns one of them, which hid every variant of a
+		# Company whose stored spelling was also present.
+		for value in set(frappe.get_all(doctype, filters={"company": ("is", "set")}, pluck="company")):
 			if value in companies:
 				continue
 			if company := canonical_company(value):
