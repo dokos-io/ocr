@@ -8854,3 +8854,19 @@ msgstr "{0} : Un seul mode de paiement sera pris en compte dans la facture élec
 #, python-brace-format
 msgid "{0}: {1}"
 msgstr "{0} : {1}"
+
+#. Label of the no_single_purchase_order_match (Check) field in DocType
+#. 'eTransactions Settings'
+#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.json
+msgid "Do not link the supplier's only open purchase order automatically"
+msgstr "Ne pas lier automatiquement l'unique commande fournisseur ouverte du fournisseur"
+
+#. Description of the 'Do not link the supplier's only open purchase order
+#. automatically' (Check) field in DocType 'eTransactions Settings'
+#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.json
+msgid "By default, a captured invoice is linked to the supplier's only open purchase order even when the invoice does not cite it. Check this box to link an order only when the invoice cites its number or has the same net amount."
+msgstr "Par défaut, une facture capturée est liée à l'unique commande fournisseur ouverte du fournisseur, même si la facture ne la cite pas. Cochez cette case pour ne lier une commande que si la facture cite son numéro ou a le même montant HT."
+
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py
+msgid "Supplier Invoice totals could not be calculated"
+msgstr "Les totaux de la facture fournisseur n'ont pas pu être calculés"
