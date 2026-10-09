@@ -153,7 +153,7 @@ class TestMistralOCRAnalysis(FrappeTestCase):
 		request.reload()
 		self.assertFalse(request.job)
 		self.assertEqual(frappe.parse_json(request.analysis)["INVOICE_RECEIPT_ID"], "PF-7492031")
-		request.set_status()
+		# Set by the save that stores the analysis: check_pending_analysis skips analysed requests
 		self.assertEqual(request.status, "Analysis Completed")
 
 	def test_purchase_invoice_request_creates_its_supplier_invoice_without_a_job(self):
@@ -169,6 +169,28 @@ class TestMistralOCRAnalysis(FrappeTestCase):
 		request.make_analysis()
 
 		self.assertTrue(frappe.db.exists("Supplier Invoice", {"ocr_request": request.name}))
+
+	def test_a_processed_supplier_invoice_sets_the_request_status(self):
+		request = self._request()
+		request.db_set("analysis", frappe.as_json({"INVOICE_RECEIPT_ID": "X"}))
+		supplier_invoice = frappe.new_doc("Supplier Invoice")
+		supplier_invoice.ocr_request = request.name
+		supplier_invoice.status = "Completed"
+		supplier_invoice.insert(ignore_mandatory=True, ignore_links=True)
+
+		request.set_status()
+
+		self.assertEqual(request.status, "Completed")
+
+	def test_patch_recomputes_the_status_of_analysed_requests(self):
+		from etransactions.patches import recompute_ocr_request_status
+
+		request = self._request()
+		request.db_set({"status": "Pending", "analysis": frappe.as_json({"INVOICE_RECEIPT_ID": "X"})})
+
+		recompute_ocr_request_status.execute()
+
+		self.assertEqual(frappe.db.get_value("OCR Request", request.name, "status"), "Analysis Completed")
 
 	def _mistral_error(self, status_code):
 		body = '{"object":"error","message":"Rate limit exceeded","type":"rate_limited","code":"1300"}'
@@ -242,7 +264,6 @@ class TestMistralOCRAnalysis(FrappeTestCase):
 		request.db_set({"status": "Error", "error": "API error occurred: Status 429"})
 
 		request.get_analysis()
-		request.set_status(commit=True)
 
 		request.reload()
 		self.assertFalse(request.error)
