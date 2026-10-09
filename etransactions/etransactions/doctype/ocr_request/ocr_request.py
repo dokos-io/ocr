@@ -88,6 +88,8 @@ class OCRRequest(Document, InvoiceEntityResolverMixin):
 		if self.analysis:
 			if self.transaction_type == "Purchase Invoice" and not frappe.db.get_value("Supplier Invoice", dict(ocr_request=self.name)):
 				self.create_supplier_invoice()
+		# The analysis is stored with save(): check_pending_analysis never selects the request again
+		self.set_status()
 
 	@frappe.whitelist()
 	def make_analysis(self) -> None:
@@ -194,13 +196,14 @@ class OCRRequest(Document, InvoiceEntityResolverMixin):
 			return
 
 		status = "Pending"
-		if ppi_status := frappe.db.get_value("Supplier Invoice", dict(ocr_request=self.name)):
-			if ppi_status in ["Closed", "Completed"]:
-				status = ppi_status
 		if self.job or self.analysis:
 			status = "Analysis Completed"
 		if self.error and not self.analysis and not self.is_rate_limited():
 			status = "Error"
+		# A processed Supplier Invoice closes the request, whatever the analysis says
+		supplier_invoice_status = frappe.db.get_value("Supplier Invoice", dict(ocr_request=self.name), "status")
+		if supplier_invoice_status in ("Closed", "Completed"):
+			status = supplier_invoice_status
 
 		self.status = status
 		if commit:
