@@ -21,7 +21,7 @@ from frappe.model.mapper import get_mapped_doc
 from frappe.model.meta import child_table_fields, data_fieldtypes, default_fields
 from frappe.model.workflow import apply_workflow, get_transitions, get_workflow, has_approval_access
 from frappe.query_builder import Order
-from frappe.utils import cint, flt, fmt_money, nowdate, sbool
+from frappe.utils import cint, flt, fmt_money, getdate, nowdate, sbool
 from pypika.terms import ExistsCriterion
 
 from etransactions.controllers.entity_resolver import (
@@ -144,16 +144,25 @@ class SupplierInvoice(Document):
 			self.title = _("Missing Supplier")
 		self.calculate_due_date()
 
-		if not self.is_return and not self.items:
+		if self.should_suggest_items():
 			self.append_matched_receipts()
 
-		if not self.is_return and not self.items:
+		if self.should_suggest_items():
 			self.append_matched_orders()
 
-		if not self.is_return and not self.items:
+		if self.should_suggest_items():
 			self.prefill_items()
 
 		self.validate_credit_note_allocations()
+
+	def should_suggest_items(self) -> bool:
+		"""Suggest item lines on capture, or when the supplier or company changes.
+
+		Not on every save with an empty table: that put back the lines a user had just deleted.
+		"""
+		if self.is_return or self.items:
+			return False
+		return self.is_new() or self.has_value_changed("supplier") or self.has_value_changed("company")
 
 	def before_save(self):
 		self.calculate_totals()
@@ -489,6 +498,7 @@ class SupplierInvoice(Document):
 			self.grand_total = doc.grand_total or 0.0
 		except Exception:
 			frappe.clear_messages()
+			self.log_error(_("Supplier Invoice totals could not be calculated"))
 
 	def commit_totals(self):
 		self.db_set("net_total", self.net_total)
@@ -661,6 +671,7 @@ class SupplierInvoice(Document):
 						continue
 
 					row = frappe.copy_doc(item).as_dict()
+					row.pop("idx", None)
 					row["reference_doctype"] = doc.doctype
 					row["reference_docname"] = doc.name
 					row["row"] = item.name
@@ -692,6 +703,7 @@ class SupplierInvoice(Document):
 				purchase_order_dt.net_total,
 				purchase_order_dt.order_confirmation_no,
 				purchase_order_dt.company,
+				purchase_order_dt.transaction_date,
 			)
 			.where(
 				(purchase_order_dt.docstatus == 1)
@@ -708,31 +720,34 @@ class SupplierInvoice(Document):
 			query = query.where(purchase_order_dt.company == self.company)
 
 		open_orders = query.run(as_dict=True)
-		if not getattr(self, "open_receipts", []) and len(open_orders) == 1:
+		if (
+			not getattr(self, "open_receipts", [])
+			and len(open_orders) == 1
+			and not frappe.db.get_single_value("eTransactions Settings", "no_single_purchase_order_match")
+		):
 			return open_orders
-
-		def find_purchase_order_correspondance(purchase_order, data):
-			return re.search(r"(?<![\w\d])" + re.escape(purchase_order) + r"(?![\w\d])", data, re.IGNORECASE)
 
 		matched_orders = set()
 		if self.ocr_request:
 			ocr_data = self.get_ocr_analysis()
 			if ocr_data.get("PO_NUMBER"):
 				for open_order in open_orders:
-					if find_purchase_order_correspondance(open_order.name, ocr_data["PO_NUMBER"]):
+					if cites_reference(ocr_data["PO_NUMBER"], open_order.name):
 						matched_orders.add(open_order.name)
 
 			for child in ocr_data.get("items"):
 				for open_order in open_orders:
-					if find_purchase_order_correspondance(open_order.name, child.get("expense_row") or ""):
-						matched_orders.add(open_order.name)
-					elif find_purchase_order_correspondance(
-						open_order.order_confirmation_no or "", child.get("expense_row") or ""
+					if cites_reference(
+						child.get("expense_row"), open_order.name, open_order.order_confirmation_no
 					):
 						matched_orders.add(open_order.name)
 
 		if not matched_orders:
+			invoice_date = self.bill_date or self.posting_date
 			for open_order in open_orders:
+				# An order placed after the invoice cannot be the one it bills.
+				if invoice_date and getdate(open_order.transaction_date) > getdate(invoice_date):
+					continue
 				if open_order.get("net_total") == self.supplier_net_amount:
 					matched_orders.add(open_order.name)
 					break
@@ -756,6 +771,7 @@ class SupplierInvoice(Document):
 						continue
 
 					row = frappe.copy_doc(item).as_dict()
+					row.pop("idx", None)
 					row["reference_doctype"] = doc.doctype
 					row["reference_docname"] = doc.name
 					row["row"] = item.name
@@ -815,26 +831,21 @@ class SupplierInvoice(Document):
 		open_receipts = query.run(as_dict=True)
 		self.open_receipts = open_receipts  # used to return order if single
 
-		def find_purchase_order_correspondance(purchase_order, data):
-			return re.search(r"(?<![\w\d])" + re.escape(purchase_order) + r"(?![\w\d])", data, re.IGNORECASE)
-
 		matched_orders = set()
 		if self.ocr_request:
 			ocr_data = self.get_ocr_analysis()
 			if ocr_data.get("PO_NUMBER"):
 				for open_order in open_receipts:
-					if find_purchase_order_correspondance(open_order.name, ocr_data["PO_NUMBER"]):
-						matched_orders.add(open_order.name)
-					elif find_purchase_order_correspondance(open_order.purchase_order, ocr_data["PO_NUMBER"]):
+					if cites_reference(ocr_data["PO_NUMBER"], open_order.name, open_order.purchase_order):
 						matched_orders.add(open_order.name)
 
 			for child in ocr_data.get("items"):
 				for open_order in open_receipts:
-					if find_purchase_order_correspondance(open_order.name, child.get("expense_row") or ""):
-						matched_orders.add(open_order.name)
-					elif find_purchase_order_correspondance(
-						open_order.order_confirmation_no or open_order.supplier_delivery_note or "",
-						child.get("expense_row") or "",
+					if cites_reference(
+						child.get("expense_row"),
+						open_order.name,
+						open_order.order_confirmation_no,
+						open_order.supplier_delivery_note,
 					):
 						matched_orders.add(open_order.name)
 
@@ -982,6 +993,10 @@ class SupplierInvoice(Document):
 
 	def get_last_invoice_line(self) -> list[dict]:
 		"""A single line copying how this supplier's last invoice was booked."""
+		if not flt(self.supplier_net_amount):
+			# Without the amount OCR read, the line would only be a zero row to delete.
+			return []
+
 		last_invoice = frappe.get_all(
 			"Purchase Invoice",
 			filters={
@@ -1677,6 +1692,23 @@ def deduplicate_items(items):
 		output.append(item)
 
 	return output
+
+
+def cites_reference(text: str | None, *references: str | None) -> bool:
+	"""Whether `text` cites one of `references` as a whole word.
+
+	Blank references are skipped: an empty pattern matches at any word boundary, so every
+	open order without a confirmation number used to match every OCR line.
+	"""
+	if not text:
+		return False
+	for reference in references:
+		reference = (reference or "").strip()
+		if reference and re.search(
+			r"(?<![\w\d])" + re.escape(reference) + r"(?![\w\d])", text, re.IGNORECASE
+		):
+			return True
+	return False
 
 
 def validate_total(doc, method):

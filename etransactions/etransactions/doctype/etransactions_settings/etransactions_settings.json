@@ -32,6 +32,7 @@
   "purchase_invoices_tab",
   "purchase_invoices_section",
   "no_purchase_order",
+  "no_single_purchase_order_match",
   "prefill_invoice_items",
   "block_if_grand_total_exceeds_pending_pi",
   "block_if_net_total_exceeds_pending_pi",
@@ -206,6 +207,14 @@
    "fieldname": "no_purchase_order",
    "fieldtype": "Check",
    "label": "Create purchase invoices without purchase orders or purchase receipts"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:!doc.reconcile_with_purchase_receipts",
+   "description": "By default, a captured invoice is linked to the supplier's only open purchase order even when the invoice does not cite it. Check this box to link an order only when the invoice cites its number or has the same net amount.",
+   "fieldname": "no_single_purchase_order_match",
+   "fieldtype": "Check",
+   "label": "Do not link the supplier's only open purchase order automatically"
   },
   {
    "default": "1",

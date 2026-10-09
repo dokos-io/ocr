@@ -405,11 +405,12 @@ class TestSupplierInvoice(eTransactionsTestSuite):
 
 	# --- Item line prefill ---------------------------------------------------
 
-	def _captured_invoice(self, supplier=None, net_amount=100, ocr_request=None):
+	def _captured_invoice(self, supplier=None, net_amount=100, ocr_request=None, bill_date=None):
 		doc = frappe.new_doc("Supplier Invoice")
 		doc.supplier = supplier or self.supplier.name
 		doc.company = self.company
 		doc.posting_date = nowdate()
+		doc.bill_date = bill_date
 		doc.bill_no = frappe.generate_hash(length=8)
 		doc.supplier_net_amount = net_amount
 		doc.ocr_request = ocr_request
@@ -462,6 +463,105 @@ class TestSupplierInvoice(eTransactionsTestSuite):
 		frappe.db.set_single_value("eTransactions Settings", "prefill_invoice_items", 0)
 
 		invoice = self._captured_invoice()
+
+		self.assertFalse(invoice.items)
+
+	def test_no_prefill_without_a_captured_amount(self):
+		self._make_submitted_invoice(1000)
+
+		invoice = self._captured_invoice(net_amount=0)
+
+		self.assertFalse(invoice.items)
+
+	# --- Purchase order matching ---------------------------------------------
+
+	def _open_order(self, rate, transaction_date=None):
+		return create_purchase_order(
+			supplier=self.supplier.name,
+			company=self.company,
+			qty=1,
+			rate=rate,
+			warehouse="_Test Warehouse - _TC",
+			transaction_date=transaction_date,
+		)
+
+	def _ocr_request(self, *expense_rows):
+		ocr_request = frappe.new_doc("OCR Request")
+		ocr_request.name = frappe.generate_hash(length=10)
+		ocr_request.analysis = frappe.as_json({"_children": [{"EXPENSE_ROW": row} for row in expense_rows]})
+		ocr_request.db_insert()
+		return ocr_request.name
+
+	@staticmethod
+	def _linked_orders(invoice):
+		return {row.reference_docname for row in invoice.items if row.reference_doctype == "Purchase Order"}
+
+	def test_cites_reference_ignores_blank_references(self):
+		from etransactions.etransactions.doctype.supplier_invoice.supplier_invoice import cites_reference
+
+		self.assertFalse(cites_reference("Installation 2,00 h 45,00", None, "", "  "))
+		self.assertTrue(cites_reference("Votre ref. : PO-0042 48.50", "", "PO-0042"))
+		self.assertFalse(cites_reference("Votre ref. : PO-00421", "PO-0042"))
+
+	@change_settings("eTransactions Settings", {"prefill_invoice_items": 0})
+	def test_orders_without_confirmation_number_not_matched_by_every_ocr_line(self):
+		"""Regression: a blank confirmation number used to match any OCR line, so every open order was linked."""
+		self._open_order(5)
+		self._open_order(48.50)
+		ocr_request = self._ocr_request("Installation 2,00 h 45,00 0% 90,00", "Livraison 12,00")
+
+		invoice = self._captured_invoice(net_amount=102, ocr_request=ocr_request)
+
+		self.assertFalse(self._linked_orders(invoice))
+
+	@change_settings("eTransactions Settings", {"prefill_invoice_items": 0})
+	def test_order_cited_on_an_ocr_line_is_linked(self):
+		cited = self._open_order(48.50)
+		self._open_order(5)
+		ocr_request = self._ocr_request(f"Votre ref. : {cited.name} 48.50 1")
+
+		invoice = self._captured_invoice(net_amount=48.50, ocr_request=ocr_request)
+
+		self.assertEqual(self._linked_orders(invoice), {cited.name})
+
+	@change_settings("eTransactions Settings", {"prefill_invoice_items": 0})
+	def test_only_open_order_linked_by_default(self):
+		order = self._open_order(150)
+
+		invoice = self._captured_invoice(net_amount=240)
+
+		self.assertEqual(self._linked_orders(invoice), {order.name})
+
+	@change_settings(
+		"eTransactions Settings", {"prefill_invoice_items": 0, "no_single_purchase_order_match": 1}
+	)
+	def test_only_open_order_not_linked_when_the_setting_is_on(self):
+		self._open_order(150)
+
+		invoice = self._captured_invoice(net_amount=240)
+
+		self.assertFalse(self._linked_orders(invoice))
+
+	@change_settings(
+		"eTransactions Settings", {"prefill_invoice_items": 0, "no_single_purchase_order_match": 1}
+	)
+	def test_order_with_the_same_amount_linked_only_if_placed_before_the_invoice(self):
+		order = self._open_order(100, transaction_date=add_days(nowdate(), -5))
+
+		before = self._captured_invoice(net_amount=100, bill_date=add_days(nowdate(), -10))
+		after = self._captured_invoice(net_amount=100, bill_date=nowdate())
+
+		self.assertFalse(self._linked_orders(before))
+		self.assertEqual(self._linked_orders(after), {order.name})
+
+	@change_settings("eTransactions Settings", {"prefill_invoice_items": 0})
+	def test_deleted_suggested_lines_are_not_put_back_on_save(self):
+		self._open_order(150)
+		invoice = self._captured_invoice(net_amount=240)
+		self.assertTrue(invoice.items)
+
+		invoice.set("items", [])
+		invoice.save()
 
 		self.assertFalse(invoice.items)
 
