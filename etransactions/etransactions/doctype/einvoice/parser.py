@@ -4,11 +4,10 @@ import frappe
 from frappe import _, _dict
 
 from drafthorse.models.document import Document as DrafthorseDocument
-from lxml.etree import XMLSyntaxError
 
 from etransactions.schematron import get_validation_errors
 from etransactions.utils import EInvoiceProfile, get_profile
-from etransactions.utils.xml import get_xml_bytes
+from etransactions.utils.xml import UnsupportedEInvoiceDocument, get_xml_bytes
 from etransactions.utils.ubl_parser import parse_ubl
 
 if TYPE_CHECKING:
@@ -43,9 +42,11 @@ class eInvoiceParser:
 
 				return DrafthorseDocument.parse(etree.tostring(tree), strict=False)
 			except Exception:
+				# Not lxml's XMLSyntaxError: frappe.throw builds the exception from the message
+				# alone, and lxml's constructor needs more arguments
 				frappe.throw(
 					_("The uploaded file does not contain valid XML data or could not be parsed by the e-invoice engine."),
-					XMLSyntaxError,
+					UnsupportedEInvoiceDocument,
 				)
 
 	@classmethod
@@ -87,7 +88,7 @@ class eInvoiceParser:
 			and self.einvoice_document.buyer_reference
 			and frappe.db.exists("Purchase Order", self.einvoice_document.buyer_reference)
 		):
-			self.einvoice_document.purchase_order = self.buyer_reference
+			self.einvoice_document.purchase_order = self.einvoice_document.buyer_reference
 
 		self.einvoice_document.items = []
 		for li in doc.trade.items.children:
@@ -109,7 +110,7 @@ class eInvoiceParser:
 	def _validate_schematron(self, xml_bytes, syntax: str = "CII"):
 		self.einvoice_document.validation_errors = ""
 		self.einvoice_document.validation_warnings = ""
-		xml_string = xml_bytes.decode("utf-8")
+		xml_string = xml_bytes.decode("utf-8-sig")
 
 		try:
 			validation_errors, validation_warnings = get_validation_errors(
@@ -122,11 +123,10 @@ class eInvoiceParser:
 				reference_doctype=self.einvoice_document.doctype,
 				reference_name=self.einvoice_document.name,
 			)
-			frappe.msgprint(
-				_("Could not validate E Invoice schematron: {0}. See Error Log for details.").format(str(e)),
-				alert=True,
-				indicator="orange",
-			)
+			# Say so on the document: an unvalidated invoice must not look like a failed one
+			# with no reason given
+			self.einvoice_document.e_invoice_is_correct = 0
+			self.einvoice_document.validation_errors = _("Cannot validate E Invoice schematron: {0}").format(str(e))
 			return
 
 		if any(validation_errors):

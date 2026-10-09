@@ -874,3 +874,89 @@ class TestBuyerCompanyResolution(eTransactionsTestSuite):
 
 		for name in names.values():
 			self.assertEqual(frappe.db.get_value("eInvoice", name, "company"), self.COMPANY)
+
+
+class TestByteOrderMark(eTransactionsTestSuite):
+	"""Some suppliers' Factur-X XML starts with a UTF-8 byte order mark, which Saxon refuses."""
+
+	FIXTURE = "Facture_F20220023-LE_FOURNISSEUR-POUR-LE_CLIENT_EN_16931.pdf"
+
+	def setUp(self):
+		super().setUp()
+		frappe.db.set_default("company", "_Test Company")
+
+	def _xml_with_bom(self):
+		from facturx import get_xml_from_pdf
+
+		path = os.path.join(frappe.get_app_path("etransactions", "tests", "invoices", "3.en16931"), self.FIXTURE)
+		with open(path, "rb") as f:
+			_name, xml_bytes = get_xml_from_pdf(f.read(), check_xsd=False)
+		# The sample files already start with one
+		return b"\xef\xbb\xbf" + xml_bytes.removeprefix(b"\xef\xbb\xbf")
+
+	def _incoming(self, xml_bytes):
+		file_doc = frappe.get_doc({
+			"doctype": "File",
+			"file_name": f"bom-{frappe.generate_hash(length=6)}.xml",
+			"content": xml_bytes,
+			"is_private": 1,
+		}).insert()
+		return frappe.get_doc({"doctype": "eInvoice", "einvoice_type": "Incoming", "einvoice": file_doc.name}).insert()
+
+	def test_xml_with_a_byte_order_mark_is_validated(self):
+		einvoice = self._incoming(self._xml_with_bom())
+
+		self.assertNotIn("Cannot validate", einvoice.validation_errors or "")
+		self.assertEqual(einvoice.e_invoice_is_correct, 0 if einvoice.validation_errors else 1)
+		self.assertFalse(frappe.safe_encode(einvoice.einvoice_xml).startswith(b"\xef\xbb\xbf"))
+
+	def test_a_validation_crash_is_shown_on_the_invoice(self):
+		with unittest.mock.patch(
+			"etransactions.etransactions.doctype.einvoice.parser.get_validation_errors",
+			side_effect=RuntimeError("saxon is down"),
+		):
+			einvoice = self._incoming(self._xml_with_bom())
+
+		self.assertEqual(einvoice.e_invoice_is_correct, 0)
+		self.assertIn("saxon is down", einvoice.validation_errors)
+
+	def test_patch_validates_stored_xml_with_a_byte_order_mark(self):
+		from etransactions.patches import revalidate_einvoices_without_result
+
+		einvoice = self._incoming(self._xml_with_bom())
+		frappe.db.set_value(
+			"eInvoice",
+			einvoice.name,
+			{"einvoice_xml": self._xml_with_bom().decode(), "e_invoice_is_correct": 0, "validation_errors": None},
+		)
+
+		revalidate_einvoices_without_result.execute()
+
+		is_correct, errors = frappe.db.get_value("eInvoice", einvoice.name, ["e_invoice_is_correct", "validation_errors"])
+		self.assertNotIn("Cannot validate", errors or "")
+		self.assertEqual(is_correct, 0 if errors else 1)
+
+	def test_buyer_reference_of_an_existing_purchase_order(self):
+		"""Used to raise AttributeError, so the invoice never parsed."""
+		exists = frappe.db.exists
+
+		def purchase_order_exists(doctype, *args, **kwargs):
+			return doctype == "Purchase Order" or exists(doctype, *args, **kwargs)
+
+		from etransactions.etransactions.doctype.einvoice.parser import eInvoiceParser
+
+		einvoice = self._incoming(self._xml_with_bom())
+		einvoice.purchase_order = None
+
+		with unittest.mock.patch.object(frappe.db, "exists", side_effect=purchase_order_exists):
+			eInvoiceParser(einvoice).parse_einvoice()
+
+		self.assertTrue(einvoice.buyer_reference)
+		self.assertEqual(einvoice.purchase_order, einvoice.buyer_reference)
+
+	def test_unreadable_xml_raises_a_readable_error(self):
+		from etransactions.etransactions.doctype.einvoice.parser import eInvoiceParser
+		from etransactions.utils.xml import UnsupportedEInvoiceDocument
+
+		with self.assertRaises(UnsupportedEInvoiceDocument):
+			eInvoiceParser.get_einvoice_document(b"<rsm:CrossIndustryInvoice")
