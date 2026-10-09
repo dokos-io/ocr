@@ -256,6 +256,27 @@ class TestMistralOCRAnalysis(FrappeTestCase):
 		self.assertEqual(request.status, "Error")
 		self.assertIn("500", request.error)
 
+	def test_supplier_invoice_gets_the_buyer_read_as_name(self):
+		"""Textract often leaves RECEIVER_NAME out and reads the buyer block as NAME."""
+		company = f"Menuiserie Élégante {frappe.generate_hash(length=6)}"
+		frappe.get_doc({
+			"doctype": "Company",
+			"name": company,
+			"company_name": company,
+			"abbr": frappe.generate_hash(length=6),
+			"country": "France",
+			"default_currency": "EUR",
+		}).db_insert()
+		self.client.ocr.process.return_value = SimpleNamespace(
+			document_annotation=frappe.as_json({"INVOICE_RECEIPT_ID": "PF-1", "NAME": company.upper(), "children": []})
+		)
+		request = self._request()
+		request.db_set("transaction_type", "Purchase Invoice")
+
+		request.make_analysis()
+
+		self.assertEqual(frappe.db.get_value("Supplier Invoice", {"ocr_request": request.name}, "company"), company)
+
 	def test_a_successful_retry_clears_the_previous_error(self):
 		self.client.ocr.process.return_value = SimpleNamespace(
 			document_annotation=frappe.as_json({"INVOICE_RECEIPT_ID": "PF-7492031", "children": []})
