@@ -555,6 +555,36 @@ class TestSupplierInvoice(eTransactionsTestSuite):
 		self.assertEqual(self._linked_orders(after), {order.name})
 
 	@change_settings("eTransactions Settings", {"prefill_invoice_items": 0})
+	def test_order_already_on_another_open_invoice_is_not_linked_again(self):
+		order = self._open_order(48.50)
+		self._open_order(5)
+
+		first = self._captured_invoice(
+			net_amount=48.50, ocr_request=self._ocr_request(f"Votre ref. : {order.name} 48.50 1")
+		)
+		second = self._captured_invoice(
+			net_amount=48.50, ocr_request=self._ocr_request(f"Votre ref. : {order.name} 48.50 1")
+		)
+
+		self.assertEqual(self._linked_orders(first), {order.name})
+		self.assertFalse(self._linked_orders(second))
+
+	@change_settings("eTransactions Settings", {"prefill_invoice_items": 0})
+	def test_order_on_a_closed_invoice_can_be_linked_again(self):
+		order = self._open_order(48.50)
+		self._open_order(5)
+		first = self._captured_invoice(
+			net_amount=48.50, ocr_request=self._ocr_request(f"Votre ref. : {order.name} 48.50 1")
+		)
+		first.db_set("status", "Closed")
+
+		second = self._captured_invoice(
+			net_amount=48.50, ocr_request=self._ocr_request(f"Votre ref. : {order.name} 48.50 1")
+		)
+
+		self.assertEqual(self._linked_orders(second), {order.name})
+
+	@change_settings("eTransactions Settings", {"prefill_invoice_items": 0})
 	def test_deleted_suggested_lines_are_not_put_back_on_save(self):
 		self._open_order(150)
 		invoice = self._captured_invoice(net_amount=240)

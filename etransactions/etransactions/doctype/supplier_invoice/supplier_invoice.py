@@ -666,8 +666,9 @@ class SupplierInvoice(Document):
 				if doc.currency != self.currency:
 					self.currency = doc.currency
 
+				claimed_rows = self.get_rows_claimed_elsewhere(doc.doctype, doc.name)
 				for item in doc.items:
-					if item.billed_amt >= item.net_amount:
+					if item.billed_amt >= item.net_amount or item.name in claimed_rows:
 						continue
 
 					row = frappe.copy_doc(item).as_dict()
@@ -684,6 +685,28 @@ class SupplierInvoice(Document):
 					self.append("items", row)
 		except Exception:
 			self.log_error()
+
+	def get_rows_claimed_elsewhere(self, reference_doctype: str, reference_docname: str) -> set[str]:
+		"""Rows of an order or receipt already on another supplier invoice that is not closed.
+
+		Until that invoice is booked, the row is not billed yet, so `billed_amt` cannot tell
+		that it is already taken.
+		"""
+		supplier_invoice = frappe.qb.DocType("Supplier Invoice")
+		supplier_invoice_item = frappe.qb.DocType("Supplier Invoice Item")
+		query = (
+			frappe.qb.from_(supplier_invoice_item)
+			.join(supplier_invoice)
+			.on(supplier_invoice.name == supplier_invoice_item.parent)
+			.select(supplier_invoice_item.row)
+			.where(supplier_invoice_item.reference_doctype == reference_doctype)
+			.where(supplier_invoice_item.reference_docname == reference_docname)
+			.where(supplier_invoice.status != "Closed")
+		)
+		if self.name:
+			query = query.where(supplier_invoice.name != self.name)
+
+		return {row for row in query.run(pluck=True) if row}
 
 	def get_matched_orders(self):
 		purchase_order_dt = frappe.qb.DocType("Purchase Order")
@@ -766,8 +789,9 @@ class SupplierInvoice(Document):
 				if doc.currency != self.currency:
 					self.currency = doc.currency
 
+				claimed_rows = self.get_rows_claimed_elsewhere(doc.doctype, doc.name)
 				for item in doc.items:
-					if item.billed_amt >= item.net_amount:
+					if item.billed_amt >= item.net_amount or item.name in claimed_rows:
 						continue
 
 					row = frappe.copy_doc(item).as_dict()
