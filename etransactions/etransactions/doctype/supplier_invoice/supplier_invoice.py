@@ -25,9 +25,13 @@ from frappe.utils import cint, flt, fmt_money, nowdate, sbool
 from pypika.terms import ExistsCriterion
 
 from etransactions.controllers.entity_resolver import (
+	MIN_COMPANY_ALIAS_LENGTH,
 	InvoiceEntityResolverMixin,
+	company_name_key,
 	is_learnable_vendor_name,
 	normalize_vendor_name,
+	resolve_buyer_company,
+	resolve_ocr_buyer_company,
 )
 from etransactions.etransactions.doctype.etransactions_supplier_item_alias.etransactions_supplier_item_alias import (
 	get_supplier_item_alias,
@@ -128,7 +132,9 @@ class SupplierInvoice(Document):
 
 	def validate(self):
 		self._detect_manual_supplier_change()
+		self._detect_manual_company_change()
 		self.get_supplier()
+		self.set_company_from_analysis()
 		self.set_tax_category()
 		self.set_tax_template()
 		self.set_missing_values_in_items()
@@ -164,6 +170,8 @@ class SupplierInvoice(Document):
 		if getattr(self, "_supplier_manually_set", False):
 			self._learn_from_manual_match()
 			self._maybe_update_supplier_tax_id()
+		if getattr(self, "_company_manually_set", False):
+			self._learn_company_alias()
 		self.update_guide_status()
 
 	def update_guide_status(self):
@@ -275,6 +283,59 @@ class SupplierInvoice(Document):
 		if db_supplier != self.supplier and self.supplier:
 			self._supplier_manually_set = True
 			self.match_confidence = "high"
+
+	def _detect_manual_company_change(self):
+		"""Flag a company the user chose, so the receiver name can be learned."""
+		if self.is_new() or not self.company:
+			return
+		if frappe.db.get_value("Supplier Invoice", self.name, "company") != self.company:
+			self._company_manually_set = True
+
+	def set_company_from_analysis(self):
+		"""Match the buyer again while the company is empty: aliases and addresses may be new."""
+		if self.company or not self.ocr_request:
+			return
+		if company := resolve_ocr_buyer_company(self._ocr_analysis()):
+			self.company = company
+
+	def _learn_company_alias(self):
+		"""Remember the receiver name the user just mapped to a company.
+
+		Like supplier aliases, a row is trusted as is on every later intake, so a name that
+		already resolves, or that is a supplier's own name, is not stored.
+		"""
+		receiver_name = normalize_vendor_name(self._ocr_analysis().get("RECEIVER_NAME"))
+		key = company_name_key(receiver_name)
+		if len(key) < MIN_COMPANY_ALIAS_LENGTH:
+			return
+		if resolve_buyer_company(receiver_name, use_default=False) == self.company:
+			return
+		if frappe.db.exists("Supplier", {"supplier_name": receiver_name}):
+			return
+
+		claimants = {
+			alias.company
+			for alias in frappe.get_all("eTransactions Company Name Alias", fields=["receiver_name", "company"])
+			if company_name_key(alias.receiver_name) == key
+		}
+		if claimants:
+			if self.company not in claimants:
+				frappe.log_error(
+					f"Receiver name {receiver_name!r} is already mapped to {sorted(claimants)}; "
+					f"not adding {self.company}.",
+					_("Ambiguous receiver name alias"),
+				)
+			return
+
+		alias = frappe.new_doc("eTransactions Company Name Alias")
+		alias.company = self.company
+		alias.receiver_name = receiver_name
+		alias.insert(ignore_permissions=True)
+
+	def _ocr_analysis(self) -> dict:
+		if not self.ocr_request:
+			return {}
+		return frappe.parse_json(frappe.db.get_value("OCR Request", self.ocr_request, "analysis")) or {}
 
 	def _learn_from_manual_match(self):
 		"""Remember the vendor name the user just mapped, when it identifies that vendor.

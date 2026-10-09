@@ -488,6 +488,49 @@ class TestSupplierInvoice(eTransactionsTestSuite):
 		self.assertEqual(alias[0].item_code, "_Test Item")
 		self.assertEqual(alias[0].expense_account, self.EXPENSE_ACCOUNT)
 
+	# --- Buyer company -------------------------------------------------------
+
+	def _invoice_without_company(self, analysis):
+		ocr_request = frappe.new_doc("OCR Request")
+		ocr_request.name = frappe.generate_hash(length=10)
+		ocr_request.analysis = frappe.as_json(analysis)
+		ocr_request.db_insert()
+		invoice = self._captured_invoice(ocr_request=ocr_request.name)
+		# insert() fills an empty company from the defaults
+		invoice.db_set("company", None)
+		invoice.reload()
+		return invoice
+
+	def test_company_matched_again_while_empty(self):
+		invoice = self._invoice_without_company({"RECEIVER_NAME": self.company.upper()})
+
+		invoice.save()
+
+		self.assertEqual(invoice.company, self.company)
+
+	def test_receiver_name_learned_from_a_chosen_company(self):
+		receiver_name = f"TC Buyer Block {frappe.generate_hash(length=6)}"
+		invoice = self._invoice_without_company({"RECEIVER_NAME": receiver_name})
+
+		invoice.company = self.company
+		invoice.save()
+
+		self.assertEqual(
+			frappe.get_all(
+				"eTransactions Company Name Alias", filters={"receiver_name": receiver_name}, pluck="company"
+			),
+			[self.company],
+		)
+
+	def test_patch_gives_a_company_to_ocr_invoices_without_one(self):
+		from etransactions.patches import resolve_ocr_supplier_invoice_company
+
+		invoice = self._invoice_without_company({"RECEIVER_ADDRESS": f"{self.company.upper()}\nrue des Lilas"})
+
+		resolve_ocr_supplier_invoice_company.execute()
+
+		self.assertEqual(frappe.db.get_value("Supplier Invoice", invoice.name, "company"), self.company)
+
 	# --- Vendor name alias learning -----------------------------------------
 
 	def _ocr_request_with_vendor_name(self, vendor_name):

@@ -15,7 +15,7 @@ from frappe.model.document import Document
 from etransactions.etransactions.doctype.ocr_request.aws_textract import AWSTextractExpense
 from etransactions.etransactions.doctype.ocr_request.mistral_ocr import MistralOCR, OCRRateLimited
 from etransactions.utils import parse_number, parse_currency_symbol, date_parser
-from etransactions.controllers.entity_resolver import InvoiceEntityResolverMixin
+from etransactions.controllers.entity_resolver import InvoiceEntityResolverMixin, resolve_ocr_buyer_company
 
 if TYPE_CHECKING:
 	from etransactions.etransactions.doctype.supplier_invoice.supplier_invoice import SupplierInvoice
@@ -263,11 +263,7 @@ class OCRRequest(Document, InvoiceEntityResolverMixin):
 		return self.supplier
 
 	def get_company(self) -> str | None:
-		header = self.get_raw_data()
-		self.company = self.resolve_company(
-			receiver_name=header.get("RECEIVER_NAME"),
-			receiver_address=header.get("RECEIVER_ADDRESS")
-		)
+		self.company = resolve_ocr_buyer_company(self.get_raw_data())
 		return self.company
 
 	@frappe.whitelist()
@@ -363,7 +359,8 @@ class OCRRequest(Document, InvoiceEntityResolverMixin):
 			tax_id = None
 
 		doc: SupplierInvoice = frappe.new_doc("Supplier Invoice") # type: ignore
-		doc.company = data.get("company")
+		# get_parsed_data only resolves the company when the analysis has a RECEIVER_NAME key
+		doc.company = data.get("company") or self.get_company()
 		doc.supplier = data.get("supplier")
 		doc.supplier_name = header.get("VENDOR_NAME")
 		doc.bill_no = data.get("bill_no")

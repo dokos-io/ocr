@@ -181,3 +181,94 @@ class TestEntityResolver(FrappeTestCase):
 		alias.vendor_name = vendor_name
 
 		self.assertRaises(frappe.ValidationError, alias.insert)
+
+
+class TestBuyerCompanyMatching(FrappeTestCase):
+	"""How an OCR-read buyer name or address finds one of our companies.
+
+	Names carry a random suffix: the test site has other companies, and the match must stay unique.
+	"""
+
+	def setUp(self):
+		self.suffix = frappe.generate_hash(length=6).upper()
+		self.menuiserie = self._company(f"Menuiserie Élégante {self.suffix}", f"ME{self.suffix}")
+
+	def tearDown(self):
+		frappe.db.rollback()
+
+	def _company(self, name, abbr):
+		# Only the row is needed: a full insert would also build a chart of accounts.
+		frappe.get_doc({
+			"doctype": "Company",
+			"name": name,
+			"company_name": name,
+			"abbr": abbr,
+			"country": "France",
+			"default_currency": "EUR",
+		}).db_insert()
+		return name
+
+	def _address(self, company, line1, pincode, title=None):
+		frappe.get_doc({
+			"doctype": "Address",
+			"address_title": title or company,
+			"address_type": "Billing",
+			"address_line1": line1,
+			"city": "Ville",
+			"pincode": pincode,
+			"country": "France",
+			"links": [{"link_doctype": "Company", "link_name": company}],
+		}).insert()
+
+	def _resolve(self, name=None, address=None):
+		from etransactions.controllers.entity_resolver import resolve_buyer_company
+
+		return resolve_buyer_company(name, address=address, use_default=False)
+
+	def test_company_name_inside_a_multiline_address(self):
+		address = f"MENUISERIE ELEGANTE {self.suffix}\n8 rue des Tilleuls\n99456 VILLE"
+		self.assertEqual(self._resolve(address=address), self.menuiserie)
+
+	def test_abbreviation_around_a_legal_form(self):
+		self.assertEqual(self._resolve(f"SARL ME{self.suffix}"), self.menuiserie)
+
+	def test_address_title(self):
+		self._address(self.menuiserie, "8 rue des Tilleuls", "99456", title=f"MEL{self.suffix}")
+		self.assertEqual(self._resolve(f"MEL{self.suffix}"), self.menuiserie)
+
+	def test_learned_alias(self):
+		frappe.get_doc({
+			"doctype": "eTransactions Company Name Alias",
+			"company": self.menuiserie,
+			"receiver_name": f"Menuis du Plateau {self.suffix}",
+		}).insert()
+		self.assertEqual(self._resolve(f"MENUIS DU PLATEAU {self.suffix}"), self.menuiserie)
+
+	def test_misspelled_name(self):
+		self.assertEqual(self._resolve(f"MENUISERIE ELEGANTTE {self.suffix} SAS"), self.menuiserie)
+
+	def test_unique_company_address(self):
+		self._address(self.menuiserie, "12 impasse des Glycines", "99123")
+		address = "SAS UNKNOWN NAME\n12 IMPASSE DES GLYCINES\n99123 VILLE"
+		self.assertEqual(self._resolve("SAS UNKNOWN NAME", address), self.menuiserie)
+
+	def test_shared_address_matches_no_company(self):
+		other = self._company(f"Atelier Martin {self.suffix}", f"AMA{self.suffix}")
+		for company in (self.menuiserie, other):
+			self._address(company, "12 impasse des Glycines", "99123")
+		self.assertIsNone(self._resolve("SAS UNKNOWN NAME", "12 IMPASSE DES GLYCINES\n99123 VILLE"))
+
+	def test_a_shared_word_is_not_enough(self):
+		"""Another joiner is not our Menuiserie."""
+		self.assertIsNone(self._resolve(f"SAS MENUISERIE DU PARC {self.suffix}"))
+
+	def test_ocr_buyer_read_as_name_and_address(self):
+		"""Textract often leaves the receiver empty and reads the buyer block as NAME/ADDRESS."""
+		from etransactions.controllers.entity_resolver import resolve_ocr_buyer_company
+
+		analysis = {"NAME": f"MENUISERIE ELEGANTE {self.suffix}", "VENDOR_NAME": "Wood Supplier"}
+		self.assertEqual(resolve_ocr_buyer_company(analysis), self.menuiserie)
+
+		# NAME/ADDRESS may be the vendor's when the vendor is one of our companies
+		analysis["VENDOR_NAME"] = self.menuiserie
+		self.assertIsNone(resolve_ocr_buyer_company(analysis))

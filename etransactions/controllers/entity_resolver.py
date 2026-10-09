@@ -2,6 +2,7 @@ import re
 import frappe
 import difflib
 import unicodedata
+from collections import defaultdict
 
 from frappe import _
 
@@ -10,6 +11,17 @@ LEGAL_FORMS = frozenset({
 	"SELARL", "SELAFA", "SCOP", "SCP", "SEP",
 })
 STOP_WORDS = frozenset({"ET", "DE", "DU", "LA", "LE", "LES", "DES", "EN", "AU", "AUX"})
+
+# Address words that do not tell one street from another
+STREET_WORDS = frozenset({
+	"rue", "avenue", "chemin", "impasse", "route", "boulevard", "place", "allee", "zone", "quartier",
+	"lieu", "dit", "cedex", "france",
+})
+# A Company abbreviation shorter than this ("VS") is too common to identify a buyer
+MIN_COMPANY_ALIAS_LENGTH = 3
+# Fuzzy buyer name match, as for suppliers: a close best match, clearly ahead of the second one
+COMPANY_SIMILARITY = 0.85
+COMPANY_SIMILARITY_GAP = 0.10
 
 # Below this, a vendor name is a fragment rather than an identity ("SSP", "V-").
 MIN_LEARNABLE_VENDOR_NAME_LENGTH = 4
@@ -99,8 +111,7 @@ class InvoiceEntityResolverMixin:
 		return {self._normalize_tax_id(t) for t in ids if t}
 
 	def _strip_legal_forms(self, name: str) -> str:
-		pattern = r"\b(" + "|".join(re.escape(f) for f in LEGAL_FORMS) + r")\b"
-		return re.sub(pattern, "", name, flags=re.IGNORECASE).strip()
+		return strip_legal_forms(name)
 
 	def resolve_supplier(self, seller_name: str, tax_id: str = None, iban: str = None) -> str:
 		supplier = None
@@ -234,6 +245,11 @@ class InvoiceEntityResolverMixin:
 
 		return company or ""
 
+def strip_legal_forms(name: str) -> str:
+	pattern = r"\b(" + "|".join(re.escape(f) for f in LEGAL_FORMS) + r")\b"
+	return re.sub(pattern, "", name, flags=re.IGNORECASE).strip()
+
+
 def canonical_company(value: str | None) -> str | None:
 	"""The Company's stored name for ``value``, or None if no Company matches.
 
@@ -291,7 +307,7 @@ def resolve_buyer_company(
 
 	With ``use_default`` off, the site's default company is not used as a last resort.
 	"""
-	companies = frappe.get_all("Company", fields=["name", "company_name", "siren_number", "tax_id"])
+	companies = frappe.get_all("Company", fields=["name", "company_name", "abbr", "siren_number", "tax_id"])
 
 	sirens = party_siren_candidates(siren, tax_id, electronic_address, electronic_address_scheme)
 	if sirens and (company := _single(c for c in companies if _digits(c.siren_number)[:9] in sirens)):
@@ -309,6 +325,9 @@ def resolve_buyer_company(
 	):
 		return company
 
+	if company := _match_buyer_name_or_address(companies, buyer_name, address):
+		return company
+
 	if buyer_name and (company := InvoiceEntityResolverMixin().resolve_company(buyer_name, address or "")):
 		return company
 
@@ -318,6 +337,137 @@ def resolve_buyer_company(
 	from erpnext import get_default_company
 
 	return canonical_company(get_default_company())
+
+
+def resolve_ocr_buyer_company(analysis: dict) -> str | None:
+	"""Find which of our companies an OCR-read invoice is addressed to, or None.
+
+	Never the default company: nothing on the document says it is the buyer.
+	"""
+	vendor_tax_id = normalize_tax_id(analysis.get("VENDOR_VAT_NUMBER"))
+	# TAX_PAYER_ID is the buyer's, but OCR sometimes puts the vendor VAT there
+	tax_id = next(
+		(
+			value
+			for value in (analysis.get("RECEIVER_VAT_NUMBER"), analysis.get("TAX_PAYER_ID"))
+			if value and normalize_tax_id(value) != vendor_tax_id
+		),
+		None,
+	)
+
+	name, address = analysis.get("RECEIVER_NAME"), analysis.get("RECEIVER_ADDRESS")
+	# Textract often leaves the receiver empty and reads the buyer block as NAME/ADDRESS.
+	# Those also hold the vendor, so skip them when the vendor is one of our companies.
+	if not (name or address) and not is_own_company_name(analysis.get("VENDOR_NAME")):
+		name, address = analysis.get("NAME"), analysis.get("ADDRESS")
+
+	return resolve_buyer_company(name, tax_id=tax_id, address=address, use_default=False)
+
+
+def company_name_key(name: str | None) -> str:
+	"""A buyer name reduced to what identifies it: "SARL E.D.C" and "EDC" give "edc"."""
+	without_punctuation = re.sub(r"[^\w\s]", "", _fold(strip_legal_forms(_fold(name))))
+	return re.sub(r"\s+", " ", without_punctuation).strip()
+
+
+def _match_buyer_name_or_address(companies: list, name: str | None, address: str | None) -> str | None:
+	"""The name and address steps of resolve_buyer_company, most specific first."""
+	text = f"{_fold(name)} | {_fold(address)}"
+	key = company_name_key(name)
+
+	# The full Company name inside the name or address: "MENUISERIE ELEGANTE\n8 rue…"
+	if company := _single(c for c in companies if _contains_words(text, _fold(c.company_name or c.name))):
+		return company
+
+	if key and (company := _only(_company_aliases(companies).get(key, ()))):
+		return company
+
+	if len(key) > MIN_COMPANY_ALIAS_LENGTH and (company := _closest_company(companies, key)):
+		return company
+
+	return _company_at_address(text)
+
+
+def _company_aliases(companies: list) -> dict[str, set[str]]:
+	"""Other names our companies are printed under, by company_name_key."""
+	aliases = defaultdict(set)
+
+	def add(alias: str | None, company: str) -> None:
+		if len(key := company_name_key(alias)) >= MIN_COMPANY_ALIAS_LENGTH:
+			aliases[key].add(company)
+
+	for company in companies:
+		add(company.company_name or company.name, company.name)
+		add(company.abbr, company.name)
+
+	for address in _company_addresses():
+		add(address.address_title, address.company)
+
+	for alias in frappe.get_all("eTransactions Company Name Alias", fields=["receiver_name", "company"]):
+		add(alias.receiver_name, alias.company)
+
+	return aliases
+
+
+def _closest_company(companies: list, key: str) -> str | None:
+	"""A misspelled Company name ("Menuiserie Élégnte SAS"), when one Company is clearly closest."""
+	scores = sorted(
+		(
+			(difflib.SequenceMatcher(None, key, company_name_key(c.company_name or c.name)).ratio(), c.name)
+			for c in companies
+		),
+		reverse=True,
+	)
+	if not scores:
+		return None
+	best_score, best = scores[0]
+	second_score = scores[1][0] if len(scores) > 1 else 0.0
+	if best_score >= COMPANY_SIMILARITY and best_score - second_score >= COMPANY_SIMILARITY_GAP:
+		return best
+	return None
+
+
+def _company_at_address(text: str) -> str | None:
+	"""The Company with an address whose postcode and a street word both appear in ``text``.
+
+	None when the address is shared: two companies may be registered at the same place.
+	"""
+	digits = set(re.findall(r"\d+", text))
+	companies = set()
+	for address in _company_addresses():
+		postcode = _digits(address.pincode)
+		street = _fold(f"{address.address_line1 or ''} {address.address_line2 or ''}")
+		words = {
+			word
+			for word in re.findall(r"[a-z]+", street)
+			if len(word) >= 4 and word not in STREET_WORDS and word.upper() not in STOP_WORDS
+		}
+		if postcode in digits and any(_contains_words(text, word) for word in words):
+			companies.add(address.company)
+	return _only(companies)
+
+
+def _company_addresses() -> list:
+	address = frappe.qb.DocType("Address")
+	link = frappe.qb.DocType("Dynamic Link")
+	return (
+		frappe.qb.from_(address)
+		.join(link)
+		.on((link.parent == address.name) & (link.parenttype == "Address"))
+		.select(
+			address.address_title,
+			address.address_line1,
+			address.address_line2,
+			address.pincode,
+			link.link_name.as_("company"),
+		)
+		.where((link.link_doctype == "Company") & (address.disabled == 0))
+		.run(as_dict=True)
+	)
+
+
+def _contains_words(text: str, phrase: str) -> bool:
+	return bool(phrase) and re.search(rf"(?<!\w){re.escape(phrase)}(?!\w)", text) is not None
 
 
 def _digits(value: str | None) -> str:
@@ -332,5 +482,9 @@ def _fold(value: str | None) -> str:
 
 
 def _single(companies) -> str | None:
-	names = {c.name for c in companies}
+	return _only(c.name for c in companies)
+
+
+def _only(names) -> str | None:
+	names = set(names)
 	return names.pop() if len(names) == 1 else None
