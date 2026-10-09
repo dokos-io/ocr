@@ -1,3 +1,4 @@
+import codecs
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal, NoReturn
 
@@ -99,4 +100,5 @@ def get_xml_bytes(einvoice: "File") -> tuple[bytes, XmlFormat]:
 			exc=UnsupportedEInvoiceDocument,
 		)
 
+	xml_bytes = xml_bytes.removeprefix(codecs.BOM_UTF8)
 	return xml_bytes, detect_xml_format(xml_bytes)

@@ -34,3 +34,4 @@ etransactions.patches.move_supplier_invoice_custom_fields # 20261008
 etransactions.patches.clear_none_strings_on_einvoice # 20261008
 etransactions.patches.recompute_ocr_request_status # 20261009
 etransactions.patches.resolve_ocr_supplier_invoice_company # 20261009
+etransactions.patches.revalidate_einvoices_without_result # 20261009

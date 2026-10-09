@@ -56,6 +56,9 @@ def get_stylesheets(profile: EInvoiceProfile, syntax: str = "CII") -> list[str] 
 
 
 def get_validation_errors(xml_string: str, profile: EInvoiceProfile, syntax: str = "CII"):
+	# Saxon refuses anything before the XML declaration, a byte order mark included:
+	# "Content is not allowed in prolog". Some suppliers' files start with one.
+	xml_string = xml_string.lstrip("\ufeff")
 	stylesheets = get_stylesheets(profile, syntax)
 	if stylesheets is None:
 		return [], [
