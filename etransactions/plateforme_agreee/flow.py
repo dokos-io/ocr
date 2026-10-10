@@ -26,6 +26,11 @@ MAX_INLINE_CONTENT_RETRIES = 20
 #: report on its own. Escalated to "error" so it stops looking like a transient state.
 STALLED_CONTENT_ATTEMPTS = 3
 
+#: The hourly sweep stops retrying a flow after this many attempts: a full day, which
+#: outlasts a platform outage. A file that still fails then will not get better by itself,
+#: and each further attempt only adds an Error Log. The retry from the form stays available.
+MAX_CONTENT_ATTEMPTS = 24
+
 #: How often to repeat the "receiving is switched off but this site used to receive"
 #: warning. The condition persists until someone acts on it, so it is stated once a day
 #: rather than on all 24 polls.
@@ -857,6 +862,9 @@ def retry_pending_einvoice_content():
 	invisibly — which is how an incoming invoice came to sit at "pending" for days with
 	nothing in the log to say why. Inline, the outcome lands in this sweep's own
 	eInvoicing Log.
+
+	A flow is retried ``MAX_CONTENT_ATTEMPTS`` times at most. The sweep then leaves it in
+	"error" and says so once in its log.
 	"""
 	stuck = frappe.get_all(
 		"eInvoice",
@@ -864,6 +872,7 @@ def retry_pending_einvoice_content():
 			"einvoice_type": "Incoming",
 			"pa_content_state": ["in", ["pending", "error"]],
 			"pa_flow_id": ["is", "set"],
+			"pa_content_attempts": ["<", MAX_CONTENT_ATTEMPTS],
 		},
 		fields=["name", "company", "pa_flow_id", "pa_content_attempts", "pa_content_state"],
 		order_by="creation asc",
@@ -905,8 +914,19 @@ def retry_pending_einvoice_content():
 			result["logs"].append(("error", f"Content retry failed for eInvoice {row.name}: {str(e)}"))
 		else:
 			frappe.db.release_savepoint(save_point)
-			if frappe.db.get_value("eInvoice", row.name, "pa_content_state") == "fetched":
+			state, attempts = frappe.db.get_value(
+				"eInvoice", row.name, ["pa_content_state", "pa_content_attempts"]
+			)
+			if state == "fetched":
 				result["updated_count"] += 1
+			elif (attempts or 0) >= MAX_CONTENT_ATTEMPTS:
+				result["logs"].append(
+					(
+						"error",
+						f"Automatic retries stopped for eInvoice {row.name} after {attempts} attempts."
+						" Retry the download from its form once the cause is fixed.",
+					)
+				)
 
 	for row in stuck[MAX_INLINE_CONTENT_RETRIES:]:
 		_enqueue_content_fetch(row.name)
@@ -922,8 +942,8 @@ def _escalate_stalled_content(row, result: dict) -> bool:
 	``fetch_content_from_platform`` records its own failures as ``pa_content_state =
 	"error"``. A record that is still ``pending`` after several attempts is therefore
 	one whose fetch died before it could report anything — a bug, not a platform
-	outage — and left alone it would retry silently forever. Returns whether the flow
-	was escalated (and so should be skipped this run).
+	outage — and left alone it would stay silent until the sweep gives up on it. Returns
+	whether the flow was escalated (and so should be skipped this run).
 	"""
 	if row.pa_content_state != "pending" or (row.pa_content_attempts or 0) < STALLED_CONTENT_ATTEMPTS:
 		return False

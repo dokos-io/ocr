@@ -7566,6 +7566,11 @@ msgstr "Trésorerie"
 msgid "Tried {0} times"
 msgstr "Tentative {0} fois"
 
+#: etransactions/plateforme_agreee/lifecycle_overview.py:400
+#, python-brace-format
+msgid "Tried {0} times. Automatic retries have stopped."
+msgstr "Tenté {0} fois. Les tentatives automatiques sont arrêtées."
+
 #: etransactions/public/js/lifecycle.js:530
 #, python-brace-format
 msgid "Tried {0} times, last on {1}."
