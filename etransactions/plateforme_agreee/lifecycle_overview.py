@@ -384,13 +384,21 @@ def _history(doc, events: list, failed, reportable: set, platform: str) -> list[
 				"actor_tone": "gray",
 				"tone": "red" if doc.pa_content_state == "error" else "orange",
 				"at": doc.pa_content_last_attempt,
-				"detail": _("Tried {0} times").format(attempts) if attempts > 1 else None,
+				"detail": _content_attempts_detail(attempts),
 				"error": doc.pa_content_error if doc.pa_content_state == "error" else None,
 			}
 		)
 
 	rows.reverse()
 	return rows
+
+
+def _content_attempts_detail(attempts: int) -> str | None:
+	from etransactions.plateforme_agreee.flow import MAX_CONTENT_ATTEMPTS
+
+	if attempts >= MAX_CONTENT_ATTEMPTS:
+		return _("Tried {0} times. Automatic retries have stopped.").format(attempts)
+	return _("Tried {0} times").format(attempts) if attempts > 1 else None
 
 
 def _delivery_label(state: str, platform: str) -> str:

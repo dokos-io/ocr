@@ -347,6 +347,78 @@ class TestIncomingFlowIngestion(eTransactionsTestSuite):
 			"an escalated flow is not retried again in the same run",
 		)
 
+	def test_a_flow_past_the_attempt_limit_is_no_longer_retried(self):
+		from etransactions.plateforme_agreee.flow import (
+			MAX_CONTENT_ATTEMPTS,
+			retry_pending_einvoice_content,
+		)
+
+		einvoice = eInvoice.create_from_plateforme_flow(
+			self._flow("FLOW-LIMIT-001"), None, "_Test Company"
+		)
+		einvoice.db_set(
+			{"pa_content_state": "error", "pa_content_attempts": MAX_CONTENT_ATTEMPTS},
+			update_modified=False,
+		)
+
+		client = _FakePlatformClient(content=self._facturx_pdf())
+		with patch(GET_CLIENT, return_value=client):
+			retry_pending_einvoice_content()
+
+		einvoice.reload()
+		self.assertEqual(client.calls, 0)
+		self.assertEqual(einvoice.pa_content_state, "error")
+		self.assertEqual(einvoice.pa_content_attempts, MAX_CONTENT_ATTEMPTS)
+
+	def test_the_last_automatic_attempt_says_that_retries_stop(self):
+		from etransactions.plateforme_agreee.flow import (
+			MAX_CONTENT_ATTEMPTS,
+			retry_pending_einvoice_content,
+		)
+
+		einvoice = eInvoice.create_from_plateforme_flow(
+			self._flow("FLOW-LIMIT-002"), None, "_Test Company"
+		)
+		einvoice.db_set(
+			{"pa_content_state": "error", "pa_content_attempts": MAX_CONTENT_ATTEMPTS - 1},
+			update_modified=False,
+		)
+		frappe.db.delete("eInvoicing Log", {"operation_type": "flow_receive"})
+
+		client = _FakePlatformClient(error=Exception("platform unavailable"))
+		with patch(GET_CLIENT, return_value=client):
+			retry_pending_einvoice_content()
+			retry_pending_einvoice_content()
+
+		einvoice.reload()
+		self.assertEqual(client.calls, 1, "the second sweep must leave the flow alone")
+		self.assertEqual(einvoice.pa_content_attempts, MAX_CONTENT_ATTEMPTS)
+		logs = frappe.get_all(
+			"eInvoicing Log",
+			filters={"operation_type": "flow_receive", "company": "_Test Company"},
+			pluck="logs",
+		)
+		self.assertEqual(len(logs), 1)
+		self.assertIn(f"Automatic retries stopped for eInvoice {einvoice.name}", logs[0])
+
+	def test_a_flow_past_the_attempt_limit_can_still_be_fetched_by_hand(self):
+		from etransactions.plateforme_agreee.flow import MAX_CONTENT_ATTEMPTS
+
+		einvoice = eInvoice.create_from_plateforme_flow(
+			self._flow("FLOW-LIMIT-003"), None, "_Test Company"
+		)
+		einvoice.db_set(
+			{"pa_content_state": "error", "pa_content_attempts": MAX_CONTENT_ATTEMPTS},
+			update_modified=False,
+		)
+		einvoice.reload()
+
+		with patch(GET_CLIENT, return_value=_FakePlatformClient(content=self._facturx_pdf())):
+			einvoice.fetch_content_from_platform()
+
+		einvoice.reload()
+		self.assertEqual(einvoice.pa_content_state, "fetched")
+
 	def test_every_content_fetch_counts_itself(self):
 		einvoice = eInvoice.create_from_plateforme_flow(
 			self._flow("FLOW-COUNT-001"), None, "_Test Company"
