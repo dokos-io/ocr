@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: eTransactions VERSION\n"
 "Report-Msgid-Bugs-To: hello@dokos.io\n"
-"POT-Creation-Date: 2026-10-09 03:18+0000\n"
+"POT-Creation-Date: 2026-10-10 03:19+0000\n"
 "PO-Revision-Date: 2025-04-02 14:52+0200\n"
 "Last-Translator: hello@dokos.io\n"
 "Language-Team: hello@dokos.io\n"
@@ -217,6 +217,7 @@ msgstr "Les demandes comptables apparaîtront ici."
 #: etransactions/etransactions/doctype/ereporting_declaration/ereporting_declaration.json
 #: etransactions/etransactions/doctype/ereporting_entry/ereporting_entry.json
 #: etransactions/etransactions/doctype/etransaction_profile/etransaction_profile.json
+#: etransactions/etransactions/doctype/etransactions_company_name_alias/etransactions_company_name_alias.json
 #: etransactions/etransactions/doctype/etransactions_supplier_item_alias/etransactions_supplier_item_alias.json
 #: etransactions/etransactions/doctype/etransactions_supplier_name_alias/etransactions_supplier_name_alias.json
 #: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.json
@@ -233,6 +234,7 @@ msgstr "Responsable Comptabilité"
 #: etransactions/etransactions/doctype/ereporting_declaration/ereporting_declaration.json
 #: etransactions/etransactions/doctype/ereporting_entry/ereporting_entry.json
 #: etransactions/etransactions/doctype/etransaction_profile/etransaction_profile.json
+#: etransactions/etransactions/doctype/etransactions_company_name_alias/etransactions_company_name_alias.json
 #: etransactions/etransactions/doctype/etransactions_supplier_item_alias/etransactions_supplier_item_alias.json
 #: etransactions/etransactions/doctype/etransactions_supplier_name_alias/etransactions_supplier_name_alias.json
 #: etransactions/etransactions/doctype/ocr_request/ocr_request.json
@@ -437,7 +439,7 @@ msgstr "Toutes les sociétés"
 msgid "All good"
 msgstr "Tout est bon"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:1793
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:1910
 msgid "All items have already been Invoiced/Returned"
 msgstr "Tous les articles ont déjà été facturés/retournés"
 
@@ -527,7 +529,15 @@ msgstr "Déjà lié à Esalink"
 msgid "Amazon Textract"
 msgstr "Amazon Textract"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:315
+#: etransactions/etransactions/doctype/etransactions_company_name_alias/etransactions_company_name_alias.py:50
+msgid "Ambiguous receiver name"
+msgstr "Nom de destinataire ambigu"
+
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:335
+msgid "Ambiguous receiver name alias"
+msgstr "Alias de nom de destinataire ambigu"
+
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:385
 msgid "Ambiguous supplier name alias"
 msgstr "Alias de nom de fournisseur ambigu"
 
@@ -1023,6 +1033,12 @@ msgstr "Numéro de TVA de l'acheteur"
 msgid "Buyer address has no country (BR-09)"
 msgstr "L'adresse de l'acheteur n'a pas de pays (BR-09)"
 
+#. Description of the 'Receiver Name' (Data) field in DocType 'eTransactions
+#. Company Name Alias'
+#: etransactions/etransactions/doctype/etransactions_company_name_alias/etransactions_company_name_alias.json
+msgid "Buyer name as read on supplier invoices"
+msgstr "Nom de l'acheteur tel que figurant sur les factures fournisseurs"
+
 #. In Custom HTML Block 'Company Readiness Widget' (script)
 #: etransactions/etransactions/custom_html_block/company_readiness_widget/company_readiness_widget.json:43
 msgid "By Company"
@@ -1037,6 +1053,12 @@ msgstr "Par groupe de clients"
 #: etransactions/etransactions/custom_html_block/item_tax_readiness_widget/item_tax_readiness_widget.json:44
 msgid "By Item Group"
 msgstr "Par groupe d'articles"
+
+#. Description of the 'Do not link the supplier's only open purchase order
+#. automatically' (Check) field in DocType 'eTransactions Settings'
+#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.json
+msgid "By default, a captured invoice is linked to the supplier's only open purchase order even when the invoice does not cite it. Check this box to link an order only when the invoice cites its number or has the same net amount."
+msgstr "Par défaut, une facture capturée est liée à l'unique commande fournisseur ouverte du fournisseur, même si la facture ne la cite pas. Cochez cette case pour ne lier une commande que si la facture cite son numéro ou a le même montant HT."
 
 #. Description of the 'E-invoicing options' (Section Break) field in DocType
 #. 'eTransactions Settings'
@@ -1110,6 +1132,7 @@ msgid "Cannot register {0} on Esalink — missing data: {1}"
 msgstr "Impossible d'inscrire {0} sur Esalink — données manquantes : {1}"
 
 #: etransactions/etransactions/doctype/einvoice/einvoice.py:946
+#: etransactions/etransactions/doctype/einvoice/parser.py:129
 #, python-brace-format
 msgid "Cannot validate E Invoice schematron: {0}"
 msgstr "Impossible de valider le Schematron de la facture électronique : {0}"
@@ -1360,6 +1383,8 @@ msgstr "Engagement requis"
 #. Label of the company (Link) field in DocType 'eReporting Entry'
 #. Label of the company (Link) field in DocType 'eTransactions Accredited
 #. Platform'
+#. Label of the company (Link) field in DocType 'eTransactions Company Name
+#. Alias'
 #. Label of the company (Link) field in DocType 'Supplier Invoice'
 #. Label of the company (Link) field in DocType 'Accounting Inbox Item'
 #. Label of the company (Link) field in DocType 'Accounting Request'
@@ -1373,6 +1398,7 @@ msgstr "Engagement requis"
 #: etransactions/etransactions/doctype/ereporting_declaration/ereporting_declaration.json
 #: etransactions/etransactions/doctype/ereporting_entry/ereporting_entry.json
 #: etransactions/etransactions/doctype/etransactions_accredited_platform/etransactions_accredited_platform.json
+#: etransactions/etransactions/doctype/etransactions_company_name_alias/etransactions_company_name_alias.json
 #: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:245
 #: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:308
 #: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.js:738
@@ -1481,11 +1507,11 @@ msgstr "État de la connexion"
 msgid "Connection error"
 msgstr "Erreur de connexion"
 
-#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.py:84
+#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.py:85
 msgid "Connection failed"
 msgstr "Échec de la connexion"
 
-#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.py:83
+#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.py:84
 #, python-brace-format
 msgid "Connection failed for {0}: {1}"
 msgstr "Échec de la connexion pour {0} : {1}"
@@ -1499,7 +1525,7 @@ msgstr "Connexion pas encore testée"
 msgid "Connection successful."
 msgstr "Connexion réussie."
 
-#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.py:77
+#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.py:78
 #, python-brace-format
 msgid "Connection to eTransactions Accredited Platform successful for {0}"
 msgstr "Connexion à la plateforme agréée eTransactions réussie pour {0}"
@@ -1592,11 +1618,6 @@ msgstr "Impossible d'obtenir le jeton d'accès du connecteur Dokos : {0}"
 #: etransactions/etransactions/doctype/einvoice/einvoice.py:390
 msgid "Could not retrieve the original file"
 msgstr "Impossible de récupérer le fichier d'origine"
-
-#: etransactions/etransactions/doctype/einvoice/parser.py:126
-#, python-brace-format
-msgid "Could not validate E Invoice schematron: {0}. See Error Log for details."
-msgstr "Impossible de valider le Schematron de la facture électronique : {0}. Consultez le journal d'erreurs pour plus de détails."
 
 #: etransactions/etransactions/report/customer_einvoice_readiness/customer_einvoice_readiness.py:100
 #: etransactions/plateforme_agreee/esalink_provisioning.py:295
@@ -1760,7 +1781,7 @@ msgstr "Avoir affecté à {0} facture(s)"
 msgid "Credit note allocation"
 msgstr "Allocation de note de crédit"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:1055
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:1155
 msgid "Credit note allocations are only allowed when 'Is Debit Note' is checked."
 msgstr "Les affectations d'avoir ne sont autorisées que lorsque 'Est une note de débit' est coché."
 
@@ -1768,12 +1789,12 @@ msgstr "Les affectations d'avoir ne sont autorisées que lorsque 'Est une note d
 msgid "Credit note not allocated"
 msgstr "Avoir non affecté"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:1228
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:1328
 #, python-brace-format
 msgid "Credit note {0} has no outstanding balance to allocate."
 msgstr "L'avoir {0} n'a aucun solde restant à affecter."
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:1285
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:1385
 #, python-brace-format
 msgid "Credit note {0} reconciled against {1} invoice(s)."
 msgstr "L'avoir {0} est rapproché avec {1} facture(s)."
@@ -2192,6 +2213,12 @@ msgstr "En litige"
 #: etransactions/plateforme_agreee/lifecycle_overview.py:226
 msgid "Disputed — waiting for the supplier"
 msgstr "En litige — en attente du fournisseur"
+
+#. Label of the no_single_purchase_order_match (Check) field in DocType
+#. 'eTransactions Settings'
+#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.json
+msgid "Do not link the supplier's only open purchase order automatically"
+msgstr "Ne pas lier automatiquement l'unique commande fournisseur ouverte du fournisseur"
 
 #. Label of the document_tab (Tab Break) field in DocType 'eInvoice'
 #: etransactions/etransactions/doctype/einvoice/einvoice.json
@@ -3106,7 +3133,7 @@ msgstr "Schéma d'adresse électronique invalide"
 msgid "Invalid Esalink directory entry id: {0}"
 msgstr "Identifiant d'entrée d'annuaire Esalink invalide : {0}"
 
-#: etransactions/utils/xml.py:51
+#: etransactions/utils/xml.py:52
 msgid "Invalid XML"
 msgstr "XML invalide"
 
@@ -3203,12 +3230,12 @@ msgstr "Lignes de la facture ({0})"
 msgid "Invoice received"
 msgstr "Facture reçue"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:1254
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:1354
 #, python-brace-format
 msgid "Invoice {0} has no outstanding amount and was skipped."
 msgstr "La facture {0} n'a aucun montant restant et a été ignorée."
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:1209
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:1309
 #, python-brace-format
 msgid "Invoice {0} is not submitted and was skipped during credit note reconciliation."
 msgstr "La facture {0} n'est pas soumise et a été ignorée lors du rapprochement de l'avoir."
@@ -3678,7 +3705,7 @@ msgstr "Justificatif manquant"
 msgid "Missing Seller Identifier"
 msgstr "Identifiant du vendeur manquant"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:144
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:150
 msgid "Missing Supplier"
 msgstr "Fournisseur manquant"
 
@@ -3901,7 +3928,7 @@ msgstr "Aucune facture électronique trouvée pour la facture client {0}. Enregi
 msgid "No eTransaction Profile found. Create one (e.g. EN16931) before running the sandbox test."
 msgstr "Aucun profil eTransaction trouvé. Créez-en un (ex. EN16931) avant de lancer le test sandbox."
 
-#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.py:71
+#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.py:72
 #, python-brace-format
 msgid "No eTransactions Accredited Platform configured for company {0}."
 msgstr "Aucune plateforme agréée eTransactions configurée pour la société {0}."
@@ -3920,7 +3947,7 @@ msgid "No encoded file found"
 msgstr "Aucun fichier encodé trouvé"
 
 #: etransactions/etransactions/doctype/ocr_request/ocr_request.js:32
-#: etransactions/etransactions/doctype/ocr_request/ocr_request.py:110
+#: etransactions/etransactions/doctype/ocr_request/ocr_request.py:112
 msgid "No file attached"
 msgstr "Aucun fichier joint"
 
@@ -3952,7 +3979,7 @@ msgstr "Aucun identifiant légal (SIREN ou SIRET)"
 msgid "No lines yet."
 msgstr "Pas encore de lignes."
 
-#: etransactions/utils/xml.py:86
+#: etransactions/utils/xml.py:87
 msgid "No machine-readable data was found in the PDF file. You can create a regular Purchase Invoice manually instead."
 msgstr "Aucune donnée lisible par machine n'a été trouvée dans le fichier PDF. Vous pouvez créer une facture d'achat classique manuellement à la place."
 
@@ -4048,7 +4075,7 @@ msgstr "Non applicable"
 msgid "Not Started"
 msgstr "Non démarré"
 
-#: etransactions/utils/xml.py:88
+#: etransactions/utils/xml.py:89
 msgid "Not an E-Invoice"
 msgstr "Pas une facture électronique"
 
@@ -4244,7 +4271,7 @@ msgstr "Seulement pour les factures reçues via une plateforme agréée. Pour ce
 msgid "Only part of the invoice was accepted. The supplier should send a credit note or a corrected invoice."
 msgstr "Seule une partie de la facture a été acceptée. Le fournisseur doit envoyer un avoir ou une facture corrigée."
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:211
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:228
 msgid "Only purchase orders and purchase receipts can be linked."
 msgstr "Seules les commandes fournisseur et les réceptions peuvent être liées."
 
@@ -4766,11 +4793,11 @@ msgstr "Veuillez sélectionner au moins une commande fournisseur"
 msgid "Please select at least one purchase receipt"
 msgstr "Veuillez sélectionner au moins une réception"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:508
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:579
 msgid "Please select documents linked to the same company"
 msgstr "Veuillez sélectionner des documents associés à la même société"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:511
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:582
 msgid "Please select documents linked to the same supplier"
 msgstr "Veuillez sélectionner des documents associés au même fournisseur"
 
@@ -4786,7 +4813,7 @@ msgstr "Veuillez sélectionner des reçus liés au même fournisseur"
 msgid "Please set the period start and end dates"
 msgstr "Veuillez définir les dates de début et de fin de période"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:613
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:684
 #, python-brace-format
 msgid "Please submit {0}: {1} before trying to create the corresponding invoice"
 msgstr "Veuillez valider {0}: {1} avant d'essayer de créer la facture correspondante"
@@ -5031,7 +5058,7 @@ msgstr "Modèle de taxes à l'achat"
 msgid "Purchase invoice created"
 msgstr "Facture d'achat créée"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:1338
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:1438
 #, python-brace-format
 msgid "Purchase invoice {0} has been automatically created for this invoice."
 msgstr "La facture d'achat {0} a été automatiquement créée pour cette facture."
@@ -5269,6 +5296,12 @@ msgstr "Reçu via {0}"
 #: etransactions/plateforme_agreee/lifecycle_overview.py:180
 msgid "Received — not yet acknowledged"
 msgstr "Reçue — non encore reconnue"
+
+#. Label of the receiver_name (Data) field in DocType 'eTransactions Company
+#. Name Alias'
+#: etransactions/etransactions/doctype/etransactions_company_name_alias/etransactions_company_name_alias.json
+msgid "Receiver Name"
+msgstr "Nom du destinataire"
 
 #: etransactions/components/superpdp/client.py:343
 msgid "Recipient not reachable for e-invoicing"
@@ -5706,7 +5739,7 @@ msgstr "Ligne"
 msgid "Row {0}"
 msgstr "Ligne {0}"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:1077
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:1177
 #, python-brace-format
 msgid "Row {0}: allocated amount {1} exceeds the invoice amount {2} of invoice {3}."
 msgstr "Ligne {0} : le montant alloué {1} dépasse le montant de la facture {2} de la facture {3}."
@@ -6391,6 +6424,10 @@ msgstr "Article de facture fournisseur"
 msgid "Supplier Invoice No"
 msgstr "N° de la facture fournisseur"
 
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:562
+msgid "Supplier Invoice totals could not be calculated"
+msgstr "Les totaux de la facture fournisseur n'ont pas pu être calculés"
+
 #. Label of a Workspace Sidebar Item
 #: etransactions/etransactions/doctype/supplier_invoices_basket/supplier_invoices_basket.js:143
 #: etransactions/workspace_sidebar/etransactions.json
@@ -6533,6 +6570,7 @@ msgstr "Syntaxe du XML généré — résolue automatiquement : UBL (Peppol BIS 
 #: etransactions/etransactions/doctype/ereporting_entry/ereporting_entry.json
 #: etransactions/etransactions/doctype/etransaction_profile/etransaction_profile.json
 #: etransactions/etransactions/doctype/etransactions_accredited_platform/etransactions_accredited_platform.json
+#: etransactions/etransactions/doctype/etransactions_company_name_alias/etransactions_company_name_alias.json
 #: etransactions/etransactions/doctype/etransactions_platform_token/etransactions_platform_token.json
 #: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.json
 #: etransactions/etransactions/doctype/etransactions_supplier_item_alias/etransactions_supplier_item_alias.json
@@ -6774,17 +6812,17 @@ msgid "The FacturX PDF could not be generated. Submission has been blocked. Plea
 msgstr "Le PDF FacturX n'a pas pu être généré. La validation a été bloquée. Veuillez vérifier le journal des erreurs."
 
 #: etransactions/etransactions/doctype/ocr_request/ocr_request.js:33
-#: etransactions/etransactions/doctype/ocr_request/ocr_request.py:155
+#: etransactions/etransactions/doctype/ocr_request/ocr_request.py:157
 msgid "The OCR analysis did not complete within 7 days"
 msgstr "L'analyse OCR ne s'est pas terminée dans un délai de 7 jours"
 
 #: etransactions/etransactions/doctype/ocr_request/ocr_request.js:47
-#: etransactions/etransactions/doctype/ocr_request/ocr_request.py:229
+#: etransactions/etransactions/doctype/ocr_request/ocr_request.py:232
 msgid "The OCR service is rate limiting requests: the analysis will be retried automatically"
 msgstr "Le service OCR limite les requêtes : l'analyse sera relancée automatiquement"
 
 #: etransactions/etransactions/doctype/ocr_request/ocr_request.js:34
-#: etransactions/etransactions/doctype/ocr_request/ocr_request.py:158
+#: etransactions/etransactions/doctype/ocr_request/ocr_request.py:160
 msgid "The OCR service returned no result"
 msgstr "Le service OCR n'a renvoyé aucun résultat"
 
@@ -6805,7 +6843,7 @@ msgstr "Le SIRET figurant sur la facture est erroné ou ne correspond pas au des
 msgid "The UBL XML has not been generated for this eInvoice."
 msgstr "Le XML UBL n'a pas été généré pour cette eInvoice."
 
-#: etransactions/utils/xml.py:67
+#: etransactions/utils/xml.py:68
 msgid "The XML document format is not supported. Only FacturX/CII and UBL 2.x invoices are accepted."
 msgstr "Le format du document XML n'est pas pris en charge. Seules les factures FacturX/CII et UBL 2.x sont acceptées."
 
@@ -6836,16 +6874,16 @@ msgstr "L'analyse a échoué {0} fois et n'est plus relancée automatiquement : 
 msgid "The antivirus check of the platform flagged the file."
 msgstr "Le contrôle antivirus de la plateforme a signalé le fichier."
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:1354
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:1454
 #, python-brace-format
 msgid "The automatic reconciliation has failed because the net total is higher than {0}"
 msgstr "Le rapprochement automatique a échoué car le total net est supérieur à {0}"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:1346
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:1446
 msgid "The automatic reconciliation has failed because the totals do not match"
 msgstr "Le rapprochement automatique a échoué car les totaux ne correspondent pas"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:1310
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:1410
 msgid "The automatic reconciliation was skipped because a line with no unit price states its own amount, which a purchase invoice cannot reproduce."
 msgstr "La réconciliation automatique a été ignorée car une ligne sans prix unitaire indique son propre montant, ce qu'une facture d'achat ne peut pas reproduire."
 
@@ -6913,7 +6951,7 @@ msgstr "Le fichier n'est pas un XML valide ou ne respecte pas son schéma."
 msgid "The file name does not follow the platform's naming rules."
 msgstr "Le nom du fichier ne respecte pas les règles de nommage de la plateforme."
 
-#: etransactions/utils/xml.py:96
+#: etransactions/utils/xml.py:97
 #, python-brace-format
 msgid "The format of the uploaded file ({0}) is not supported for E-Invoices. Please upload a valid E-Invoice file or create a regular Purchase Invoice manually instead."
 msgstr "Le format du fichier téléversé ({0}) n'est pas pris en charge pour les factures électroniques. Veuillez téléverser un fichier de facture électronique valide ou créer manuellement une facture d'achat classique."
@@ -6942,7 +6980,7 @@ msgstr "La facture ne respecte pas les règles sémantiques de son format."
 msgid "The invoice does not meet the legal or contractual requirements."
 msgstr "La facture ne respecte pas les exigences légales ou contractuelles."
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:1692
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:1809
 msgid "The invoice grand total exceeds the supplier provided grand total. You are not allowed to create this purchase invoice."
 msgstr "Le total TTC de cette facture dépasse le total TTC fourni par le fournisseur. Vous n'êtes pas autorisé à créer cette facture fournisseur."
 
@@ -6954,7 +6992,7 @@ msgstr "La facture est adressée à la mauvaise entité juridique ou au mauvais 
 msgid "The invoice mentions this order number, but no purchase order has it."
 msgstr "La facture mentionne ce numéro de commande, mais aucune commande fournisseur ne le porte."
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:1702
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:1819
 msgid "The invoice net total exceeds the supplier provided net total. You are not allowed to create this purchase invoice."
 msgstr "Le total HT de cette facture dépasse le total HT fourni par le fournisseur. Vous n'êtes pas autorisé à créer cette facture fournisseur."
 
@@ -7163,16 +7201,16 @@ msgstr "Le montant total ne correspond pas à ce qui a été convenu."
 msgid "The totals do not add up from the lines and taxes."
 msgstr "Les totaux ne correspondent pas aux lignes et aux taxes."
 
-#: etransactions/etransactions/doctype/einvoice/parser.py:47
+#: etransactions/etransactions/doctype/einvoice/parser.py:48
 msgid "The uploaded file does not contain valid XML data or could not be parsed by the e-invoice engine."
 msgstr "Le fichier téléversé ne contient pas de données XML valides ou n'a pas pu être analysé par le moteur de facturation électronique."
 
-#: etransactions/utils/xml.py:50
+#: etransactions/utils/xml.py:51
 #, python-brace-format
 msgid "The uploaded file does not contain valid XML data: {0}"
 msgstr "Le fichier téléversé ne contient pas de données XML valides : {0}"
 
-#: etransactions/schematron/__init__.py:63
+#: etransactions/schematron/__init__.py:66
 #, python-brace-format
 msgid "The {0} profile has no local schematron; the accredited platform validates it on submit."
 msgstr "Le profil {0} n'a pas de Schematron local ; la plateforme agréée le valide à la soumission."
@@ -7463,7 +7501,7 @@ msgstr "Montant total"
 msgid "Total Prepaid"
 msgstr "Total prépayé"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:1086
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:1186
 #, python-brace-format
 msgid "Total allocated amount {0} exceeds the credit note amount {1}."
 msgstr "Le montant total affecté {0} dépasse le montant de l'avoir {1}."
@@ -7591,11 +7629,11 @@ msgstr "Transaction inconnue"
 msgid "Unreconciled transactions"
 msgstr "Transactions non rapprochées"
 
-#: etransactions/utils/xml.py:69
+#: etransactions/utils/xml.py:70
 msgid "Unsupported XML format"
 msgstr "Format XML non pris en charge"
 
-#: etransactions/utils/xml.py:98
+#: etransactions/utils/xml.py:99
 msgid "Unsupported file format"
 msgstr "Format de fichier non pris en charge"
 
@@ -8227,16 +8265,21 @@ msgstr "Gestion des plateformes agréées eTransactions"
 msgid "eTransactions Accredited Platform Override"
 msgstr "Surcharge de plateforme agréée eTransactions"
 
-#: etransactions/etransactions/doctype/ocr_request/ocr_request.py:120
+#: etransactions/etransactions/doctype/ocr_request/ocr_request.py:122
 #: etransactions/etransactions/doctype/ocr_request/ocr_request.py:418
 msgid "eTransactions Analysis Error"
 msgstr "Erreur d'analyse des eTransactions"
 
-#: etransactions/etransactions/doctype/ocr_request/ocr_request.py:223
+#: etransactions/etransactions/doctype/ocr_request/ocr_request.py:226
 msgid "eTransactions Analysis Rate Limited"
 msgstr "Analyse des eTransactions limitée par le service OCR"
 
-#: etransactions/etransactions/doctype/ocr_request/ocr_request.py:187
+#. Name of a DocType
+#: etransactions/etransactions/doctype/etransactions_company_name_alias/etransactions_company_name_alias.json
+msgid "eTransactions Company Name Alias"
+msgstr "Alias de nom de société pour les eTransactions"
+
+#: etransactions/etransactions/doctype/ocr_request/ocr_request.py:189
 msgid "eTransactions File Deletion Error"
 msgstr "Erreur de suppression du fichier eTransactions"
 
@@ -8710,17 +8753,27 @@ msgstr "il y a {0} h"
 msgid "{0} is already mapped for this supplier."
 msgstr "{0} est déjà associé à ce fournisseur."
 
+#: etransactions/etransactions/doctype/etransactions_company_name_alias/etransactions_company_name_alias.py:47
+#, python-brace-format
+msgid "{0} is already mapped to {1}. A receiver name may only point at one company."
+msgstr "{0} est déjà associé à {1}. Un nom de destinataire ne peut correspondre qu'à une seule société."
+
 #: etransactions/etransactions/doctype/etransactions_supplier_name_alias/etransactions_supplier_name_alias.py:36
 #, python-brace-format
 msgid "{0} is already mapped to {1}. A vendor name may only point at one supplier."
 msgstr "{0} est déjà associé à {1}. Un nom de tiers ne peut pointer que vers un seul fournisseur."
 
-#: etransactions/controllers/entity_resolver.py:76
+#: etransactions/controllers/entity_resolver.py:88
 #, python-brace-format
 msgid "{0} is one of your own companies, not a supplier name."
 msgstr "{0} est l'une de vos propres sociétés, et non un nom de fournisseur."
 
-#: etransactions/controllers/entity_resolver.py:73
+#: etransactions/etransactions/doctype/etransactions_company_name_alias/etransactions_company_name_alias.py:34
+#, python-brace-format
+msgid "{0} is too generic to identify a company."
+msgstr "{0} est trop générique pour identifier une société."
+
+#: etransactions/controllers/entity_resolver.py:85
 #, python-brace-format
 msgid "{0} is too generic to identify a supplier."
 msgstr "{0} est trop générique pour identifier un fournisseur."
@@ -8812,7 +8865,7 @@ msgstr "{0} avertissement(s)"
 msgid "{0} will show as billed."
 msgstr "{0} apparaîtra comme facturée."
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:216
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:233
 #, python-brace-format
 msgid "{0} {1} is cancelled."
 msgstr "{0} {1} est annulé(e)."
@@ -8822,7 +8875,7 @@ msgstr "{0} {1} est annulé(e)."
 msgid "{0} {1} is not submitted"
 msgstr "{0} {1} n'est pas validé(e)"
 
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:218
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py:235
 #, python-brace-format
 msgid "{0} {1} was placed with another supplier."
 msgstr "{0} {1} a été passé(e) auprès d'un autre fournisseur."
@@ -8854,19 +8907,3 @@ msgstr "{0} : Un seul mode de paiement sera pris en compte dans la facture élec
 #, python-brace-format
 msgid "{0}: {1}"
 msgstr "{0} : {1}"
-
-#. Label of the no_single_purchase_order_match (Check) field in DocType
-#. 'eTransactions Settings'
-#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.json
-msgid "Do not link the supplier's only open purchase order automatically"
-msgstr "Ne pas lier automatiquement l'unique commande fournisseur ouverte du fournisseur"
-
-#. Description of the 'Do not link the supplier's only open purchase order
-#. automatically' (Check) field in DocType 'eTransactions Settings'
-#: etransactions/etransactions/doctype/etransactions_settings/etransactions_settings.json
-msgid "By default, a captured invoice is linked to the supplier's only open purchase order even when the invoice does not cite it. Check this box to link an order only when the invoice cites its number or has the same net amount."
-msgstr "Par défaut, une facture capturée est liée à l'unique commande fournisseur ouverte du fournisseur, même si la facture ne la cite pas. Cochez cette case pour ne lier une commande que si la facture cite son numéro ou a le même montant HT."
-
-#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.py
-msgid "Supplier Invoice totals could not be calculated"
-msgstr "Les totaux de la facture fournisseur n'ont pas pu être calculés"
