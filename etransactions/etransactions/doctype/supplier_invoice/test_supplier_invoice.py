@@ -49,6 +49,21 @@ class TestSupplierInvoice(eTransactionsTestSuite):
 		for doctype in ["Purchase Invoice", "Supplier Invoice", "Purchase Receipt", "Purchase Order"]:
 			frappe.db.delete(doctype)
 
+	def test_original_document_is_previewed_on_both_tabs(self):
+		"""The Review and Details tabs each keep a preview of the received file."""
+		previews_by_tab = {}
+		tab = None
+		for df in frappe.get_meta("Supplier Invoice").fields:
+			if df.fieldtype == "Tab Break":
+				tab = df.fieldname
+			elif df.fieldtype == "HTML" and df.fieldname.endswith("invoice_preview"):
+				previews_by_tab[tab] = df.fieldname
+
+		self.assertEqual(
+			previews_by_tab,
+			{"review_tab": "invoice_preview", "invoice_tab": "details_invoice_preview"},
+		)
+
 	@change_settings(
 		"eTransactions Settings",
 		{"reconcile_with_purchase_receipts": 1, "auto_submit_purchase_invoices": 1},

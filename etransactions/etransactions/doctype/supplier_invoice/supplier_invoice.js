@@ -75,6 +75,12 @@ frappe.ui.form.on("Supplier Invoice", {
 		frm.trigger("compare_totals");
 
 		try {
+			// On the Details tab the original document needs more room than the fields.
+			const $preview_column = frm
+				.get_field("details_invoice_preview")
+				.$wrapper.closest(".form-column");
+			$preview_column.removeClass("col-sm-6").addClass("col-sm-8");
+			$preview_column.siblings(".form-column").removeClass("col-sm-6").addClass("col-sm-4");
 			frm.get_field("create_purchase_invoice").$wrapper.addClass("text-right");
 			$('[data-fieldname="create_purchase_invoice"] button')
 				.removeClass("btn-secondary")
@@ -211,12 +217,19 @@ frappe.ui.form.on("Supplier Invoice", {
 		}
 	},
 
+	// The Review and Details tabs each show the original document. Only the tab on
+	// screen is rendered, so opening the form does not load the file twice.
 	async show_preview(frm) {
-		const file_preview_field = frm.get_field("invoice_preview");
+		const preview_fields = ["invoice_preview", "details_invoice_preview"].map((fieldname) =>
+			frm.get_field(fieldname)
+		);
 		if (!frm.doc.file) {
-			file_preview_field.$wrapper.empty();
+			preview_fields.forEach((field) => field.$wrapper.empty());
 			return;
 		}
+		const on_details_tab = frm.get_active_tab()?.df?.fieldname === "invoice_tab";
+		const file_preview_field = preview_fields[on_details_tab ? 1 : 0];
+
 		await frappe.model.with_doc("File", frm.doc.file);
 		try {
 			const file_doc = frappe.model.get_doc("File", frm.doc.file);
@@ -230,6 +243,10 @@ frappe.ui.form.on("Supplier Invoice", {
 		} catch (e) {
 			file_preview_field.$wrapper.empty();
 		}
+	},
+
+	on_tab_change(frm) {
+		frm.trigger("show_preview");
 	},
 
 	select_purchase_orders(frm) {
