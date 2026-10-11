@@ -3,20 +3,34 @@
 
 
 from typing import TYPE_CHECKING
-from etransactions.tests.utils import eTransactionsTestSuite
-from frappe.tests.utils import change_settings
+
 import frappe
+from erpnext.accounts.doctype.purchase_invoice.test_purchase_invoice import make_purchase_invoice
+from erpnext.buying.doctype.purchase_order.mapper import make_purchase_receipt
+from erpnext.buying.doctype.purchase_order.test_purchase_order import create_purchase_order
+from frappe.tests.utils import change_settings
 from frappe.utils import add_days, flt, getdate
 from frappe.utils.data import nowdate
 
-from erpnext.buying.doctype.purchase_order.test_purchase_order import create_purchase_order
-from erpnext.buying.doctype.purchase_order.mapper import make_purchase_receipt
-from erpnext.accounts.doctype.purchase_invoice.test_purchase_invoice import make_purchase_invoice
+from etransactions.tests.utils import eTransactionsTestSuite
 
 if TYPE_CHECKING:
 	from etransactions.etransactions.doctype.supplier_invoice.supplier_invoice import SupplierInvoice
 
-IGNORE_TEST_RECORD_DEPENDENCIES = ["Supplier", "Company", "Currency", "Tax Category", "Purchase Taxes and Charges Template", "Purchase Invoice", "File", "OCR Request", "Item", "Cost Center", "Project"]
+IGNORE_TEST_RECORD_DEPENDENCIES = [
+	"Supplier",
+	"Company",
+	"Currency",
+	"Tax Category",
+	"Purchase Taxes and Charges Template",
+	"Purchase Invoice",
+	"File",
+	"OCR Request",
+	"Item",
+	"Cost Center",
+	"Project",
+]
+
 
 class TestSupplierInvoice(eTransactionsTestSuite):
 	def setUp(self):
@@ -31,11 +45,9 @@ class TestSupplierInvoice(eTransactionsTestSuite):
 		create_item()
 		self.company = "_Test Company"
 
-
 	def clear_existing_data(self):
 		for doctype in ["Purchase Invoice", "Supplier Invoice", "Purchase Receipt", "Purchase Order"]:
 			frappe.db.delete(doctype)
-
 
 	@change_settings(
 		"eTransactions Settings",
@@ -43,25 +55,33 @@ class TestSupplierInvoice(eTransactionsTestSuite):
 	)
 	@change_settings("Accounts Settings", {"mandatory_accounting_journal": 0})
 	def test_auto_reconciliation_with_purchase_receipt(self):
-		po = create_purchase_order(supplier=self.supplier.name, company=self.company, qty=1.0, rate=5000, warehouse="_Test Warehouse - _TC")
+		po = create_purchase_order(
+			supplier=self.supplier.name,
+			company=self.company,
+			qty=1.0,
+			rate=5000,
+			warehouse="_Test Warehouse - _TC",
+		)
 		pr = make_purchase_receipt(po.name)
 		pr.submit()
 
-		ppi = frappe.get_doc({
-			"doctype": "Supplier Invoice",
-			"supplier": po.supplier,
-			"company": po.company,
-			"purchase_order_number": po.name,
-			"supplier_net_amount": pr.net_total,
-			"bill_no": "123",
-			"bill_date": nowdate(),
-		})
+		ppi = frappe.get_doc(
+			{
+				"doctype": "Supplier Invoice",
+				"supplier": po.supplier,
+				"company": po.company,
+				"purchase_order_number": po.name,
+				"supplier_net_amount": pr.net_total,
+				"bill_no": "123",
+				"bill_date": nowdate(),
+			}
+		)
 		ppi.insert()
 
 		pi_name = frappe.db.get_value("Purchase Invoice", {"supplier_invoice": ppi.name})
 		self.assertTrue(pi_name)
-		pi = frappe.get_doc("Purchase Invoice", pi_name) # type: ignore
-		self.assertEqual(pi.total, 5000.0) # type: ignore
+		pi = frappe.get_doc("Purchase Invoice", pi_name)  # type: ignore
+		self.assertEqual(pi.total, 5000.0)  # type: ignore
 
 	@change_settings(
 		"eTransactions Settings",
@@ -69,49 +89,61 @@ class TestSupplierInvoice(eTransactionsTestSuite):
 	)
 	@change_settings("Accounts Settings", {"mandatory_accounting_journal": 0})
 	def test_auto_reconciliation_of_credit_note(self):
-		po = create_purchase_order(supplier=self.supplier.name, company=self.company, qty=1.0, rate=5000, warehouse="_Test Warehouse - _TC")
+		po = create_purchase_order(
+			supplier=self.supplier.name,
+			company=self.company,
+			qty=1.0,
+			rate=5000,
+			warehouse="_Test Warehouse - _TC",
+		)
 		pr = make_purchase_receipt(po.name)
 		pr.submit()
 
-		ppi: SupplierInvoice = frappe.get_doc({
-			"doctype": "Supplier Invoice",
-			"supplier": po.supplier,
-			"company": po.company,
-			"purchase_order_number": po.name,
-			"supplier_net_amount": pr.net_total,
-			"bill_no": "123",
-			"bill_date": nowdate(),
-		}) # type: ignore
+		ppi: SupplierInvoice = frappe.get_doc(
+			{
+				"doctype": "Supplier Invoice",
+				"supplier": po.supplier,
+				"company": po.company,
+				"purchase_order_number": po.name,
+				"supplier_net_amount": pr.net_total,
+				"bill_no": "123",
+				"bill_date": nowdate(),
+			}
+		)  # type: ignore
 		ppi.insert()
 
 		pi_name = frappe.db.get_value("Purchase Invoice", {"supplier_invoice": ppi.name})
-		pi = frappe.get_doc("Purchase Invoice", pi_name) # type: ignore
+		pi = frappe.get_doc("Purchase Invoice", pi_name)  # type: ignore
 
-		credit_note_ppi: SupplierInvoice = frappe.get_doc({
-			"doctype": "Supplier Invoice",
-			"supplier": po.supplier,
-			"company": po.company,
-			"is_return": 1,
-			"supplier_net_amount": 500,
-			"bill_no": "CN-123",
-			"bill_date": nowdate(),
-			"items": [{
-				"item_code": "_Test Item",
-				"qty": -1,
-				"rate": 500,
-				"amount": -500,
-				"expense_account": self.EXPENSE_ACCOUNT,
-			}],
-			"credit_note_allocations": [{"purchase_invoice": pi.name, "allocated_amount": 500}],
-		}) # type: ignore
+		credit_note_ppi: SupplierInvoice = frappe.get_doc(
+			{
+				"doctype": "Supplier Invoice",
+				"supplier": po.supplier,
+				"company": po.company,
+				"is_return": 1,
+				"supplier_net_amount": 500,
+				"bill_no": "CN-123",
+				"bill_date": nowdate(),
+				"items": [
+					{
+						"item_code": "_Test Item",
+						"qty": -1,
+						"rate": 500,
+						"amount": -500,
+						"expense_account": self.EXPENSE_ACCOUNT,
+					}
+				],
+				"credit_note_allocations": [{"purchase_invoice": pi.name, "allocated_amount": 500}],
+			}
+		)  # type: ignore
 		credit_note_ppi.insert()
 
 		cn_name = frappe.db.get_value("Purchase Invoice", {"supplier_invoice": credit_note_ppi.name})
 		self.assertTrue(cn_name)
-		cn = frappe.get_doc("Purchase Invoice", cn_name) # type: ignore
-		self.assertEqual(cn.is_return, 1) # type: ignore
-		self.assertFalse(cn.return_against) # type: ignore
-		self.assertEqual(cn.update_outstanding_for_self, 1) # type: ignore
+		cn = frappe.get_doc("Purchase Invoice", cn_name)  # type: ignore
+		self.assertEqual(cn.is_return, 1)  # type: ignore
+		self.assertFalse(cn.return_against)  # type: ignore
+		self.assertEqual(cn.update_outstanding_for_self, 1)  # type: ignore
 
 		pi.reload()
 		self.assertEqual(flt(pi.outstanding_amount), 4500)  # 5000 - 500 reconciled
@@ -133,28 +165,32 @@ class TestSupplierInvoice(eTransactionsTestSuite):
 		)
 
 	def _make_credit_note(self, amount, allocations=None, insert=True):
-		doc = frappe.get_doc({
-			"doctype": "Supplier Invoice",
-			"supplier": self.supplier.name,
-			"company": self.company,
-			"currency": "INR",
-			"is_return": 1,
-			"supplier_net_amount": amount,
-			"bill_no": frappe.generate_hash(length=8),
-			"bill_date": nowdate(),
-			# Credit note lines carry negative quantities so the invoice holds a credit
-			# balance that can be reconciled against the allocated invoices.
-			"items": [{
-				"item_code": "_Test Item",
-				"qty": -1,
-				"rate": amount,
-				"amount": -amount,
-				"expense_account": self.EXPENSE_ACCOUNT,
-			}],
-			"credit_note_allocations": [
-				{"purchase_invoice": a[0], "allocated_amount": a[1]} for a in (allocations or [])
-			],
-		})
+		doc = frappe.get_doc(
+			{
+				"doctype": "Supplier Invoice",
+				"supplier": self.supplier.name,
+				"company": self.company,
+				"currency": "INR",
+				"is_return": 1,
+				"supplier_net_amount": amount,
+				"bill_no": frappe.generate_hash(length=8),
+				"bill_date": nowdate(),
+				# Credit note lines carry negative quantities so the invoice holds a credit
+				# balance that can be reconciled against the allocated invoices.
+				"items": [
+					{
+						"item_code": "_Test Item",
+						"qty": -1,
+						"rate": amount,
+						"amount": -amount,
+						"expense_account": self.EXPENSE_ACCOUNT,
+					}
+				],
+				"credit_note_allocations": [
+					{"purchase_invoice": a[0], "allocated_amount": a[1]} for a in (allocations or [])
+				],
+			}
+		)
 		if insert:
 			doc.insert()
 		return doc
@@ -172,10 +208,10 @@ class TestSupplierInvoice(eTransactionsTestSuite):
 
 		cn_name = frappe.db.get_value("Purchase Invoice", {"supplier_invoice": credit_note.name})
 		self.assertTrue(cn_name)
-		cn = frappe.get_doc("Purchase Invoice", cn_name) # type: ignore
-		self.assertEqual(cn.is_return, 1) # type: ignore
-		self.assertFalse(cn.return_against) # type: ignore
-		self.assertEqual(cn.update_outstanding_for_self, 1) # type: ignore
+		cn = frappe.get_doc("Purchase Invoice", cn_name)  # type: ignore
+		self.assertEqual(cn.is_return, 1)  # type: ignore
+		self.assertFalse(cn.return_against)  # type: ignore
+		self.assertEqual(cn.update_outstanding_for_self, 1)  # type: ignore
 
 		pi_a.reload()
 		pi_b.reload()
@@ -208,7 +244,7 @@ class TestSupplierInvoice(eTransactionsTestSuite):
 		credit_note = self._make_credit_note(3000, allocations=[(pi_sub.name, 2000), (pi_draft.name, 1000)])
 
 		cn_name = frappe.db.get_value("Purchase Invoice", {"supplier_invoice": credit_note.name})
-		cn = frappe.get_doc("Purchase Invoice", cn_name) # type: ignore
+		cn = frappe.get_doc("Purchase Invoice", cn_name)  # type: ignore
 
 		pi_sub.reload()
 		self.assertEqual(flt(pi_sub.outstanding_amount), 3000)  # 5000 - 2000 reconciled
@@ -238,14 +274,16 @@ class TestSupplierInvoice(eTransactionsTestSuite):
 	# --- Posting date propagation -------------------------------------------
 
 	def _supplier_invoice_with_posting_date(self, posting_date):
-		doc = frappe.get_doc({
-			"doctype": "Supplier Invoice",
-			"supplier": self.supplier.name,
-			"company": self.company,
-			"bill_no": frappe.generate_hash(length=8),
-			"bill_date": posting_date,
-			"posting_date": posting_date,
-		})
+		doc = frappe.get_doc(
+			{
+				"doctype": "Supplier Invoice",
+				"supplier": self.supplier.name,
+				"company": self.company,
+				"bill_no": frappe.generate_hash(length=8),
+				"bill_date": posting_date,
+				"posting_date": posting_date,
+			}
+		)
 		doc.insert()
 		return doc
 
@@ -257,7 +295,10 @@ class TestSupplierInvoice(eTransactionsTestSuite):
 		supplier_invoice = self._supplier_invoice_with_posting_date(posting_date)
 
 		po = create_purchase_order(
-			supplier=self.supplier.name, company=self.company, qty=1.0, rate=100,
+			supplier=self.supplier.name,
+			company=self.company,
+			qty=1.0,
+			rate=100,
 			warehouse="_Test Warehouse - _TC",
 		)
 		frappe.db.set_value("Purchase Order", po.name, "supplier_invoice", supplier_invoice.name)
@@ -272,13 +313,16 @@ class TestSupplierInvoice(eTransactionsTestSuite):
 		"""Pin the invoice-first route, which already carried the date correctly."""
 		posting_date = add_days(nowdate(), -45)
 		supplier_invoice = self._supplier_invoice_with_posting_date(posting_date)
-		supplier_invoice.append("items", {
-			"item_code": "_Test Item",
-			"qty": 1,
-			"rate": 100,
-			"amount": 100,
-			"expense_account": self.EXPENSE_ACCOUNT,
-		})
+		supplier_invoice.append(
+			"items",
+			{
+				"item_code": "_Test Item",
+				"qty": 1,
+				"rate": 100,
+				"amount": 100,
+				"expense_account": self.EXPENSE_ACCOUNT,
+			},
+		)
 		supplier_invoice.save()
 
 		pi = supplier_invoice.get_purchase_invoice(purchase_order_is_mandatory=False)
@@ -296,52 +340,101 @@ class TestSupplierInvoice(eTransactionsTestSuite):
 		three-unit line and divide by zero on the quantity-less one. One line is positive,
 		because a stated amount is not always a credit.
 		"""
-		invoice = frappe.get_doc({
-			"doctype": "Supplier Invoice",
-			"supplier": self.supplier.name,
-			"company": self.company,
-			"bill_no": frappe.generate_hash(length=8),
-			"bill_date": nowdate(),
-			"posting_date": nowdate(),
-			# Declared by the supplier, so the recalculation has an oracle to match.
-			"supplier_net_amount": 17.70,
-			"items": [
-				{"item_code": "_Test Item", "qty": 1, "rate": 12, "amount": 12,
-					"expense_account": self.EXPENSE_ACCOUNT},
-				{"item_code": "_Test Item", "qty": 2, "rate": 3.40, "amount": 6.80,
-					"expense_account": self.EXPENSE_ACCOUNT},
-				{"item_code": "_Test Item", "qty": 1, "rate": 0, "amount": -0.30,
-					"expense_account": self.EXPENSE_ACCOUNT},
-				{"item_code": "_Test Item", "qty": 3, "rate": 0, "amount": -1.00,
-					"expense_account": self.EXPENSE_ACCOUNT},
-				{"item_code": "_Test Item", "qty": 0, "rate": 0, "amount": -0.30,
-					"expense_account": self.EXPENSE_ACCOUNT},
-				{"item_code": "_Test Item", "qty": 0, "rate": 0, "amount": 0.50,
-					"expense_account": self.EXPENSE_ACCOUNT},
-			],
-		})
+		invoice = frappe.get_doc(
+			{
+				"doctype": "Supplier Invoice",
+				"supplier": self.supplier.name,
+				"company": self.company,
+				"bill_no": frappe.generate_hash(length=8),
+				"bill_date": nowdate(),
+				"posting_date": nowdate(),
+				# Declared by the supplier, so the recalculation has an oracle to match.
+				"supplier_net_amount": 17.70,
+				"items": [
+					{
+						"item_code": "_Test Item",
+						"qty": 1,
+						"rate": 12,
+						"amount": 12,
+						"expense_account": self.EXPENSE_ACCOUNT,
+					},
+					{
+						"item_code": "_Test Item",
+						"qty": 2,
+						"rate": 3.40,
+						"amount": 6.80,
+						"expense_account": self.EXPENSE_ACCOUNT,
+					},
+					{
+						"item_code": "_Test Item",
+						"qty": 1,
+						"rate": 0,
+						"amount": -0.30,
+						"expense_account": self.EXPENSE_ACCOUNT,
+					},
+					{
+						"item_code": "_Test Item",
+						"qty": 3,
+						"rate": 0,
+						"amount": -1.00,
+						"expense_account": self.EXPENSE_ACCOUNT,
+					},
+					{
+						"item_code": "_Test Item",
+						"qty": 0,
+						"rate": 0,
+						"amount": -0.30,
+						"expense_account": self.EXPENSE_ACCOUNT,
+					},
+					{
+						"item_code": "_Test Item",
+						"qty": 0,
+						"rate": 0,
+						"amount": 0.50,
+						"expense_account": self.EXPENSE_ACCOUNT,
+					},
+				],
+			}
+		)
 		invoice.insert(ignore_mandatory=True)
 
 		self.assertEqual(flt(invoice.net_total, 2), flt(invoice.supplier_net_amount, 2))
 
 	def _invoice_with_sub_cent_unit_price(self, surcharge_amount=8.46):
-		return frappe.get_doc({
-			"doctype": "Supplier Invoice",
-			"supplier": self.supplier.name,
-			"company": self.company,
-			"bill_no": frappe.generate_hash(length=8),
-			"bill_date": nowdate(),
-			"posting_date": nowdate(),
-			"supplier_net_amount": 76.83,
-			"items": [
-				{"item_code": "_Test Item", "qty": 1, "rate": 12, "amount": 12,
-					"expense_account": self.EXPENSE_ACCOUNT},
-				{"item_code": "_Test Item", "qty": 563.71, "rate": 0.1, "amount": 56.37,
-					"expense_account": self.EXPENSE_ACCOUNT},
-				{"item_code": "_Test Item", "qty": 563.71, "rate": 0.015, "amount": surcharge_amount,
-					"expense_account": self.EXPENSE_ACCOUNT},
-			],
-		}).insert(ignore_mandatory=True)
+		return frappe.get_doc(
+			{
+				"doctype": "Supplier Invoice",
+				"supplier": self.supplier.name,
+				"company": self.company,
+				"bill_no": frappe.generate_hash(length=8),
+				"bill_date": nowdate(),
+				"posting_date": nowdate(),
+				"supplier_net_amount": 76.83,
+				"items": [
+					{
+						"item_code": "_Test Item",
+						"qty": 1,
+						"rate": 12,
+						"amount": 12,
+						"expense_account": self.EXPENSE_ACCOUNT,
+					},
+					{
+						"item_code": "_Test Item",
+						"qty": 563.71,
+						"rate": 0.1,
+						"amount": 56.37,
+						"expense_account": self.EXPENSE_ACCOUNT,
+					},
+					{
+						"item_code": "_Test Item",
+						"qty": 563.71,
+						"rate": 0.015,
+						"amount": surcharge_amount,
+						"expense_account": self.EXPENSE_ACCOUNT,
+					},
+				],
+			}
+		).insert(ignore_mandatory=True)
 
 	def test_sub_cent_unit_price_survives_total_recalculation(self):
 		"""A rate of 0.015 was rounded to 0.02 before being multiplied, turning 8.46 into 11.27."""
@@ -371,33 +464,46 @@ class TestSupplierInvoice(eTransactionsTestSuite):
 		The ordered item doubles as a regression guard: it has a purchase history, which
 		`set_missing_values` would price the credit line from if it were still zero-rate.
 		"""
-		po = create_purchase_order(supplier=self.supplier.name, company=self.company, qty=1.0, rate=5000, warehouse="_Test Warehouse - _TC")
+		po = create_purchase_order(
+			supplier=self.supplier.name,
+			company=self.company,
+			qty=1.0,
+			rate=5000,
+			warehouse="_Test Warehouse - _TC",
+		)
 		pr = make_purchase_receipt(po.name)
 		pr.submit()
 
-		invoice = frappe.get_doc({
-			"doctype": "Supplier Invoice",
-			"supplier": po.supplier,
-			"company": po.company,
-			"purchase_order_number": po.name,
-			"supplier_net_amount": flt(pr.net_total) - 1,
-			"bill_no": frappe.generate_hash(length=8),
-			"bill_date": nowdate(),
-			"items": [
-				{
-					"item_code": pr.items[0].item_code,
-					"qty": 1,
-					"rate": pr.net_total,
-					"amount": pr.net_total,
-					"expense_account": self.EXPENSE_ACCOUNT,
-					"reference_doctype": "Purchase Receipt",
-					"reference_docname": pr.name,
-					"row": pr.items[0].name,
-				},
-				{"item_code": "_Test Item", "qty": 1, "rate": 0, "amount": -1.00,
-					"expense_account": self.EXPENSE_ACCOUNT},
-			],
-		})
+		invoice = frappe.get_doc(
+			{
+				"doctype": "Supplier Invoice",
+				"supplier": po.supplier,
+				"company": po.company,
+				"purchase_order_number": po.name,
+				"supplier_net_amount": flt(pr.net_total) - 1,
+				"bill_no": frappe.generate_hash(length=8),
+				"bill_date": nowdate(),
+				"items": [
+					{
+						"item_code": pr.items[0].item_code,
+						"qty": 1,
+						"rate": pr.net_total,
+						"amount": pr.net_total,
+						"expense_account": self.EXPENSE_ACCOUNT,
+						"reference_doctype": "Purchase Receipt",
+						"reference_docname": pr.name,
+						"row": pr.items[0].name,
+					},
+					{
+						"item_code": "_Test Item",
+						"qty": 1,
+						"rate": 0,
+						"amount": -1.00,
+						"expense_account": self.EXPENSE_ACCOUNT,
+					},
+				],
+			}
+		)
 		invoice.insert(ignore_mandatory=True)
 
 		self.assertEqual(flt(invoice.net_total), flt(invoice.supplier_net_amount))
@@ -439,9 +545,9 @@ class TestSupplierInvoice(eTransactionsTestSuite):
 
 		ocr_request = frappe.new_doc("OCR Request")
 		ocr_request.name = frappe.generate_hash(length=10)
-		ocr_request.analysis = frappe.as_json({
-			"_children": [{"ITEM": "Abonnement Fibre Pro 39,90 EUR", "PRICE": "39.90", "QUANTITY": "1"}]
-		})
+		ocr_request.analysis = frappe.as_json(
+			{"_children": [{"ITEM": "Abonnement Fibre Pro 39,90 EUR", "PRICE": "39.90", "QUANTITY": "1"}]}
+		)
 		ocr_request.db_insert()
 
 		invoice = self._captured_invoice(ocr_request=ocr_request.name)
@@ -600,13 +706,16 @@ class TestSupplierInvoice(eTransactionsTestSuite):
 		invoice.supplier = self.supplier.name
 		invoice.company = self.company
 		invoice.posting_date = nowdate()
-		invoice.append("items", {
-			"item_code": "_Test Item",
-			"qty": 1,
-			"rate": 42,
-			"expense_account": self.EXPENSE_ACCOUNT,
-			"supplier_description": "Forfait mensuel 42,00 EUR",
-		})
+		invoice.append(
+			"items",
+			{
+				"item_code": "_Test Item",
+				"qty": 1,
+				"rate": 42,
+				"expense_account": self.EXPENSE_ACCOUNT,
+				"supplier_description": "Forfait mensuel 42,00 EUR",
+			},
+		)
 		invoice.insert(ignore_mandatory=True)
 
 		alias = frappe.get_all(
@@ -655,7 +764,9 @@ class TestSupplierInvoice(eTransactionsTestSuite):
 	def test_patch_gives_a_company_to_ocr_invoices_without_one(self):
 		from etransactions.patches import resolve_ocr_supplier_invoice_company
 
-		invoice = self._invoice_without_company({"RECEIVER_ADDRESS": f"{self.company.upper()}\nrue des Lilas"})
+		invoice = self._invoice_without_company(
+			{"RECEIVER_ADDRESS": f"{self.company.upper()}\nrue des Lilas"}
+		)
 
 		resolve_ocr_supplier_invoice_company.execute()
 
@@ -681,9 +792,7 @@ class TestSupplierInvoice(eTransactionsTestSuite):
 		return doc
 
 	def _alias_exists(self, vendor_name):
-		return bool(
-			frappe.db.exists("eTransactions Supplier Name Alias", {"vendor_name": vendor_name})
-		)
+		return bool(frappe.db.exists("eTransactions Supplier Name Alias", {"vendor_name": vendor_name}))
 
 	def test_alias_learned_from_a_real_vendor_name(self):
 		vendor_name = f"Vendor Block {frappe.generate_hash(length=6)}"
@@ -747,9 +856,7 @@ class TestSupplierInvoice(eTransactionsTestSuite):
 
 		self._supplier_invoice_stub(supplier.name, new_tax_id)._maybe_update_supplier_tax_id()
 
-		self.assertEqual(
-			frappe.db.get_value("Supplier", supplier.name, "tax_id"), new_tax_id
-		)
+		self.assertEqual(frappe.db.get_value("Supplier", supplier.name, "tax_id"), new_tax_id)
 
 	def test_supplier_tax_id_not_overwritten_when_duplicate(self):
 		suffix = frappe.generate_hash(length=6).upper()
@@ -783,6 +890,7 @@ def create_supplier():
 	supplier.insert(ignore_if_duplicate=True)
 
 	return supplier
+
 
 def create_item():
 	item = frappe.new_doc("Item")
