@@ -532,7 +532,9 @@ class SupplierInvoice(Document):
 		self.tax_total = 0.0
 		self.grand_total = 0.0
 		try:
-			if pi := frappe.db.exists("Purchase Invoice", dict(supplier_invoice=self.name)):
+			if pi := frappe.db.exists(
+				"Purchase Invoice", dict(supplier_invoice=self.name, docstatus=("!=", 2))
+			):
 				doc: PurchaseInvoice = frappe.get_doc("Purchase Invoice", pi)  # type: ignore
 			else:
 				doc: PurchaseInvoice = frappe.new_doc("Purchase Invoice")  # type: ignore
