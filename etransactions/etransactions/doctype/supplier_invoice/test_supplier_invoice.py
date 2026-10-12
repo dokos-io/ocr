@@ -345,6 +345,24 @@ class TestSupplierInvoice(eTransactionsTestSuite):
 		self.assertEqual(getdate(pi.posting_date), getdate(posting_date))
 		self.assertTrue(pi.set_posting_time)
 
+	def test_totals_ignore_a_cancelled_purchase_invoice(self):
+		"""A cancelled Purchase Invoice must not lend its totals to an invoice with no lines."""
+		supplier_invoice = self._supplier_invoice_with_posting_date(nowdate())
+
+		pi = make_purchase_invoice(
+			supplier=self.supplier.name, company=self.company, qty=1, rate=105, do_not_save=True
+		)
+		pi.supplier_invoice = supplier_invoice.name
+		pi.insert()
+		pi.submit()
+		pi.reload()
+		pi.cancel()
+
+		supplier_invoice.reload()
+		supplier_invoice.save()
+
+		self.assertEqual(supplier_invoice.grand_total, 0)
+
 	# --- E-invoice credit lines ----------------------------------------------
 
 	def test_lines_stating_their_own_amount_survive_total_recalculation(self):
