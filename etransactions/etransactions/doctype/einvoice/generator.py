@@ -1064,11 +1064,12 @@ def get_bank_details(mode_of_payment: str, company: str) -> tuple[str | None, st
 	if not iban:
 		return empty_tuple
 
-	# Dokos keeps the BIC on the Bank Account, ERPNext on the Bank
+	# Dokos keeps the BIC on the Bank Account, ERPNext and older sites on the Bank
+	bic = None
 	if frappe.get_meta("Bank Account").has_field("swift_number"):
 		bic = frappe.db.get_value("Bank Account", bank_account_name, "swift_number")
-	else:
-		bic = frappe.db.get_value("Bank", bank, "swift_number") if bank else None
+	if not bic and bank:
+		bic = frappe.db.get_value("Bank", bank, "swift_number")
 
 	return (iban, bic or None)
 
