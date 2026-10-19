@@ -960,3 +960,46 @@ class TestByteOrderMark(eTransactionsTestSuite):
 
 		with self.assertRaises(UnsupportedEInvoiceDocument):
 			eInvoiceParser.get_einvoice_document(b"<rsm:CrossIndustryInvoice")
+
+
+class TestGetBankDetails(unittest.TestCase):
+	def _get_value(self, bank_account_values):
+		def fake_get_value(doctype, filters=None, fieldname=None, *args, **kwargs):
+			if doctype == "Mode of Payment":
+				return "Bank"
+			if doctype == "Mode of Payment Account":
+				return "1512 - Banque - _TC"
+			if doctype == "Bank Account" and isinstance(filters, dict):
+				return "_Test Bank Account"
+			if doctype == "Bank Account":
+				return bank_account_values
+			raise AssertionError(f"Unexpected lookup on {doctype}")
+
+		return fake_get_value
+
+	def test_bic_is_read_from_bank_account(self):
+		from etransactions.etransactions.doctype.einvoice.generator import get_bank_details
+
+		get_value = self._get_value(["FR7630006000011234567890189", "BNPAFRPPXXX"])
+		with unittest.mock.patch("frappe.db.get_value", side_effect=get_value) as mocked:
+			iban, bic = get_bank_details("Bank Transfer", "_Test Company")
+
+		self.assertEqual((iban, bic), ("FR7630006000011234567890189", "BNPAFRPPXXX"))
+		bank_lookups = [c for c in mocked.call_args_list if c.args[0] == "Bank"]
+		self.assertEqual(bank_lookups, [])
+
+	def test_missing_bic_returns_none(self):
+		from etransactions.etransactions.doctype.einvoice.generator import get_bank_details
+
+		get_value = self._get_value(["FR7630006000011234567890189", None])
+		with unittest.mock.patch("frappe.db.get_value", side_effect=get_value):
+			iban, bic = get_bank_details("Bank Transfer", "_Test Company")
+
+		self.assertEqual((iban, bic), ("FR7630006000011234567890189", None))
+
+	def test_missing_iban_returns_empty(self):
+		from etransactions.etransactions.doctype.einvoice.generator import get_bank_details
+
+		get_value = self._get_value([None, "BNPAFRPPXXX"])
+		with unittest.mock.patch("frappe.db.get_value", side_effect=get_value):
+			self.assertEqual(get_bank_details("Bank Transfer", "_Test Company"), (None, None))
