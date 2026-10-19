@@ -67,6 +67,7 @@ def rename_ocr_to_etransactions():
 	_migrate_supplier_invoice_items()
 	_migrate_purchasing_document_links()
 	_migrate_file_links()
+	_migrate_references()
 
 	# remove_app(app_name="ocr", dry_run=False, yes=True, no_backup=True)
 
@@ -110,6 +111,46 @@ def _migrate_file_links():
 			.where(File.attached_to_doctype == old_name)
 			.run()
 		)
+
+
+OCR_DOCTYPE_RENAMES = {
+	"OCR Purchase Invoice Basket": "Supplier Invoices Basket",
+	"Pending Purchase Invoice": "Supplier Invoice",
+}
+
+# Documents that point to a record by DocType name: they keep working once re-pointed
+# because the records keep their names.
+REFERENCE_FIELDS = (
+	("ToDo", "reference_type"),
+	("DocShare", "share_doctype"),
+	("Comment", "reference_doctype"),
+	("Version", "ref_doctype"),
+	("Communication", "reference_doctype"),
+	("Communication Link", "link_doctype"),
+	("Notification Log", "document_type"),
+	("Document Follow", "ref_doctype"),
+	("Email Account", "append_to"),
+	("Assignment Rule", "document_type"),
+	("Notification", "document_type"),
+	("Number Card", "document_type"),
+	("Dashboard Chart", "document_type"),
+)
+
+
+def _migrate_references():
+	"""Point assignments, timeline, mail intake and dashboards at the renamed DocTypes."""
+	for doctype, fieldname in REFERENCE_FIELDS:
+		if not frappe.db.has_column(doctype, fieldname):
+			continue
+
+		table = DocType(doctype)
+		for old_name, new_name in OCR_DOCTYPE_RENAMES.items():
+			(
+				frappe.qb.update(table)
+				.set(table[fieldname], new_name)
+				.where(table[fieldname] == old_name)
+				.run()
+			)
 
 
 def _migrate_baskets():
@@ -332,7 +373,7 @@ def add_custom_fields():
 	click.secho("* Updating eTransactions Custom Fields")
 	_delete_obsolete_custom_fields()
 
-	custom_fields = _with_explicit_hidden(get_custom_fields())
+	custom_fields = _for_installed_erpnext(_with_explicit_hidden(get_custom_fields()))
 	create_custom_fields(custom_fields, ignore_validate=frappe.flags.in_patch, update=True)
 
 	for dt in custom_fields:
@@ -353,6 +394,41 @@ def _with_explicit_hidden(custom_fields):
 		dt: [{"hidden": 0, **df} for df in fields]
 		for dt, fields in custom_fields.items()
 	}
+
+
+def _for_installed_erpnext(custom_fields):
+	"""Adapt the managed fields to an ERPNext without the Dokos fields.
+
+	Dokos ships Company.siren_number as a standard field: add it when it is missing.
+	A field anchored on a field that does not exist goes after the last field of the form.
+	"""
+	custom_fields = {dt: list(fields) for dt, fields in custom_fields.items()}
+
+	if not frappe.get_meta("Company").has_field("siren_number"):
+		custom_fields.setdefault("Company", []).insert(
+			0,
+			{
+				"fieldname": "siren_number",
+				"label": "SIREN Number",
+				"fieldtype": "Data",
+				"insert_after": "tax_id",
+				"length": 9,
+			},
+		)
+
+	for doctypes, fields in custom_fields.items():
+		for doctype in [doctypes] if isinstance(doctypes, str) else doctypes:
+			meta = frappe.get_meta(doctype)
+			fieldnames = {df["fieldname"] for df in fields}
+			last_field = next(
+				(df.fieldname for df in reversed(meta.fields) if df.fieldname not in fieldnames), None
+			)
+			for df in fields:
+				anchor = df.get("insert_after")
+				if anchor and not meta.has_field(anchor) and anchor not in fieldnames:
+					df["insert_after"] = last_field
+
+	return custom_fields
 
 
 def _delete_obsolete_custom_fields():

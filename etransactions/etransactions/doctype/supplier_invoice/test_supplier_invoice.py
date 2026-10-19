@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 import frappe
 from erpnext.accounts.doctype.purchase_invoice.test_purchase_invoice import make_purchase_invoice
-from erpnext.buying.doctype.purchase_order.mapper import make_purchase_receipt
+from etransactions.compat import make_purchase_receipt_from_purchase_order as make_purchase_receipt
 from erpnext.buying.doctype.purchase_order.test_purchase_order import create_purchase_order
 from frappe.tests.utils import change_settings
 from frappe.utils import add_days, flt, getdate
@@ -304,7 +304,7 @@ class TestSupplierInvoice(eTransactionsTestSuite):
 
 	def test_purchase_invoice_mapped_from_order_keeps_supplier_invoice_posting_date(self):
 		"""The order-first route must not repost the invoice on the day it was mapped."""
-		from erpnext.buying.doctype.purchase_order.mapper import make_purchase_invoice as make_pi_from_po
+		from etransactions.compat import make_purchase_invoice_from_purchase_order as make_pi_from_po
 
 		posting_date = add_days(nowdate(), -45)
 		supplier_invoice = self._supplier_invoice_with_posting_date(posting_date)
