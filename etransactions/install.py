@@ -31,6 +31,14 @@ def import_peppol_participant_identifier_schemes():
 		content = f.read()
 
 	frappe.set_user("Administrator")
+
+	from erpnext.edi.doctype.code_list.code_list import CodeList
+
+	if not hasattr(CodeList, "from_peppol"):
+		# the upstream ERPNext only reads genericode files
+		import_peppol_schemes_without_erpnext_support(content)
+		return
+
 	result = import_genericode_content(
 		doctype="Code List",
 		docname=None,
@@ -52,6 +60,41 @@ def import_peppol_participant_identifier_schemes():
 		description_column="usage",
 		filters=None
 	)
+
+
+def import_peppol_schemes_without_erpnext_support(content: bytes):
+	"""Create the Code List and Common Codes the Dokos ERPNext importer creates."""
+	from lxml import etree
+
+	root = etree.fromstring(content, parser=etree.XMLParser(remove_blank_text=True, resolve_entities=False))
+	version = root.get("version")
+	code_list_name = f"Peppol Participant Identifier Schemes v{version}"
+
+	if not frappe.db.exists("Code List", code_list_name):
+		code_list = frappe.new_doc("Code List")
+		code_list.name = code_list_name
+		code_list.title = code_list_name
+		code_list.version = version
+		code_list.canonical_uri = f"https://peppol.eu/code-lists/participant-identifier-schemes/{version}"
+		code_list.publisher = "OpenPeppol"
+		code_list.url = "https://docs.peppol.eu/edelivery/codelists/"
+		code_list.insert()
+
+	if frappe.db.exists("Common Code", {"code_list": code_list_name}):
+		return
+
+	def get_value(element, name):
+		return element.get(name) or getattr(element.find(f"./{name}"), "text", None)
+
+	for element in root.findall(".//participant-identifier-scheme"):
+		code = get_value(element, "iso6523")
+		common_code = frappe.new_doc("Common Code")
+		common_code.code_list = code_list_name
+		common_code.common_code = code
+		common_code.title = get_value(element, "scheme-name") or code
+		common_code.description = get_value(element, "usage")
+		common_code.additional_data = etree.tostring(element, encoding="unicode", pretty_print=True)
+		common_code.insert()
 
 
 def rename_ocr_to_etransactions():
