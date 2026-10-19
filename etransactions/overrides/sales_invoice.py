@@ -85,7 +85,26 @@ def on_update(doc, method):
 	if doc.docstatus == 1:
 		return
 
-	_create_update_einvoice(doc)
+	if not frappe.db.get_single_value("eTransactions Settings", "enable_einvoicing"):
+		return
+
+	if frappe.db.get_single_value("eTransactions Settings", "block_submission_on_blocking_findings"):
+		_create_update_einvoice(doc)
+		return
+
+	# Enforcement is off: a draft must stay saveable whatever the generator does.
+	savepoint = "einvoice_draft_save"
+	frappe.db.savepoint(savepoint)
+	try:
+		_create_update_einvoice(doc)
+	except Exception as e:
+		frappe.db.rollback(save_point=savepoint)
+		frappe.log_error(title=f"E-invoice generation failed for {doc.name}")
+		frappe.msgprint(
+			_("The e-invoice could not be generated for now: {0}").format(frappe.utils.escape_html(str(e))),
+			title=_("E-invoicing"),
+			indicator="orange",
+		)
 
 
 def before_submit(doc, method):
