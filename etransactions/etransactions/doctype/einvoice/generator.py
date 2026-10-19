@@ -950,7 +950,8 @@ class EInvoiceGenerator:
 			if ps.due:
 				payment_terms.due = getdate(ps.due)
 
-			if len(self.einvoice.payment_terms) > 1:
+			# PartialPaymentAmount is an EXTENDED-only element: other profiles reject it.
+			if len(self.einvoice.payment_terms) > 1 and self.profile == EInvoiceProfile.EXTENDED:
 				payment_terms.partial_amount.add(
 					(ps.partial_amount, None)
 				)  # [CII-DT-031] - currencyID should not be present

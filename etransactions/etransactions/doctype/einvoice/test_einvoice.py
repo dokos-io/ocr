@@ -25,6 +25,7 @@ class TesteInvoice(eTransactionsTestSuite):
 	def setUp(self):
 		super().setUp()
 		frappe.db.set_default("company", "_Test Company")
+		frappe.db.set_single_value("eTransactions Settings", "enable_einvoicing", 1)
 
 	def test_parse_minimum_invoices(self):
 		self.run_invoice_tests("0.minimum", MINIMUM_INVOICES)
