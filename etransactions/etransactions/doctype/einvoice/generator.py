@@ -1060,11 +1060,10 @@ def get_bank_details(mode_of_payment: str, company: str) -> tuple[str | None, st
 	if not bank_account_name:
 		return empty_tuple
 
-	iban, bank = frappe.db.get_value("Bank Account", bank_account_name, ["iban", "bank"])
+	iban, bic = frappe.db.get_value("Bank Account", bank_account_name, ["iban", "swift_number"])
 	if not iban:
 		return empty_tuple
 
-	bic = frappe.db.get_value("Bank", bank, "swift_number") if bank else None
 	return (iban, bic or None)
 
 
