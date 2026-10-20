@@ -4,6 +4,7 @@
 import frappe
 from frappe import _
 
+from etransactions.plateforme_agreee.item_tax_coverage import ItemTaxResolver, required_pairs
 from etransactions.plateforme_agreee.readiness import (
 	_company_row,
 	company_check_specs,
@@ -119,18 +120,21 @@ def get_item_tax_readiness_data() -> dict:
 	Item tax readiness data for the FacturX Readiness workspace widget.
 	Includes a per-item-group breakdown.
 
+	An item's rows are its own Item Tax rows (or its variant template's), then the
+	rows of its item group and of each ancestor group, as ERPNext resolves them.
+
 	Three checks per item:
-	  1. Has Tax Template    — at least one Item Tax row with a template set.
-	  2. All Rows Complete   — no tax rows with a missing template (items with
-	                           zero rows also fail this check).
-	  3. Full Coverage       — a valid template exists for every combination of
-	                           Tax Category used by active customers × active Company.
+	  1. Has Tax Template    — at least one own or inherited row with a template set.
+	  2. All Rows Complete   — no own or inherited row with a missing template (items
+	                           with no row at all also fail this check).
+	  3. Full Coverage       — an enabled sales template resolves for every Tax Category
+	                           used by active customers, for every French company.
 	                           An empty Tax Category counts as "domestic".
 	"""
 	Item = frappe.qb.DocType("Item")
 	items = (
 		frappe.qb.from_(Item)
-		.select(Item.name.as_("item"), Item.item_group)
+		.select(Item.name.as_("item"), Item.item_group, Item.variant_of)
 		.where((Item.disabled == 0) & (Item.is_sales_item == 1))
 		.run(as_dict=True)
 	)
@@ -139,9 +143,8 @@ def get_item_tax_readiness_data() -> dict:
 	if not total:
 		return {"total": 0, "ready": 0, "ready_pct": 0, "checks": [], "by_group": []}
 
-	item_names = [i.item for i in items]
-	tax_coverage = _fetch_item_tax_coverage(item_names)
-	required_pairs = _required_category_company_pairs()
+	resolver = ItemTaxResolver()
+	required = required_pairs(_active_customer_tax_categories())
 
 	no_template = 0
 	empty_rows = 0
@@ -150,33 +153,21 @@ def get_item_tax_readiness_data() -> dict:
 	by_group: dict = {}
 
 	for item in items:
-		item_taxes = tax_coverage.get(item.item, [])
-		row_count = len(item_taxes)
-		valid_count = sum(1 for r in item_taxes if r.item_tax_template)
+		status = resolver.item_status(item.item, item.item_group, item.variant_of, required)
 
-		has_template = row_count > 0
-		all_complete = row_count > 0 and valid_count == row_count
-		covered_pairs = frozenset(
-			(r.tax_category or "", r.company or "")
-			for r in item_taxes
-			if r.item_tax_template
-		)
-		full_coverage = not required_pairs or required_pairs.issubset(covered_pairs)
-		is_ready = has_template and all_complete and full_coverage
-
-		if not has_template:
+		if not status.has_template:
 			no_template += 1
-		if not all_complete:  # also counts items with zero rows (bug fix)
+		if not status.all_complete:
 			empty_rows += 1
-		if not full_coverage:
+		if not status.full_coverage:
 			no_coverage += 1
-		if is_ready:
+		if status.is_ready:
 			ready += 1
 
 		group = item.get("item_group") or _("(No Group)")
 		grp = by_group.setdefault(group, {"group": group, "total": 0, "ready": 0})
 		grp["total"] += 1
-		if is_ready:
+		if status.is_ready:
 			grp["ready"] += 1
 
 	checks = [
@@ -231,8 +222,9 @@ def get_vat_configuration_status() -> dict:
 	  2. Customers        — active customers with a tax category.
 	  3. Suppliers        — active suppliers with a tax category.
 	  4. Addresses        — active addresses with a tax category.
-	  5. Item Groups      — item groups (with active items) carrying an item tax
-	                        template for every active tax category.
+	  5. Item Groups      — item groups (with active items) resolving an item tax
+	                        template, on their own rows or an ancestor's, for the
+	                        domestic and every active tax category, for every French company.
 	"""
 	categories = frappe.get_all("Tax Category", filters={"disabled": 0}, pluck="name")
 
@@ -274,9 +266,7 @@ def _determination_check(categories: list) -> dict:
 			):
 				covered.add((tax_category, tax_type))
 
-	complete = sum(
-		1 for c in categories if (c, "Sales") in covered and (c, "Purchase") in covered
-	)
+	complete = sum(1 for c in categories if (c, "Sales") in covered and (c, "Purchase") in covered)
 	total = len(categories)
 	return {
 		"key": "determination",
@@ -307,29 +297,13 @@ def _item_group_coverage_check(categories: list) -> dict:
 	Item = frappe.qb.DocType("Item")
 	groups = {
 		row[0]
-		for row in (
-			frappe.qb.from_(Item)
-			.select(Item.item_group)
-			.distinct()
-			.where(Item.disabled == 0)
-			.run()
-		)
+		for row in (frappe.qb.from_(Item).select(Item.item_group).distinct().where(Item.disabled == 0).run())
 		if row[0]
 	}
 
-	ItemTax = frappe.qb.DocType("Item Tax")
-	covered_rows = (
-		frappe.qb.from_(ItemTax)
-		.select(ItemTax.parent, ItemTax.tax_category)
-		.where((ItemTax.parenttype == "Item Group") & (ItemTax.item_tax_template.isnotnull()))
-		.run()
-	)
-	covered: dict = {}
-	for parent, tax_category in covered_rows:
-		covered.setdefault(parent, set()).add(tax_category or "")
-
-	required = set(categories)
-	complete = sum(1 for group in groups if required.issubset(covered.get(group, set())))
+	resolver = ItemTaxResolver()
+	required = required_pairs(categories)
+	complete = sum(1 for group in groups if resolver.group_covers(group, required))
 	total = len(groups)
 	return {
 		"key": "item_groups",
@@ -442,58 +416,10 @@ def _fetch_fallback_addresses(customers: list) -> dict:
 	return result
 
 
-def _fetch_item_tax_coverage(item_names: list) -> dict:
-	"""
-	Return {item_name: [row]} where each row carries item_tax_template,
-	tax_category, and the company of the linked Item Tax Template.
-	"""
-	if not item_names:
-		return {}
-
-	ItemTax = frappe.qb.DocType("Item Tax")
-	ITT = frappe.qb.DocType("Item Tax Template")
-	rows = (
-		frappe.qb.from_(ItemTax)
-		.left_join(ITT)
-		.on(ITT.name == ItemTax.item_tax_template)
-		.select(
-			ItemTax.parent.as_("item"),
-			ItemTax.item_tax_template,
-			ItemTax.tax_category,
-			ITT.company,
-		)
-		.where((ItemTax.parenttype == "Item") & ItemTax.parent.isin(item_names))
-		.run(as_dict=True)
-	)
-	result: dict = {}
-	for r in rows:
-		result.setdefault(r.item, []).append(r)
-	return result
-
-
-def _required_category_company_pairs() -> frozenset:
-	"""
-	Returns the set of (tax_category, company) pairs that every sales item must cover.
-
-	tax_category comes from active customers (empty string = domestic / no category).
-	company comes from all companies in the system.
-	The empty tax category is always included even if no customer uses it, because
-	domestic transactions require a tax configuration.
-	"""
+def _active_customer_tax_categories() -> set:
+	"""Tax categories of active customers; an empty one means domestic."""
 	Customer = frappe.qb.DocType("Customer")
-	cat_rows = (
-		frappe.qb.from_(Customer)
-		.select(Customer.tax_category)
-		.where(Customer.disabled == 0)
-		.distinct()
-		.run()
+	rows = (
+		frappe.qb.from_(Customer).select(Customer.tax_category).where(Customer.disabled == 0).distinct().run()
 	)
-	required_categories = frozenset({row[0] or "" for row in cat_rows} | {""})
-
-	Company = frappe.qb.DocType("Company")
-	comp_rows = frappe.qb.from_(Company).select(Company.name).run()
-	required_companies = frozenset(row[0] for row in comp_rows)
-
-	return frozenset(
-		(cat, comp) for cat in required_categories for comp in required_companies
-	)
+	return {row[0] or "" for row in rows}
