@@ -261,6 +261,7 @@ class PendingPurchaseInvoice(Document):
 				# sign for us: force negative quantities so the invoice carries a credit
 				# balance that can be reconciled against the allocated invoices.
 				ppi_row["qty"] = -abs(flt(ppi_row.get("qty")))
+				ppi_row.update(get_credit_note_item_references(item))
 				doc.append("items", ppi_row)
 			else:
 				doc_item = get_doc_item(item)
@@ -275,6 +276,10 @@ class PendingPurchaseInvoice(Document):
 			# The credit note keeps its own outstanding so it can be reconciled against
 			# the allocated invoices via Payment Reconciliation.
 			doc.update_outstanding_for_self = 1
+			# Without these flags ERPNext ignores debit notes when it computes the
+			# billed amount, so the order would stay billed for the credited amount.
+			doc.update_billed_amount_in_purchase_order = int(any(d.get("po_detail") for d in doc.items))
+			doc.update_billed_amount_in_purchase_receipt = int(any(d.get("pr_detail") for d in doc.items))
 
 
 		for field in frappe.get_meta(self.doctype).fields:
@@ -670,7 +675,7 @@ class PendingPurchaseInvoice(Document):
 				)
 
 		self.calculate_totals()
-		credit_amount = abs(flt(self.net_total, precision))
+		credit_amount = abs(flt(self.grand_total, precision))
 		if credit_amount and flt(total_allocated, precision) - credit_amount > 0.009:
 			frappe.throw(
 				_("Total allocated amount {0} exceeds the credit note amount {1}.").format(total_allocated, credit_amount)
@@ -701,11 +706,14 @@ class PendingPurchaseInvoice(Document):
 	def allocate_credit_note_fifo(self):
 		"""Compute a FIFO allocation of the credit note amount across open invoices.
 
+		Amounts include taxes, like the invoice amounts they are compared with and the
+		ledger amounts that are reconciled.
+
 		Returns the proposed rows (oldest invoice first) without mutating the
 		document; the front-end populates the grid so amounts stay editable.
 		"""
 		self.calculate_totals()
-		remaining = abs(flt(self.net_total))
+		remaining = abs(flt(self.grand_total)) or abs(flt(self.supplier_grand_total))
 		rows = []
 		if remaining <= 0:
 			return rows
@@ -731,8 +739,10 @@ class PendingPurchaseInvoice(Document):
 
 		For each allocation, the target invoice's return lines (via ``make_return_doc``,
 		as the previous single-invoice flow did) are scaled by
-		``allocated_amount / invoice grand_total`` so the resulting item totals match
-		what is being allocated. Returns the proposed rows without mutating the document;
+		``allocated_amount / invoice grand_total``. The allocated amount includes taxes,
+		so the built lines plus their taxes match what is reconciled. Each line keeps the
+		order or receipt row of the invoice line, so the debit note reduces its billed
+		amount. Returns the proposed rows without mutating the document;
 		the front-end fills the items grid.
 		"""
 		from erpnext.controllers.sales_and_purchase_return import make_return_doc
@@ -747,13 +757,12 @@ class PendingPurchaseInvoice(Document):
 			return_doc = make_return_doc("Purchase Invoice", row.purchase_invoice)
 			currency = currency or return_doc.currency
 
-			# Distribute the allocated amount across the invoice's return lines in
-			# proportion to their value, so the built lines sum to exactly the allocated
-			# amount (allocating 329 yields a 329 line, not a tax-adjusted figure).
-			line_total = sum(abs(flt(item.amount)) for item in return_doc.items)
-			if line_total <= 0:
+			# The allocated amount includes taxes: scale the invoice lines by the share of
+			# the invoice total it represents, and taxes are applied again on top.
+			invoice_total = abs(flt(return_doc.grand_total))
+			if invoice_total <= 0:
 				continue
-			ratio = allocated / line_total
+			ratio = allocated / invoice_total
 
 			for item in return_doc.items:
 				items.append({
@@ -768,6 +777,7 @@ class PendingPurchaseInvoice(Document):
 					"cost_center": item.cost_center,
 					"project": item.project,
 					"item_tax_template": item.item_tax_template,
+					**get_invoice_item_reference(item),
 				})
 
 		return {"items": items, "currency": currency}
@@ -927,6 +937,32 @@ class PendingPurchaseInvoice(Document):
 				total_per_ref[(item.reference_doctype, item.reference_docname)] = doc.net_total - (flt(doc.per_billed) / 100.0 * doc.net_total)
 
 		return sum(total_per_ref.values())
+
+def get_invoice_item_reference(item):
+	"""Return the order or receipt row of a purchase invoice line, as reference fields
+	of a Pending Purchase Invoice Item."""
+	if item.get("po_detail"):
+		return {"reference_doctype": "Purchase Order", "reference_docname": item.purchase_order, "row": item.po_detail}
+	if item.get("pr_detail"):
+		return {"reference_doctype": "Purchase Receipt", "reference_docname": item.purchase_receipt, "row": item.pr_detail}
+	return {}
+
+
+def get_credit_note_item_references(item):
+	"""Return the purchase invoice fields that link a debit note line to its order and
+	receipt rows. A receipt row also gives its order row, so both get updated."""
+	fields = REFERENCE_FIELDS.get(item.reference_doctype)
+	if not fields or not item.get("row"):
+		return {}
+
+	references = {value: item.get(key) for key, value in fields.items()}
+	if item.reference_doctype == "Purchase Receipt":
+		po = frappe.db.get_value("Purchase Receipt Item", item.row, ["purchase_order", "purchase_order_item"], as_dict=True)
+		if po and po.purchase_order_item:
+			references.update({"purchase_order": po.purchase_order, "po_detail": po.purchase_order_item})
+
+	return references
+
 
 @frappe.whitelist()
 def get_item_details(row, company, tax_category=None):
