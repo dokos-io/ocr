@@ -497,6 +497,16 @@ msgstr "Alloué"
 msgid "Allocated Amount"
 msgstr "Montant affecté"
 
+#. Label of the allocated_amount (Currency) field in DocType 'Supplier Invoice
+#. Credit Note Allocation'
+#: etransactions/etransactions/doctype/supplier_invoice_credit_note_allocation/supplier_invoice_credit_note_allocation.json:60
+msgid "Allocated Amount (incl. tax)"
+msgstr "Montant affecté (TTC)"
+
+#: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:694
+msgid "Allocated (incl. tax)"
+msgstr "Alloué (TTC)"
+
 #: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:756
 #: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice.js:845
 #, python-brace-format
