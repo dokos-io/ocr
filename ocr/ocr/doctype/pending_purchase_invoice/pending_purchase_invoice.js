@@ -453,7 +453,8 @@ const confirm = (message, fields, confirm_action, reject_action, confirm_title, 
 };
 
 
-const credit_note_amount = (frm) => Math.abs(flt(frm.doc.supplier_net_amount));
+// Allocations include taxes, like the invoice amounts and the reconciled ledger amounts.
+const credit_note_amount = (frm) => Math.abs(flt(frm.doc.supplier_grand_total) || flt(frm.doc.supplier_net_amount));
 
 const open_credit_note_allocation_dialog = async (frm) => {
 	const currency = frm.doc.currency;
@@ -524,7 +525,7 @@ const open_credit_note_allocation_dialog = async (frm) => {
 					{
 						fieldtype: "Currency",
 						fieldname: "allocated_amount",
-						label: __("Allocated"),
+						label: __("Allocated (incl. tax)"),
 						options: currency,
 						in_list_view: 1,
 						columns: 2,
@@ -568,7 +569,7 @@ const open_credit_note_allocation_dialog = async (frm) => {
 		const rows = dialog.fields_dict.allocations.df.data || [];
 		let total = 0;
 		rows.forEach(r => total += flt(r.allocated_amount));
-		// Consistent with the form recap: show how much of the supplier net total has
+		// Consistent with the form recap: show how much of the supplier total has
 		// been allocated, and only flag when the allocation goes above it.
 		const over_allocated = total - credit_amount > 0.01;
 		const pct = credit_amount ? Math.min(100, (total / credit_amount) * 100) : 0;
@@ -605,7 +606,7 @@ const render_credit_note_allocation_recap = (frm) => {
 
 	const rows = frm.doc.credit_note_allocations || [];
 	const currency = frm.doc.currency;
-	const supplier_net_total = Math.abs(flt(frm.doc.supplier_net_amount));
+	const supplier_total = credit_note_amount(frm);
 	const editable = !frm.is_new() && !["Completed", "Closed"].includes(frm.doc.status);
 
 	const edit_button = editable
@@ -641,11 +642,11 @@ const render_credit_note_allocation_recap = (frm) => {
 		</tr>`;
 	}).join("");
 
-	// Only flag when the allocation goes above the supplier net total; otherwise the
+	// Only flag when the allocation goes above the supplier total; otherwise the
 	// recap simply states how much of that total has been allocated.
-	const over_allocated = total - supplier_net_total > 0.01;
+	const over_allocated = total - supplier_total > 0.01;
 	const badge = over_allocated
-		? `<span class="indicator-pill red">${__("{0} over-allocated", [format_currency(total - supplier_net_total, currency)])}</span>`
+		? `<span class="indicator-pill red">${__("{0} over-allocated", [format_currency(total - supplier_total, currency)])}</span>`
 		: "";
 
 	const head = "padding: 8px 12px; font-weight: 500; color: var(--text-muted); border: none;";
@@ -664,7 +665,7 @@ const render_credit_note_allocation_recap = (frm) => {
 				<tbody>${body}</tbody>
 			</table>
 			<div class="d-flex justify-content-between align-items-center" style="padding: 10px 12px; border-top: 1px solid var(--border-color, #ebeef0); background: var(--subtle-fg, #f4f5f6);">
-				<span class="text-muted">${__("Allocated")}: <b style="color: var(--text-color); font-variant-numeric: tabular-nums;">${format_currency(total, currency)}</b> ${__("of")} <b>${format_currency(supplier_net_total, currency)}</b></span>
+				<span class="text-muted">${__("Allocated")}: <b style="color: var(--text-color); font-variant-numeric: tabular-nums;">${format_currency(total, currency)}</b> ${__("of")} <b>${format_currency(supplier_total, currency)}</b></span>
 				${badge}
 			</div>
 		</div>

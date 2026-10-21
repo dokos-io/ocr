@@ -10,6 +10,7 @@ from frappe.utils.data import nowdate
 
 from erpnext.buying.doctype.purchase_order.test_purchase_order import create_purchase_order
 from erpnext.buying.doctype.purchase_order.purchase_order import make_purchase_receipt
+from erpnext.buying.doctype.purchase_order.purchase_order import make_purchase_invoice as make_purchase_invoice_from_po
 from erpnext.accounts.doctype.purchase_invoice.test_purchase_invoice import make_purchase_invoice
 
 if TYPE_CHECKING:
@@ -246,6 +247,97 @@ class TestPendingPurchaseInvoice(IntegrationTestCase):
 
 		credit_note = self._make_credit_note(1000, allocations=[(debit_note.name, 1000)], insert=False)
 		self.assertRaises(frappe.ValidationError, credit_note.insert)
+
+	# --- Credit note amounts include taxes ----------------------------------
+
+	VAT_TEMPLATE_TITLE = "_Test OCR Purchase VAT 20"
+
+	def _get_vat_template(self):
+		name = frappe.db.get_value(
+			"Purchase Taxes and Charges Template", {"title": self.VAT_TEMPLATE_TITLE, "company": self.company}
+		)
+		if name:
+			return name
+
+		return frappe.get_doc({
+			"doctype": "Purchase Taxes and Charges Template",
+			"title": self.VAT_TEMPLATE_TITLE,
+			"company": self.company,
+			"taxes": [{
+				"charge_type": "On Net Total",
+				"account_head": "_Test Account VAT - _TC",
+				"cost_center": "_Test Cost Center - _TC",
+				"description": "VAT 20%",
+				"rate": 20,
+				"category": "Total",
+				"add_deduct_tax": "Add",
+			}],
+		}).insert().name
+
+	def _make_taxed_invoice_from_order(self, rate):
+		po = create_purchase_order(supplier=self.supplier.name, company=self.company, qty=1, rate=rate)
+		pi = make_purchase_invoice_from_po(po.name)
+		pi.taxes_and_charges = self._get_vat_template()
+		pi.set("taxes", [])
+		pi.append_taxes_from_master()
+		pi.insert()
+		pi.submit()
+		return po, pi
+
+	def _make_taxed_credit_note(self, net_amount, allocations=None):
+		doc = self._make_credit_note(net_amount, allocations=allocations, insert=False)
+		doc.taxes_and_charges = self._get_vat_template()
+		doc.supplier_grand_total = net_amount * 1.2
+		doc.supplier_tax_amount = net_amount * 0.2
+		return doc
+
+	def test_credit_note_fifo_prefill_includes_taxes(self):
+		_po, pi = self._make_taxed_invoice_from_order(1000)
+		self.assertEqual(flt(pi.grand_total), 1200)
+
+		credit_note = self._make_taxed_credit_note(1000)
+		rows = credit_note.allocate_credit_note_fifo()
+
+		self.assertEqual(len(rows), 1)
+		self.assertEqual(rows[0]["purchase_invoice"], pi.name)
+		self.assertEqual(flt(rows[0]["allocated_amount"]), 1200)
+
+	@change_settings(
+		"OCR Settings",
+		{"reconcile_with_purchase_receipts": 1, "auto_submit_purchase_invoices": 1},
+	)
+	@change_settings("Accounts Settings", {"mandatory_accounting_journal": 0})
+	def test_taxed_credit_note_settles_invoice_and_order(self):
+		po, pi = self._make_taxed_invoice_from_order(1000)
+		po.reload()
+		self.assertEqual(flt(po.items[0].billed_amt), 1000)
+
+		credit_note = self._make_taxed_credit_note(1000, allocations=[(pi.name, 1200)])
+		built = credit_note.build_credit_note_items_from_allocations()["items"]
+		self.assertEqual(len(built), 1)
+		self.assertEqual(flt(built[0]["amount"]), -1000)
+		self.assertEqual(built[0]["reference_doctype"], "Purchase Order")
+		self.assertEqual(built[0]["row"], pi.items[0].po_detail)
+
+		credit_note.set("items", [])
+		for row in built:
+			row["expense_account"] = row.get("expense_account") or self.EXPENSE_ACCOUNT
+			credit_note.append("items", row)
+		credit_note.insert()
+
+		cn_name = frappe.db.get_value("Purchase Invoice", {"pending_purchase_invoice": credit_note.name})
+		self.assertTrue(cn_name)
+		cn = frappe.get_doc("Purchase Invoice", cn_name)  # type: ignore
+		self.assertEqual(flt(cn.grand_total), -1200)  # type: ignore
+		self.assertEqual(cn.items[0].po_detail, pi.items[0].po_detail)  # type: ignore
+		self.assertEqual(flt(cn.outstanding_amount), 0)  # type: ignore
+
+		pi.reload()
+		self.assertEqual(flt(pi.outstanding_amount), 0)
+
+		po.reload()
+		self.assertEqual(flt(po.items[0].billed_amt), 0)
+		self.assertEqual(flt(po.per_billed), 0)
 
 	# --- Journal Entry permissions -----------------------------------------
 
