@@ -57,7 +57,7 @@
    "fieldname": "allocated_amount",
    "fieldtype": "Currency",
    "in_list_view": 1,
-   "label": "Allocated Amount",
+   "label": "Allocated Amount (incl. tax)",
    "options": "currency"
   }
  ],
