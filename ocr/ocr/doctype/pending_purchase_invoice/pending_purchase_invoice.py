@@ -20,6 +20,8 @@ from frappe.query_builder import Order
 from frappe import _
 from frappe.utils import cint, flt, fmt_money, nowdate
 from erpnext.accounts.party import get_due_date, set_taxes, get_address_tax_category
+from erpnext.accounts.services.payment_schedule import PaymentScheduleService
+from erpnext.accounts.services.taxes import TaxService
 from frappe.contacts.doctype.address.address import get_default_address
 from frappe.model.workflow import get_transitions, get_workflow, has_approval_access, apply_workflow
 
@@ -924,7 +926,7 @@ def set_purchase_invoice_taxes(doc):
 	"""
 	doc.set("taxes", [])
 	if doc.taxes_and_charges:
-		doc.append_taxes_from_master()
+		TaxService(doc).append_taxes_from_master()
 		return
 
 	for item in doc.items:
@@ -938,7 +940,7 @@ def set_purchase_invoice_taxes(doc):
 			as_json=True,
 		)
 
-	doc.append_taxes_from_item_tax_template()
+	TaxService(doc).append_taxes_from_item_tax_template()
 
 
 def get_invoice_item_reference(item):
@@ -1040,9 +1042,9 @@ def make_purchase_order(source_name, target_doc=None, ignore_permissions=False):
 
 		# append taxes
 		if target_doc.taxes_and_charges:
-			target_doc.append_taxes_from_master()
+			TaxService(target_doc).append_taxes_from_master()
 		else:
-			target_doc.append_taxes_from_item_tax_template()
+			TaxService(target_doc).append_taxes_from_item_tax_template()
 
 		target_doc.run_method("set_missing_values")
 		target_doc.run_method("calculate_taxes_and_totals")
@@ -1266,7 +1268,7 @@ def make_purchase_invoice_from_pr(source_name, target_doc=None, args=None): # TO
 			merge_taxes(source.get("taxes") or [], doc)
 
 		doc.run_method("calculate_taxes_and_totals")
-		doc.set_payment_schedule()
+		PaymentScheduleService(doc).set_payment_schedule()
 
 	def update_item(source_doc, target_doc, source_parent):
 		target_doc.qty, returned_qty = get_pending_qty(source_doc)
