@@ -217,7 +217,7 @@ class PendingPurchaseInvoice(Document):
 		return result
 
 	def get_purchase_invoice(self, purchase_order_is_mandatory=True):
-		from erpnext.buying.doctype.purchase_order.purchase_order import make_purchase_invoice as make_purchase_invoice_from_po
+		from erpnext.buying.doctype.purchase_order.mapper import make_purchase_invoice as make_purchase_invoice_from_po
 
 		doc: PurchaseInvoice = frappe.new_doc("Purchase Invoice") # type: ignore
 		doc.ignore_pricing_rule = 1
@@ -1016,7 +1016,7 @@ def get_best_match_from_list_of_dicts(data, matching_element, key):
 
 def make_purchase_order(source_name, target_doc=None, ignore_permissions=False):
 	from frappe.model.mapper import get_mapped_doc
-	from erpnext.buying.doctype.purchase_order.purchase_order import set_missing_values
+	from erpnext.buying.doctype.purchase_order.mapper import set_missing_values
 
 	def purchase_invoice_item_condition(doc):
 		if not doc.reference_doctype:
@@ -1240,7 +1240,7 @@ def get_settings():
 
 @frappe.whitelist()
 def make_purchase_invoice_from_pr(source_name, target_doc=None, args=None): # TODO: find a better way to handle this in ERPNext directly
-	from erpnext.stock.doctype.purchase_receipt.purchase_receipt import get_returned_qty_map, get_invoiced_qty_map
+	from erpnext.stock.doctype.purchase_receipt.mapper import get_returned_qty_map, get_invoiced_qty_map
 
 	if args is None:
 		args = {}

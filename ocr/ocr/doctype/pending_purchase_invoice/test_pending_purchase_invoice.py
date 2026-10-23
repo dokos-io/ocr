@@ -9,8 +9,8 @@ from frappe.utils import add_days, flt
 from frappe.utils.data import nowdate
 
 from erpnext.buying.doctype.purchase_order.test_purchase_order import create_purchase_order
-from erpnext.buying.doctype.purchase_order.purchase_order import make_purchase_receipt
-from erpnext.buying.doctype.purchase_order.purchase_order import make_purchase_invoice as make_purchase_invoice_from_po
+from erpnext.buying.doctype.purchase_order.mapper import make_purchase_receipt
+from erpnext.buying.doctype.purchase_order.mapper import make_purchase_invoice as make_purchase_invoice_from_po
 from erpnext.accounts.doctype.purchase_invoice.test_purchase_invoice import make_purchase_invoice
 
 if TYPE_CHECKING:

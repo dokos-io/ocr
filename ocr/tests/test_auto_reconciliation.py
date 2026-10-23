@@ -7,7 +7,8 @@ from frappe.utils.make_random import get_random
 
 from erpnext import get_default_company
 
-from erpnext.buying.doctype.purchase_order.purchase_order import PurchaseOrder, make_purchase_receipt
+from erpnext.buying.doctype.purchase_order.mapper import make_purchase_receipt
+from erpnext.buying.doctype.purchase_order.purchase_order import PurchaseOrder
 from ocr.ocr.doctype.ocr_settings.ocr_settings import OCRSettings
 from ocr.tests.utils import add_items, add_suppliers
 from ocr.ocr.doctype.pending_purchase_invoice.pending_purchase_invoice import PendingPurchaseInvoice
