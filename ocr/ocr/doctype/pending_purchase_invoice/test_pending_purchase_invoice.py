@@ -12,6 +12,7 @@ from erpnext.buying.doctype.purchase_order.test_purchase_order import create_pur
 from erpnext.buying.doctype.purchase_order.mapper import make_purchase_receipt
 from erpnext.buying.doctype.purchase_order.mapper import make_purchase_invoice as make_purchase_invoice_from_po
 from erpnext.accounts.doctype.purchase_invoice.test_purchase_invoice import make_purchase_invoice
+from erpnext.accounts.services.taxes import TaxService
 
 if TYPE_CHECKING:
 	from ocr.ocr.doctype.pending_purchase_invoice.pending_purchase_invoice import PendingPurchaseInvoice
@@ -279,7 +280,7 @@ class TestPendingPurchaseInvoice(IntegrationTestCase):
 		pi = make_purchase_invoice_from_po(po.name)
 		pi.taxes_and_charges = self._get_vat_template()
 		pi.set("taxes", [])
-		pi.append_taxes_from_master()
+		TaxService(pi).append_taxes_from_master()
 		pi.insert()
 		pi.submit()
 		return po, pi
@@ -382,7 +383,8 @@ class TestPendingPurchaseInvoice(IntegrationTestCase):
 		"""Return a user who owns the OCR flow but holds no rights on Journal Entry.
 
 		Accounts Manager is used because the supplier declared amounts on Pending
-		Purchase Invoice sit at permlevel 1.
+		Purchase Invoice sit at permlevel 1. Purchase User gives the Item read access
+		that ERPNext checks when it fills the invoice item details.
 		"""
 		from frappe.permissions import setup_custom_perms
 
@@ -393,7 +395,7 @@ class TestPendingPurchaseInvoice(IntegrationTestCase):
 				"email": user,
 				"first_name": "OCR",
 				"last_name": "Without Journal Entry",
-				"roles": [{"role": "Accounts Manager"}],
+				"roles": [{"role": "Accounts Manager"}, {"role": "Purchase User"}],
 			})
 			doc.flags.no_welcome_mail = True
 			doc.insert(ignore_permissions=True)

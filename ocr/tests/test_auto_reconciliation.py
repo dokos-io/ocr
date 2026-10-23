@@ -197,7 +197,7 @@ class TestAutoReconciliation(IntegrationTestCase):
 def get_purchase_order(company, item_code, qty, rate, **kwargs):
 	po: PurchaseOrder = frappe.new_doc("Purchase Order") # type: ignore
 	po.company = company or get_default_company() # type: ignore
-	po.supplier = get_random("Supplier") # type: ignore
+	po.supplier = get_random_supplier(po.company) # type: ignore
 	po.schedule_date = nowdate()
 
 	po.append("items", {
@@ -210,6 +210,23 @@ def get_purchase_order(company, item_code, qty, rate, **kwargs):
 		po.update(kwargs)
 
 	return po
+
+def get_random_supplier(company):
+	"""Return a supplier that can be invoiced by the company in its currency.
+
+	ERPNext's test suppliers include ones in USD, on hold or restricted to other
+	companies, which cannot be invoiced here."""
+	currency = frappe.get_cached_value("Company", company, "default_currency")
+	restricted = frappe.get_all(
+		"Allowed To Transact With", filters={"parenttype": "Supplier"}, pluck="parent", distinct=True
+	)
+	suppliers = frappe.get_all(
+		"Supplier",
+		filters={"disabled": 0, "on_hold": 0, "is_frozen": 0, "name": ("not in", restricted or [""])},
+		or_filters=[["default_currency", "is", "not set"], ["default_currency", "=", currency]],
+		pluck="name",
+	)
+	return choice(suppliers)
 
 def get_pending_purchase_invoice(supplier, amount, purchase_order):
 	pending_invoice: PendingPurchaseInvoice = frappe.new_doc("Pending Purchase Invoice") # type: ignore

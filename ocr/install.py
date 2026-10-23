@@ -16,6 +16,12 @@ def before_tests():
 	# them first with other values (e.g. EUR price lists) and make it fail.
 	import erpnext.tests.utils  # noqa: F401
 
+	# The setup wizard used to set the default company. Some OCR tests read it.
+	if not frappe.db.get_single_value("Global Defaults", "default_company"):
+		global_defaults = frappe.get_single("Global Defaults")
+		global_defaults.default_company = "_Test Company"
+		global_defaults.save()
+
 	frappe.db.commit()
 
 
