@@ -11,31 +11,16 @@ def after_install():
 
 
 def before_tests():
-	# erpnext no longer exposes a before_tests helper, so the company bootstrap is
-	# inlined here (same approach as hrms.tests.test_utils.before_tests).
-	from frappe.desk.page.setup_wizard.setup_wizard import setup_complete
-	from frappe.utils import now_datetime
+	# Importing erpnext.tests.utils runs ERPNext's BootStrapTestData, which creates
+	# _Test Company and the other test masters. A setup wizard run here would create
+	# them first with other values (e.g. EUR price lists) and make it fail.
+	import erpnext.tests.utils  # noqa: F401
 
-	frappe.clear_cache()
-
-	if not frappe.get_list("Company"):
-		year = now_datetime().year
-		setup_complete({
-			"currency": "EUR",
-			"full_name": "Test User",
-			"company_name": "_Test Company",
-			"timezone": "Europe/Paris",
-			"company_abbr": "_TC",
-			"industry": "Manufacturing",
-			"country": "France",
-			"fy_start_date": f"{year}-01-01",
-			"fy_end_date": f"{year}-12-31",
-			"language": "english",
-			"company_tagline": "Testing",
-			"email": "test@dokos.io",
-			"password": "test",
-			"chart_of_accounts": "Standard",
-		})
+	# The setup wizard used to set the default company. Some OCR tests read it.
+	if not frappe.db.get_single_value("Global Defaults", "default_company"):
+		global_defaults = frappe.get_single("Global Defaults")
+		global_defaults.default_company = "_Test Company"
+		global_defaults.save()
 
 	frappe.db.commit()
 

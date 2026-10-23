@@ -9,9 +9,10 @@ from frappe.utils import add_days, flt
 from frappe.utils.data import nowdate
 
 from erpnext.buying.doctype.purchase_order.test_purchase_order import create_purchase_order
-from erpnext.buying.doctype.purchase_order.purchase_order import make_purchase_receipt
-from erpnext.buying.doctype.purchase_order.purchase_order import make_purchase_invoice as make_purchase_invoice_from_po
+from erpnext.buying.doctype.purchase_order.mapper import make_purchase_receipt
+from erpnext.buying.doctype.purchase_order.mapper import make_purchase_invoice as make_purchase_invoice_from_po
 from erpnext.accounts.doctype.purchase_invoice.test_purchase_invoice import make_purchase_invoice
+from erpnext.accounts.services.taxes import TaxService
 
 if TYPE_CHECKING:
 	from ocr.ocr.doctype.pending_purchase_invoice.pending_purchase_invoice import PendingPurchaseInvoice
@@ -279,7 +280,7 @@ class TestPendingPurchaseInvoice(IntegrationTestCase):
 		pi = make_purchase_invoice_from_po(po.name)
 		pi.taxes_and_charges = self._get_vat_template()
 		pi.set("taxes", [])
-		pi.append_taxes_from_master()
+		TaxService(pi).append_taxes_from_master()
 		pi.insert()
 		pi.submit()
 		return po, pi
@@ -301,6 +302,34 @@ class TestPendingPurchaseInvoice(IntegrationTestCase):
 		self.assertEqual(len(rows), 1)
 		self.assertEqual(rows[0]["purchase_invoice"], pi.name)
 		self.assertEqual(flt(rows[0]["allocated_amount"]), 1200)
+
+	def _set_item_tax_template(self, item_code="_Test Item"):
+		"""Give the item a 20% tax template, so taxes come from the item and not from a
+		taxes template."""
+		title = "_Test OCR Item VAT 20"
+		name = frappe.db.get_value("Item Tax Template", {"title": title, "company": self.company})
+		if not name:
+			name = frappe.get_doc({
+				"doctype": "Item Tax Template",
+				"title": title,
+				"company": self.company,
+				"taxes": [{"tax_type": "_Test Account VAT - _TC", "tax_rate": 20}],
+			}).insert().name
+
+		item = frappe.get_doc("Item", item_code)
+		item.set("taxes", [{"item_tax_template": name}])
+		item.save()
+		return name
+
+	def test_credit_note_totals_include_item_tax_template(self):
+		"""The allocation check compares with the pending invoice total, so that total
+		must include the taxes of the item tax templates, like the invoice it creates."""
+		self._set_item_tax_template()
+		credit_note = self._make_credit_note(1000, insert=False)
+		credit_note.calculate_totals()
+
+		self.assertEqual(flt(credit_note.net_total), -1000)
+		self.assertEqual(flt(credit_note.grand_total), -1200)
 
 	@change_settings(
 		"OCR Settings",
@@ -354,7 +383,8 @@ class TestPendingPurchaseInvoice(IntegrationTestCase):
 		"""Return a user who owns the OCR flow but holds no rights on Journal Entry.
 
 		Accounts Manager is used because the supplier declared amounts on Pending
-		Purchase Invoice sit at permlevel 1.
+		Purchase Invoice sit at permlevel 1. Purchase User gives the Item read access
+		that ERPNext checks when it fills the invoice item details.
 		"""
 		from frappe.permissions import setup_custom_perms
 
@@ -365,7 +395,7 @@ class TestPendingPurchaseInvoice(IntegrationTestCase):
 				"email": user,
 				"first_name": "OCR",
 				"last_name": "Without Journal Entry",
-				"roles": [{"role": "Accounts Manager"}],
+				"roles": [{"role": "Accounts Manager"}, {"role": "Purchase User"}],
 			})
 			doc.flags.no_welcome_mail = True
 			doc.insert(ignore_permissions=True)
