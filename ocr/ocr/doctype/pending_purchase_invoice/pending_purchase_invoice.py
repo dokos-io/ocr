@@ -173,13 +173,7 @@ class PendingPurchaseInvoice(Document):
 					doc.append("items", frappe.copy_doc(item).as_dict())
 				doc.update(self.as_dict())
 				doc.run_method("set_missing_values")
-				# append taxes
-				doc.set("taxes", [])
-				if doc.taxes_and_charges:
-					doc.append_taxes_from_master()
-				else:
-					doc.append_taxes_from_item_tax_template()
-
+				set_purchase_invoice_taxes(doc)
 				doc.run_method("calculate_taxes_and_totals")
 
 			self.net_total = doc.net_total or 0.0
@@ -293,23 +287,7 @@ class PendingPurchaseInvoice(Document):
 		doc.discount_amount = 0.0
 
 		doc.run_method("set_missing_values")
-		doc.set("taxes", [])
-		if doc.taxes_and_charges:
-			doc.append_taxes_from_master()
-		else:
-			for item in doc.items:
-				# Reset item tax_map to avoid inconsistency between master data and transaction
-				item_doc = frappe.get_cached_doc("Item", item.item_code)
-				ctx: ItemDetailsCtx = doc.as_dict() # type: ignore
-				tax_template = get_item_tax_template(ctx, item_doc)
-				item.item_tax_rate = get_item_tax_map(
-					doc=doc,
-					tax_template=tax_template, # type: ignore
-					as_json=True,
-				)
-
-			doc.append_taxes_from_item_tax_template()
-
+		set_purchase_invoice_taxes(doc)
 		doc.run_method("calculate_taxes_and_totals")
 
 		return doc
@@ -937,6 +915,31 @@ class PendingPurchaseInvoice(Document):
 				total_per_ref[(item.reference_doctype, item.reference_docname)] = doc.net_total - (flt(doc.per_billed) / 100.0 * doc.net_total)
 
 		return sum(total_per_ref.values())
+
+def set_purchase_invoice_taxes(doc):
+	"""Set the taxes of a purchase invoice built from a Pending Purchase Invoice.
+
+	Without a taxes template, the item tax rates are read again from the item tax
+	templates, so the totals shown on the pending invoice match the invoice it creates.
+	"""
+	doc.set("taxes", [])
+	if doc.taxes_and_charges:
+		doc.append_taxes_from_master()
+		return
+
+	for item in doc.items:
+		# Reset item tax_map to avoid inconsistency between master data and transaction
+		item_doc = frappe.get_cached_doc("Item", item.item_code)
+		ctx: ItemDetailsCtx = doc.as_dict() # type: ignore
+		tax_template = get_item_tax_template(ctx, item_doc)
+		item.item_tax_rate = get_item_tax_map(
+			doc=doc,
+			tax_template=tax_template, # type: ignore
+			as_json=True,
+		)
+
+	doc.append_taxes_from_item_tax_template()
+
 
 def get_invoice_item_reference(item):
 	"""Return the order or receipt row of a purchase invoice line, as reference fields

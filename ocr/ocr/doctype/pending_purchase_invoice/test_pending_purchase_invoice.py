@@ -302,6 +302,34 @@ class TestPendingPurchaseInvoice(IntegrationTestCase):
 		self.assertEqual(rows[0]["purchase_invoice"], pi.name)
 		self.assertEqual(flt(rows[0]["allocated_amount"]), 1200)
 
+	def _set_item_tax_template(self, item_code="_Test Item"):
+		"""Give the item a 20% tax template, so taxes come from the item and not from a
+		taxes template."""
+		title = "_Test OCR Item VAT 20"
+		name = frappe.db.get_value("Item Tax Template", {"title": title, "company": self.company})
+		if not name:
+			name = frappe.get_doc({
+				"doctype": "Item Tax Template",
+				"title": title,
+				"company": self.company,
+				"taxes": [{"tax_type": "_Test Account VAT - _TC", "tax_rate": 20}],
+			}).insert().name
+
+		item = frappe.get_doc("Item", item_code)
+		item.set("taxes", [{"item_tax_template": name}])
+		item.save()
+		return name
+
+	def test_credit_note_totals_include_item_tax_template(self):
+		"""The allocation check compares with the pending invoice total, so that total
+		must include the taxes of the item tax templates, like the invoice it creates."""
+		self._set_item_tax_template()
+		credit_note = self._make_credit_note(1000, insert=False)
+		credit_note.calculate_totals()
+
+		self.assertEqual(flt(credit_note.net_total), -1000)
+		self.assertEqual(flt(credit_note.grand_total), -1200)
+
 	@change_settings(
 		"OCR Settings",
 		{"reconcile_with_purchase_receipts": 1, "auto_submit_purchase_invoices": 1},
