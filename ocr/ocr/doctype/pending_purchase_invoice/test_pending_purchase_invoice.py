@@ -368,6 +368,63 @@ class TestPendingPurchaseInvoice(IntegrationTestCase):
 		self.assertEqual(flt(po.items[0].billed_amt), 0)
 		self.assertEqual(flt(po.per_billed), 0)
 
+	@change_settings(
+		"OCR Settings",
+		{"reconcile_with_purchase_receipts": 1, "auto_submit_purchase_invoices": 1},
+	)
+	@change_settings("Accounts Settings", {"mandatory_accounting_journal": 0})
+	def test_credit_note_frees_receipt_billing(self):
+		po = create_purchase_order(supplier=self.supplier.name, company=self.company, qty=1, rate=1000)
+		pr = make_purchase_receipt(po.name)
+		pr.submit()
+
+		invoice = frappe.get_doc({
+			"doctype": "Pending Purchase Invoice",
+			"supplier": po.supplier,
+			"company": po.company,
+			"purchase_order_number": po.name,
+			"supplier_net_amount": 1000,
+			"bill_no": "INV-PR-1",
+			"bill_date": nowdate(),
+		}).insert()
+		pi = frappe.get_doc("Purchase Invoice", {"pending_purchase_invoice": invoice.name})
+		self.assertEqual(pi.docstatus, 1)  # type: ignore
+		self.assertEqual(pi.items[0].pr_detail, pr.items[0].name)  # type: ignore
+		pr.reload()
+		self.assertEqual(flt(pr.per_billed), 100)
+
+		credit_note = self._make_credit_note(1000, allocations=[(pi.name, 1000)], insert=False)
+		built = credit_note.build_credit_note_items_from_allocations()["items"]
+		self.assertEqual(built[0]["reference_doctype"], "Purchase Receipt")
+		self.assertEqual(built[0]["row"], pr.items[0].name)
+
+		credit_note.set("items", [])
+		for row in built:
+			row["expense_account"] = row.get("expense_account") or self.EXPENSE_ACCOUNT
+			credit_note.append("items", row)
+		credit_note.insert()
+
+		cn = frappe.get_doc("Purchase Invoice", {"pending_purchase_invoice": credit_note.name})
+		self.assertEqual(cn.docstatus, 1)  # type: ignore
+		self.assertEqual(cn.update_billed_amount_in_purchase_receipt, 1)  # type: ignore
+
+		pr.reload()
+		po.reload()
+		self.assertEqual(flt(pr.per_billed), 0)
+		self.assertEqual(flt(po.per_billed), 0)
+
+		# The freed receipt amount can be matched by the next invoice of the order.
+		next_invoice = frappe.get_doc({
+			"doctype": "Pending Purchase Invoice",
+			"supplier": po.supplier,
+			"company": po.company,
+			"purchase_order_number": po.name,
+			"supplier_net_amount": 1000,
+			"bill_no": "INV-PR-2",
+			"bill_date": nowdate(),
+		}).insert()
+		self.assertEqual(next_invoice.items[0].reference_docname, pr.name)  # type: ignore
+
 	# --- Journal Entry permissions -----------------------------------------
 
 	def test_journal_entry_controller_override_active(self):
