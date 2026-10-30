@@ -944,12 +944,13 @@ def set_purchase_invoice_taxes(doc):
 
 
 def get_invoice_item_reference(item):
-	"""Return the order or receipt row of a purchase invoice line, as reference fields
-	of a Pending Purchase Invoice Item."""
-	if item.get("po_detail"):
-		return {"reference_doctype": "Purchase Order", "reference_docname": item.purchase_order, "row": item.po_detail}
+	"""Return the receipt or order row of a purchase invoice line, as reference fields
+	of a Pending Purchase Invoice Item. The receipt row comes first: the debit note then
+	reduces the billed amount of both the receipt and its order."""
 	if item.get("pr_detail"):
 		return {"reference_doctype": "Purchase Receipt", "reference_docname": item.purchase_receipt, "row": item.pr_detail}
+	if item.get("po_detail"):
+		return {"reference_doctype": "Purchase Order", "reference_docname": item.purchase_order, "row": item.po_detail}
 	return {}
 
 
