@@ -330,7 +330,9 @@ class SupplierInvoice(Document):
 
 		claimants = {
 			alias.company
-			for alias in frappe.get_all("eTransactions Company Name Alias", fields=["receiver_name", "company"])
+			for alias in frappe.get_all(
+				"eTransactions Company Name Alias", fields=["receiver_name", "company"]
+			)
 			if company_name_key(alias.receiver_name) == key
 		}
 		if claimants:
@@ -757,10 +759,11 @@ class SupplierInvoice(Document):
 			self.log_error()
 
 	def get_rows_claimed_elsewhere(self, reference_doctype: str, reference_docname: str) -> set[str]:
-		"""Rows of an order or receipt already on another supplier invoice that is not closed.
+		"""Rows of an order or receipt already on another supplier invoice that is not booked yet.
 
 		Until that invoice is booked, the row is not billed yet, so `billed_amt` cannot tell
-		that it is already taken.
+		that it is already taken. A completed invoice is booked: `billed_amt` already holds
+		its amount, and a later credit note can free that amount again.
 		"""
 		supplier_invoice = frappe.qb.DocType("Supplier Invoice")
 		supplier_invoice_item = frappe.qb.DocType("Supplier Invoice Item")
@@ -771,7 +774,7 @@ class SupplierInvoice(Document):
 			.select(supplier_invoice_item.row)
 			.where(supplier_invoice_item.reference_doctype == reference_doctype)
 			.where(supplier_invoice_item.reference_docname == reference_docname)
-			.where(supplier_invoice.status != "Closed")
+			.where(supplier_invoice.status.notin(["Completed", "Closed"]))
 		)
 		if self.name:
 			query = query.where(supplier_invoice.name != self.name)
@@ -1486,19 +1489,20 @@ class SupplierInvoice(Document):
 
 
 def get_invoice_item_reference(item):
-	"""Return the order or receipt row of a purchase invoice line, as reference fields
-	of a Supplier Invoice Item."""
-	if item.get("po_detail"):
-		return {
-			"reference_doctype": "Purchase Order",
-			"reference_docname": item.purchase_order,
-			"row": item.po_detail,
-		}
+	"""Return the receipt or order row of a purchase invoice line, as reference fields
+	of a Supplier Invoice Item. The receipt row comes first: the debit note then
+	reduces the billed amount of both the receipt and its order."""
 	if item.get("pr_detail"):
 		return {
 			"reference_doctype": "Purchase Receipt",
 			"reference_docname": item.purchase_receipt,
 			"row": item.pr_detail,
+		}
+	if item.get("po_detail"):
+		return {
+			"reference_doctype": "Purchase Order",
+			"reference_docname": item.purchase_order,
+			"row": item.po_detail,
 		}
 	return {}
 
