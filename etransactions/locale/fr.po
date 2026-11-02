@@ -890,7 +890,7 @@ msgstr "Date de base"
 
 #: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice_list.js:43
 msgid "Basket created"
-msgstr "Panier créé"
+msgstr "Banette créée"
 
 #: etransactions/etransactions/doctype/supplier_invoices_basket/supplier_invoices_basket.py:41
 msgid "Basket n°"
@@ -1754,7 +1754,7 @@ msgstr "Documents créés"
 #. Inbox Item'
 #: etransactions/etransactions_hub/doctype/accounting_inbox_item/accounting_inbox_item.json:89
 msgid "Created Invoices Basket"
-msgstr "Panier de factures créées"
+msgstr "Banette créée"
 
 #. Label of the created_request (Link) field in DocType 'Accounting Inbox Item'
 #: etransactions/etransactions_hub/doctype/accounting_inbox_item/accounting_inbox_item.json:78
@@ -4018,7 +4018,7 @@ msgstr "Aucune correspondance trouvée."
 
 #: etransactions/etransactions/doctype/supplier_invoices_basket/supplier_invoices_basket.py:126
 msgid "No matching supplier format file (PDF, XML) found in this basket"
-msgstr "Aucun fichier au format fournisseur (PDF, XML) trouvé dans cette corbeille"
+msgstr "Aucun fichier au format fournisseur (PDF, XML) trouvé dans cette banette"
 
 #: etransactions/etransactions/doctype/supplier_invoice/supplier_invoice_list.js:76
 msgid "No new matches found"
@@ -6481,7 +6481,7 @@ msgstr "Factures fournisseurs"
 #: etransactions/etransactions/doctype/supplier_invoices_basket/supplier_invoices_basket.json:91
 #: etransactions/workspace_sidebar/etransactions.json:84
 msgid "Supplier Invoices Basket"
-msgstr "Panier de factures fournisseurs"
+msgstr "Banette"
 
 #. Label of the supplier_item_code (Data) field in DocType 'eTransactions
 #. Supplier Item Alias'
@@ -6522,7 +6522,7 @@ msgstr "Fournisseur identifié"
 
 #: frontend/src/components/InboxDetailDrawer.vue:137
 msgid "Supplier invoice creation started. Find it in the invoices basket."
-msgstr "Création de la facture fournisseur lancée. Retrouvez-la dans le panier des factures."
+msgstr "Création de la facture fournisseur lancée. Retrouvez-la dans la banette."
 
 #: etransactions/public/js/supplier_invoice_guide.js:450
 msgid "Supplier line"
