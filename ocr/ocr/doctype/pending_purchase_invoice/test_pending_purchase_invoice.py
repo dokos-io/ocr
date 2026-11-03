@@ -9,10 +9,9 @@ from frappe.utils import add_days, flt
 from frappe.utils.data import nowdate
 
 from erpnext.buying.doctype.purchase_order.test_purchase_order import create_purchase_order
-from erpnext.buying.doctype.purchase_order.mapper import make_purchase_receipt
-from erpnext.buying.doctype.purchase_order.mapper import make_purchase_invoice as make_purchase_invoice_from_po
+from ocr.erpnext_compat import make_purchase_invoice_from_po, make_purchase_receipt
 from erpnext.accounts.doctype.purchase_invoice.test_purchase_invoice import make_purchase_invoice
-from erpnext.accounts.services.taxes import TaxService
+from ocr.erpnext_compat import append_taxes_from_master
 
 if TYPE_CHECKING:
 	from ocr.ocr.doctype.pending_purchase_invoice.pending_purchase_invoice import PendingPurchaseInvoice
@@ -280,7 +279,7 @@ class TestPendingPurchaseInvoice(IntegrationTestCase):
 		pi = make_purchase_invoice_from_po(po.name)
 		pi.taxes_and_charges = self._get_vat_template()
 		pi.set("taxes", [])
-		TaxService(pi).append_taxes_from_master()
+		append_taxes_from_master(pi)
 		pi.insert()
 		pi.submit()
 		return po, pi
