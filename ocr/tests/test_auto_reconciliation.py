@@ -1,5 +1,7 @@
 from random import choice
 import time
+from unittest.mock import patch
+
 import frappe
 from frappe.tests import IntegrationTestCase, change_settings
 from frappe.utils import add_days, flt, nowdate
@@ -192,6 +194,57 @@ class TestAutoReconciliation(IntegrationTestCase):
 
 		pending_purchase_invoice.reload()
 		self.assertEqual(pending_purchase_invoice.status, "Completed")
+
+
+	@change_settings(
+		"OCR Settings",
+		{"reconcile_with_purchase_receipts": 1, "auto_submit_purchase_invoices": 1},
+	)
+	def test_auto_reconciliation_05(self):
+		"""
+		The invoice fails to post its ledger entries on submit
+		Nothing of the attempt is kept and the error is left as a comment
+		"""
+		purchase_order = get_purchase_order(
+			company=get_default_company(),
+			item_code=choice(self.items), # type: ignore
+			qty=10,
+			rate=500
+		) # type: ignore
+		purchase_order.insert()
+		purchase_order.submit()
+
+		purchase_receipt = make_purchase_receipt(purchase_order.name)
+		purchase_receipt.insert()
+		purchase_receipt.submit()
+
+		pending_purchase_invoice = get_pending_purchase_invoice(
+			supplier = purchase_order.supplier,
+			amount = purchase_receipt.net_total,
+			purchase_order = purchase_order.name
+		)
+
+		error = "Cannot create accounting entries against disabled accounts"
+		with patch(
+			"erpnext.accounts.doctype.purchase_invoice.purchase_invoice.PurchaseInvoice.make_gl_entries",
+			side_effect=frappe.ValidationError(error),
+		):
+			pending_purchase_invoice.insert(ignore_permissions=True, ignore_mandatory=True)
+
+		self.assertFalse(frappe.db.exists("Purchase Invoice", {"pending_purchase_invoice": pending_purchase_invoice.name}))
+		self.assertEqual(flt(frappe.db.get_value("Purchase Receipt", purchase_receipt.name, "per_billed")), 0)
+		pending_purchase_invoice.reload()
+		self.assertNotEqual(pending_purchase_invoice.status, "Completed")
+		self.assertTrue(
+			frappe.db.exists(
+				"Comment",
+				{
+					"reference_doctype": "Pending Purchase Invoice",
+					"reference_name": pending_purchase_invoice.name,
+					"content": error,
+				},
+			)
+		)
 
 
 def get_purchase_order(company, item_code, qty, rate, **kwargs):
