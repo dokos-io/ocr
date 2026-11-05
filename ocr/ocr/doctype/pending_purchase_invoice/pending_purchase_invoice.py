@@ -43,6 +43,8 @@ ItemDetails = frappe._dict
 
 EXCLUDED_FIELDS = [*default_fields, *child_table_fields, "status"]
 
+AUTO_RECONCILE_SAVEPOINT = "ocr_auto_reconcile"
+
 REFERENCE_FIELDS = {
 	"Purchase Order": {"reference_docname": "purchase_order", "row": "po_detail"},
 	"Purchase Receipt": {"reference_docname": "purchase_receipt", "row": "pr_detail"},
@@ -897,12 +899,7 @@ class PendingPurchaseInvoice(Document):
 
 			net_total = abs(flt(self.net_total, precision=precision)) if self.is_return else flt(self.net_total, precision=precision) # type: ignore
 			if flt(self.supplier_net_amount, precision=precision) == net_total: # type: ignore
-				try:
-					doc = self.create_purchase_invoice(submit=settings.auto_submit_purchase_invoices) # type: ignore
-					self.add_comment(text=_("Purchase invoice {0} has been automatically created for this invoice.").format(doc.name))
-				except Exception as e:
-					self.add_comment(text=str(e))
-					raise e
+				self.create_reconciled_purchase_invoice(submit=settings.auto_submit_purchase_invoices) # type: ignore
 			else:
 				self.add_comment(text=_("The automatic reconciliation has failed because the totals do not match"))
 
@@ -911,6 +908,25 @@ class PendingPurchaseInvoice(Document):
 		else:
 			self.add_comment(text=_("The automatic reconciliation has failed for because the net total is higher than {0}").format(fmt_money(max_amount, currency=self.currency)))
 
+
+	def create_reconciled_purchase_invoice(self, submit=False):
+		"""Create the purchase invoice of an automatic reconciliation, or undo the whole attempt.
+
+		Submit can fail after the invoice row is already written, for example when the
+		ledger rejects a disabled account. Without the rollback, a caller that catches
+		the error and commits keeps a submitted invoice with no ledger entries. The error
+		is kept as a comment on this document, so the save itself does not fail.
+		"""
+		frappe.db.savepoint(AUTO_RECONCILE_SAVEPOINT)
+		try:
+			doc = self.create_purchase_invoice(submit=submit)
+		except Exception as e:
+			frappe.db.rollback(save_point=AUTO_RECONCILE_SAVEPOINT)
+			self.add_comment(text=str(e))
+			return
+
+		frappe.db.release_savepoint(AUTO_RECONCILE_SAVEPOINT)
+		self.add_comment(text=_("Purchase invoice {0} has been automatically created for this invoice.").format(doc.name))
 
 	def get_pending_invoicing_amount(self):
 		total_per_ref = defaultdict(dict)
